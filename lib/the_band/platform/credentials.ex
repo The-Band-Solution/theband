@@ -273,15 +273,18 @@ defmodule TheBand.Platform.Credentials do
                setup_token,
                :codigo,
                &AccessEvents.operador_definicao_recusada/2
-             ) do
-        # A política de senha roda ANTES de gravar: um `{:error, changeset}` desfaz a transação, e
-        # o código de definição continua valendo.
-        case Operator.validar_senha(Segredo.expor(senha)) do
-          {:ok, hash} -> definir(op, hash)
-          {:error, changeset} -> Repo.rollback(changeset)
-        end
-      end
+             ),
+           do: definir_se_a_senha_vale(op, senha)
     end)
+  end
+
+  # A política de senha roda ANTES de gravar: um `{:error, changeset}` desfaz a transação, e o
+  # código de definição continua valendo.
+  defp definir_se_a_senha_vale(op, senha) do
+    case Operator.validar_senha(Segredo.expor(senha)) do
+      {:ok, hash} -> definir(op, hash)
+      {:error, changeset} -> Repo.rollback(changeset)
+    end
   end
 
   defp definir(op, hash) do
@@ -349,17 +352,17 @@ defmodule TheBand.Platform.Credentials do
                enrollment_token,
                :codigo_de_cadastro,
                &AccessEvents.operador_cadastro_recusado/2
-             ) do
-        # O TOTP errado NÃO consome o código de cadastro, e conta só em `failed_attempts` (T12).
-        case SegundoFator.conferir(segredo_totp(op), codigo, nil, DateTime.utc_now()) do
-          {:ok, passo} ->
-            confirmar(op, passo)
-
-          {:error, _} ->
-            falhar_passo(op, :totp_errado, &AccessEvents.operador_cadastro_recusado/2)
-        end
-      end
+             ),
+           do: confirmar_se_o_totp_vale(op, codigo)
     end)
+  end
+
+  # O TOTP errado NÃO consome o código de cadastro, e conta só em `failed_attempts` (T12).
+  defp confirmar_se_o_totp_vale(op, codigo) do
+    case SegundoFator.conferir(segredo_totp(op), codigo, nil, DateTime.utc_now()) do
+      {:ok, passo} -> confirmar(op, passo)
+      {:error, _} -> falhar_passo(op, :totp_errado, &AccessEvents.operador_cadastro_recusado/2)
+    end
   end
 
   defp confirmar(op, passo) do
@@ -469,18 +472,21 @@ defmodule TheBand.Platform.Credentials do
         {:error, :invalid_credentials}
 
       id ->
-        case Repo.transaction(fn ->
-               op = travado(id)
-
-               with :ok <- fora_da_janela(op),
-                    :ok <- concessao_do_passo(op, evento) do
-                 fun.(op)
-               end
-             end) do
-          {:ok, resultado} -> resultado
-          {:error, %Ecto.Changeset{} = changeset} -> {:error, changeset}
-        end
+        transacao_do_passo(id, evento, fun)
     end
+  end
+
+  defp transacao_do_passo(id, evento, fun) do
+    case Repo.transaction(fn -> dentro_do_passo(travado(id), evento, fun) end) do
+      {:ok, resultado} -> resultado
+      {:error, %Ecto.Changeset{} = changeset} -> {:error, changeset}
+    end
+  end
+
+  defp dentro_do_passo(op, evento, fun) do
+    with :ok <- fora_da_janela(op),
+         :ok <- concessao_do_passo(op, evento),
+         do: fun.(op)
   end
 
   # Sem concessão vigente, a recusa única com o custo do hash, e SEM contar falha (A14).
@@ -536,7 +542,7 @@ defmodule TheBand.Platform.Credentials do
 
   defp resumo_do_codigo(bruto), do: :crypto.hash(:sha256, Segredo.expor(bruto))
 
-  # Todo custo de hash passa por aqui, e emite um evento de telemetria — seguranca-autenticacao.md,
+  # Cada custo de hash passa por aqui, e emite um evento de telemetria — seguranca-autenticacao.md,
   # cenário 2 (A3). É o que permite ao teste CONTAR que a recusa por espera e a do e-mail
   # inexistente pagaram o hash, sem cronômetro, que seria instável com o custo baixo do teste.
   defp custo_do_hash(motivo) do

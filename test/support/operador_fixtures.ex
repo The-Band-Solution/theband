@@ -4,7 +4,7 @@ defmodule TheBand.OperadorFixtures do
   caminhos que criam operador (o comando de release e a definição de senha) são tarefas próprias,
   com teste próprio.
   """
-  alias TheBand.Platform.{Grant, Operator, SegundoFator}
+  alias TheBand.Platform.{Credentials, Grant, Grants, Operator, SegundoFator}
   alias TheBand.Repo
   alias TheBand.Segredo
 
@@ -46,35 +46,36 @@ defmodule TheBand.OperadorFixtures do
   até `ate` (`:concedido`, `:passo1`, `:passo2` ou `:completo`). Devolve o que cada passo entregou.
   """
   def pelo_caminho_real(ate \\ :completo) do
-    alias TheBand.Platform.{Credentials, Grants}
     email = "op-#{System.unique_integer([:positive])}@example.org"
     {:ok, {op, _grant, definicao}} = Grants.conceder(email, "Op", "quem rodou")
-    r = %{op: op, email: email, definicao: definicao}
 
-    if ate == :concedido do
-      r
-    else
-      {:ok, {_, %{segredo: segredo, enrollment_token: cadastro}}} =
-        Credentials.definir_senha(email, definicao, Segredo.novo(@senha))
+    [:passo1, :passo2, :completo]
+    |> Enum.take_while(&(ordem(&1) <= ordem(ate)))
+    |> Enum.reduce(%{op: op, email: email, definicao: definicao}, &passo/2)
+  end
 
-      r = Map.merge(r, %{segredo: segredo, cadastro: cadastro})
+  defp ordem(:concedido), do: 0
+  defp ordem(:passo1), do: 1
+  defp ordem(:passo2), do: 2
+  defp ordem(:completo), do: 3
 
-      if ate == :passo1 do
-        r
-      else
-        {:ok, {_, codigos, guarda}} =
-          Credentials.confirmar_segundo_fator(email, cadastro, totp(segredo))
+  defp passo(:passo1, r) do
+    {:ok, {_, %{segredo: segredo, enrollment_token: cadastro}}} =
+      Credentials.definir_senha(r.email, r.definicao, Segredo.novo(@senha))
 
-        r = Map.merge(r, %{codigos: codigos, guarda: guarda})
+    Map.merge(r, %{segredo: segredo, cadastro: cadastro})
+  end
 
-        if ate == :passo2 do
-          r
-        else
-          {:ok, op} = Credentials.concluir_cadastro(email, guarda)
-          Map.put(r, :op, op)
-        end
-      end
-    end
+  defp passo(:passo2, r) do
+    {:ok, {_, codigos, guarda}} =
+      Credentials.confirmar_segundo_fator(r.email, r.cadastro, totp(r.segredo))
+
+    Map.merge(r, %{codigos: codigos, guarda: guarda})
+  end
+
+  defp passo(:completo, r) do
+    {:ok, op} = Credentials.concluir_cadastro(r.email, r.guarda)
+    Map.put(r, :op, op)
   end
 
   @doc "O código TOTP do segredo no instante dado."

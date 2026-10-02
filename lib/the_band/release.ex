@@ -25,6 +25,7 @@ defmodule TheBand.Release do
   esquema em movimento.
   """
 
+  alias TheBand.Platform.Grants
   alias TheBand.Tenants.Bootstrap
   alias TheBand.Tenants.Sessions
 
@@ -224,7 +225,7 @@ defmodule TheBand.Release do
   @doc "Concede o papel de operador e imprime o código de definição, uma vez."
   def conceder_operador(email, nome, declarado_por) do
     em_repo(fn ->
-      case TheBand.Platform.Grants.conceder(email, nome, declarado_por) do
+      case Grants.conceder(email, nome, declarado_por) do
         {:ok, {_op, _grant, codigo}} ->
           IO.puts("operador concedido: #{email}")
           imprimir_codigo(codigo)
@@ -241,7 +242,7 @@ defmodule TheBand.Release do
   @doc "Reinicia a credencial do operador e imprime o código de definição novo, uma vez."
   def reiniciar_credencial_do_operador(email, declarado_por) do
     em_repo(fn ->
-      case TheBand.Platform.Grants.reiniciar_credencial(email, declarado_por) do
+      case Grants.reiniciar_credencial(email, declarado_por) do
         {:ok, codigo} ->
           IO.puts(
             "credencial reiniciada: #{email}. A senha e o segundo fator anteriores não valem mais."
@@ -258,7 +259,7 @@ defmodule TheBand.Release do
   @doc "Revoga o papel de operador, e as sessões dele caem na mesma transação."
   def revogar_operador(email, declarado_por, nota \\ nil) do
     em_repo(fn ->
-      case TheBand.Platform.Grants.revogar(email, declarado_por, nota) do
+      case Grants.revogar(email, declarado_por, nota) do
         {:ok, _grant} -> IO.puts("operador revogado: #{email}. As sessões dele foram encerradas.")
         {:error, :not_found} -> IO.puts("#{email} não tem concessão vigente. Nada foi feito.")
       end
