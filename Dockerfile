@@ -78,7 +78,9 @@ USER root
 COPY --from=builder --chown=root:root /app/_build/prod/rel/the_band ./
 COPY --from=builder --chown=root:root --chmod=0755 /app/rel/entrypoint.sh /app/entrypoint.sh
 COPY --from=builder --chown=root:root --chmod=0755 /app/rel/saude.sh /app/bin/saude
-RUN chown -R root:root /app && chmod -R go-w /app
+# #1162 (B1): o cookie gravado na imagem era o mesmo em todo contêiner da versão. Ele sai, e o
+# entrypoint gera um a cada start; sem o arquivo, a release recusa, em vez de voltar a este.
+RUN chown -R root:root /app && chmod -R go-w /app && rm /app/releases/COOKIE
 
 EXPOSE 4000
 ENV PHX_SERVER=true
