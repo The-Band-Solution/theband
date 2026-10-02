@@ -22,7 +22,7 @@ defmodule TheBandWeb.Router do
          "frame-ancestors 'none'"
 
   @doc false
-  # Para `TheBandWeb.Plataforma.Borda`, que põe a mesma CSP antes do roteador (070, T038).
+  # Para `TheBandWeb.Plugs.Borda`, que põe a mesma CSP antes do roteador (070/T038, #1135).
   def csp, do: @csp
 
   pipeline :browser do
@@ -65,7 +65,7 @@ defmodule TheBandWeb.Router do
     plug :protect_from_forgery
 
     # A recusa de CSRF LEVANTA, e a página de erro sai da conexão de antes da pipeline: por isso a
-    # CSP e o `no-store` também são postos na borda do endpoint (`TheBandWeb.Plataforma.Borda`).
+    # CSP e o `no-store` também são postos na borda do endpoint (`TheBandWeb.Plugs.Borda`).
     plug :put_secure_browser_headers, %{"content-security-policy" => @csp}
     plug :no_store
     plug TheBandWeb.Plataforma.OperatorScope

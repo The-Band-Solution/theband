@@ -32,7 +32,7 @@ end
 ```
 
 **Emendado em 2026-10-02 por T038**: a CSP e o `no-store` são postos **também na borda do
-endpoint**, antes do roteador, por `TheBandWeb.Plataforma.Borda`, para todo caminho de `/platform`.
+endpoint**, antes do roteador, por `TheBandWeb.Plugs.Borda`, para todo caminho de `/platform` (e, desde a #1135, para todo caminho de tela do domínio, sem o `no-store`).
 `protect_from_forgery` levanta `InvalidCSRFTokenError`, e o endpoint desenha o `403` a partir da
 conexão de quando ela entrou no roteador. Medido: sem a borda, a página saía só com `content-type`,
 `cache-control` padrão e `x-request-id`, sem CSP e sem `no-store`.

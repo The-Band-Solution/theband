@@ -51,7 +51,7 @@ defmodule TheBandWeb.Plataforma.CabecalhosTest do
   end
 
   # A recusa de CSRF levanta, e a página de erro sai da conexão de antes da pipeline. Os cabeçalhos
-  # vêm de `TheBandWeb.Plataforma.Borda`, no endpoint; sem ela, saíam sem CSP (medido em T038).
+  # vêm de `TheBandWeb.Plugs.Borda`, no endpoint; sem ela, saíam sem CSP (medido em T038).
   test "o POST sem token de CSRF é recusado com 403, e com os cabeçalhos" do
     for caminho <- ["/platform/session", "/platform/organizations/x/suspension", "/platform/x"] do
       {403, cabecalhos, _corpo} =
