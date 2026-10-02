@@ -16,6 +16,8 @@ defmodule TheBand.ContadorDeConsultasUnicoTest do
 
   # Os que CAPTURAM uma consulta, e não CONTAM. Não sofrem com o tick do Oban, porque filtram.
   @capturas %{
+    "test/the_band/tenants/ultimo_admin_ativo_test.exs" =>
+      "captura o SELECT … FOR UPDATE das contas admin ativas, pelo conteúdo",
     "test/the_band/tenants/auth_test.exs" =>
       "captura o SELECT … FOR UPDATE da conta no login (#1046), pelo conteúdo",
     "test/the_band/work_items/custo_da_vigente_test.exs" =>
