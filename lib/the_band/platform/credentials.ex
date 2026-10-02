@@ -105,6 +105,12 @@ defmodule TheBand.Platform.Credentials do
     end
   end
 
+  @doc false
+  # A espera de 0 a 12 falhas, para o teste de paridade da spec 070 (T034) comparar as duas
+  # autenticações pelos valores calculados, e não por literais copiados.
+  @spec tabela_da_espera() :: [non_neg_integer()]
+  def tabela_da_espera, do: Enum.map(0..12, &espera_segundos/1)
+
   defp espera_segundos(tentativas) when tentativas < @tentativas_livres, do: 0
 
   defp espera_segundos(tentativas),

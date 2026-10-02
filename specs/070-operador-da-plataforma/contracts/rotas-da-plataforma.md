@@ -31,6 +31,20 @@ pipeline :plataforma do
 end
 ```
 
+**Emendado em 2026-10-02 por T038**: a CSP e o `no-store` são postos **também na borda do
+endpoint**, antes do roteador, por `TheBandWeb.Plataforma.Borda`, para todo caminho de `/platform`.
+`protect_from_forgery` levanta `InvalidCSRFTokenError`, e o endpoint desenha o `403` a partir da
+conexão de quando ela entrou no roteador. Medido: sem a borda, a página saía só com `content-type`,
+`cache-control` padrão e `x-request-id`, sem CSP e sem `no-store`.
+
+Responder a recusa com o `404` (um plug que resgatasse a exceção) foi tentado e recusado pelo
+Sobelow (`Config.CSRF`: pipeline sem `protect_from_forgery`). Não se abre exceção em gate de
+segurança para isso, e o `protect_from_forgery` literal fica.
+
+O curinga tem uma ação para leitura (`get`) e outra para escrita (`post`, `put`, `patch` e
+`delete`), e as duas respondem pela mesma função. A mesma ação nos dois é o achado
+`Config.CSRFRoute`.
+
 **A CSP é a defesa da mesma origem (A8).** O cookie `_the_band_operator` não chega ao domínio pela
 rede (`Path=/platform`), mas um script da mesma origem o usa: `SameSite` não barra mesma origem, e
 `http_only` impede a leitura, não o uso. Por isso toda resposta de `/platform/*` leva a CSP com
@@ -67,6 +81,16 @@ com um código já consumido, e recebe a recusa. Cenário C8 de `seguranca-totp.
 
 ## As rotas
 
+**Emendado em 2026-10-02 por T039**:
+
+- os passos 2 e 3 levam o `email` num campo oculto, além do código do passo, porque
+  `confirmar_segundo_fator/3` e `concluir_cadastro/2` recebem o e-mail. Ele não é segredo;
+- `password_confirmation` diferente de `password` é conferido no controller **antes** de
+  `definir_senha/3`, e o código de definição não é gasto. A frase dessa recusa, *"The two passwords
+  do not match. Your setup code still works."*, não está no protótipo aprovado, e fica para a
+  conferência da pessoa mantenedora;
+- toda recusa de formulário responde `422`.
+
 | método e caminho | quem | o que faz |
 |---|---|---|
 | `GET /platform/sign-in` | público | formulário de entrada |
@@ -100,6 +124,7 @@ com este contrato emendado **antes** do código. Sem a medição, fica só a esp
 |---|---|
 | anônimo em rota de operador | `404` com o mesmo status, o mesmo conjunto de cabeçalhos de segurança e o mesmo corpo de `GET /platform/caminho-que-nao-existe`, **depois de retirar o `csrf-token`**, que muda a cada resposta (A12) |
 | admin de organização em rota de operador | o mesmo `404` |
+| `POST` sem token de CSRF, em qualquer caminho de `/platform` | o `403` de `ErrorHTML`, igual em todo caminho, com a CSP e o `no-store` da borda (T038). A frase dele (*"Your account is signed in…"*) não é verdadeira para quem não entrou, e fica para a pessoa mantenedora |
 | cookie do operador em `/people`, `/api/v1/people`, `/mcp` | a recusa de quem não tem sessão: redirecionamento a `/sign-in` no navegador, `401` na API e na MCP |
 | `{:error, {:throttled, _}}` em `POST /platform/session`, `/platform/setup`, `/platform/setup/second-factor` ou `/platform/setup/recovery-codes` | **a mesma** resposta de `:invalid_credentials`: frase, status e destino iguais, sem os segundos (A3; `credenciais-do-operador.md`, "Recusa única") |
 | ato bem-sucedido | `302` para `GET /platform/organizations/:slug` (PRG); na requisição do `POST`, **um** `SELECT` em `tenants`, o do ato (U3) |

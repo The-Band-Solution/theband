@@ -4,6 +4,9 @@ defmodule TheBandWeb.Router do
   import TheBandWeb.Plugs.CurrentScope,
     only: [require_user: 2, require_admin: 2, require_operacao: 2]
 
+  import TheBandWeb.Plataforma.OperatorScope,
+    only: [require_operator: 2, no_store: 2]
+
   # A CSP num atributo — spec 070, T017 (A8). A pipeline das telas de domínio e a da área do
   # operador (`/platform`, mesma origem) usam o MESMO valor: duas cópias divergiriam no dia em
   # que alguém apertasse uma e esquecesse a outra. O valor não mudou na extração; o teste
@@ -17,6 +20,10 @@ defmodule TheBandWeb.Router do
          "base-uri 'self'; " <>
          "form-action 'self'; " <>
          "frame-ancestors 'none'"
+
+  @doc false
+  # Para `TheBandWeb.Plataforma.Borda`, que põe a mesma CSP antes do roteador (070, T038).
+  def csp, do: @csp
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -42,6 +49,26 @@ defmodule TheBandWeb.Router do
     plug :put_secure_browser_headers, %{"content-security-policy" => @csp}
 
     plug TheBandWeb.Plugs.CurrentScope
+  end
+
+  # A área do operador da plataforma — spec 070, T036 (FR-009, FR-011). Contrato em
+  # `specs/070-operador-da-plataforma/contracts/rotas-da-plataforma.md`.
+  #
+  # **Sem `CurrentScope`**: a sessão das organizações não é lida aqui, e o operador não é uma
+  # conta de organização. `fetch_session` está só pelo token de CSRF; a sessão do operador vem do
+  # cookie próprio, que `OperatorScope` lê. A CSP é a MESMA de `:browser` (A8): é ela que impede
+  # um script da mesma origem de usar o cookie do operador.
+  pipeline :plataforma do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :put_root_layout, html: {TheBandWeb.Layouts, :root}
+    plug :protect_from_forgery
+
+    # A recusa de CSRF LEVANTA, e a página de erro sai da conexão de antes da pipeline: por isso a
+    # CSP e o `no-store` também são postos na borda do endpoint (`TheBandWeb.Plataforma.Borda`).
+    plug :put_secure_browser_headers, %{"content-security-policy" => @csp}
+    plug :no_store
+    plug TheBandWeb.Plataforma.OperatorScope
   end
 
   pipeline :api do
@@ -134,6 +161,45 @@ defmodule TheBandWeb.Router do
     pipe_through [:api, :api_autenticada]
 
     forward "/", TheBandWeb.MCP.Porta
+  end
+
+  # As rotas de `rotas-da-plataforma.md`. As de organização respondem o `404` do curinga até T040.
+  scope "/platform", TheBandWeb.Plataforma do
+    pipe_through :plataforma
+
+    get "/sign-in", EntradaController, :new
+    post "/session", EntradaController, :create
+    get "/setup", CadastroController, :new
+    post "/setup", CadastroController, :create
+    post "/setup/second-factor", CadastroController, :second_factor
+    post "/setup/recovery-codes", CadastroController, :recovery_codes
+
+    scope "/" do
+      pipe_through :require_operator
+
+      delete "/session", EntradaController, :delete
+      get "/organizations", OrganizacaoController, :index
+      get "/organizations/:slug", CaminhoController, :nao_encontrado
+      post "/organizations/:slug/suspension", CaminhoController, :nao_encontrado_na_escrita
+      post "/organizations/:slug/reactivation", CaminhoController, :nao_encontrado_na_escrita
+    end
+
+    # POR ÚLTIMO (A12): o caminho que não existe recebe o mesmo `404` de `require_operator`, com os
+    # mesmos cabeçalhos — sem esta linha, ele cairia no `404` do endpoint, sem a pipeline, e a
+    # diferença de cabeçalhos diria quais caminhos são rotas de operador.
+    #
+    # Uma ação para leitura e outra para escrita: a mesma ação em `GET` e em `POST` é o achado
+    # `Config.CSRFRoute` do Sobelow. As duas respondem pela mesma função.
+    get "/", CaminhoController, :nao_encontrado
+    get "/*caminho", CaminhoController, :nao_encontrado
+    post "/", CaminhoController, :nao_encontrado_na_escrita
+    post "/*caminho", CaminhoController, :nao_encontrado_na_escrita
+    put "/", CaminhoController, :nao_encontrado_na_escrita
+    put "/*caminho", CaminhoController, :nao_encontrado_na_escrita
+    patch "/", CaminhoController, :nao_encontrado_na_escrita
+    patch "/*caminho", CaminhoController, :nao_encontrado_na_escrita
+    delete "/", CaminhoController, :nao_encontrado_na_escrita
+    delete "/*caminho", CaminhoController, :nao_encontrado_na_escrita
   end
 
   # A descrição OpenAPI, em JSON. **Sem credencial**, de propósito: ela descreve a forma da

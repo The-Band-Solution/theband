@@ -39,6 +39,17 @@ No sucesso, grava `last_seen_at = agora` com `update_all` condicional, no máxim
 minuto, para não escrever a cada requisição. As duas constantes (8 h e 30 min) são atributos
 nomeados, com o motivo escrito.
 
+### `autorizada(OperatorSession.t()) :: :ok | {:error, :nao_autorizado}`
+
+**Emendado em 2026-10-02**, na implementação de `listar_organizacoes/1`. É a conferência "por
+dentro" que `suspensao.md` exige de toda função de `TheBand.Platform` (FR-014, O6). Relê do banco a
+sessão recebida, numa consulta só: aberta, menos de 8 h desde `inserted_at`, menos de 30 min desde
+`last_seen_at`, época igual à do operador e concessão vigente. Qualquer falha é `:nao_autorizado`.
+Não confere o segredo, que o plug já conferiu, nem grava `last_seen_at`.
+
+O `FOR SHARE` do passo `:autorizacao` de `suspender/3` e `reativar/3` (A15) entra com eles, em T049.
+Ele não entra antes, porque não haveria chamador que o provasse.
+
 ### `encerrar(OperatorSession.t()) :: :ok`
 
 ### `encerrar_do_operador(Operator.t()) :: {:ok, non_neg_integer()}`

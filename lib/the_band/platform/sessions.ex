@@ -126,6 +126,34 @@ defmodule TheBand.Platform.Sessions do
 
   defp resumo(bruto), do: :crypto.hash(:sha256, bruto)
 
+  @doc """
+  A sessão ainda autoriza? Relida do banco, e não da struct: aberta, no prazo, na época da senha e
+  com a concessão vigente (FR-014, O6). É o que toda função de `TheBand.Platform` confere **por
+  dentro**, porque ter passado pelo plug não basta: a revogação pode ter vindo entre os dois.
+
+  O `FOR SHARE` do ato (A15) entra com `suspender/3`, em T049.
+  """
+  @spec autorizada(OperatorSession.t()) :: :ok | {:error, :nao_autorizado}
+  def autorizada(%OperatorSession{id: id}) do
+    agora = DateTime.utc_now(:second)
+    aberta_depois = DateTime.add(agora, -@validade_s, :second)
+    usada_depois = DateTime.add(agora, -@inatividade_s, :second)
+
+    consulta =
+      from(s in OperatorSession,
+        join: o in Operator,
+        on: o.id == s.operator_id,
+        join: g in Grant,
+        on: g.operator_id == o.id and is_nil(g.revoked_at),
+        where:
+          s.id == ^id and is_nil(s.ended_at) and s.inserted_at > ^aberta_depois and
+            s.last_seen_at > ^usada_depois and s.password_epoch == o.password_epoch,
+        select: s.id
+      )
+
+    if Repo.exists?(consulta), do: :ok, else: {:error, :nao_autorizado}
+  end
+
   @doc "Encerra aquela sessão. Encerrar de novo não muda a data do primeiro encerramento."
   @spec encerrar(OperatorSession.t()) :: :ok
   def encerrar(%OperatorSession{id: id}) do
