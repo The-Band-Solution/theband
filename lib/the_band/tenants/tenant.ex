@@ -26,11 +26,20 @@ defmodule TheBand.Tenants.Tenant do
     timestamps(type: :utc_datetime)
   end
 
+  @estados ~w(active suspended)
+
+  # `:status` NÃO está no `cast` — spec 070, T013, achado O10. Com ele castável, qualquer chamador
+  # de `create_tenant/1` ou deste changeset mudava o estado da organização sem episódio, sem autor
+  # e sem razão. O estado só muda pela suspensão e pela reativação do operador da plataforma
+  # (`Tenants.trocar_estado_no_multi/5`). A validação e a constraint ficam para o valor que entra
+  # pelo `default` ou por aquele caminho.
   def changeset(tenant, attrs) do
     tenant
-    |> cast(attrs, [:name, :slug, :status])
+    |> cast(attrs, [:name, :slug])
     |> validate_required([:name, :slug])
     |> validate_format(:slug, ~r/^[a-z0-9-]+$/, message: "usa apenas minúsculas, números e hífen")
+    |> validate_inclusion(:status, @estados)
     |> unique_constraint(:slug)
+    |> check_constraint(:status, name: :tenants_status_valido)
   end
 end

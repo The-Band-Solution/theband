@@ -70,7 +70,7 @@ operador. A US1 continua sendo o defeito #1009 e o motivo da feature.
 **Propósito**: o que precisa ser verdade antes de qualquer linha em `lib/` ou `test/`. Nenhuma
 destas tarefas escreve código da 070.
 
-- [ ] T001 Conferir os pré-requisitos já mergeados
+- [x] T001 Conferir os pré-requisitos já mergeados
   - **Pronta quando**: nada além do repositório
   - **Descrição**: confirmar, com `gh pr view <n> --json state,mergedAt,baseRefName`, que os PRs
     **#1038** (#1033, `Tenants.ensure_active/1`, FR-012), **#1039** (#1034, `Access.operacional?/2`
@@ -88,7 +88,7 @@ destas tarefas escreve código da 070.
   - **Teste**: `git grep -n "def ensure_active\|def avisar_encerramento" origin/development -- lib/`
     devolve as duas definições
 
-- [ ] T002 Esperar o merge da correção da espera paralela
+- [x] T002 Esperar o merge da correção da espera paralela
   - **Pronta quando**: nada além do repositório
   - **Descrição**: o PR **#1048** (issue #1046, achado **A1** nas contas de organização) precisa
     estar mergeado em `development`. `Platform.Credentials` **copia** a política de
@@ -102,7 +102,7 @@ destas tarefas escreve código da 070.
     verificação (conferido por T008, `contracts/credenciais-do-operador.md`). **Falta** o
     comentário na issue, que só existe depois de T006; por isso a tarefa continua aberta (L109)
 
-- [ ] T003 Esperar o merge da correção do custo na espera
+- [x] T003 Esperar o merge da correção do custo na espera
   - **Pronta quando**: nada além do repositório
   - **Descrição**: a issue **#1047** (achado **A3** nas contas de organização: a espera responde sem
     custo de hash e revela se o e-mail existe) precisa de PR aberto e mergeado em `development`.
@@ -115,7 +115,7 @@ destas tarefas escreve código da 070.
     `gh pr view 1049 --json state` → **`MERGED`** (23:58Z), e a issue #1047 está fechada. Os dois
     critérios estão cumpridos; marcar `[x]` quando T006 der a issue em que se cola a saída
 
-- [ ] T003a Esperar o merge da rotação que recifra todos os campos cifrados — **bloqueante** (seguranca-totp.md T3)
+- [x] T003a Esperar o merge da rotação que recifra todos os campos cifrados — **bloqueante** (seguranca-totp.md T3)
   - **Pronta quando**: nada além do repositório
   - **Descrição**: a issue **#1052** (`bug` + `security`; achado **T3** de `seguranca-totp.md`,
     decisão da pessoa mantenedora em 2026-10-01: issue separada e anterior) precisa estar mergeada
@@ -285,7 +285,7 @@ template começa antes de T012.
     guarda dos códigos de recuperação (Q3 (b)); contagens de sessões e tokens só no evento (Q4 (b)).
     As três primeiras já estão emendadas nos contratos
 
-- [ ] T013 [P] Restringir o estado da organização
+- [x] T013 [P] Restringir o estado da organização
   - **Pronta quando**: T007 concluída; `contracts/sessoes-e-tokens-da-organizacao.md`, seção
     `TheBand.Tenants.Tenant`
   - **Descrição**: migração `priv/repo/migrations/<ts>_estado_da_organizacao_valido.exs` com
@@ -307,7 +307,7 @@ template começa antes de T012.
     ecto.migrate` seguido de `mix ecto.rollback --step 1` sem erro. **Defeito a injetar**: devolver
     `:status` ao `cast`; o primeiro caso precisa reprovar
 
-- [ ] T014 [P] Declarar as razões de suspensão na base — lista aprovada pela pessoa mantenedora em 2026-10-01, como em data-model §5
+- [x] T014 [P] Declarar as razões de suspensão na base — lista aprovada pela pessoa mantenedora em 2026-10-01, como em data-model §5
   - **Pronta quando**: T007 concluída; `data-model.md` §5 (lista **proposta**)
   - **Descrição**: `priv/knowledge_base/rules/platform_tenant_suspension.yaml`, `derivation_rule:`
     de id `platform.tenant_suspension`, `provenance.source_type: project_decision`, na forma de
@@ -319,7 +319,7 @@ template começa antes de T012.
   - **Teste**: `mix knowledge.validate > /tmp/kv.log 2>&1; echo "EXIT=$?"` dá `0`; com o `id`
     duplicado de propósito, dá diferente de zero
 
-- [ ] T015 [P] Declarar a cláusula de revogação só registrada
+- [x] T015 [P] Declarar a cláusula de revogação só registrada
   - **Pronta quando**: T007 concluída; `data-model.md` §6, `api_access_tokens`
   - **Descrição**: `priv/knowledge_base/rules/api_access_thresholds.yaml` ganha
     `clausulas_so_registradas: [organizacao_suspensa]` com rótulo pt-BR e en. FR-013
@@ -327,7 +327,7 @@ template começa antes de T012.
     oferecidas (afirmado em T047)
   - **Teste**: `mix knowledge.validate` dá `0`, e o teste de T047 lê a chave
 
-- [ ] T016 [P] Ensinar o log a dizer o operador e a calar o segredo
+- [x] T016 [P] Ensinar o log a dizer o operador e a calar o segredo
   - **Pronta quando**: T007 concluída; `contracts/eventos-de-acesso.md`;
     `contracts/credenciais-do-operador.md` (A10)
   - **Descrição**: `config/config.exs`: `:operator_id` na lista de metadados do formatador (O14,
@@ -340,7 +340,7 @@ template começa antes de T012.
     filtrados (cenário 9 de `seguranca-autenticacao.md`). **Defeito a injetar**: retirar `"code"`
     da lista; o terceiro precisa vazar e o teste reprovar
 
-- [ ] T017 [P] Compartilhar a CSP entre as duas pipelines
+- [x] T017 [P] Compartilhar a CSP entre as duas pipelines
   - **Pronta quando**: T007 concluída; `contracts/rotas-da-plataforma.md`, "A pipeline"
   - **Descrição**: em `lib/the_band_web/router.ex`, extrair a CSP de `:browser` (`router.ex:28-39`)
     para um atributo de módulo, sem mudar o valor, para a pipeline `:plataforma` (T036) usar o

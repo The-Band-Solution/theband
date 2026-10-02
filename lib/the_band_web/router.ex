@@ -4,6 +4,20 @@ defmodule TheBandWeb.Router do
   import TheBandWeb.Plugs.CurrentScope,
     only: [require_user: 2, require_admin: 2, require_operacao: 2]
 
+  # A CSP num atributo — spec 070, T017 (A8). A pipeline das telas de domínio e a da área do
+  # operador (`/platform`, mesma origem) usam o MESMO valor: duas cópias divergiriam no dia em
+  # que alguém apertasse uma e esquecesse a outra. O valor não mudou na extração; o teste
+  # `test/the_band_web/csp_test.exs` guarda o literal de antes.
+  @csp "default-src 'self'; " <>
+         "script-src 'self'; " <>
+         "style-src 'self' 'unsafe-inline'; " <>
+         "img-src 'self' data:; " <>
+         "font-src 'self' data:; " <>
+         "connect-src 'self' ws: wss:; " <>
+         "base-uri 'self'; " <>
+         "form-action 'self'; " <>
+         "frame-ancestors 'none'"
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -25,18 +39,7 @@ defmodule TheBandWeb.Router do
     # **`'unsafe-inline'` em `style-src` é concessão declarada**, não descuido: removê-la
     # exige `'unsafe-hashes'` com hash por atributo, que o LiveView gera em tempo de execução.
     # ------------------------------------------------------------------------
-    plug :put_secure_browser_headers, %{
-      "content-security-policy" =>
-        "default-src 'self'; " <>
-          "script-src 'self'; " <>
-          "style-src 'self' 'unsafe-inline'; " <>
-          "img-src 'self' data:; " <>
-          "font-src 'self' data:; " <>
-          "connect-src 'self' ws: wss:; " <>
-          "base-uri 'self'; " <>
-          "form-action 'self'; " <>
-          "frame-ancestors 'none'"
-    }
+    plug :put_secure_browser_headers, %{"content-security-policy" => @csp}
 
     plug TheBandWeb.Plugs.CurrentScope
   end
