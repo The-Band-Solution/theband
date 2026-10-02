@@ -48,7 +48,8 @@ defmodule TheBand.Platform.EpisodioNaoSeReescreveTest do
   test "DELETE, TRUNCATE e UPDATE da abertura levantam", %{aberto: aberto} do
     for sql <- [
           {"DELETE FROM tenant_suspensions WHERE id = $1", [uuid(aberto)]},
-          {"TRUNCATE tenant_suspensions", []},
+          # CASCADE: sem ele, a FK de `api_access_tokens` (T047) recusa antes de o trigger rodar.
+          {"TRUNCATE tenant_suspensions CASCADE", []},
           {"UPDATE tenant_suspensions SET suspend_reason = 'other' WHERE id = $1", [uuid(aberto)]}
         ] do
       {texto, params} = sql
