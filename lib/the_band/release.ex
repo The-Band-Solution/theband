@@ -25,6 +25,7 @@ defmodule TheBand.Release do
   esquema em movimento.
   """
 
+  alias TheBand.Platform.Grants
   alias TheBand.Tenants.Bootstrap
   alias TheBand.Tenants.Sessions
 
@@ -110,7 +111,13 @@ defmodule TheBand.Release do
       {:ok, _, _} =
         Ecto.Migrator.with_repo(repo, fn _ ->
           {:ok, n} = Sessions.girar_todas()
-          IO.puts("#{n} sessão(ões) encerrada(s). Todas as pessoas precisam entrar de novo.")
+          # As do operador da plataforma também caem no giro — spec 070, T032.
+          {:ok, op} = TheBand.Platform.Sessions.encerrar_todas()
+
+          IO.puts(
+            "#{n} sessão(ões) encerrada(s), e #{op} sessão(ões) de operador. " <>
+              "Todas as pessoas precisam entrar de novo."
+          )
 
           # O aviso às telas abertas não sai desta VM (#1050). Com a aplicação no ar, o caminho
           # é `girar_sessoes/0` por `rpc`; este é o da aplicação parada, depois de restaurar.
@@ -139,9 +146,10 @@ defmodule TheBand.Release do
   @spec girar_sessoes() :: String.t()
   def girar_sessoes do
     {:ok, n} = Sessions.girar_todas()
+    {:ok, op} = TheBand.Platform.Sessions.encerrar_todas()
 
-    "#{n} sessão(ões) encerrada(s), e as telas abertas foram avisadas. " <>
-      "Todas as pessoas precisam entrar de novo."
+    "#{n} sessão(ões) encerrada(s), e as telas abertas foram avisadas; " <>
+      "#{op} sessão(ões) de operador encerrada(s). Todas as pessoas precisam entrar de novo."
   end
 
   @doc """
@@ -199,6 +207,80 @@ defmodule TheBand.Release do
   def rollback(repo, version) do
     load_app()
     {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :down, to: version))
+  end
+
+  # ------------------------------------------- o operador da plataforma (spec 070, T032)
+  #
+  # O ÚNICO caminho que concede, reinicia e revoga o papel (FR-001): nenhuma tela o faz. Pelo
+  # Dokploy:
+  #
+  #     /app/bin/the_band eval 'TheBand.Release.conceder_operador("email", "Nome", "quem executa")'
+  #     /app/bin/the_band eval 'TheBand.Release.reiniciar_credencial_do_operador("email", "quem executa")'
+  #     /app/bin/the_band eval 'TheBand.Release.revogar_operador("email", "quem executa", "nota")'
+  #
+  # **Nunca recebem senha** (O4, O11): a senha nasce no navegador, pelo código de definição, que é
+  # a única coisa secreta impressa, uma vez, com a validade. `quem executa` é DECLARADO, e não
+  # autenticado: a prova de quem rodou é o acesso ao Dokploy, fora da aplicação.
+
+  @doc "Concede o papel de operador e imprime o código de definição, uma vez."
+  def conceder_operador(email, nome, declarado_por) do
+    em_repo(fn ->
+      case Grants.conceder(email, nome, declarado_por) do
+        {:ok, {_op, _grant, codigo}} ->
+          IO.puts("operador concedido: #{email}")
+          imprimir_codigo(codigo)
+
+        {:error, :ja_concedido} ->
+          IO.puts("#{email} já tem a concessão vigente. Nada foi feito.")
+
+        {:error, changeset} ->
+          IO.puts("recusado: #{inspect(changeset.errors)}")
+      end
+    end)
+  end
+
+  @doc "Reinicia a credencial do operador e imprime o código de definição novo, uma vez."
+  def reiniciar_credencial_do_operador(email, declarado_por) do
+    em_repo(fn ->
+      case Grants.reiniciar_credencial(email, declarado_por) do
+        {:ok, codigo} ->
+          IO.puts(
+            "credencial reiniciada: #{email}. A senha e o segundo fator anteriores não valem mais."
+          )
+
+          imprimir_codigo(codigo)
+
+        {:error, :not_found} ->
+          IO.puts("#{email} não é operador com concessão vigente. Nada foi feito.")
+      end
+    end)
+  end
+
+  @doc "Revoga o papel de operador, e as sessões dele caem na mesma transação."
+  def revogar_operador(email, declarado_por, nota \\ nil) do
+    em_repo(fn ->
+      case Grants.revogar(email, declarado_por, nota) do
+        {:ok, _grant} -> IO.puts("operador revogado: #{email}. As sessões dele foram encerradas.")
+        {:error, :not_found} -> IO.puts("#{email} não tem concessão vigente. Nada foi feito.")
+      end
+    end)
+  end
+
+  defp imprimir_codigo(codigo) do
+    IO.puts("""
+    código de definição (vale 30 minutos, uma vez): #{TheBand.Segredo.expor(codigo)}
+    Entregue-o à pessoa por um canal seguro. Ele não será mostrado de novo.
+    """)
+  end
+
+  defp em_repo(fun) do
+    load_app()
+
+    for repo <- repos() do
+      {:ok, _, _} = Ecto.Migrator.with_repo(repo, fn _ -> fun.() end)
+    end
+
+    :ok
   end
 
   defp repos do

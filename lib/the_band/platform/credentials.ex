@@ -28,7 +28,7 @@ defmodule TheBand.Platform.Credentials do
 
   import Ecto.Query
 
-  alias TheBand.Platform.{Grant, Operator, RecoveryCode, SegundoFator}
+  alias TheBand.Platform.{Grant, Operator, RecoveryCode, SegundoFator, Sessions}
   alias TheBand.Repo
   alias TheBand.Segredo
   alias TheBand.Tenants.AccessEvents
@@ -56,7 +56,7 @@ defmodule TheBand.Platform.Credentials do
   def autenticar(email, senha, segundo_fator) when is_binary(email) do
     case operador_por_email(email) do
       nil ->
-        Bcrypt.no_user_verify()
+        custo_do_hash(:sem_senha_a_conferir)
         recusar(nil, :identificador_nao_resolveu)
 
       id ->
@@ -98,7 +98,7 @@ defmodule TheBand.Platform.Credentials do
 
     if restante > 0 do
       AccessEvents.operador_espera_acionada(op.id, restante)
-      Bcrypt.no_user_verify()
+      custo_do_hash(:sem_senha_a_conferir)
       {:error, {:throttled, restante}}
     else
       :ok
@@ -115,18 +115,18 @@ defmodule TheBand.Platform.Credentials do
     if Repo.exists?(from g in Grant, where: g.operator_id == ^id and is_nil(g.revoked_at)) do
       :ok
     else
-      Bcrypt.no_user_verify()
+      custo_do_hash(:sem_senha_a_conferir)
       recusar(op, :sem_concessao)
     end
   end
 
   defp senha_certa(%Operator{password_hash: nil} = op, _senha) do
-    Bcrypt.no_user_verify()
+    custo_do_hash(:sem_senha_a_conferir)
     falhar(op, :sem_senha, false)
   end
 
   defp senha_certa(%Operator{password_hash: hash} = op, senha) do
-    if Bcrypt.verify_pass(Segredo.expor(senha), hash),
+    if conferir_senha(senha, hash),
       do: :ok,
       else: falhar(op, :senha_errada, false)
   end
@@ -237,6 +237,332 @@ defmodule TheBand.Platform.Credentials do
       do: AccessEvents.operador_segundo_fator_travado(op.id)
 
     recusar(op, motivo)
+  end
+
+  # ------------------------------------------------------ os três passos do cadastro (T026)
+  #
+  # O fluxo está em `contracts/segundo-fator-do-operador.md`, "O fluxo de cadastro" (emenda T012):
+  # o passo 1 define a senha e entrega o segredo, o passo 2 confere o TOTP e entrega os códigos
+  # de recuperação, e o passo 3, depois de a pessoa declarar que os guardou, é o ÚNICO que habilita
+  # a entrada. Os três exigem concessão vigente (A14) e consomem o seu código de forma atômica, na
+  # transação com a linha travada (A5).
+
+  # 10 minutos para o código de cadastro e para o de guarda; 30 para o de definição, que sai do
+  # comando de release e precisa caber no tempo de alguém abrir a tela.
+  @validade_curta_s 600
+  @validade_da_definicao_s 1800
+
+  @doc """
+  O primeiro passo: confere o código de definição, define a senha e entrega o segredo TOTP
+  pendente, a URI e o código de cadastro. **Não habilita a entrada.**
+  """
+  @spec definir_senha(String.t(), Segredo.t(), Segredo.t()) ::
+          {:ok,
+           {Operator.t(),
+            %{segredo: Segredo.t(), uri: Segredo.t(), enrollment_token: Segredo.t()}}}
+          | {:error, :invalid_credentials}
+          | {:error, {:throttled, pos_integer()}}
+          | {:error, Ecto.Changeset.t()}
+  def definir_senha(email, setup_token, senha) when is_binary(email) do
+    passo(email, &AccessEvents.operador_definicao_recusada/2, fn op ->
+      with :ok <-
+             codigo_vale(
+               op,
+               :setup_code_hash,
+               :setup_code_expires_at,
+               setup_token,
+               :codigo,
+               &AccessEvents.operador_definicao_recusada/2
+             ),
+           do: definir_se_a_senha_vale(op, senha)
+    end)
+  end
+
+  # A política de senha roda ANTES de gravar: um `{:error, changeset}` desfaz a transação, e o
+  # código de definição continua valendo.
+  defp definir_se_a_senha_vale(op, senha) do
+    case Operator.validar_senha(Segredo.expor(senha)) do
+      {:ok, hash} -> definir(op, hash)
+      {:error, changeset} -> Repo.rollback(changeset)
+    end
+  end
+
+  defp definir(op, hash) do
+    segredo = SegundoFator.gerar_segredo()
+    {cadastro, resumo} = novo_codigo()
+    agora = DateTime.utc_now(:second)
+
+    {1, _} = Repo.update_all(from(o in Operator, where: o.id == ^op.id), inc: [password_epoch: 1])
+
+    op =
+      op
+      |> Ecto.Changeset.change(
+        password_hash: hash,
+        totp_secret: Segredo.expor(segredo),
+        totp_confirmed_at: nil,
+        totp_last_used_step: nil,
+        second_factor_failures: 0,
+        failed_attempts: 0,
+        last_failed_at: nil,
+        setup_code_hash: nil,
+        setup_code_expires_at: nil,
+        enrollment_code_hash: resumo,
+        enrollment_code_expires_at: DateTime.add(agora, @validade_curta_s, :second),
+        ack_code_hash: nil,
+        ack_code_expires_at: nil
+      )
+      |> Repo.update!()
+
+    # Relido: a época subiu por `update_all`, e a struct do changeset ainda traz a de antes. Uma
+    # sessão aberta com ela nasceria recusada por `:epoca_velha`.
+    op = Repo.get!(Operator, op.id)
+
+    # Os códigos de recuperação anteriores deixam de valer; os já usados guardam o `used_at` (T8).
+    Repo.update_all(
+      from(r in RecoveryCode,
+        where: r.operator_id == ^op.id and is_nil(r.used_at) and is_nil(r.invalidated_at)
+      ),
+      set: [invalidated_at: agora]
+    )
+
+    {:ok, _} = Sessions.encerrar_do_operador(op)
+    AccessEvents.operador_senha_definida(op.id)
+
+    {:ok,
+     {op,
+      %{segredo: segredo, uri: SegundoFator.uri(segredo, op.email), enrollment_token: cadastro}}}
+  end
+
+  @doc """
+  O segundo passo: confere o código de cadastro e o TOTP contra o segredo pendente, e entrega os
+  dez códigos de recuperação e o código de guarda. **Não habilita a entrada**: `totp_confirmed_at`
+  continua nulo, e só `concluir_cadastro/2` o grava.
+  """
+  @spec confirmar_segundo_fator(String.t(), Segredo.t(), Segredo.t()) ::
+          {:ok, {Operator.t(), [Segredo.t()], Segredo.t()}}
+          | {:error, :invalid_credentials}
+          | {:error, {:throttled, pos_integer()}}
+  def confirmar_segundo_fator(email, enrollment_token, codigo) when is_binary(email) do
+    passo(email, &AccessEvents.operador_cadastro_recusado/2, fn op ->
+      with :ok <-
+             codigo_vale(
+               op,
+               :enrollment_code_hash,
+               :enrollment_code_expires_at,
+               enrollment_token,
+               :codigo_de_cadastro,
+               &AccessEvents.operador_cadastro_recusado/2
+             ),
+           do: confirmar_se_o_totp_vale(op, codigo)
+    end)
+  end
+
+  # O TOTP errado NÃO consome o código de cadastro, e conta só em `failed_attempts` (T12).
+  defp confirmar_se_o_totp_vale(op, codigo) do
+    case SegundoFator.conferir(segredo_totp(op), codigo, nil, DateTime.utc_now()) do
+      {:ok, passo} -> confirmar(op, passo)
+      {:error, _} -> falhar_passo(op, :totp_errado, &AccessEvents.operador_cadastro_recusado/2)
+    end
+  end
+
+  defp confirmar(op, passo) do
+    codigos = SegundoFator.gerar_codigos_de_recuperacao()
+    {guarda, resumo} = novo_codigo()
+    agora = DateTime.utc_now(:second)
+
+    Repo.insert_all(
+      RecoveryCode,
+      Enum.map(
+        codigos,
+        &%{
+          id: Ecto.UUID.generate(),
+          operator_id: op.id,
+          code_hash: SegundoFator.resumo(&1),
+          inserted_at: agora
+        }
+      )
+    )
+
+    op =
+      op
+      |> Ecto.Changeset.change(
+        totp_last_used_step: passo,
+        failed_attempts: 0,
+        last_failed_at: nil,
+        enrollment_code_hash: nil,
+        enrollment_code_expires_at: nil,
+        ack_code_hash: resumo,
+        ack_code_expires_at: DateTime.add(agora, @validade_curta_s, :second)
+      )
+      |> Repo.update!()
+
+    {:ok, {op, codigos, guarda}}
+  end
+
+  @doc """
+  O terceiro passo: a pessoa declarou que guardou os códigos de recuperação (a caixa, que o
+  controller confere). Consome o código de guarda, grava `totp_confirmed_at`, sobe a época e encerra
+  as sessões. **É a única função que habilita a entrada.** Nunca devolve os códigos.
+  """
+  @spec concluir_cadastro(String.t(), Segredo.t()) ::
+          {:ok, Operator.t()}
+          | {:error, :invalid_credentials}
+          | {:error, {:throttled, pos_integer()}}
+  def concluir_cadastro(email, acknowledgement_token) when is_binary(email) do
+    passo(email, &AccessEvents.operador_cadastro_recusado/2, fn op ->
+      with :ok <-
+             codigo_vale(
+               op,
+               :ack_code_hash,
+               :ack_code_expires_at,
+               acknowledgement_token,
+               :codigo_de_guarda,
+               &AccessEvents.operador_cadastro_recusado/2
+             ) do
+        {1, _} =
+          Repo.update_all(from(o in Operator, where: o.id == ^op.id), inc: [password_epoch: 1])
+
+        op =
+          op
+          |> Ecto.Changeset.change(
+            totp_confirmed_at: DateTime.utc_now(:second),
+            failed_attempts: 0,
+            last_failed_at: nil,
+            ack_code_hash: nil,
+            ack_code_expires_at: nil
+          )
+          |> Repo.update!()
+
+        # Relido, pela mesma razão do passo 1: a época subiu por `update_all`.
+        op = Repo.get!(Operator, op.id)
+        {:ok, _} = Sessions.encerrar_do_operador(op)
+        AccessEvents.operador_segundo_fator_cadastrado(op.id)
+        {:ok, op}
+      end
+    end)
+  end
+
+  @doc """
+  Emite o código de definição (interna ao contexto: só `TheBand.Platform.Grants` chama). 20 bytes
+  aleatórios em base32 minúscula; grava o `sha256` e a validade de 30 minutos, **substituindo** o
+  anterior, e devolve o bruto **uma vez**. Roda na transação de quem chama.
+  """
+  @spec emitir_codigo(Operator.t()) :: {:ok, Segredo.t()}
+  def emitir_codigo(%Operator{} = op) do
+    {codigo, resumo} = novo_codigo()
+
+    op
+    |> Ecto.Changeset.change(
+      setup_code_hash: resumo,
+      setup_code_expires_at:
+        DateTime.add(DateTime.utc_now(:second), @validade_da_definicao_s, :second)
+    )
+    |> Repo.update!()
+
+    {:ok, codigo}
+  end
+
+  # O esqueleto dos três passos: o e-mail resolve, a linha é travada, a espera e a concessão são
+  # conferidas, e só então o passo roda. A recusa volta de dentro da transação (A1).
+  defp passo(email, evento, fun) do
+    case operador_por_email(email) do
+      nil ->
+        custo_do_hash(:sem_senha_a_conferir)
+        evento.(nil, :identificador_nao_resolveu)
+        {:error, :invalid_credentials}
+
+      id ->
+        transacao_do_passo(id, evento, fun)
+    end
+  end
+
+  defp transacao_do_passo(id, evento, fun) do
+    case Repo.transaction(fn -> dentro_do_passo(travado(id), evento, fun) end) do
+      {:ok, resultado} -> resultado
+      {:error, %Ecto.Changeset{} = changeset} -> {:error, changeset}
+    end
+  end
+
+  defp dentro_do_passo(op, evento, fun) do
+    with :ok <- fora_da_janela(op),
+         :ok <- concessao_do_passo(op, evento),
+         do: fun.(op)
+  end
+
+  # Sem concessão vigente, a recusa única com o custo do hash, e SEM contar falha (A14).
+  defp concessao_do_passo(%Operator{id: id} = op, evento) do
+    if Repo.exists?(from g in Grant, where: g.operator_id == ^id and is_nil(g.revoked_at)) do
+      :ok
+    else
+      custo_do_hash(:sem_senha_a_conferir)
+      evento.(op.id, :sem_concessao)
+      {:error, :invalid_credentials}
+    end
+  end
+
+  # O código do passo vale? Ausente, vencido ou errado é a mesma recusa, com o custo do hash, e
+  # conta falha. A comparação é em tempo constante, sobre o `sha256`.
+  defp codigo_vale(op, coluna_hash, coluna_validade, bruto, prefixo, evento) do
+    guardado = Map.fetch!(op, coluna_hash)
+    validade = Map.fetch!(op, coluna_validade)
+
+    cond do
+      is_nil(guardado) ->
+        falhar_passo(op, :sem_codigo, evento)
+
+      DateTime.compare(validade, DateTime.utc_now(:second)) != :gt ->
+        falhar_passo(op, motivo(prefixo, :vencido), evento)
+
+      not Plug.Crypto.secure_compare(resumo_do_codigo(bruto), guardado) ->
+        falhar_passo(op, motivo(prefixo, :errado), evento)
+
+      true ->
+        :ok
+    end
+  end
+
+  # Os motivos por extenso, e não interpolados num átomo: o Sobelow reprova `:"#{x}_errado"`, e
+  # com razão — o próximo a mexer pode trocar a constante por algo que vem de fora.
+  defp motivo(:codigo, :errado), do: :codigo_errado
+  defp motivo(:codigo, :vencido), do: :codigo_vencido
+  defp motivo(:codigo_de_cadastro, :errado), do: :codigo_de_cadastro_errado
+  defp motivo(:codigo_de_cadastro, :vencido), do: :codigo_de_cadastro_vencido
+  defp motivo(:codigo_de_guarda, :errado), do: :codigo_de_guarda_errado
+  defp motivo(:codigo_de_guarda, :vencido), do: :codigo_de_guarda_vencido
+
+  defp falhar_passo(op, motivo, evento) do
+    custo_do_hash(:sem_senha_a_conferir)
+
+    op
+    |> Ecto.Changeset.change(
+      failed_attempts: op.failed_attempts + 1,
+      last_failed_at: DateTime.utc_now(:second)
+    )
+    |> Repo.update!()
+
+    evento.(op.id, motivo)
+    {:error, :invalid_credentials}
+  end
+
+  defp novo_codigo do
+    bruto = :crypto.strong_rand_bytes(20) |> Base.encode32(case: :lower, padding: false)
+    {Segredo.novo(bruto), :crypto.hash(:sha256, bruto)}
+  end
+
+  defp resumo_do_codigo(bruto), do: :crypto.hash(:sha256, Segredo.expor(bruto))
+
+  # Cada custo de hash passa por aqui, e emite um evento de telemetria — seguranca-autenticacao.md,
+  # cenário 2 (A3). É o que permite ao teste CONTAR que a recusa por espera e a do e-mail
+  # inexistente pagaram o hash, sem cronômetro, que seria instável com o custo baixo do teste.
+  defp custo_do_hash(motivo) do
+    Bcrypt.no_user_verify()
+    :telemetry.execute([:the_band, :platform, :custo_do_hash], %{}, %{motivo: motivo})
+  end
+
+  defp conferir_senha(senha, hash) do
+    certa? = Bcrypt.verify_pass(Segredo.expor(senha), hash)
+    :telemetry.execute([:the_band, :platform, :custo_do_hash], %{}, %{motivo: :senha_conferida})
+    certa?
   end
 
   defp recusar(op, motivo) do

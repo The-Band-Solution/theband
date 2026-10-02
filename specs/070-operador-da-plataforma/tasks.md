@@ -489,7 +489,7 @@ recebe o `404` de um caminho inexistente.
     motivo interno de cada um aparece no evento; o sucesso devolve `{:ok, %Operator{}}`
   - **Teste**: `test/the_band/platform/credentials_autenticar_test.exs`, um caso por motivo
 
-- [ ] T023a [US2] Provar que a rotação da chave alcança o segredo TOTP — **bloqueia a release** (seguranca-totp.md T3)
+- [x] T023a [US2] Provar que a rotação da chave alcança o segredo TOTP — **bloqueia a release** (seguranca-totp.md T3)
   - **Pronta quando**: T003a, T021 e T023 concluídas
   - **Descrição**: cenário **C10** de seguranca-totp.md: cifrar com a chave A, cadastrar o segundo
     fator de um operador, rotacionar para B com `mix the_band.rotate_key`, remover A do ambiente, e
@@ -501,7 +501,7 @@ recebe o `404` de um caminho inexistente.
     `platform_operators` da lista da rotação; a entrada precisa falhar e o teste reprovar. É o
     critério "C10 verde" de T064
 
-- [ ] T024 [US2] Provar a espera sob rajada paralela
+- [x] T024 [US2] Provar a espera sob rajada paralela
   - **Pronta quando**: T023 concluída
   - **Descrição**: cenário 1 de `seguranca-autenticacao.md` (**A1**): operador com 3 falhas e
     `last_failed_at` agora; 10 `Task` chamam `autenticar/3` com senha errada ao mesmo tempo, com o
@@ -512,7 +512,7 @@ recebe o `404` de um caminho inexistente.
   - **Teste**: `test/the_band/platform/espera_paralela_test.exs`. **Defeito a injetar**: retirar o
     `FOR UPDATE`; `failed_attempts` precisa subir mais de 1 e o teste reprovar
 
-- [ ] T025 [US2] Provar que a espera paga o custo do hash
+- [x] T025 [US2] Provar que a espera paga o custo do hash
   - **Pronta quando**: T023 concluída
   - **Descrição**: cenário 2 de `seguranca-autenticacao.md` (**A3**): um operador em espera e um
     e-mail inexistente. Instrumentar a chamada a `Bcrypt.no_user_verify/0` e `verify_pass/2` por
@@ -522,7 +522,7 @@ recebe o `404` de um caminho inexistente.
   - **Teste**: `test/the_band/platform/espera_paga_o_hash_test.exs`. **Defeito a injetar**: retirar o
     hash do ramo da espera; a contagem do primeiro caso precisa dar zero e o teste reprovar
 
-- [ ] T026 [US2] Definir a senha e cadastrar o segundo fator
+- [x] T026 [US2] Definir a senha e cadastrar o segundo fator
   - **Pronta quando**: **A5** e **A14** emendados em `contracts/credenciais-do-operador.md` e
     conferidos por T008; T011 concluída; T023 e **T033** concluídas (os eventos de A7; achado O3)
   - **Descrição**: `definir_senha/3`, `confirmar_segundo_fator/3` e `concluir_cadastro/2` em
@@ -550,7 +550,7 @@ recebe o `404` de um caminho inexistente.
     chamada a `AccessEvents.operador_definicao_recusada/2` em `definir_senha/3`; o caso do código
     de definição errado precisa reprovar (vindo de T033)
 
-- [ ] T027 [US2] Provar o código de uso único sob concorrência
+- [x] T027 [US2] Provar o código de uso único sob concorrência
   - **Pronta quando**: T026 concluída
   - **Descrição**: cenário 3 de `seguranca-autenticacao.md` (**A5**): duas `Task` chamam
     `definir_senha/3` com o mesmo código e senhas diferentes; o mesmo para o código de cadastro em
@@ -560,7 +560,7 @@ recebe o `404` de um caminho inexistente.
   - **Teste**: `test/the_band/platform/codigo_de_uso_unico_test.exs`. **Defeito a injetar**: conferir
     o resumo em memória e gravar depois, sem lock; as duas precisam passar e o teste reprovar
 
-- [ ] T028 [US2] Provar o segundo fator na entrada
+- [x] T028 [US2] Provar o segundo fator na entrada
   - **Pronta quando**: T026 e T033 concluídas (C9 afirma o evento); os cenários de
     `seguranca-totp.md` (T010): C3, C4, C5, C9, C12. **C6 e C7** pedem `revogar/3` e
     `reiniciar_credencial/2` e estão em T030a; **C8** pede os controllers e está em T039 (achado O1)
@@ -574,7 +574,7 @@ recebe o `404` de um caminho inexistente.
     gravar `totp_last_used_step` no sucesso (o reuso precisa passar); consumir o código de
     recuperação sem `used_at IS NULL` no `WHERE` (os dois paralelos precisam passar)
 
-- [ ] T029 [US2] Abrir e conferir a sessão do operador
+- [x] T029 [US2] Abrir e conferir a sessão do operador
   - **Pronta quando**: `contracts/sessao-do-operador.md` emendado (A11, A15) e conferido por T008;
     T021 concluída
   - **Descrição**: `lib/the_band/platform/sessions.ex`: `abrir/1`, `conferir/2` (os oito motivos,
@@ -589,7 +589,7 @@ recebe o `404` de um caminho inexistente.
     retirar a leitura da concessão da consulta; o caso `:sem_concessao` precisa dar `{:ok, …}` e o
     teste reprovar
 
-- [ ] T030 [US2] Conceder, reiniciar e revogar o papel
+- [x] T030 [US2] Conceder, reiniciar e revogar o papel
   - **Pronta quando**: **A6**, A13c, A14 e A15 emendados em `contracts/concessao-do-operador.md` e
     conferidos por T008; T026 e T029 concluídas
   - **Descrição**: `lib/the_band/platform/grants.ex`: `conceder/3` (cria ou, se já existe sem
@@ -602,7 +602,7 @@ recebe o `404` de um caminho inexistente.
     seguidas devolve `{:error, :ja_concedido}`
   - **Teste**: `test/the_band/platform/grants_test.exs`, os dois casos
 
-- [ ] T030a [US2] Provar a revogação e o reinício no meio do cadastro
+- [x] T030a [US2] Provar a revogação e o reinício no meio do cadastro
   - **Pronta quando**: T030 concluída (e, por ela, T026); cenários C6, C7, C16 e C18 de
     seguranca-totp.md
   - **Descrição**: os cenários do cadastro em três passos que dependem de `revogar/3` e de
@@ -622,7 +622,7 @@ recebe o `404` de um caminho inexistente.
     o código de cadastro (C7); retirar a conferência de `ack_code_expires_at` (C16); `revogar/3` sem
     anular `ack_code_hash` (C18)
 
-- [ ] T028a [US2] Provar o limite próprio do segundo fator — **bloqueante** (seguranca-totp.md T1, alta)
+- [x] T028a [US2] Provar o limite próprio do segundo fator — **bloqueante** (seguranca-totp.md T1, alta)
   - **Pronta quando**: T023 concluída com `second_factor_failures`; **T030 concluída** (a asserção
     "`reiniciar_credencial/2` destrava" precisa dela; achado O1); `contracts/credenciais-do-operador.md`,
     "limite próprio do segundo fator"
@@ -638,7 +638,7 @@ recebe o `404` de um caminho inexistente.
     por vez: contar só em `failed_attempts` (o 11º passa e C1 reprova); incrementar o contador antes
     de conferir a senha (C1b reprova)
 
-- [ ] T031 [US2] Provar que conceder de novo não devolve credencial
+- [x] T031 [US2] Provar que conceder de novo não devolve credencial
   - **Pronta quando**: T030 concluída
   - **Descrição**: cenário 4 de `seguranca-autenticacao.md` (**A6**): conceder, definir senha e
     segundo fator, revogar, conceder de novo
@@ -650,7 +650,7 @@ recebe o `404` de um caminho inexistente.
     entrada antiga precisa autenticar e o teste reprovar; um por vez, a asserção sobre a coluna
     correspondente precisa reprovar
 
-- [ ] T032 [US2] Comandos de operação para o papel
+- [x] T032 [US2] Comandos de operação para o papel
   - **Pronta quando**: T030 concluída; `contracts/concessao-do-operador.md`, seção `TheBand.Release`;
     a **#1050** (PR **#1051**) em `development` — criou `Release.girar_sessoes/0`, por `rpc`, que esta
     tarefa estende (`MERGED` em 2026-10-01 23:59Z; T001 reconfere)
