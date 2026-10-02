@@ -3,12 +3,16 @@
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md),
 [contracts/papeis.md](contracts/papeis.md), [quickstart.md](quickstart.md), [seguranca.md](seguranca.md)
 
+**Andamento em 2026-10-02**: T001–T010 e T016 feitas, com a evidência no PR #1161 e em
+`evidencia-do-conteiner.md`. T011 e T012 esperam a execução por outra pessoa; T013–T015 são da
+pessoa mantenedora; T017 fecha com o merge.
+
 **Tarefas humanas** são marcadas com **👤 pessoa mantenedora**. São as que dependem de acesso à
 produção ou ao Dokploy. Nenhuma credencial passa por chat, commit ou log (FR-012).
 
 ## Fase 1: Setup
 
-- [ ] T001 Conferir o estado de partida
+- [x] T001 Conferir o estado de partida
   - **Pronta quando**: nada além do repositório
   - **Descrição**: confirmar em `development` que:
     - `rel/entrypoint.sh` migra com `DATABASE_URL`;
@@ -21,7 +25,7 @@ produção ou ao Dokploy. Nenhuma credencial passa por chat, commit ou log (FR-0
 
 ## Fase 2: Fundação
 
-- [ ] T002 Conceder os privilégios de quem serve
+- [x] T002 Conceder os privilégios de quem serve
   - **Pronta quando**: `contracts/papeis.md`, seção `conceder/2`; T001
   - **Descrição**: `lib/the_band/papeis.ex`, `conceder(repo, papel_que_serve)`, os seis passos do
     contrato.
@@ -38,7 +42,7 @@ produção ou ao Dokploy. Nenhuma credencial passa por chat, commit ou log (FR-0
     - acrescentar `TRUNCATE` à lista (A1);
     - tirar o `REVOKE` de `schema_migrations` (A4).
 
-- [ ] T003 Provar que quem serve não desliga as guardas
+- [x] T003 Provar que quem serve não desliga as guardas
   - **Pronta quando**: T002
   - **Descrição**: em `papeis_test.exs`, `async: false`, os cenários A1, A3, A4 e A10 de
     `seguranca.md`.
@@ -59,7 +63,7 @@ produção ou ao Dokploy. Nenhuma credencial passa por chat, commit ou log (FR-0
 
     Cada um tem de reprovar.
 
-- [ ] T004 Conferir no banco se a separação está em vigor
+- [x] T004 Conferir no banco se a separação está em vigor
   - **Pronta quando**: `contracts/papeis.md`, seção `conferir/1`; T002
   - **Descrição**: `Papeis.conferir(repo)` devolve o relator de `data-model.md`. A leitura de
     catálogo e as tentativas seguem a FR-009 e a R3: `lock_timeout` de 200 ms, sempre `ROLLBACK`, e
@@ -74,7 +78,7 @@ produção ou ao Dokploy. Nenhuma credencial passa por chat, commit ou log (FR-0
 
 ## Fase 3: US1 — quem serve não desliga as guardas (P1)
 
-- [ ] T005 [US1] A suíte inteira como quem serve
+- [x] T005 [US1] A suíte inteira como quem serve
   - **Pronta quando**: T002
   - **Descrição**: rodar a suíte com o `Repo` de teste conectado por um papel concedido por
     `conceder/2`, na forma do quickstart §2. Inclui a fumaça do Oban ligado: enfileirar, executar e
@@ -85,7 +89,7 @@ produção ou ao Dokploy. Nenhuma credencial passa por chat, commit ou log (FR-0
 
 ## Fase 4: US2 — a migração continua sozinha no deploy (P1)
 
-- [ ] T006 [US2] Migrar e conceder com a credencial que migra
+- [x] T006 [US2] Migrar e conceder com a credencial que migra
   - **Pronta quando**: `contracts/papeis.md`, seção `TheBand.Release`; T002
   - **Descrição**: `Release.migrate/0` migra e chama `conceder/2` com o usuário de
     `THE_BAND_URL_QUE_SERVE`. `Ecto.InvalidURLError` é traduzido sem a URL (S6, FR-012).
@@ -95,7 +99,7 @@ produção ou ao Dokploy. Nenhuma credencial passa por chat, commit ou log (FR-0
   - **Teste**: `test/the_band/release_papeis_test.exs`. **Defeito a injetar**: deixar a exceção
     subir crua; o `refute` da senha precisa reprovar.
 
-- [ ] T007 [US2] Os três estados sem a credencial que migra
+- [x] T007 [US2] Os três estados sem a credencial que migra
   - **Pronta quando**: T004 e T006
   - **Descrição**: `Release.migrar_sem_credencial/0`, com os três estados de R4:
     - quem serve é dono: migra, e a linha diz "NÃO em vigor";
@@ -108,7 +112,7 @@ produção ou ao Dokploy. Nenhuma credencial passa por chat, commit ou log (FR-0
   - **Teste**: `release_papeis_test.exs`, um caso por estado. **Defeito a injetar**: usar a
     `Ecto.Migrator` para ler as pendentes; o segundo estado precisa reprovar com `42501`.
 
-- [ ] T008 [US2] O entrypoint com as duas credenciais
+- [x] T008 [US2] O entrypoint com as duas credenciais
   - **Pronta quando**: T006 e T007
   - **Descrição**: `rel/entrypoint.sh` na forma do contrato.
     - A credencial que migra vai só na linha do `eval` da migração.
@@ -125,7 +129,7 @@ produção ou ao Dokploy. Nenhuma credencial passa por chat, commit ou log (FR-0
     `config/runtime.exs` e o código de `lib/`, sem comentários, e afirma a ausência do nome (A6).
     **Defeito a injetar**: tirar o `unset`; a contagem do PID 1 precisa dar 1.
 
-- [ ] T009 [US2] O aviso a cada subida
+- [x] T009 [US2] O aviso a cada subida
   - **Pronta quando**: T004
   - **Descrição**: em `lib/the_band/application.ex`, um `Task` sem link, depois do `Repo`, roda
     `Papeis.conferir/1` e emite `Logger.warning` quando o veredito não é `:em_vigor`. Uma falha vira
@@ -135,7 +139,7 @@ produção ou ao Dokploy. Nenhuma credencial passa por chat, commit ou log (FR-0
   - **Teste**: `release_papeis_test.exs` com `capture_log`. **Defeito a injetar**: o `Task` linkado;
     o caso da conferência que levanta precisa derrubar o processo de teste.
 
-- [ ] T010 [US2] A conferência por `rpc`
+- [x] T010 [US2] A conferência por `rpc`
   - **Pronta quando**: T004
   - **Descrição**: `Release.conferir_papeis/0` traduz o relator em frase, com os motivos e sem
     credencial. O runbook diz o comando `rpc`. FR-009.
@@ -198,7 +202,7 @@ produção ou ao Dokploy. Nenhuma credencial passa por chat, commit ou log (FR-0
 
 ## Fase 7: Acabamento
 
-- [ ] T016 Escrever a nota de riscos da release
+- [x] T016 Escrever a nota de riscos da release
   - **Pronta quando**: T008
   - **Descrição**: o risco residual de `seguranca.md`:
     - o acesso a dado por quem serve;
