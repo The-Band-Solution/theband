@@ -93,5 +93,20 @@ defmodule TheBandWeb.Plataforma.RotasTest do
     refute conn.halted
   end
 
+  # FR-008 (T057): suspender é uma organização de cada vez. Toda rota de ato sob `/platform` tem o
+  # `:slug` no caminho, e nenhuma aceita lista.
+  test "nenhuma rota de ato aceita mais de uma organização" do
+    atos =
+      for r <- TheBandWeb.Router.__routes__(),
+          String.starts_with?(r.path, "/platform/organizations"),
+          r.verb in [:post, :put, :patch, :delete],
+          do: r.path
+
+    assert atos != [], "a medição não mediu: não há rota de ato"
+
+    assert Enum.all?(atos, &String.starts_with?(&1, "/platform/organizations/:slug/")),
+           inspect(atos)
+  end
+
   defp sem_csrf(corpo), do: String.replace(corpo, ~r/name="csrf-token" content="[^"]*"/, "")
 end
