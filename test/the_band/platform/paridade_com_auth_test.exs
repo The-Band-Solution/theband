@@ -11,9 +11,12 @@ defmodule TheBand.Platform.ParidadeComAuthTest do
   """
   use ExUnit.Case, async: true
 
+  alias TheBand.Platform.Credentials
+  alias TheBand.Tenants.Auth
+
   test "a espera de 0 a 12 falhas é a mesma nas duas" do
-    auth = TheBand.Tenants.Auth.tabela_da_espera()
-    assert auth == TheBand.Platform.Credentials.tabela_da_espera()
+    auth = Auth.tabela_da_espera()
+    assert auth == Credentials.tabela_da_espera()
 
     # A guarda de que mediu: a tabela tem as livres, o crescimento e o teto.
     assert Enum.take(auth, 3) == [0, 0, 0]

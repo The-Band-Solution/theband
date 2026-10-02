@@ -8,6 +8,7 @@ defmodule TheBandWeb.ConnCase do
   alias TheBand.Segredo
   alias TheBand.Tenants.Sessions
   alias TheBand.Tenants.User
+  alias TheBandWeb.Plataforma.SessaoDoOperador
 
   using do
     quote do
@@ -73,7 +74,7 @@ defmodule TheBandWeb.ConnCase do
     resposta =
       Phoenix.ConnTest.build_conn()
       |> Map.put(:secret_key_base, TheBandWeb.Endpoint.config(:secret_key_base))
-      |> TheBandWeb.Plataforma.SessaoDoOperador.abrir(op)
+      |> SessaoDoOperador.abrir(op)
       |> Plug.Conn.send_resp(200, "")
 
     %{value: valor} = resposta.resp_cookies["_the_band_operator"]
