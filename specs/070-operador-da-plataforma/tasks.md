@@ -364,7 +364,7 @@ mesmo navegador em `/people`, `/teams/:id_de_B`, `/api/v1/people` e `/mcp` receb
 anônimo, e nenhuma consulta de domínio roda; um admin de organização em `/platform/organizations`
 recebe o `404` de um caminho inexistente.
 
-- [ ] T018 [US2] Criar as tabelas do operador
+- [x] T018 [US2] Criar as tabelas do operador
   - **Pronta quando**: T008 concluída; T007 concluída; `data-model.md` §1 (sem as colunas do TOTP),
     §2 e §3
   - **Descrição**: `priv/repo/migrations/<ts>_operador_da_plataforma.exs` com
@@ -379,7 +379,7 @@ recebe o `404` de um caminho inexistente.
   - **Teste**: `mix ecto.migrate` e `mix ecto.rollback --step 1` sem erro, e de novo `migrate`;
     `test/the_band/platform/tabelas_do_operador_test.exs` afirma o índice parcial
 
-- [ ] T019 [US2] Provar que a concessão não se apaga nem se reescreve
+- [x] T019 [US2] Provar que a concessão não se apaga nem se reescreve
   - **Pronta quando**: T018 concluída
   - **Descrição**: cenário 11 de `seguranca-autenticacao.md` e quickstart §7, para
     `platform_operator_grants`. FR-002, A13
@@ -389,7 +389,7 @@ recebe o `404` de um caminho inexistente.
     trigger de `UPDATE` comparando só `revoked_at`; o terceiro caso precisa passar a gravar e o teste
     reprovar. Segundo defeito: retirar o `BEFORE TRUNCATE`
 
-- [ ] T020 [US2] Criar as colunas e a tabela do segundo fator
+- [x] T020 [US2] Criar as colunas e a tabela do segundo fator
   - **Pronta quando**: T011 concluída; T018 concluída; `data-model.md` §1 (colunas do TOTP) e §1a
   - **Descrição**: `priv/repo/migrations/<ts>_segundo_fator_do_operador.exs`: em
     `platform_operators`, `totp_secret` (binário cifrado), `totp_confirmed_at`,
@@ -405,7 +405,7 @@ recebe o `404` de um caminho inexistente.
     `test/the_band/platform/tabelas_do_segundo_fator_test.exs` com os dois casos. **Defeito a
     injetar**: retirar o `CHECK` do segredo; o primeiro caso precisa gravar e o teste reprovar
 
-- [ ] T021 [US2] Escrever os schemas do contexto da plataforma
+- [x] T021 [US2] Escrever os schemas do contexto da plataforma
   - **Pronta quando**: T018 e T020 concluídas; **T003a concluída** (a #1052, PR #1053, mergeada: a
     lista de campos cifrados da rotação existe) e a branch rebaseada de novo sobre
     `origin/development`, como T007
@@ -428,7 +428,7 @@ recebe o `404` de um caminho inexistente.
     cada campo, e a leitura crua da coluna difere do segredo em claro; e um caso na suíte da
     rotação que a #1052 criou, com um operador semeado
 
-- [ ] T022 [US2] Conferir o código do segundo fator
+- [x] T022 [US2] Conferir o código do segundo fator
   - **Pronta quando**: `contracts/segundo-fator-do-operador.md` emendado por T011; T010 sem achado
     alto aberto; a dependência fixada em `mix.exs` com a versão de T009: `{:nimble_totp, "== 1.0.0"}`
     (sem `~>`: versão nova só com `mix hex.audit` e `mix deps.audit` refeitos; plan.md, Technical Context)
@@ -448,7 +448,7 @@ recebe o `404` de um caminho inexistente.
     reprovar); retirar a comparação com `ultimo_passo` (o caso de reuso precisa passar e o teste
     reprovar); **voltar a 10 bytes** por código de recuperação (C2 precisa reprovar)
 
-- [ ] T033 [P] [US2] Registrar os eventos de acesso do operador
+- [x] T033 [P] [US2] Registrar os eventos de acesso do operador
   - **Pronta quando**: `contracts/eventos-de-acesso.md` emendado (A7) e conferido por T008; T016
     concluída
   - **Descrição**: em `lib/the_band/tenants/access_events.ex`, as funções do contrato, todas em
@@ -468,7 +468,7 @@ recebe o `404` de um caminho inexistente.
     injetar**: incluir o código no metadado de `operador_definicao_recusada/2`; o `refute` precisa
     reprovar
 
-- [ ] T023 [US2] Conferir a entrada do operador
+- [x] T023 [US2] Conferir a entrada do operador
   - **Pronta quando**: **A1** e **A3** emendados em `contracts/credenciais-do-operador.md` e
     conferidos por T008; T002 (#1048) e T003 (#1047) mergeadas e T007 rebaseada, para copiar a
     forma corrigida; T021, T022 e **T033** concluídas (os eventos que esta tarefa emite; achado O3)
