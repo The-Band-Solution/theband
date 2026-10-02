@@ -21,6 +21,10 @@ defmodule TheBand.Tenants do
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
 
+  # As colunas de `tenants` que a área do operador lê (spec 070, FR-007). `select` explícito, e não
+  # a struct: o que não está aqui não sai do banco para a plataforma.
+  @colunas_para_a_plataforma [:id, :name, :slug, :status]
+
   # Feature 045 — contratos em specs/045-autenticacao-e-acesso/contracts/.
   defdelegate authenticate(identificador, senha), to: Auth
   defdelegate set_password(tenant, user_id, senha), to: Auth
@@ -88,6 +92,41 @@ defmodule TheBand.Tenants do
   @spec ensure_active(Tenant.t()) :: :ok | {:error, :tenant_inactive}
   def ensure_active(%Tenant{status: "active"}), do: :ok
   def ensure_active(%Tenant{}), do: {:error, :tenant_inactive}
+
+  @typedoc "O que a área do operador lê de uma organização (FR-007): o `id`, que não é mostrado, e três colunas."
+  @type resumo_para_a_plataforma :: %{
+          id: Ecto.UUID.t(),
+          name: String.t(),
+          slug: String.t(),
+          status: String.t()
+        }
+
+  @doc """
+  Todas as organizações, por `name`, só com o que a área do operador pode ler — spec 070, T038a
+  (FR-007; achado D1).
+
+  **Mapa, e nunca `%Tenant{}`**: a struct traz `has_many :users`, a um `preload` de distância de
+  dado de domínio. Sem junção e sem contagem.
+
+  **Só `TheBand.Platform` chama** (achado D1-b): esta leitura não recebe tenant, porque é o escopo
+  da plataforma, e uma tela de domínio que a usasse mostraria a uma pessoa de A o nome de B. O teste
+  `resumos_para_a_plataforma_test.exs` afirma isso pelo `mix xref callers`.
+  """
+  @spec resumos_para_a_plataforma() :: [resumo_para_a_plataforma()]
+  def resumos_para_a_plataforma,
+    do: Repo.all(from(t in Tenant, order_by: t.name, select: map(t, ^@colunas_para_a_plataforma)))
+
+  @doc "Uma organização pelo `slug`, na forma de `resumos_para_a_plataforma/0`."
+  @spec resumo_para_a_plataforma(String.t()) ::
+          {:ok, resumo_para_a_plataforma()} | {:error, :not_found}
+  def resumo_para_a_plataforma(slug) when is_binary(slug) do
+    case Repo.one(
+           from(t in Tenant, where: t.slug == ^slug, select: map(t, ^@colunas_para_a_plataforma))
+         ) do
+      nil -> {:error, :not_found}
+      resumo -> {:ok, resumo}
+    end
+  end
 
   @spec get_by_slug(String.t()) :: Tenant.t() | nil
   def get_by_slug(slug), do: Repo.get_by(Tenant, slug: slug)
