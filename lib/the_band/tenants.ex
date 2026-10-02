@@ -56,6 +56,7 @@ defmodule TheBand.Tenants do
   defdelegate revoke_api_token(tenant, id, autor, razao), to: ApiTokens, as: :revogar
   defdelegate api_token_revocation_clauses(), to: ApiTokens, as: :clausulas_de_revogacao
   defdelegate api_token_revocation_labels(), to: ApiTokens, as: :clausulas_com_rotulo
+  defdelegate api_token_recorded_revocation_labels(), to: ApiTokens, as: :rotulos_registrados
 
   defdelegate api_token_usage_by_route(tenant, public_id, janela_em_segundos),
     to: TheBand.Tenants.ApiAccessLog,
@@ -126,6 +127,45 @@ defmodule TheBand.Tenants do
       nil -> {:error, :not_found}
       resumo -> {:ok, resumo}
     end
+  end
+
+  @doc """
+  Acrescenta ao `multi` o passo `nome`, que troca o estado da organização de `de` para `para` —
+  spec 070, T046a (O10; achado D1). Contrato em
+  `specs/070-operador-da-plataforma/contracts/sessoes-e-tokens-da-organizacao.md`.
+
+  É a **única** escrita de `tenants.status` fora da criação, e só existe dentro de um `Ecto.Multi`
+  de quem chama: a troca nunca se confirma sem o resto da transação (o episódio, as sessões e os
+  tokens da suspensão). O único chamador é `TheBand.Platform.Suspensions`.
+
+  A condição de estado fica **no `WHERE`**, e não numa leitura anterior: duas suspensões paralelas
+  passariam as duas por uma leitura de antes. O passo devolve `{:ok, %Tenant{status: para}}`,
+  `{:error, :estado_mudou}` (a organização existe, e o estado já não era `de`) ou
+  `{:error, :not_found}`.
+
+  Os pares aceitos são dois, por cabeça de função. Outro é defeito de quem chama, e não caso de
+  negócio.
+  """
+  @spec trocar_estado_no_multi(Ecto.Multi.t(), atom(), Tenant.t(), String.t(), String.t()) ::
+          Ecto.Multi.t()
+  def trocar_estado_no_multi(multi, nome, %Tenant{id: id}, de, para)
+      when (de == "active" and para == "suspended") or (de == "suspended" and para == "active") do
+    Ecto.Multi.run(multi, nome, fn repo, _ ->
+      case repo.update_all(
+             from(t in Tenant, where: t.id == ^id and t.status == ^de, select: t),
+             set: [status: para, updated_at: DateTime.utc_now(:second)]
+           ) do
+        {1, [tenant]} ->
+          {:ok, tenant}
+
+        {0, _} ->
+          {:error,
+           if(repo.exists?(from t in Tenant, where: t.id == ^id),
+             do: :estado_mudou,
+             else: :not_found
+           )}
+      end
+    end)
   end
 
   @spec get_by_slug(String.t()) :: Tenant.t() | nil

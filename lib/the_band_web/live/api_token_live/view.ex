@@ -516,7 +516,13 @@ defmodule TheBandWeb.ApiTokenLive.View do
       <span :if={@linha.estado != :revogado} class="opacity-60">· derived from the clock</span>
     </span>
     <span :if={@linha.estado == :revogado} class="mt-0.5 block opacity-70">
-      declared {instante(@linha.token.revoked_at)} by {@linha.revogador && @linha.revogador.email}
+      <%!-- Revogado pela suspensão da organização (070, T047): o autor não é uma conta, e a
+            linha diz isso em vez de escrever "by" seguido de nada. --%>
+      <%= if @linha.token.revoked_by_suspension_id do %>
+        declared {instante(@linha.token.revoked_at)} · revoked when the organisation was suspended
+      <% else %>
+        declared {instante(@linha.token.revoked_at)} by {@linha.revogador && @linha.revogador.email}
+      <% end %>
     </span>
     <span :if={@linha.estado == :revogado} class="block text-[11px] opacity-70">
       <strong :if={@linha.clausula}>{@linha.clausula}</strong>

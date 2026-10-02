@@ -32,6 +32,7 @@ defmodule TheBand.Tenants.Sessions do
   alias TheBand.Repo
   alias TheBand.Segredo
   alias TheBand.Tenants.Schemas.UserSession
+  alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
 
   @bytes 32
@@ -173,6 +174,28 @@ defmodule TheBand.Tenants.Sessions do
       )
 
     {:ok, n}
+  end
+
+  @doc """
+  Encerra toda sessão aberta da organização e devolve **os ids** encerrados — spec 070, T046
+  (FR-004). Contrato em `specs/070-operador-da-plataforma/contracts/sessoes-e-tokens-da-organizacao.md`.
+
+  Roda dentro do `Multi` da suspensão, e por isso **não avisa**: avisar antes do `commit` seria
+  avisar o que o banco ainda não confirmou. Quem chama publica `avisar_encerramento({:sessao, id})`
+  para cada id, depois do `commit` (A2). Recebe `%Tenant{}`, e não o id cru.
+  """
+  @spec encerrar_da_organizacao(Tenant.t()) :: {:ok, [Ecto.UUID.t()]}
+  def encerrar_da_organizacao(%Tenant{id: tenant_id}) do
+    {_n, ids} =
+      Repo.update_all(
+        from(s in UserSession,
+          where: s.tenant_id == ^tenant_id and is_nil(s.ended_at),
+          select: s.id
+        ),
+        set: [ended_at: agora()]
+      )
+
+    {:ok, ids}
   end
 
   @doc """

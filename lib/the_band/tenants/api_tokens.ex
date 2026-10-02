@@ -139,6 +139,45 @@ defmodule TheBand.Tenants.ApiTokens do
     end)
   end
 
+  @doc """
+  As cláusulas que um token revogado pode ter: as oferecidas e as só registradas
+  (`organizacao_suspensa`) — spec 070, T047. A tela lê o rótulo daqui; o select continua com
+  `clausulas_de_revogacao/0`, e não ganha opção.
+  """
+  @spec clausulas_registradas() :: [String.t()]
+  def clausulas_registradas,
+    do: clausulas_de_revogacao() ++ (valores_da_revogacao()["clausulas_so_registradas"] || [])
+
+  @doc "Os rótulos de todas as cláusulas registradas, para escrever a linha do token revogado."
+  @spec rotulos_registrados(String.t()) :: [{String.t(), String.t()}]
+  def rotulos_registrados(idioma \\ "en") do
+    rotulos = valores_da_revogacao()["rotulos"] || %{}
+    Enum.map(clausulas_registradas(), &{&1, get_in(rotulos, [&1, idioma]) || &1})
+  end
+
+  @doc """
+  Revoga todo token vigente da organização, pela suspensão `suspensao_id` — spec 070, T047
+  (FR-013). Roda dentro do `Multi` da suspensão. A condição `revoked_at IS NULL` fica no `WHERE`:
+  o token já revogado mantém o autor e a razão da primeira revogação.
+
+  Recebe o id do episódio por argumento, e não lê `tenant_suspensions`.
+  """
+  @spec revogar_por_suspensao(Tenant.t(), Ecto.UUID.t()) :: {:ok, non_neg_integer()}
+  def revogar_por_suspensao(%Tenant{id: tenant_id}, suspensao_id) when is_binary(suspensao_id) do
+    {n, _} =
+      Repo.update_all(
+        from(t in Token, where: t.tenant_id == ^tenant_id and is_nil(t.revoked_at)),
+        set: [
+          revoked_at: agora(),
+          revoked_by_user_id: nil,
+          revoked_by_suspension_id: suspensao_id,
+          revocation_clause: "organizacao_suspensa"
+        ]
+      )
+
+    {:ok, n}
+  end
+
   defp valores_da_revogacao do
     case KnowledgeBase.rule(@regra) do
       {:ok, regra} ->
