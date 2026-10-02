@@ -56,7 +56,7 @@ defmodule TheBand.Platform.Credentials do
   def autenticar(email, senha, segundo_fator) when is_binary(email) do
     case operador_por_email(email) do
       nil ->
-        Bcrypt.no_user_verify()
+        custo_do_hash(:sem_senha_a_conferir)
         recusar(nil, :identificador_nao_resolveu)
 
       id ->
@@ -98,7 +98,7 @@ defmodule TheBand.Platform.Credentials do
 
     if restante > 0 do
       AccessEvents.operador_espera_acionada(op.id, restante)
-      Bcrypt.no_user_verify()
+      custo_do_hash(:sem_senha_a_conferir)
       {:error, {:throttled, restante}}
     else
       :ok
@@ -115,18 +115,18 @@ defmodule TheBand.Platform.Credentials do
     if Repo.exists?(from g in Grant, where: g.operator_id == ^id and is_nil(g.revoked_at)) do
       :ok
     else
-      Bcrypt.no_user_verify()
+      custo_do_hash(:sem_senha_a_conferir)
       recusar(op, :sem_concessao)
     end
   end
 
   defp senha_certa(%Operator{password_hash: nil} = op, _senha) do
-    Bcrypt.no_user_verify()
+    custo_do_hash(:sem_senha_a_conferir)
     falhar(op, :sem_senha, false)
   end
 
   defp senha_certa(%Operator{password_hash: hash} = op, senha) do
-    if Bcrypt.verify_pass(Segredo.expor(senha), hash),
+    if conferir_senha(senha, hash),
       do: :ok,
       else: falhar(op, :senha_errada, false)
   end
@@ -237,6 +237,20 @@ defmodule TheBand.Platform.Credentials do
       do: AccessEvents.operador_segundo_fator_travado(op.id)
 
     recusar(op, motivo)
+  end
+
+  # Todo custo de hash passa por aqui, e emite um evento de telemetria — seguranca-autenticacao.md,
+  # cenário 2 (A3). É o que permite ao teste CONTAR que a recusa por espera e a do e-mail
+  # inexistente pagaram o hash, sem cronômetro, que seria instável com o custo baixo do teste.
+  defp custo_do_hash(motivo) do
+    Bcrypt.no_user_verify()
+    :telemetry.execute([:the_band, :platform, :custo_do_hash], %{}, %{motivo: motivo})
+  end
+
+  defp conferir_senha(senha, hash) do
+    certa? = Bcrypt.verify_pass(Segredo.expor(senha), hash)
+    :telemetry.execute([:the_band, :platform, :custo_do_hash], %{}, %{motivo: :senha_conferida})
+    certa?
   end
 
   defp recusar(op, motivo) do
