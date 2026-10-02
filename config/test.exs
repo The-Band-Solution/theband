@@ -20,6 +20,10 @@ config :the_band, TheBandWeb.Endpoint,
   secret_key_base: "MbkR9vteR3U/epDrIGuD13uWBM2LjHj/nf5dMJI5AYkZcVcQ5Qpw0JGgxdIpWXjz",
   server: false
 
+# Spec 071: a conferência dos papéis no boot fica desligada no teste, onde o sandbox ainda não
+# está pronto quando a aplicação sobe. Os testes chamam `TheBand.Papeis.conferir/2` direto.
+config :the_band, :conferir_papeis_no_boot, false
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 

@@ -23,8 +23,24 @@ done
 # A migração roda ANTES do servidor, e não dentro da árvore de supervisão: migrar em
 # paralelo com a aplicação servindo deixa uma janela em que requisições veem o
 # esquema pela metade.
+# Os papéis do banco — spec 071 (#1131). A migração roda com o papel DONO do esquema, por uma
+# credencial separada, entregue SÓ a esta linha; o processo que serve usa DATABASE_URL, um papel
+# sem posse e só com DML, que não consegue desligar as guardas do banco.
+#
+# A credencial que migra nunca é exportada nem ecoada (nada de `set -x` aqui), e sai do ambiente
+# antes do `exec`. O limite, decidido em 2026-10-02 (S5): o HEALTHCHECK e todo `docker exec`
+# recebem o ambiente configurado do contêiner, e com ele a credencial. A #1140 trata disso.
+#
+# Sem DATABASE_MIGRATION_URL, os três estados de FR-008 (TheBand.Papeis.estado_sem_credencial/1):
+# migra como hoje se quem serve ainda é dono; sobe sem migrar se não há pendente; NÃO sobe se há.
 echo "aplicando migrações pendentes…"
-/app/bin/the_band eval 'TheBand.Release.migrate()'
+if [ -n "$DATABASE_MIGRATION_URL" ]; then
+  DATABASE_URL="$DATABASE_MIGRATION_URL" THE_BAND_URL_QUE_SERVE="$DATABASE_URL" \
+    /app/bin/the_band eval 'TheBand.Release.migrate()'
+else
+  /app/bin/the_band eval 'TheBand.Release.migrar_sem_credencial()'
+fi
+unset DATABASE_MIGRATION_URL
 echo "migrações aplicadas."
 
 # A primeira conta — feature 052. Sem ela, uma instalação nova sobe e ninguém

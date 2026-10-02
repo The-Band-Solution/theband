@@ -345,4 +345,46 @@ defmodule TheBand.Papeis do
     aplicadas = MapSet.new(linhas, fn [v] -> v end)
     {:ok, nos_arquivos |> Enum.reject(&MapSet.member?(aplicadas, &1)) |> Enum.sort()}
   end
+
+  # ------------------------------------------------------- o deploy sem credencial
+
+  @doc """
+  O que o deploy faz sem a credencial que migra (FR-008, research R4; decidido em 2026-10-02):
+
+  - `:migra_como_hoje`: quem serve é dono de `schema_migrations` (ou superusuário), o estado de
+    antes da troca; migra com ela, e a separação **não** está em vigor;
+  - `:sobe_sem_migrar`: quem serve não consegue migrar, e não há migração pendente;
+  - `{:nao_sobe, pendentes}`: não consegue migrar, e há pendente. Subir serviria sobre esquema
+    pela metade.
+  """
+  @spec estado_sem_credencial(Ecto.Repo.t()) ::
+          :migra_como_hoje | :sobe_sem_migrar | {:nao_sobe, [integer()]}
+  def estado_sem_credencial(repo) do
+    %{rows: [[pode]]} =
+      repo.query!("""
+      SELECT coalesce((SELECT rolsuper FROM pg_roles WHERE rolname = current_user), false)
+          OR coalesce((SELECT pg_has_role(current_user, c.relowner, 'USAGE')
+                       FROM pg_class c WHERE c.oid = to_regclass('public.schema_migrations')), false)
+      """)
+
+    cond do
+      pode -> :migra_como_hoje
+      pendentes(repo) == {:ok, []} -> :sobe_sem_migrar
+      true -> {:nao_sobe, elem(pendentes(repo), 1)}
+    end
+  end
+
+  @doc "O relator em frase, para o log do deploy, o `warning` a cada subida e o `rpc`."
+  @spec frase({veredito(), [motivo()]}) :: String.t()
+  def frase({:em_vigor, motivos}),
+    do: "papéis: separação em vigor" <> avisos(motivos)
+
+  def frase({:nao_em_vigor, motivos}),
+    do: "papéis: separação NÃO em vigor (#{Enum.map_join(motivos, ", ", &Atom.to_string/1)})"
+
+  def frase({:inconclusivo, motivos}),
+    do: "papéis: conferência inconclusiva (#{Enum.map_join(motivos, ", ", &Atom.to_string/1)})"
+
+  defp avisos([]), do: ""
+  defp avisos(motivos), do: " (aviso: #{Enum.map_join(motivos, ", ", &Atom.to_string/1)})"
 end

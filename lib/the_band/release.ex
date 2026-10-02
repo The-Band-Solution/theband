@@ -25,18 +25,107 @@ defmodule TheBand.Release do
   esquema em movimento.
   """
 
+  alias TheBand.Papeis
   alias TheBand.Tenants.Bootstrap
   alias TheBand.Tenants.Sessions
 
   @app :the_band
 
-  @doc "Aplica todas as migrações pendentes. Chamado pelo entrypoint, antes do boot."
+  @doc """
+  Aplica todas as migrações pendentes e concede os privilégios ao papel que serve. Chamado pelo
+  entrypoint, antes do boot, com o `DATABASE_URL` **da credencial que migra** naquela linha só
+  (spec 071, FR-004 e FR-005).
+
+  O papel que serve é o usuário de `THE_BAND_URL_QUE_SERVE`, que o entrypoint passa junto. Sem ela
+  (o entrypoint antigo, ou um `eval` à mão), a concessão é pulada, e a linha diz isso.
+  """
   def migrate do
     load_app()
 
     for repo <- repos() do
-      {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :up, all: true))
+      com_url_redigida(fn ->
+        {:ok, linha, _} = Ecto.Migrator.with_repo(repo, &migrar_e_conceder/1)
+        IO.puts(linha)
+      end)
     end
+  end
+
+  defp migrar_e_conceder(repo) do
+    Ecto.Migrator.run(repo, :up, all: true)
+    conceder_a_quem_serve(repo, System.get_env("THE_BAND_URL_QUE_SERVE"))
+  end
+
+  defp conceder_a_quem_serve(_repo, nil),
+    do: "papéis: THE_BAND_URL_QUE_SERVE ausente, concessão pulada"
+
+  defp conceder_a_quem_serve(repo, url) do
+    case URI.parse(url).userinfo do
+      nil ->
+        "papéis: a URL de quem serve não traz usuário, concessão pulada"
+
+      userinfo ->
+        papel = userinfo |> String.split(":", parts: 2) |> hd() |> URI.decode()
+        :ok = Papeis.conceder(repo, papel)
+        "papéis: privilégios de quem serve concedidos"
+    end
+  end
+
+  @doc """
+  O deploy sem a credencial que migra: os três estados de `TheBand.Papeis.estado_sem_credencial/1`
+  (spec 071, FR-008). Imprime a linha do relator, e levanta **só** quando há migração pendente e
+  quem serve não consegue migrar, para o `set -e` do entrypoint não deixar servir sobre esquema
+  pela metade.
+  """
+  def migrar_sem_credencial do
+    load_app()
+
+    for repo <- repos() do
+      com_url_redigida(fn ->
+        {:ok, linha, _} = Ecto.Migrator.with_repo(repo, &sem_credencial/1)
+        IO.puts(linha)
+      end)
+    end
+  end
+
+  defp sem_credencial(repo) do
+    case Papeis.estado_sem_credencial(repo) do
+      :migra_como_hoje ->
+        Ecto.Migrator.run(repo, :up, all: true)
+
+        "papéis: separação NÃO em vigor (credencial_que_migra_ausente); migrado com a credencial que serve"
+
+      :sobe_sem_migrar ->
+        Papeis.frase(Papeis.conferir(repo)) <> "; DATABASE_MIGRATION_URL ausente, nada a migrar"
+
+      {:nao_sobe, pendentes} ->
+        raise "papéis: #{length(pendentes)} migração(ões) pendente(s) e DATABASE_MIGRATION_URL " <>
+                "ausente; configure-a no painel (runbook §14) e reimplante"
+    end
+  end
+
+  @doc """
+  A conferência dos papéis, por `rpc`, dentro do nó que serve (spec 071, FR-009):
+
+      /app/bin/the_band rpc 'IO.puts(TheBand.Release.conferir_papeis())'
+
+  Por `eval` ela mediria o papel daquela VM, e não o do processo que serve.
+  """
+  def conferir_papeis, do: Papeis.frase(Papeis.conferir(TheBand.Repo))
+
+  @doc false
+  # S6 de `specs/071-papeis-do-banco/seguranca.md`: `Ecto.InvalidURLError` imprime a URL, com a
+  # senha, quando ela tem caractere reservado. A frase nomeia a variável, e nunca o valor.
+  def com_url_redigida(fun) do
+    fun.()
+  rescue
+    Ecto.InvalidURLError ->
+      reraise RuntimeError,
+              [
+                message:
+                  "URL de banco malformada: confira DATABASE_URL ou DATABASE_MIGRATION_URL " <>
+                    "(senha só com 0-9a-f, gerada por openssl rand -hex 32)"
+              ],
+              []
   end
 
   @doc """
