@@ -296,6 +296,10 @@ defmodule TheBand.Tenants do
   **A própria conta que executa o ato** — desativar-se a si é ficar de fora sem ter a
   quem pedir de volta, e num tenant com uma administração só isso tranca a organização
   inteira. Devolve `{:error, :nao_pode_desativar_a_si}`.
+
+  **O último administrador ativo** — issue #1055. Sem este guarda, dois administradores que
+  desativam um ao outro ao mesmo tempo deixavam a organização sem nenhum: cada transação via o
+  outro ativo. Devolve `{:error, :ultimo_admin_ativo}`.
   """
   @spec disable_user(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t(), map()) ::
           {:ok, User.t()}
@@ -303,6 +307,7 @@ defmodule TheBand.Tenants do
              :not_found
              | :ja_desativada
              | :nao_pode_desativar_a_si
+             | :ultimo_admin_ativo
              | :vocabulario_nao_declarado
              | Ecto.Changeset.t()}
   def disable_user(%Tenant{id: tenant_id}, user_id, actor_id, razao) when is_map(razao) do
@@ -319,6 +324,8 @@ defmodule TheBand.Tenants do
   # resposta rápida a *"pode entrar?"*; o episódio é o registro.
   defp desativar_na_transacao(user, tenant_id, actor_id, razao) do
     Repo.transaction(fn ->
+      with {:error, motivo} <- resta_um_admin_ativo(user, tenant_id), do: Repo.rollback(motivo)
+
       episodio =
         AccountDisablement.abrir_changeset(%{
           "tenant_id" => tenant_id,
@@ -531,6 +538,32 @@ defmodule TheBand.Tenants do
     do: {:error, :nao_pode_desativar_a_si}
 
   defp nao_e_a_si(_user_id, _actor_id), do: :ok
+
+  # O GUARDA DO ÚLTIMO ADMINISTRADOR ATIVO, com trava — issue #1055.
+  #
+  # Trava as contas admin ativas da organização com `FOR UPDATE`, em ordem de id para duas
+  # transações não se travarem em ordem cruzada. A segunda desativação cruzada espera a
+  # primeira, e o PostgreSQL reavalia o `WHERE` nas linhas que ela mudou: a conta recém-
+  # desativada sai do resultado, e a segunda vê um administrador só. Sem a trava, as duas
+  # contariam dois.
+  defp resta_um_admin_ativo(%User{role: "admin"} = user, tenant_id) do
+    ativos =
+      Repo.all(
+        from u in User,
+          where: u.tenant_id == ^tenant_id and u.role == "admin" and is_nil(u.disabled_at),
+          order_by: u.id,
+          lock: "FOR UPDATE",
+          select: u.id
+      )
+
+    cond do
+      user.id not in ativos -> {:error, :ja_desativada}
+      length(ativos) <= 1 -> {:error, :ultimo_admin_ativo}
+      true -> :ok
+    end
+  end
+
+  defp resta_um_admin_ativo(%User{}, _tenant_id), do: :ok
 
   defp ainda_ativa(user) do
     if User.ativa?(user), do: :ok, else: {:error, :ja_desativada}
