@@ -31,7 +31,8 @@ defmodule TheBand.Platform.Suspensions do
           name: String.t(),
           slug: String.t(),
           status: String.t(),
-          ultimo_episodio_em: DateTime.t() | nil
+          ultimo_episodio_em: DateTime.t() | nil,
+          ultima_razao: String.t() | nil
         }
 
   @type motivo ::
@@ -52,17 +53,23 @@ defmodule TheBand.Platform.Suspensions do
   @spec listar_organizacoes(OperatorSession.t()) :: {:ok, [resumo()]} | {:error, :nao_autorizado}
   def listar_organizacoes(%OperatorSession{} = sessao) do
     with :ok <- Sessions.autorizada(sessao) do
+      # O último episódio de cada organização, numa consulta: `DISTINCT ON` pelo `tenant_id`, o mais
+      # novo primeiro. A razão vai junto para a lista dizer o caso da migração (D-3).
       ultimos =
         Repo.all(
-          from(s in Suspension, group_by: s.tenant_id, select: {s.tenant_id, max(s.suspended_at)})
+          from(s in Suspension,
+            distinct: s.tenant_id,
+            order_by: [asc: s.tenant_id, desc: s.suspended_at],
+            select: {s.tenant_id, {s.suspended_at, s.suspend_reason}}
+          )
         )
         |> Map.new()
 
       {:ok,
-       Enum.map(
-         Tenants.resumos_para_a_plataforma(),
-         &Map.put(&1, :ultimo_episodio_em, Map.get(ultimos, &1.id))
-       )}
+       Enum.map(Tenants.resumos_para_a_plataforma(), fn resumo ->
+         {em, razao} = Map.get(ultimos, resumo.id, {nil, nil})
+         Map.merge(resumo, %{ultimo_episodio_em: em, ultima_razao: razao})
+       end)}
     end
   end
 

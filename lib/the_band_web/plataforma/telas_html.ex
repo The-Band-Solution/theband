@@ -47,8 +47,14 @@ defmodule TheBandWeb.Plataforma.TelasHTML do
 
   defp recusa(assigns) do
     ~H"""
-    <p role="alert" class="alert alert-error text-sm">
-      <span><b>{@titulo}</b> {render_slot(@inner_block)}</span>
+    <%!-- A marca da recusa é a do protótipo: borda e hachura cor de argila, e o "!" em texto. Em
+          cinza ela continua distinta do sucesso, pela hachura e pelo sinal (D-1 da conferência). --%>
+    <p
+      role="alert"
+      class="flex items-start gap-2 rounded border-[1.5px] border-error p-3 text-sm text-error bg-[repeating-linear-gradient(135deg,color-mix(in_srgb,var(--color-error)_9%,transparent)_0_3px,transparent_3px_7px)]"
+    >
+      <span class="font-mono font-bold" aria-hidden="true">!</span>
+      <span class="text-base-content"><b>{@titulo}</b> {render_slot(@inner_block)}</span>
     </p>
     """
   end
@@ -59,8 +65,8 @@ defmodule TheBandWeb.Plataforma.TelasHTML do
   # "Shown once" vem ANTES do segredo e dos códigos (D2 do protótipo): quem lê depois já copiou.
   defp uma_vez(assigns) do
     ~H"""
-    <div class="alert alert-warning text-sm">
-      <span class="font-mono">1×</span>
+    <div class="flex items-start gap-2 rounded border-[3px] border-double border-warning p-3 text-sm">
+      <span class="font-mono font-bold text-warning" aria-hidden="true">1×</span>
       <span><b>{@titulo}</b> {render_slot(@inner_block)}</span>
     </div>
     """
@@ -309,7 +315,10 @@ defmodule TheBandWeb.Plataforma.TelasHTML do
           keeps only a fingerprint of each, so nobody can show them to you later. Lose both the app
           and the codes, and the way back is a new setup code from whoever runs the server.
         </.uma_vez>
-        <ol class="grid grid-cols-1 gap-1 font-mono sm:grid-cols-2" aria-label="recovery codes">
+        <ol
+          class="grid grid-cols-1 gap-1 font-mono min-[30rem]:grid-cols-2"
+          aria-label="recovery codes"
+        >
           <li :for={{codigo, n} <- Enum.with_index(@codigos, 1)}>
             <span class="opacity-50">{n}</span> {TheBand.Segredo.expor(codigo)}
           </li>
@@ -347,7 +356,8 @@ defmodule TheBandWeb.Plataforma.TelasHTML do
     ~H"""
     <.moldura>
       <%= if @concluido do %>
-        <div class="alert alert-success text-sm">
+        <div class="flex items-start gap-2 rounded border-[1.5px] border-primary p-3 text-sm">
+          <span class="font-mono font-bold text-primary" aria-hidden="true">✓</span>
           <span>
             <b>Setup finished.</b>
             Your authenticator and your recovery codes are now valid. Every open operator session
@@ -359,7 +369,11 @@ defmodule TheBandWeb.Plataforma.TelasHTML do
           The step was not accepted; ask for a new setup code.
         </.recusa>
       <% end %>
-      <.link href={~p"/platform/sign-in"} class="btn btn-primary">Go to sign in</.link>
+      <.link href={~p"/platform/sign-in"} class="btn btn-primary self-start">Go to sign in</.link>
+      <p :if={@concluido} class="text-sm opacity-70">
+        The link leads to <span class="font-mono">/platform/sign-in</span>. It does not sign you
+        in: the first sign-in uses password and code like every other.
+      </p>
     </.moldura>
     """
   end
@@ -398,6 +412,9 @@ defmodule TheBandWeb.Plataforma.TelasHTML do
             <td data-label="last suspended">
               <%= if o.ultimo_episodio_em do %>
                 <span class="font-mono">{Calendar.strftime(o.ultimo_episodio_em, "%Y-%m-%d")}</span>
+                <span :if={o.ultima_razao == "not_recorded"} class="text-xs opacity-70">
+                  · reason not recorded
+                </span>
               <% else %>
                 <%!-- A ausência é da plataforma: nenhum episódio registrado. Escrita, nunca `—`. --%>
                 <.absent reason="never suspended" />
@@ -448,7 +465,7 @@ defmodule TheBandWeb.Plataforma.TelasHTML do
       <% end %>
       <div
         :for={ep <- @episodios}
-        class="grid grid-cols-1 gap-3 rounded border border-base-300 p-3 sm:grid-cols-2"
+        class="grid grid-cols-1 gap-3 rounded border border-base-300 p-3 min-[44rem]:grid-cols-2"
       >
         <div class="flex flex-col gap-1 text-sm">
           <span class="text-xs uppercase tracking-wider opacity-60">suspended</span>
@@ -463,7 +480,8 @@ defmodule TheBandWeb.Plataforma.TelasHTML do
             {TheBand.Platform.SuspensionReasons.rotulo(ep.suspend_reason)}
             <span class="font-mono text-xs opacity-60">{ep.suspend_reason}</span>
           </span>
-          <.nota texto={ep.suspend_note} />
+          <%!-- O caso da migração não tem nota a dizer que falta: não houve quem a escrevesse (D-8). --%>
+          <.nota :if={ep.suspend_reason != "not_recorded"} texto={ep.suspend_note} />
         </div>
         <div class="flex flex-col gap-1 text-sm">
           <span class="text-xs uppercase tracking-wider opacity-60">reactivated</span>
@@ -627,18 +645,17 @@ defmodule TheBandWeb.Plataforma.TelasHTML do
 
   attr :status, :string, required: true
 
-  # O estado em texto, sempre: a cor acompanha, e nunca carrega sozinha (WCAG 1.4.1).
+  # O estado em texto, sempre, com a marca da casa (D-2 da conferência): verdete cheio é o que vale
+  # agora, cinza cheio é o que terminou e fica no registro. A forma acompanha o texto, e nunca o
+  # substitui (WCAG 1.4.1).
   defp estado(assigns) do
     ~H"""
-    <span class="inline-flex items-center gap-1.5">
-      <span
-        class={[
-          "size-2 shrink-0 rounded-full",
-          @status == "active" && "bg-success",
-          @status != "active" && "bg-warning"
-        ]}
-        aria-hidden="true"
-      ></span>
+    <span class={[
+      "inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-xs",
+      @status == "active" && "bg-primary text-primary-content",
+      @status != "active" && "bg-neutral text-neutral-content"
+    ]}>
+      <span class="size-1.5 shrink-0 rounded-full bg-current" aria-hidden="true"></span>
       {@status}
     </span>
     """

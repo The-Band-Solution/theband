@@ -68,6 +68,12 @@ defmodule TheBandWeb.Plataforma.OrganizacaoController do
         {:error, :not_found} ->
           OperatorScope.nao_encontrado(conn)
 
+        # O estado mudou por outra aba ou outro operador: a página passa a mostrar o OUTRO ato, e
+        # ele vem vazio. Levar a razão, a nota e o `confirm_slug` já digitados deixaria um clique
+        # reativar o que acabou de ser suspenso, ou o contrário (D-9 da conferência).
+        {:error, motivo} when motivo in [:ja_suspensa, :nao_suspensa] ->
+          pagina(conn, slug, 422, {ato, motivo}, %{}, nil)
+
         {:error, motivo} ->
           pagina(conn, slug, 422, {ato, motivo}, valores, nil)
       end

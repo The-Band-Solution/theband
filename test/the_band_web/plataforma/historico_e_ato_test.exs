@@ -203,4 +203,39 @@ defmodule TheBandWeb.Plataforma.HistoricoEAtoTest do
     html = conn |> get(~p"/platform/organizations") |> html_response(200)
     assert html =~ Calendar.strftime(DateTime.utc_now(), "%Y-%m-%d")
   end
+
+  # D-9 da conferência (T060): na corrida de duas abas, a recusa troca o formulário para o OUTRO
+  # ato, e ele não pode vir com a razão, a nota e a confirmação já digitadas.
+  test "depois de 'already suspended', o formulário de reativar vem vazio", %{
+    conn: conn,
+    tenant: t
+  } do
+    agir(conn, t, "suspension", %{"reason" => "other", "note" => "x", "confirm_slug" => t.slug})
+
+    r =
+      agir(conn, t, "suspension", %{
+        "reason" => "other",
+        "note" => "a nota da segunda aba",
+        "confirm_slug" => t.slug
+      })
+
+    html = html_response(r, 422)
+    assert html =~ "Reactivate #{t.name}"
+    refute html =~ "a nota da segunda aba"
+    refute html =~ ~s(value="#{t.slug}")
+    refute html =~ "checked"
+  end
+
+  test "a lista diz quando a última suspensão foi a da migração", %{conn: conn, tenant: t} do
+    Repo.update_all(from(x in Tenant, where: x.id == ^t.id), set: [status: "suspended"])
+
+    Repo.insert!(%Suspension{
+      tenant_id: t.id,
+      suspended_at: DateTime.utc_now(:second),
+      suspend_reason: "not_recorded"
+    })
+
+    html = conn |> get(~p"/platform/organizations") |> html_response(200)
+    assert html =~ "reason not recorded"
+  end
 end
