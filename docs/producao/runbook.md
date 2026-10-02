@@ -32,8 +32,8 @@ no repositório ou em chat — nunca.**
 | Painel do Dokploy | `PHX_HOST` | o host do §1.3 |
 | Painel do Dokploy (registry) | credencial `read:packages` | SÓ se o pacote ghcr for privado |
 
-Nada além disto. Chave que vazar se ROTACIONA (`mix the_band.rotate_key` para a
-mestra), nunca se "monitora".
+Nada além disto. Chave que vazar se ROTACIONA (a mestra pelo §12, e não por `mix`, que a
+release não tem), nunca se "monitora".
 
 ## §3 [MARCO — pessoa] O app no Dokploy
 
@@ -437,3 +437,33 @@ o supervisor do Oban desistindo. Investigue antes de mexer na tabela.
 **Por que a fila parou.** O verificador detecta, e não explica. A causa da parada de 2026-09-04
 nunca foi achada.
 
+
+## §12 Rotacionar a chave mestra — issue #1052
+
+A chave mestra (`THE_BAND_MASTER_KEY`) cifra **todos** os campos de
+`TheBand.Rotacao.campos_cifrados/0`: as credenciais das ferramentas e a credencial do provedor de
+IA. Antes da #1052, a rotação recifrava só as primeiras, e a do provedor ficava ilegível.
+
+A release não tem `mix`, e por isso `mix the_band.rotate_key` não existe em produção. O caminho
+é este, pelo Dokploy:
+
+1. **Gerar a chave nova** fora do servidor (`mix the_band.gen_key`, numa máquina com o
+   repositório). Ela não passa por chat, commit nem log.
+2. **No painel do Dokploy**, copiar o valor atual de `THE_BAND_MASTER_KEY` para
+   `THE_BAND_PREVIOUS_MASTER_KEY`, e pôr a chave nova em `THE_BAND_MASTER_KEY`.
+3. **Reimplantar** (*Redeploy*), para o `Vault` subir com as duas chaves.
+4. **Recifrar**, no terminal do contêiner, dentro do nó que serve:
+
+   ```bash
+   /app/bin/the_band rpc 'IO.puts(TheBand.Release.rotacionar_chave())'
+   ```
+
+   A saída diz quantos registros recifrou por tabela, e nunca um valor. Se disser
+   **"NADA FOI GRAVADO"**, há registro ilegível com as duas chaves. Pare e confira o passo 2,
+   **sem** remover a chave anterior.
+5. **Só depois de recifrar**, remover `THE_BAND_PREVIOUS_MASTER_KEY` do painel e reimplantar.
+   Manter a chave antiga publicada mantém viva a chave que se quis aposentar.
+
+**Como conferir:** depois do passo 5, abrir uma ferramenta conectada e a tela de credencial de
+IA. As duas precisam continuar funcionando: a coleta segue, e a rodada de perfis não acusa
+credencial ilegível.
