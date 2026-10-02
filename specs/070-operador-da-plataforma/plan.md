@@ -123,7 +123,7 @@ dessa pessoa uma **entidade separada de `users`**, e é ela que dá a forma do p
 | **I, II, IV** | nenhuma ontologia muda. As razões de suspensão são **vocabulário declarado** na base, `platform.tenant_suspension`, e não constante de módulo |
 | **III — proveniência** | o episódio guarda autor, instante e razão; a concessão guarda o autor **declarado**, com o nome dizendo isso |
 | **V — multitenant** | o operador não tem tenant e **não alcança** caminho de domínio: tipo próprio, cookie com `Path=/platform`, leitor próprio. A guarda de telemetria (R10) prova que nenhuma consulta de domínio roda nas rotas dele. `encerrar_da_organizacao/1` recebe `%Tenant{}` |
-| **X, letra D — depender da fronteira, nunca da tabela** | `Platform.Suspensions` **não lê nem escreve `tenants`**: a troca de estado é `Tenants.trocar_estado_no_multi/5`, um passo que entra no `Multi` da suspensão, e a lista lê `Tenants.resumos_para_a_plataforma/0`, com `select` das quatro colunas permitidas (`contracts/sessoes-e-tokens-da-organizacao.md`). Sem exceção (achado D1 do `/speckit-analyze`, 2026-10-01) |
+| **X, letra D — depender da fronteira, nunca da tabela** | `Platform.Suspensions` **não lê nem escreve `tenants`**: a troca de estado é `Tenants.trocar_estado_no_multi/5`, um passo que entra no `Multi` da suspensão, e a lista lê `Tenants.resumos_para_a_plataforma/0`, com `select` das quatro colunas permitidas (`contracts/sessoes-e-tokens-da-organizacao.md`). Em Elixir, sem exceção (achado D1 do `/speckit-analyze`, 2026-10-01). **A migração também respeita a fronteira** (achado L1, 2026-10-01): a coluna `revoked_by_suspension_id` de `api_access_tokens`, tabela de `Tenants`, nasce numa migração **de `Tenants`** (`<ts>_revogacao_por_suspensao.exs`, tarefa T047), e não na migração do episódio (T044), que só cria `tenant_suspensions`. Decidido assim, e não como exceção justificada, porque a regra não tem exceção e o custo é uma migração a mais. **Segunda exceção declarada, só no banco**: a FK de `api_access_tokens` para `tenant_suspensions` aponta de `Tenants` para a `Platform`, a direção contrária à permitida. Fica declarada, e não tratada como "não é leitura", por coerência com o argumento de direção usado para o trigger abaixo: é integridade referencial, `Tenants` recebe o id do episódio por argumento em `revogar_por_suspensao/2` e não consulta `tenant_suspensions`, e nenhum código Elixir de `Tenants` depende da `Platform`. A alternativa, sem FK, deixaria `revoked_by_suspension_id` apontar para episódio inexistente. **Uma exceção declarada, só no banco** (achado D1-a, decidido pela pessoa mantenedora em 2026-10-01): o trigger de constraint adiado "estado só com episódio" (`data-model.md` §4a) lê `tenants` (só `id` e `status`) e `tenant_suspensions` e fica nas duas tabelas, porque o invariante é das duas e nenhum lado o escreve sem tocar a do outro. Fica na migração da **`Platform`** (`<ts>_estado_tem_episodio.exs`, T044a): o invariante é do episódio (O10, SC-002), a direção permitida é `Platform → Tenants`, e do lado de `Tenants` ele faria `Tenants` depender de tabela da `Platform`. Nenhum código Elixir ganha dependência |
 | **VI — contrato antes** | oito contratos em `contracts/`, cada um com o que **não** expõe; emendados em 2026-10-01 pela avaliação da segunda autenticação e pelo TOTP, antes de qualquer código |
 | **VII — revisão independente** | o gate de segurança acima; nenhuma tarefa da segunda autenticação antes dele |
 | **VIII — desenho justificado** | o registro abaixo |
@@ -247,6 +247,22 @@ testes que suspendem pelo changeset precisam mudar.
 - *O que piora*: o teste precisa filtrar pelo processo, e a lista permitida muda quando a área do
   operador ganhar uma leitura nova, o que é o objetivo.
 
+**16. Trigger de constraint adiado: "estado só com episódio"** (`data-model.md` §4a; achado D1-a,
+decidido pela pessoa mantenedora em 2026-10-01)
+
+- *Problema*: o `xref` guarda `trocar_estado_no_multi/5`, e não o invariante O10/SC-002. Uma escrita
+  de `tenants.status` por `change/2`, `force_change/3`, `update_all` noutro módulo ou `eval` de
+  release deixaria a organização `suspended` sem episódio. Uma struct-capacidade não resolve: em
+  Elixir ela não é opaca, e faria `Tenants` depender de tipo da `Platform`.
+- *Existe agora?* A escrita por fora não existe hoje (`seguranca-autenticacao.md`, D1-a); o
+  invariante, sim, é requisito escrito, e todo outro guarda dele depende de quem escreve código
+  lembrar. Decisão da pessoa mantenedora.
+- *O que piora*: é o **primeiro trigger de constraint adiado** do repositório, depois dos triggers
+  imediatos do registro de concessão e do episódio (decisão 8); invisível a quem lê Elixir; e
+  invisível também no sandbox de teste, que nunca faz `COMMIT` — o teste o observa com
+  `SET CONSTRAINTS … IMMEDIATE`. E é uma exceção declarada à letra D, só no banco (Constitution
+  Check).
+
 ## Project Structure
 
 ### Documentação
@@ -304,7 +320,9 @@ lib/the_band_web/controllers/plataforma/*        # cinco telas                  
 config/config.exs                                # :operator_id no formatador; filter_parameters (A10)
 priv/repo/migrations/<ts>_operador_da_plataforma.exs
 priv/repo/migrations/<ts>_segundo_fator_do_operador.exs
-priv/repo/migrations/<ts>_episodio_de_suspensao.exs
+priv/repo/migrations/<ts>_episodio_de_suspensao.exs        # só tenant_suspensions (Platform, T044)
+priv/repo/migrations/<ts>_estado_tem_episodio.exs          # trigger de constraint adiado em tenants e tenant_suspensions (Platform, T044a; D1-a), depois da de T044
+priv/repo/migrations/<ts>_revogacao_por_suspensao.exs      # api_access_tokens.revoked_by_suspension_id (Tenants, T047; L1)
 priv/repo/migrations/<ts>_estado_da_organizacao_valido.exs
 priv/knowledge_base/rules/platform_tenant_suspension.yaml
 priv/knowledge_base/rules/api_access_thresholds.yaml   # + clausulas_so_registradas
@@ -362,6 +380,7 @@ R13 e `contracts/segundo-fator-do-operador.md`; a biblioteca, decidida por T009:
 |---|---|---|
 | segunda autenticação | decisão da pessoa mantenedora (FR-011) | reaproveitar `users` foi a opção (a), recusada em 2026-10-01 |
 | primeiro trigger da base | FR-002 pede que o registro não se apague | só ausência de função não protege de `Repo.delete_all` em código novo |
+| primeiro trigger de constraint **adiado**, lendo `tenants` numa migração da `Platform` (exceção à letra D, só no banco) | O10/SC-002: estado só com episódio, por todo caminho (D1-a, decisão da pessoa mantenedora) | o `xref` guarda a função e não o invariante; struct-capacidade não é opaca em Elixir; trigger imediato recusaria a transação legítima, em que `:estado` vem antes de `:episodio` |
 | tabelas sem `tenant_id` | o operador não pertence a organização (FR-011) | tenant de plataforma (opção c) feria a US2, cenário 4 |
 
 ## Pós-desenho

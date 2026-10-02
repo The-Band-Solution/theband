@@ -289,8 +289,9 @@ outros dois, protege de código, e não de quem tem o banco.
 | `:sessoes` | `Sessions.encerrar_da_organizacao/1`, devolvendo os ids encerrados | — |
 | `:tokens` | `ApiTokens.revogar_por_suspensao/2`, cláusula `organizacao_suspensa` | — |
 
-O `%Tenant{}` que os passos `:estado`, `:sessoes` e `:tokens` recebem vem de `Tenants.fetch/1`,
-lido antes do `Multi`. `Platform.Suspensions` não consulta a tabela `tenants`.
+O `%Tenant{}` que os passos `:estado`, `:sessoes` e `:tokens` recebem vem de
+`Tenants.get_by_slug/1` (emenda U1, 2026-10-01: `suspender/3` e `reativar/3` recebem o slug), lido
+uma vez antes do `Multi`. `Platform.Suspensions` não consulta a tabela `tenants`.
 
 Depois do `commit`, e só depois: o evento de acesso e o fechamento dos sockets (R9).
 
@@ -358,7 +359,7 @@ na reativação; uma de B continua. Defeitos a injetar: retirar o aviso; avisar 
   também `user_sessions` e `api_access_tokens`.
   **`tenants` está na lista porque `Tenants` a lê, e não a `Platform`** (emenda D1, 2026-10-01):
   nos `GET` de lista e de histórico, pelas leituras públicas `Tenants.resumos_para_a_plataforma/0`
-  e `Tenants.resumo_para_a_plataforma/1`; nos dois `POST` de ato, por `Tenants.fetch/1` e pelo passo
+  e `Tenants.resumo_para_a_plataforma/1`; nos dois `POST` de ato, por `Tenants.get_by_slug/1` (U1) e pelo passo
   de `Tenants.trocar_estado_no_multi/5`. Nos `GET`, toda consulta com `source = "tenants"`
   seleciona **só** `id`, `name`, `slug` e `status`: o teste afirma que o `SELECT` do SQL não cita
   outra coluna de `tenants` (`inserted_at`, `updated_at`), o que reprova uma leitura de

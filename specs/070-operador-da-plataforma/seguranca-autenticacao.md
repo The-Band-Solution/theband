@@ -438,3 +438,100 @@ no mecanismo e abertos numa borda. Os dois contratos foram corrigidos nesta pass
 - O `quickstart.md` e o `tasks.md` além das linhas que citam os achados.
 - `spec.md`: se a FR-016 e a FR-011 emendada dizem o mesmo que os contratos.
 - Nada em execução. Os cenários 1, 3 e 5 da §5 continuam sendo a medição de A1, A5 e A2.
+
+## Conferência das emendas D1 (2026-10-01)
+
+Feita pelo agente `security`, que não escreveu as emendas, sobre o commit `9ec8d1d` (achado D1 do
+`/speckit-analyze`): `contracts/sessoes-e-tokens-da-organizacao.md` (as três funções novas de
+`TheBand.Tenants`), `contracts/suspensao.md`, research R8 e R10, e as tarefas T038a, T040, T041,
+T046a, T049, T050 e T053. Foi leitura de documento e de `lib/` em `9ec8d1d`. Nada rodou.
+
+**Veredito: nenhum ponto bloqueante falhou, e o contrato não mudou.** Ficam dois achados médios
+e duas recomendações baixas, para o Product Owner decidir prazo.
+
+### Veredito por ponto
+
+| ponto | veredito | como foi verificado |
+|---|---|---|
+| (1) `trocar_estado_no_multi/5` abre um caminho para trocar o estado sem episódio, sem autorização ou fora do `Multi` | **não abre um caminho novo**; a guarda por `xref` basta para *esta* função, e não basta para o invariante (D1-a) | o contrato só deixa a função existir como passo de um `Multi` de quem a chama, sem variante que grave sozinha; os pares são só dois e qualquer outro dá `FunctionClauseError`; a condição de estado fica no `WHERE`. Em R8, `:autorizacao` (com `FOR SHARE` na sessão e na concessão) é o **primeiro** passo, e `:estado` vem depois dele na mesma transação; `:episodio` vem depois de `:estado`, e a falha dele desfaz a troca. Na reativação, zero linhas no `:episodio` dão `:sem_episodio_aberto` e também desfazem a troca. T049 exige que nenhuma recusa mude o estado, inclusive `:nao_autorizado` |
+| (2) as leituras públicas vazam além das quatro colunas, ou alcançam domínio | **não vazam**; uma recomendação (D1-b) | `tenant.ex:19-26`: a tabela tem só `id`, `name`, `slug`, `status` e os dois timestamps, nenhum campo cifrado nem de pessoa. O contrato devolve mapa, sem `join` nem contagem, e não lê `tenant_suspensions`. T038a afirma que as chaves são *exatamente* as quatro, e o defeito a injetar (`Repo.all(Tenant)` sem `select`) reprova as duas asserções. R10 reprova nos `GET` um `SELECT` de `tenants` que cite `inserted_at`/`updated_at`, o que pega a struct inteira; a coluna nova que alguém puser no `select` é pega pela asserção de chaves de T038a. A guarda de `"users"` no SQL continua valendo em toda rota `/platform` |
+| (3a) A2, o aviso às telas abertas depois do `commit` | **não afetado** | a troca de estado não avisa e não encerra sessão; os ids continuam vindo do passo `:sessoes`, e o aviso continua depois do `commit` (suspensao.md, R9). A hook reconfere `organizacao_ativa/1` (`hooks.ex:138`), que lê `tenant.status`, e o `status` muda na mesma transação de `ended_at`: depois do `commit`, a tela cai pelos dois motivos, como antes. Os três defeitos de T053 continuam os certos |
+| (3b) A15, o `FOR SHARE` na sessão e na concessão | **não afetado** | `:autorizacao` não mudou nem de forma nem de posição. O `UPDATE` em `tenants` pega um lock de linha que não conflita com o `FOR SHARE` das tabelas `platform_*`. Duas suspensões paralelas: a segunda espera o lock da linha de `tenants`, o `WHERE status = 'active'` é reavaliado na linha já confirmada, dá zero linhas e vira `:ja_suspensa` |
+| (3c) T3 (seguranca-totp.md, a rotação da chave não alcança `totp_secret`) | **não afetado** | `tenants` não tem coluna cifrada (`tenant.ex:19-26`), e D1 não toca o Cloak nem `mix the_band.rotate_key` |
+| (3d) os defeitos a injetar de T038a, T046a, T049 e T050 | **certos**, com uma lacuna em T046a (D1-c) | T046a: tirar `status == ^de` faz a segunda troca gravar e reprova; chamar a função de um módulo de rascunho reprova o `xref`. T049 e T050: um caso por retorno, e o passo que recusou afirmado pelo nome no `Multi`, que é o que prova `:estado_mudou → :ja_suspensa/:nao_suspensa` |
+
+### Os achados
+
+**D1-a — média (A04 · V1.11, V4.1.3). O `xref` guarda a função, e não guarda o invariante.**
+O que precisa valer é *"`tenants.status` só muda com episódio"* (O10, SC-002). O `xref` prova que
+só `Platform.Suspensions` chama `trocar_estado_no_multi/5`. Ele **não** pega outra escrita do mesmo
+estado: `Ecto.Changeset.change(tenant, status: "suspended")` e `force_change/3` passam por fora
+do `cast`, e um `Repo.update_all(Tenant, set: [status: …])` em qualquer módulo também. O `xref`
+também não vê `apply/3` nem `eval` de release. Hoje não existe nenhuma dessas escritas: os dois
+escritores de `tenants` em `lib/` são `create_tenant/1` (`tenants.ex:84-85`) e `bootstrap.ex:155`,
+e os dois só criam a linha. Por isso o achado é de desenho, e não de exploração.
+- **Caminho**: quem tem acesso a commit (ou ao `eval` de release) suspende ou reativa uma
+  organização sem episódio. A tela do operador mostra `suspended` sem histórico, e
+  `:sem_episodio_aberto` passa a ser alcançável, o que o contrato hoje chama de "só possível por
+  escrita externa".
+- **A capacidade que só a `Platform` produz não resolve.** Em Elixir, uma struct não é opaca:
+  `%TheBand.Platform.Autorizacao{}` pode ser escrita literalmente em qualquer módulo, então ela
+  protege tanto quanto o `xref`. E ainda faria `Tenants` depender de um tipo da `Platform`, que é
+  a direção que o princípio X, letra D proíbe.
+- **O que fecha**: um invariante no banco. Um trigger de constraint `DEFERRABLE INITIALLY
+  DEFERRED` em `tenants` e em `tenant_suspensions` que recusa o `commit` quando
+  `status = 'suspended'` e não há episódio aberto, ou quando `status = 'active'` e há. Ele vale
+  para todo caminho, inclusive `eval`. É adiado porque, em R8, `:estado` vem antes de `:episodio`.
+  **Cenário para o QA**: dentro de uma transação, `Repo.update_all` direto em `tenants.status`
+  sem episódio; o `commit` precisa ser recusado. Defeito a injetar: tirar o trigger, e o `commit`
+  passa.
+- **Se não entrar agora**: o O10 continua coberto pelo `CHECK`, pelo `cast` sem `:status` e pelo
+  `xref`. Essas três defesas dependem de quem escreve código lembrar. A decisão é do Product
+  Owner; a data-model.md teria de ganhar o trigger, com a tarefa e o teste correspondentes.
+
+**D1-b — média (A01 · V4.1.3). As leituras de resumo são leituras de todas as organizações, e
+nenhuma guarda impede um chamador de domínio de usá-las.** `resumos_para_a_plataforma/0` não
+recebe tenant, por desenho: é o escopo da plataforma. Se um LiveView de domínio a chamar, uma
+pessoa da organização A passa a ver nome, slug e estado de B. `list_tenants/0` já tem a mesma
+forma e é chamada por `profiles/automation.ex:105` e por uma tarefa mix, então o risco não é novo.
+Mas a função nova existe **para** a área do operador, e o contrato não a amarra ao chamador como
+amarra a escrita.
+- **O que fecha**: o mesmo teste de `xref` de T046a, estendido às duas leituras em T038a, com
+  `TheBand.Platform.Suspensions` como único chamador em `lib/`. Defeito a injetar: chamar a leitura
+  de um módulo de domínio de rascunho, e o teste reprova.
+- Não é bloqueante: nenhum chamador de domínio existe, e o dado (nome e slug de organização
+  cliente) é o de menor sensibilidade entre os de outro tenant.
+
+**D1-c — baixa. Em T046a, o "fora do `Multi`" não tem um defeito a injetar com nome.** O risco
+que o contrato descreve é a troca se confirmar sem o resto da transação. A forma concreta disso é
+a função executar o `update_all` **na hora em que monta o `Multi`**, e não dentro de um
+`Multi.run`. A frase de T046a *"com um passo seguinte que falha, o estado volta"* pega esse
+defeito, mas o defeito não está listado, e uma guarda só vale quando foi vista reprovando
+(§14.0). **O que fecha**: em T046a, um terceiro defeito a injetar: o `update_all` executado na
+construção do `Multi`, e o caso do `ROLLBACK` tem de reprovar.
+
+**D1-d — informativo. O `%Tenant{}` chega à `Platform`.** A tabela "O que a API NÃO expõe"
+exclui `%Tenant{}` da *área do operador*. Mas `Platform.Suspensions` recebe a struct de
+`Tenants.fetch/1` (`tenants.ex:72-78`, um `Repo.get` sem `preload`) e do resultado do passo
+`:estado`. Isso é aceitável **se** a struct não sair de `Suspensions`: `suspender/3` e
+`reativar/3` devolvem `Suspension.t()`, e a guarda de `"users"` de R10 vale também para os `POST`
+de ato. Vale que T049 afirme isso. Não é contradição do contrato, e não muda nada.
+
+### O que mudou nos contratos
+
+Nada. Nenhum ponto bloqueante falhou. D1-a, D1-b e D1-c são recomendações para o `tasks.md` e,
+no caso de D1-a, para a `data-model.md`. Ficam abertos até serem corrigidos ou explicitamente
+aceitos pelo Product Owner.
+
+### O que NÃO conferi
+
+- **Nada rodou**: nem `mix xref callers`, nem os testes. Não conferi que `mix xref callers` existe
+  e tem essa forma na versão de Elixir do projeto. T032 usa o mesmo mecanismo, e a conferência é
+  de quem o implementar.
+- Afirmo o comportamento do `UPDATE` concorrente (a reavaliação do `WHERE` em `READ COMMITTED`)
+  pelo que o PostgreSQL documenta. Não o medi. O cenário 3 de `seguranca.md` §4 é a medição.
+- `spec.md`, `plan.md` e `quickstart.md` além do que cita D1. Também não conferi as outras
+  correções do mesmo commit (O1, S1, S4 e os achados médios e baixos).
+- Busquei em `lib/` as escritas em `tenants` pelos padrões `Tenant.changeset`,
+  `update_all(Tenant` e `change(tenant`. Não fiz uma leitura arquivo a arquivo: uma escrita por
+  SQL cru com outro texto não seria encontrada.

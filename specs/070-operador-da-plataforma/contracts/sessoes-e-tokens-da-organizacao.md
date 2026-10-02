@@ -33,6 +33,10 @@ tenants, e o defeito a injetar é trocar por `girar_todas/0`.
 `revocation_clause = "organizacao_suspensa"`. A condição fica no `WHERE`, como
 `api_tokens.ex:436-441` de `development` (`gravar_revogacao/3`), e o token já revogado mantém o autor e a razão da primeira revogação.
 
+A coluna `revoked_by_suspension_id` é **de `Tenants`**, porque `api_access_tokens` é de `Tenants`, e
+nasce na migração dela (`<ts>_revogacao_por_suspensao.exs`, T047), e não na do episódio (achado L1;
+`data-model.md` §6). `Tenants` recebe o id do episódio por argumento e não lê `tenant_suspensions`.
+
 ## `TheBand.Tenants.ApiTokens.clausulas_registradas/0 :: [String.t()]`
 
 As oferecidas mais `clausulas_so_registradas`. `clausulas_de_revogacao/0` continua só com as
@@ -74,9 +78,15 @@ leitura de antes.
   outro módulo, e quem compõe o `Multi` é `Platform.Suspensions` (research R8). Quem chama traduz
   `:estado_mudou` para o motivo do ato: `:ja_suspensa` em `suspender/3`, `:nao_suspensa` em
   `reativar/3` (`suspensao.md`);
-- **um chamador só**: `TheBand.Platform.Suspensions`. O teste da tarefa que a cria afirma, pela
-  saída de `mix xref callers`, que nenhum outro módulo a chama, na forma do teste de T032 sobre
-  `TheBand.Platform.Grants`.
+- **um chamador só**: `TheBand.Platform.Suspensions`. Afirmado em dois tempos, pela saída de
+  `mix xref callers`, na forma do teste de T032 sobre `TheBand.Platform.Grants` (achado O5): a
+  tarefa que a cria (T046a) afirma que **nenhum chamador fora de `Suspensions`** existe em `lib/` —
+  quando ela fecha, `Suspensions` ainda não a chama —, e a que escreve `suspender/3` (T049) afirma
+  que há **pelo menos um chamador, e só `Suspensions`**;
+- **o `xref` guarda a função, e não o invariante** (achado D1-a): outra escrita de `status`
+  (`change/2`, `force_change/3`, `update_all` em outro módulo, `eval` de release) não passa por
+  ela. Quem guarda o invariante "estado só com episódio" é o trigger adiado de `data-model.md` §4a,
+  que recusa o `COMMIT`.
 
 ## `TheBand.Tenants.resumos_para_a_plataforma() :: [resumo]` e `resumo_para_a_plataforma(slug :: String.t()) :: {:ok, resumo} | {:error, :not_found}`
 
@@ -92,7 +102,14 @@ mostrado). A primeira devolve todas, ordenadas por `name`; a segunda, uma pelo `
   tokens): é a FR-007, e a guarda de telemetria de research R10 reprova o contrário;
 - não leem `tenant_suspensions`: o último episódio e o histórico são da `Platform`, que compõe os
   dois em memória pelo `id` (`suspensao.md`, `listar_organizacoes/1`), com duas consultas no total e
-  sem N+1.
+  sem N+1;
+- **nenhum chamador fora de `TheBand.Platform`** em `lib/` (achado D1-b de
+  `seguranca-autenticacao.md`): não recebem tenant, por desenho, porque são o escopo da plataforma;
+  uma tela de domínio que as chamasse mostraria a uma pessoa da organização A o nome, o slug e o
+  estado de B. Afirmado pela saída de `mix xref callers` sobre as duas, em T038a, com o defeito de
+  uma tela de domínio de rascunho chamando a leitura;
+- os dois `POST` de ato **não** as usam: o ato resolve o slug por `Tenants.get_by_slug/1`, numa
+  leitura só, dentro de `Suspensions` (`suspensao.md`, emenda U1).
 
 ## `TheBand.Tenants.Tenant`
 

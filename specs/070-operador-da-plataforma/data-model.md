@@ -183,7 +183,85 @@ Constraints:
   reativação só a partir de nulos, e **libera `updated_at`** (A13b).
 
 **`tenants.status` continua sendo a resposta rápida, e o episódio é o registro.** As duas escritas
-estão na mesma transação.
+estão na mesma transação, e desde §4a o banco recusa o `COMMIT` em que elas discordam.
+
+## 4a. O invariante "estado só com episódio", no banco
+
+Achado **D1-a** de `seguranca-autenticacao.md` ("Conferência das emendas D1"), **decidido pela pessoa
+mantenedora em 2026-10-01**. O `xref` guarda `trocar_estado_no_multi/5`, e não o invariante: uma
+escrita de `status` por `change/2`, `force_change/3`, `update_all` noutro módulo ou `eval` de release
+deixaria a organização `suspended` sem episódio, ou `active` com um aberto. O que guarda o invariante
+é um trigger de constraint **adiado**, que vale para todo caminho que passa pelo banco.
+
+Migração própria, `priv/repo/migrations/<ts>_estado_tem_episodio.exs` (tarefa T044a), **depois** da
+de §4 (T044), que cria `tenant_suspensions` e insere os episódios `not_recorded`:
+
+```sql
+CREATE FUNCTION tenant_estado_tem_episodio() RETURNS trigger AS $$
+DECLARE
+  alvo uuid := CASE TG_TABLE_NAME WHEN 'tenants' THEN NEW.id ELSE NEW.tenant_id END;
+  estado text;
+  aberto boolean;
+BEGIN
+  SELECT status INTO estado FROM tenants WHERE id = alvo;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+  aberto := EXISTS (SELECT 1 FROM tenant_suspensions
+                    WHERE tenant_id = alvo AND reactivated_at IS NULL);
+  IF (estado = 'suspended') IS DISTINCT FROM aberto THEN
+    RAISE EXCEPTION 'organização % com estado % e episódio aberto = %', alvo, estado, aberto
+      USING ERRCODE = 'check_violation', CONSTRAINT = 'tenant_estado_tem_episodio';
+  END IF;
+  RETURN NULL;
+END $$ LANGUAGE plpgsql;
+
+CREATE CONSTRAINT TRIGGER tenants_estado_tem_episodio
+  AFTER INSERT OR UPDATE OF status ON tenants
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION tenant_estado_tem_episodio();
+
+CREATE CONSTRAINT TRIGGER tenant_suspensions_estado_tem_episodio
+  AFTER INSERT OR UPDATE OF reactivated_at ON tenant_suspensions
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION tenant_estado_tem_episodio();
+```
+
+- **adiado** (`INITIALLY DEFERRED`) porque, em research R8, o passo `:estado` vem **antes** do
+  `:episodio`: no meio da transação legítima o estado e o episódio discordam, e só o `COMMIT` é o
+  ponto em que os dois têm de concordar. A função relê as duas tabelas **no `COMMIT`**, e não usa
+  o `NEW` além do id, então vê o estado final da transação;
+- dispara nas duas tabelas: em `tenants`, a escrita de estado sem episódio; em `tenant_suspensions`,
+  o episódio aberto ou fechado sem a troca de estado. `DELETE` de episódio já é recusado por
+  `tenant_suspensions_nao_apaga` (§4), e `DELETE` de organização com episódio, pela FK `restrict`;
+- `INSERT` em `tenants` entra: criar a organização já `suspended` sem episódio é recusado, e
+  `create_tenant/1` e `bootstrap.ex:155`, que criam `active`, passam;
+- **a ordem com a migração de dados**: um trigger de constraint só confere linhas **escritas depois
+  dele**, e não valida o que já está na tabela. Por isso a migração de T044 insere os `not_recorded`
+  primeiro, e o `up` desta, **antes** de criar o trigger, roda a consulta de §7 e a recíproca e
+  **levanta** com as contagens se alguma não der zero (a mesma regra de research R6: nunca mapear em
+  silêncio). O `down` apaga os dois triggers e a função;
+- **no sandbox de teste ele não aparece sozinho**: o `Ecto.Adapters.SQL.Sandbox` nunca faz `COMMIT`,
+  então o trigger adiado nunca dispara. O teste que o observa força a conferência com
+  `SET CONSTRAINTS tenants_estado_tem_episodio, tenant_suspensions_estado_tem_episodio IMMEDIATE`
+  dentro da transação. É também por isso que os testes de `Tenants` que suspendem por `update_all`
+  sem episódio (T013) continuam verdes: não confirmam nada. Fora do sandbox, a mesma escrita é
+  recusada;
+- é o **primeiro trigger de constraint adiado** do repositório; os anteriores (`nao_apaga`,
+  `so_revoga`, `so_fecha`, `nao_trunca`, §2 e §4) são imediatos.
+
+**De que lado fica, e o princípio X, letra D.** A função lê `tenants` (só `id` e `status`) e
+`tenant_suspensions`, e os triggers ficam nas duas: nenhum lado o escreve sem tocar a tabela do outro.
+É uma **exceção declarada** à letra D, e só no banco. Fica do lado da **`Platform`**, numa migração
+dela (T044a), porque:
+
+1. o invariante é do episódio (O10, SC-002, a consulta de §7), que é conceito da `Platform`;
+2. a direção permitida é `Platform → Tenants`. Do lado de `Tenants`, a migração faria `Tenants`
+   depender de uma tabela da `Platform`, a direção inversa, e `Tenants` passaria a ter de saber o que
+   é um episódio;
+3. nenhum código Elixir de nenhum dos dois lados ganha dependência: `Tenants` continua sem ler
+   `tenant_suspensions`, e `Platform` continua sem ler nem escrever `tenants` em Elixir. A função lê
+   de `tenants` só o que a `Platform` já recebe por `resumos_para_a_plataforma/0`.
+
+O que fica pior: a regra fica invisível a quem lê Elixir, e quem altera `tenants.status` noutro
+desenho precisa saber que o banco recusa — o nome do erro (`tenant_estado_tem_episodio`) diz onde
+olhar.
 
 ### Transições
 
@@ -223,14 +301,22 @@ YAML:
 
 - `CHECK (status IN ('active', 'suspended'))`, nome `tenants_status_valido`;
 - o `up` conta os valores fora da lista e **levanta** se houver algum (research R6);
-- o `up` insere um episódio `not_recorded` para cada organização `suspended` sem episódio aberto;
+- o episódio `not_recorded` para cada organização `suspended` sem episódio aberto é inserido pela
+  migração de §4 (T044), que cria a tabela, e não por esta (T013), que roda antes de a tabela existir;
 - **quem escreve `status` depois disso é só `Tenants.trocar_estado_no_multi/5`**, um passo que entra
   no `Ecto.Multi` de `Platform.Suspensions`; e quem lê a tabela para a área do operador é só
   `Tenants.resumos_para_a_plataforma/0` e `resumo_para_a_plataforma/1`, com as quatro colunas
   (`contracts/sessoes-e-tokens-da-organizacao.md`). `Platform` não toca a tabela (constituição,
-  princípio X, letra D; achado D1).
+  princípio X, letra D; achado D1). Qualquer outra escrita que deixe o estado sem o episódio
+  correspondente é recusada no `COMMIT` pelo trigger de §4a (D1-a).
 
 ### `api_access_tokens`
+
+**Na migração de `Tenants`**, `priv/repo/migrations/<ts>_revogacao_por_suspensao.exs` (tarefa T047),
+posterior à de §4, e **não** na do episódio (T044): a tabela é de `Tenants`, e `Platform` não altera
+tabela alheia (achado L1; `plan.md`, Constitution Check, princípio X, letra D). A FK para
+`tenant_suspensions` é referência de integridade, e não leitura: `Tenants` recebe o id do episódio por
+argumento em `revogar_por_suspensao/2`.
 
 - coluna `revoked_by_suspension_id`, uuid, FK `tenant_suspensions`, `on_delete: :restrict`, null;
 - `CHECK (revoked_by_suspension_id IS NULL OR revocation_clause = 'organizacao_suspensa')`;

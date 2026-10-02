@@ -11,6 +11,13 @@ description: "Tarefas da 070 — o operador da plataforma: suspender e reativar 
 
 **Emendado em 2026-10-01** pelo `/speckit-analyze` (D1, O1, S1–S4, C1, C2, U1, D2, T1, L1–L7, A1):
 tarefas novas T003a, T023a, T030a, T038a e T046a; ordem circular desfeita; contagem refeita.
+**Reemendado em 2026-10-01** pela reanálise (O3, O4, O5, P1, L1) e pela conferência de segurança das
+emendas D1 (D1-b, D1-c, D1-d de `seguranca-autenticacao.md`): T033 separada de `definir_senha/3`,
+T051 e T054 esperam T056, T053 chama o contexto direto, a coluna de `api_access_tokens` passou de
+T044 para T047. Na segunda passada: **T044a** nova (o trigger de constraint adiado de D1-a, decidido
+pela pessoa mantenedora), e `suspender/3` e `reativar/3` passam a receber o slug (U1 da reanálise),
+em T049, T050, T053 e T056. O grafo de `Pronta quando` foi conferido acíclico por script. Contagem:
+71.
 
 **Gerado em**: 2026-10-01, pelo `/speckit-tasks`. Não há `.specify/extensions.yml`: nenhum hook.
 
@@ -288,7 +295,8 @@ template começa antes de T012.
     e `test/the_band_web/api/organizacao_suspensa_test.exs:38` (`mudar_status/2`, usado em `:52` e
     `:71`), para escreverem o estado por `update_all` com comentário dizendo por quê, como
     `test/the_band/jobs/organizacao_inativa_test.exs:56` já faz (research R6; achado C2). O10. O episódio `not_recorded` para as já suspensas fica em T044, que cria a
-    tabela
+    tabela. Esses testes continuam verdes depois do trigger adiado de T044a só porque
+    o sandbox não faz `COMMIT`: o comentário deles diz isso (`data-model.md` §4a)
   - **Feita quando**: `Tenant.changeset(t, %{status: "suspended"})` não muda o estado; um `UPDATE`
     com `'Suspended'` reprova no banco; a migração com uma linha `status = 'x'` levanta dizendo
     quantas; os dois testes ajustados continuam verdes, e a guarda deles (`assert t.status ==
@@ -441,7 +449,7 @@ recebe o `404` de um caminho inexistente.
 - [ ] T023 [US2] Conferir a entrada do operador
   - **Pronta quando**: **A1** e **A3** emendados em `contracts/credenciais-do-operador.md` e
     conferidos por T008; T002 (#1048) e T003 (#1047) mergeadas e T007 rebaseada, para copiar a
-    forma corrigida; T021 e T022 concluídas
+    forma corrigida; T021, T022 e **T033** concluídas (os eventos que esta tarefa emite; achado O3)
   - **Descrição**: `lib/the_band/platform/credentials.ex`, `autenticar/3`: transação com
     `SELECT … FOR UPDATE` na linha do operador **antes** da espera e do hash (A1);
     `Bcrypt.no_user_verify/0` também na recusa por espera (A3); recusa única; segundo fator só
@@ -494,7 +502,7 @@ recebe o `404` de um caminho inexistente.
 
 - [ ] T026 [US2] Definir a senha e cadastrar o segundo fator
   - **Pronta quando**: **A5** e **A14** emendados em `contracts/credenciais-do-operador.md` e
-    conferidos por T008; T011 concluída; T023 concluída
+    conferidos por T008; T011 concluída; T023 e **T033** concluídas (os eventos de A7; achado O3)
   - **Descrição**: `definir_senha/3`, `confirmar_segundo_fator/3` e `concluir_cadastro/2` em
     `credentials.ex`, os **três passos** do cadastro (emenda T012, Q3 (b);
     `contracts/segundo-fator-do-operador.md`, "O fluxo de cadastro"), como o contrato: exigem
@@ -512,10 +520,13 @@ recebe o `404` de um caminho inexistente.
     código de recuperação continua sem `used_at`; depois do terceiro, autentica com o TOTP e com um
     código de recuperação; o código de definição usado uma vez é recusado na segunda; o código de
     cadastro não abre o passo 3; operador sem concessão vigente recebe a recusa única no primeiro
-    passo e no terceiro
+    passo e no terceiro; um código de definição errado em `definir_senha/3` produz, no
+    `capture_log`, `operador_definicao_recusada` com `:codigo_errado` (vinda de T033, achado O3)
   - **Teste**: `test/the_band/platform/credentials_definir_test.exs`, um caso por frase acima.
-    **Defeito a injetar**: gravar `totp_confirmed_at` em `confirmar_segundo_fator/3`; o caso
-    "depois do segundo, ainda recusa" precisa autenticar e o teste reprovar
+    **Defeitos a injetar**, um por vez: gravar `totp_confirmed_at` em `confirmar_segundo_fator/3`;
+    o caso "depois do segundo, ainda recusa" precisa autenticar e o teste reprovar. Retirar a
+    chamada a `AccessEvents.operador_definicao_recusada/2` em `definir_senha/3`; o caso do código
+    de definição errado precisa reprovar (vindo de T033)
 
 - [ ] T027 [US2] Provar o código de uso único sob concorrência
   - **Pronta quando**: T026 concluída
@@ -643,12 +654,19 @@ recebe o `404` de um caminho inexistente.
   - **Descrição**: em `lib/the_band/tenants/access_events.ex`, as funções do contrato, todas em
     `:warning`, inclusive `operador_senha_definida/1`, `operador_definicao_recusada/2`,
     `operador_segundo_fator_cadastrado/1`, `operador_cadastro_recusado/2` e
-    `operador_recuperacao_usada/2`. Chamadas por T023, T026 e T030. FR-010, O14
-  - **Feita quando**: um código de definição errado produz `operador_definicao_recusada` com
-    `:codigo_errado`; o código, a senha e o segredo não aparecem em nenhuma linha capturada
-  - **Teste**: `test/the_band/platform/eventos_do_operador_test.exs` com `capture_log`, e `refute
-    log =~ codigo` (cenário 12). **Defeito a injetar**: retirar a chamada em `definir_senha/3`; o
-    caso precisa reprovar
+    `operador_recuperacao_usada/2`. **Só as funções de evento**: quem as chama (T023, T026, T030)
+    depende desta tarefa, e não o contrário. A asserção de que `definir_senha/3` emite o evento é de
+    T026 (achado O3 do `/speckit-analyze`: a versão anterior desta tarefa exigia `definir_senha/3`,
+    e fechava o ciclo T023 → T033 → T026 → T023). FR-010, O14
+  - **Feita quando**: cada função do contrato, chamada **direto** em `AccessEvents` com os
+    argumentos do contrato, emite uma linha em `:warning` com o nome do evento e o motivo
+    (`operador_definicao_recusada(op, :codigo_errado)` dá a linha com `:codigo_errado`); passando
+    código, senha e segredo de fixture nos argumentos que os aceitam, nenhum deles aparece em nenhuma
+    linha capturada
+  - **Teste**: `test/the_band/platform/eventos_do_operador_test.exs` com `capture_log`, chamando
+    `AccessEvents` direto, sem `Credentials`, e `refute log =~ codigo` (cenário 12). **Defeito a
+    injetar**: incluir o código no metadado de `operador_definicao_recusada/2`; o `refute` precisa
+    reprovar
 
 - [ ] T034 [P] [US2] Provar a paridade das duas autenticações
   - **Pronta quando**: T023 concluída
@@ -717,10 +735,15 @@ recebe o `404` de um caminho inexistente.
     princípio X, letra D; achado D1). FR-007
   - **Feita quando**: com duas organizações, cada resumo tem **exatamente** as chaves `:id`,
     `:name`, `:slug` e `:status`; o SQL capturado por telemetria cita só essas colunas de `tenants`;
-    slug inexistente dá `{:error, :not_found}`
-  - **Teste**: `test/the_band/tenants/resumos_para_a_plataforma_test.exs`. **Defeito a injetar**:
-    devolver `Repo.all(Tenant)` sem o `select`; a asserção das chaves e a das colunas precisam
-    reprovar
+    slug inexistente dá `{:error, :not_found}`; `mix xref callers` sobre
+    `resumos_para_a_plataforma/0` e `resumo_para_a_plataforma/1` não mostra **nenhum chamador fora de
+    `TheBand.Platform`** em `lib/` (achado D1-b de `seguranca-autenticacao.md`: a leitura existe para
+    a área do operador, e uma tela de domínio que a use contorna o escopo por tenant)
+  - **Teste**: `test/the_band/tenants/resumos_para_a_plataforma_test.exs`, mais um caso sobre a saída
+    de `mix xref callers` das duas funções. **Defeitos a injetar**, um por vez: devolver
+    `Repo.all(Tenant)` sem o `select` (a asserção das chaves e a das colunas precisam reprovar);
+    chamar `Tenants.resumos_para_a_plataforma/0` de uma tela de domínio de rascunho em
+    `lib/the_band_web/live/` (o caso do `xref` precisa reprovar)
 
 - [ ] T039 [US2] Telas de entrada, definição e cadastro
   - **Pronta quando**: **T012 aprovado** (protótipo); T023, T026, T028a e T036 concluídas;
@@ -823,14 +846,40 @@ de antes vai para `/sign-in`. Com o encerramento retirado, o teste precisa dar `
   - **Pronta quando**: T008 concluída; T013 e T018 concluídas; `data-model.md` §4 e §6
   - **Descrição**: `priv/repo/migrations/<ts>_episodio_de_suspensao.exs`: `tenant_suspensions`
     com o índice parcial do aberto, os `CHECK`s, os triggers `nao_apaga`, `so_fecha` (coluna a
-    coluna, liberando `updated_at`, A13b) e `nao_trunca` (A13a); em `api_access_tokens`, a coluna
-    `revoked_by_suspension_id` e os dois `CHECK`s; e o `up` insere um episódio `not_recorded`, sem
-    autor, para cada organização já `suspended` sem episódio. Schema `lib/the_band/platform/
-    suspension.ex`. FR-006, SC-002
+    coluna, liberando `updated_at`, A13b) e `nao_trunca` (A13a); e o `up` insere um episódio
+    `not_recorded`, sem autor, para cada organização já `suspended` sem episódio. Schema
+    `lib/the_band/platform/suspension.ex`. **Não toca `api_access_tokens`**: a coluna
+    `revoked_by_suspension_id` é de `Tenants` e nasce em T047, numa migração própria (achado L1;
+    constituição, princípio X, letra D; `plan.md`, Constitution Check). FR-006, SC-002
   - **Feita quando**: a consulta de `data-model.md` §7 devolve `0` depois da migração, inclusive com
     uma organização suspensa antes dela; o `down` volta ao estado anterior
   - **Teste**: round trip `mix ecto.migrate` / `mix ecto.rollback --step 1`, com uma organização
     `suspended` semeada antes; `test/the_band/platform/migracao_do_episodio_test.exs`
+
+- [ ] T044a [US1] O banco recusa estado sem episódio — trigger de constraint adiado (D1-a)
+  - **Pronta quando**: `data-model.md` §4a; T013 e **T044** concluídas (a migração desta roda
+    **depois** da de T044, que cria `tenant_suspensions` e insere os `not_recorded`)
+  - **Descrição**: `priv/repo/migrations/<ts>_estado_tem_episodio.exs`, migração **da `Platform`**
+    (exceção declarada à letra D, só no banco: `plan.md`, Constitution Check e decisão 16): a função
+    `tenant_estado_tem_episodio()` e os dois `CONSTRAINT TRIGGER … DEFERRABLE INITIALLY DEFERRED`, em
+    `tenants` (`AFTER INSERT OR UPDATE OF status`) e em `tenant_suspensions` (`AFTER INSERT OR UPDATE
+    OF reactivated_at`), como `data-model.md` §4a. O `up`, **antes** de criar os triggers, roda a
+    consulta de §7 e a recíproca e **levanta** com as contagens se alguma não der zero (o trigger não
+    confere linhas antigas); o `down` apaga os triggers e a função. Decisão da pessoa mantenedora em
+    2026-10-01 (achado D1-a de `seguranca-autenticacao.md`). O10, SC-002
+  - **Feita quando**: dentro de uma transação, `Repo.update_all` direto em `tenants.status` para
+    `suspended`, sem episódio, é **recusado** quando a conferência acontece (erro com o nome
+    `tenant_estado_tem_episodio`); o mesmo para reativar por `update_all` com o episódio aberto, e
+    para abrir um episódio numa organização `active`; a sequência legítima — `status` primeiro, depois
+    o episódio, na mesma transação — **passa**; o round trip `mix ecto.migrate` / `mix ecto.rollback
+    --step 1` volta ao estado anterior; com uma organização `suspended` sem episódio semeada antes, o
+    `up` levanta dizendo quantas
+  - **Teste**: `test/the_band/platform/estado_tem_episodio_test.exs`. O sandbox nunca faz `COMMIT`,
+    então cada caso força a conferência com `SET CONSTRAINTS tenants_estado_tem_episodio,
+    tenant_suspensions_estado_tem_episodio IMMEDIATE` no fim da transação (é o `COMMIT` visto de
+    dentro do sandbox). **Defeitos a injetar**, um por vez: o trigger **removido** (o `update_all` sem
+    episódio passa e o teste reprova); o trigger criado **`NOT DEFERRABLE`** (imediato) — a sequência
+    legítima, estado antes do episódio, é recusada no primeiro `UPDATE` e o teste reprova
 
 - [ ] T045 [US1] Provar que o episódio é um só e não se reescreve
   - **Pronta quando**: T044 concluída
@@ -853,9 +902,11 @@ de antes vai para `/sign-in`. Com o encerramento retirado, o teste precisa dar `
   - **Teste**: `test/the_band/tenants/encerrar_da_organizacao_test.exs` (cenário 5 de `seguranca.md`).
     **Defeito a injetar**: implementar com `girar_todas/0`; B precisa cair e o teste reprovar
 
-- [ ] T046a [P] [US1] Trocar o estado da organização dentro de um `Multi`, do lado de `Tenants`
+- [ ] T046a [US1] Trocar o estado da organização dentro de um `Multi`, do lado de `Tenants`
   - **Pronta quando**: `contracts/sessoes-e-tokens-da-organizacao.md`, seção
-    `trocar_estado_no_multi/5` (emenda D1); T013 concluída (o `CHECK` e `:status` fora do `cast`)
+    `trocar_estado_no_multi/5` (emenda D1); T013 concluída (o `CHECK` e `:status` fora do `cast`);
+    **T038a concluída** — as duas editam `lib/the_band/tenants.ex`, e por isso esta não é `[P]`
+    (achado P1)
   - **Descrição**: em `lib/the_band/tenants.ex`, `trocar_estado_no_multi(multi, nome, %Tenant{}, de,
     para)`: acrescenta ao `multi` o passo `nome`, com `update_all` condicional `WHERE id = ^id AND
     status = ^de`, `updated_at` junto; uma linha → `{:ok, %Tenant{status: para}}`; zero linhas →
@@ -866,20 +917,33 @@ de antes vai para `/sign-in`. Com o encerramento retirado, o teste precisa dar `
   - **Feita quando**: dentro de `Repo.transaction/1` sobre um `Multi`, `active → suspended` muda o
     estado; a segunda vez devolve `:estado_mudou` e não muda nada; id inexistente devolve
     `:not_found`; com um passo seguinte que falha, o estado volta (o `ROLLBACK` alcança a troca);
-    `mix xref callers` mostra `TheBand.Platform.Suspensions` como único chamador em `lib/`
-  - **Teste**: `test/the_band/tenants/trocar_estado_test.exs`, um caso por frase. **Defeito a
-    injetar**: retirar `status == ^de` do `WHERE`; a segunda troca precisa gravar e o teste reprovar.
-    Segundo defeito: chamá-la de um módulo de rascunho fora da `Platform`; o teste do `xref` precisa
-    reprovar
+    `mix xref callers` não mostra **nenhum chamador fora de `TheBand.Platform.Suspensions`** em
+    `lib/` (achado O5: quando esta tarefa fecha, `Suspensions` ainda não a chama, e "único chamador"
+    seria falso; a asserção de que ela é chamada, e só por ela, é de T049)
+  - **Teste**: `test/the_band/tenants/trocar_estado_test.exs`, um caso por frase. **Defeitos a
+    injetar**, um por vez: retirar `status == ^de` do `WHERE` (a segunda troca precisa gravar e o
+    teste reprovar); chamá-la de um módulo de rascunho fora da `Platform` (o teste do `xref` precisa
+    reprovar); executar o `update_all` **na construção** do `Multi`, fora dele, devolvendo um passo
+    que só repete o resultado (o caso do `ROLLBACK` precisa ser **visto reprovando**: o estado fica
+    `suspended` depois do passo seguinte falhar; achado D1-c de `seguranca-autenticacao.md`)
 
 - [ ] T047 [P] [US1] Revogar os tokens de uma organização suspensa
-  - **Pronta quando**: `contracts/sessoes-e-tokens-da-organizacao.md`; T015 e T044 concluídas
-  - **Descrição**: em `lib/the_band/tenants/api_tokens.ex`, `revogar_por_suspensao/2` (condição
+  - **Pronta quando**: `contracts/sessoes-e-tokens-da-organizacao.md`; T015 e T044 concluídas (T044
+    cria `tenant_suspensions`, alvo da FK)
+  - **Descrição**: a migração do lado de `Tenants`, `priv/repo/migrations/<ts>_revogacao_por_suspensao.exs`
+    (posterior à de T044), acrescenta a `api_access_tokens` a coluna `revoked_by_suspension_id` e os
+    dois `CHECK`s de `data-model.md` §6, com `down` explícito, e o campo entra no schema
+    `lib/the_band/tenants/schemas/api_access_token.ex`. É de `Tenants` porque a tabela é de `Tenants` (achado L1; constituição,
+    princípio X, letra D): `Platform` não altera tabela alheia, e `Tenants` só recebe o id do
+    episódio por argumento, sem ler `tenant_suspensions`. Em `lib/the_band/tenants/api_tokens.ex`,
+    `revogar_por_suspensao/2` (condição
     `revoked_at IS NULL` no `WHERE`, `revoked_by_user_id = NULL`, `revoked_by_suspension_id`,
     cláusula `organizacao_suspensa`) e `clausulas_registradas/0`; a tela de tokens escreve o autor
     como *"revoked when the organisation was suspended"*, e o select de revogação não ganha opção.
     FR-013, O12
-  - **Feita quando**: os tokens vigentes de A ficam revogados com a cláusula; o token já revogado de
+  - **Feita quando**: o round trip `mix ecto.migrate` / `mix ecto.rollback --step 1` da migração
+    desta tarefa volta ao estado anterior, e os dois `CHECK`s recusam cláusula sem episódio e
+    episódio sem cláusula; os tokens vigentes de A ficam revogados com a cláusula; o token já revogado de
     A mantém o autor da primeira revogação; os de B continuam vigentes; a tela de tokens de A
     renderiza o autor sem erro com `revoked_by_user_id` nulo
   - **Teste**: `test/the_band/tenants/revogar_por_suspensao_test.exs` e um caso em
@@ -898,34 +962,55 @@ de antes vai para `/sign-in`. Com o encerramento retirado, o teste precisa dar `
 
 - [ ] T049 [US1] Suspender uma organização numa transação
   - **Pronta quando**: **A2** e **A15** emendados em `contracts/suspensao.md` e conferidos por T008;
-    o PR #1044 mergeado (T001); T029, T030, T044, T046, **T046a**, T047 e T048 concluídas
-  - **Descrição**: `Platform.Suspensions.suspender/3` como `Ecto.Multi` com os passos nomeados de
+    o PR #1044 mergeado (T001); T029, T030, T044, **T044a**, T046, **T046a**, T047 e T048 concluídas;
+    `contracts/suspensao.md` emendado por **U1** (recebe o slug)
+  - **Descrição**: `Platform.Suspensions.suspender(sessao, slug, attrs)` — recebe o **slug** da rota,
+    e não `tenant_id` (achado U1) — como `Ecto.Multi` com os passos nomeados de
     research R8: `:autorizacao` (sessão e concessão lidas com `FOR SHARE`, A15), `:razao`,
     `:estado` (**`Tenants.trocar_estado_no_multi(multi, :estado, tenant, "active", "suspended")`**,
     de T046a, com `:estado_mudou` traduzido para `:ja_suspensa`; o `%Tenant{}` vem de
-    `Tenants.fetch/1` antes do `Multi`; `Platform` não consulta nem escreve a tabela `tenants`,
-    achado D1), `:episodio`, `:sessoes`, `:tokens`.
+    **`Tenants.get_by_slug/1`**, chamada uma vez, por `Suspensions`, antes do `Multi` — a única
+    leitura de `tenants` do ato, `nil` dá `:not_found` (U1); `Platform` não consulta nem escreve a
+    tabela `tenants`, achado D1), `:episodio`, `:sessoes`, `:tokens`.
     **Depois do `commit`, e só depois**: `Sessions.avisar_encerramento({:sessao, id})` para cada id
     encerrado (A2) e o evento (T055). Fachada em `lib/the_band/platform.ex`. FR-003, FR-004, FR-013,
     FR-014
   - **Feita quando**: o retorno de cada recusa do contrato é produzido por um caso, e nenhum muda o
     estado; o sucesso deixa A `suspended`, com episódio aberto, sessões encerradas e tokens
-    revogados
+    revogados; `mix xref callers` sobre `Tenants.trocar_estado_no_multi/5` mostra **pelo menos um
+    chamador, e só `TheBand.Platform.Suspensions`** (a asserção que saiu de T046a, achado O5); o
+    `%Tenant{}` lido por `Tenants.get_by_slug/1` **não sai de `Suspensions`**: nenhum retorno de
+    `suspender/3` nem de `reativar/3`, sucesso ou recusa, contém `%Tenant{}` (achado D1-d de
+    `seguranca-autenticacao.md`); no sucesso, o ato faz **um** `SELECT` em `tenants`, além do
+    `UPDATE` do passo `:estado` (contado pela telemetria de `[:the_band, :repo, :query]` filtrada pelo
+    processo, U1); o sucesso satisfaz o trigger de T044a
   - **Teste**: `test/the_band/platform/suspender_test.exs`, um caso por retorno do contrato, e o
-    passo que recusou afirmado pelo nome do `Multi` (cenário 3 de `seguranca.md`)
+    passo que recusou afirmado pelo nome do `Multi` (cenário 3 de `seguranca.md`); no caso de
+    sucesso, `SET CONSTRAINTS ALL IMMEDIATE` depois do ato, para o trigger adiado de T044a conferir
+    dentro do sandbox; o caso do `xref`;
+    e, para cada retorno, uma busca recursiva no termo devolvido que `refute` qualquer
+    `%TheBand.Tenants.Tenant{}`. **Defeitos a injetar**, um por vez: devolver o `Multi` inteiro de
+    `Repo.transaction/1` no sucesso (o `%Tenant{}` do passo `:estado` sai, e o caso precisa
+    reprovar); trocar a chamada por um `update_all` local em `tenants` (o caso do `xref` precisa
+    reprovar por zero chamadores)
 
 - [ ] T050 [US1] Reativar uma organização sem devolver nada
   - **Pronta quando**: T049 concluída
-  - **Descrição**: `Platform.Suspensions.reativar/3`: `:autorizacao`, `:razao`, `:estado`
+  - **Descrição**: `Platform.Suspensions.reativar(sessao, slug, attrs)`, com o slug resolvido como
+    em T049 (U1): `:autorizacao`, `:razao`, `:estado`
     (`Tenants.trocar_estado_no_multi/5`, `suspended → active`, com `:estado_mudou` traduzido para
     `:nao_suspensa`; achado D1), `:episodio` (fecha o aberto), `:sessoes` (encerra **de novo**, FR-015);
     nenhum token volta (FR-013); depois do `commit`, o aviso por id (A2) e o evento. FR-005, FR-006
   - **Feita quando**: o episódio fecha com autor, instante e razão; `:nao_suspensa` e
     `:sem_episodio_aberto` são produzidos por casos; nenhum token de antes volta a valer
-  - **Teste**: `test/the_band/platform/reativar_test.exs`, um caso por retorno
+  - **Teste**: `test/the_band/platform/reativar_test.exs`, um caso por retorno. O caso
+    `:sem_episodio_aberto` monta o estado por `update_all` sem episódio, o que só é possível porque o
+    sandbox não faz `COMMIT` (fora dele, T044a o recusa): é a defesa para quem desligou o trigger; no
+    sucesso, `SET CONSTRAINTS ALL IMMEDIATE` depois do ato, como em T049
 
 - [ ] T051 [US1] Provar que suspender derruba sessões e tokens
-  - **Pronta quando**: T050 concluída; T041 concluída
+  - **Pronta quando**: T050 concluída; T041 concluída; **T056 concluída** (os dois `POST` de ato,
+    que o teste exercita e cuja lista permitida entra em T041; achado O4)
   - **Descrição**: o teste independente da US1 e quickstart §4, com dois tenants: sessão e token de A
     antes; suspender; reativar; cookie e token de antes. Acrescentar a T041 a lista permitida dos
     dois `POST` de ato (`user_sessions` e `api_access_tokens` também). SC-001
@@ -947,9 +1032,11 @@ de antes vai para `/sign-in`. Com o encerramento retirado, o teste precisa dar `
 - [ ] T053 [US1] Provar que a aba aberta cai junto
   - **Pronta quando**: **A2** emendado; T050 concluída
   - **Descrição**: cenários 5 e 6 de `seguranca-autenticacao.md`: uma pessoa de A com `live/2`
-    conectado em `/work`, e uma de B; suspender A pelo `POST` do operador; depois, a mesma montagem
-    com uma sessão de A inserida durante a suspensão e uma aba conectada a ela, e reativar
-    (lição L85: o `200` do HTTP não diz o que o socket faz)
+    conectado em `/work`, e uma de B; suspender A chamando **`Platform.suspender/3` direto**, com o
+    slug de A e uma sessão de operador de fixture; depois, a mesma montagem com uma sessão de A inserida durante
+    a suspensão e uma aba conectada a ela, e reativar por `Platform.reativar/3` (lição L85: o `200`
+    do HTTP não diz o que o socket faz). Sem o `POST`: o que se prova é o aviso depois do `commit`,
+    que vive no contexto; o controller só o chama. Assim a prova da A2 não espera a tela (achado O4)
   - **Feita quando**: a próxima mensagem do LiveView de A é o redirecionamento para `/sign-in`, e um
     `render_click` depois disso não executa; o LiveView de B continua respondendo; na reativação, a
     aba da sessão da corrida cai
@@ -959,7 +1046,8 @@ de antes vai para `/sign-in`. Com o encerramento retirado, o teste precisa dar `
     precisa continuar, porque a hook reconfere antes do `commit`)
 
 - [ ] T054 [US1] Provar a revogação com o formulário aberto
-  - **Pronta quando**: T049 e T032 concluídas
+  - **Pronta quando**: T049 e T032 concluídas; **T056 concluída** (o formulário e o `POST` de ato,
+    cuja resposta `404` é o que se afirma; achado O4)
   - **Descrição**: quickstart §5 e cenário 3 de `seguranca.md` (O6, FR-014, A15): o operador abre o
     formulário de suspensão; a concessão é revogada; o operador envia o formulário. E a variante do
     reinício de credencial em voo (A15)
@@ -993,13 +1081,16 @@ de antes vai para `/sign-in`. Com o encerramento retirado, o teste precisa dar `
     `Platform` em `tenant_suspensions` (`max(suspended_at)` por `tenant_id`), composta em memória com
     os resumos pelo `id`, sem `join` com `tenants` (achado D1) e sem consulta por organização —, e os
     controllers de `GET /platform/organizations/:slug`,
-    `POST …/suspension` e `POST …/reactivation`, exatamente como o protótipo: só o ato que cabe ao
+    `POST …/suspension` e `POST …/reactivation` — estes entregam o `:slug` da rota a `suspender/3` e
+    `reativar/3` **sem ler `tenants`** antes (U1) —, exatamente como o protótipo: só o ato que cabe ao
     estado, razões da base, nota obrigatória onde a base diz, recusa como estado com o motivo em
     inglês. FR-003, FR-006
   - **Feita quando**: suspender e reativar pela tela funcionam; slug inexistente dá o `404`; o
     histórico mostra quem, quando e por quê nas duas pontas, e `not_recorded` com o rótulo da base
   - **Teste**: `test/the_band_web/plataforma/historico_e_ato_test.exs`, com a razão fora da lista
-    recusada e nada mudando
+    recusada e nada mudando; nos dois `POST`, a telemetria filtrada pelo processo conta **um**
+    `SELECT` em `tenants` (U1). **Defeito a injetar**: o controller chamar
+    `resumo_para_a_plataforma/1` antes do ato; a contagem dá duas e o teste reprova
 
 - [ ] T057 [US1] Medir o tempo do ato e a recusa em lote
   - **Pronta quando**: T056 concluída
@@ -1102,7 +1193,7 @@ de antes vai para `/sign-in`. Com o encerramento retirado, o teste precisa dar `
   T005 e T009; T013–T017 dependem só de T007 e correm em paralelo.
 - **Fase 3, US2** (T018–T043, com T023a, T028a, T030a e T038a): depende de T008 e T011; as telas
   (T039, T040) dependem de T012; T021 e T023a dependem de T003a (#1052).
-- **Fase 4, US1** (T044–T057, com T046a): depende de T029 e T030 (sessão e concessão do operador) e
+- **Fase 4, US1** (T044–T057, com T044a e T046a): depende de T029 e T030 (sessão e concessão do operador) e
   das telas da US2 só em T056. T046, T046a, T047 e T048 têm dependências **diferentes**, e o
   paralelismo de cada uma está em "Paralelismo", abaixo.
 - **Fase 5** (T058–T064): depois do que cada uma cita.
@@ -1122,6 +1213,7 @@ de antes vai para `/sign-in`. Com o encerramento retirado, o teste precisa dar `
 | **T3**, média (seguranca-totp.md) | **T003a** (#1052, PR #1053), T021, **T023a** (C10) | T021, T023a; a **release** (T064, "C10 verde") |
 | FR-016 (TOTP) | T009, T010, T011, T022, T028, **T028a**, T030a | T020, T022, T023, T026, T028, T028a, T030a |
 | D1 (constituição X, D) | **T038a**, **T046a** | T040, T049, T050, T056 |
+| **D1-a**, média (seguranca-autenticacao.md; decidido em 2026-10-01) | **T044a** (o trigger adiado) | T049, T050 |
 | tela | T012 | T039, T040, T056, T060 |
 
 ### Dentro de cada história
@@ -1142,15 +1234,18 @@ T024 rajada paralela    T025 espera paga o hash    T034 paridade
 # US2, a leitura de Tenants, a qualquer momento depois de T007:
 T038a resumos para a plataforma
 
-# US1 — cada uma com a sua dependência real (achado O2), e todas em arquivos distintos:
+# US1 — cada uma com a sua dependência real (achado O2), em arquivos distintos entre si:
 T046   encerrar da organização    depois de T007 e T008 (o contrato emendado por A2)
-T046a  trocar o estado no Multi   depois de T013
-T047   revogar tokens             depois de T015 e T044 (a coluna revoked_by_suspension_id)
+T046a  trocar o estado no Multi   depois de T013 e de T038a (o mesmo lib/the_band/tenants.ex;
+                                  achado P1: não é [P] e não corre junto com T038a)
+T047   revogar tokens             depois de T015 e T044 (a tabela tenant_suspensions, alvo da FK
+                                  da coluna que a própria T047 cria do lado de Tenants)
 T048   razões                     depois de T014
 ```
 
-T046, T046a e T048 podem correr juntas já na Fase 2, assim que T007, T013 e T014 fecham; T047 só
-depois de T044, que é da Fase 4.
+T046, T046a e T048 podem correr juntas já na Fase 2, assim que T007, T013, T014 e **T038a** fecham
+— T046a espera T038a porque as duas editam `lib/the_band/tenants.ex`, e a ordem é T038a → T046a
+(achado P1). T047 só depois de T044, que é da Fase 4.
 
 ## Estratégia de entrega
 
@@ -1170,10 +1265,10 @@ depois de T044, que é da Fase 4.
 | 1 — Pré-requisitos e decisões | 8 (T001–T007, T003a) |
 | 2 — Fundação | 10 (T008–T017) |
 | 3 — US2 | 30 (T018–T043, T023a, T028a, T030a, T038a) |
-| 4 — US1 | 15 (T044–T057, T046a) |
+| 4 — US1 | 16 (T044–T057, T044a, T046a) |
 | 5 — Acabamento | 7 (T058–T064) |
-| **total** | **70** |
+| **total** | **71** |
 
 A contagem anterior dizia 64 e não contava a T028a, acrescentada por T010 (achado T1 do
 `/speckit-analyze`); as outras cinco (T003a, T023a, T030a, T038a, T046a) entraram com as correções
-do mesmo `/speckit-analyze`. Concluídas em 2026-10-01: T005, T008, T009, T010, T011 e T012 (6).
+do mesmo `/speckit-analyze`. A T044a (71ª) entrou com a decisão de D1-a. Concluídas em 2026-10-01: T005, T008, T009, T010, T011 e T012 (6).
