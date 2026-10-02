@@ -3,7 +3,10 @@ defmodule TheBand.Platform.EpisodioNaoSeReescreveTest do
   O episódio é um só por organização e não se reescreve — spec 070, T045 (O9, FR-006; quickstart
   §7). O banco recusa, e não o código: qualquer caminho que escreva na tabela passa por aqui.
   """
-  use TheBand.DataCase, async: true
+  # Síncrono: o TRUNCATE … CASCADE pede ACCESS EXCLUSIVE também em `api_access_tokens` (a FK de
+  # T047), e na fila desse lock trava os testes assíncronos que gravam tokens (medido: o "mil
+  # tokens" de api_tokens_test reprovou por isso).
+  use TheBand.DataCase, async: false
 
   import TheBand.OperadorFixtures
 
