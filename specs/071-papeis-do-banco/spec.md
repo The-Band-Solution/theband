@@ -150,7 +150,10 @@ recusadas.
   - é **diferente** do papel que migra (S1).
 - **FR-002**: O papel que serve MUST ter **exatamente** estes privilégios, por nome e nunca `ALL`:
   - `SELECT, INSERT, UPDATE, DELETE` em toda tabela da aplicação, inclusive as do Oban,
-    **exceto `schema_migrations`**, em que não tem privilégio nenhum (S3);
+    **exceto `schema_migrations`**, em que tem **só `SELECT`** (S3). **Emendado pelo plano
+    (research R4)**: o segundo estado de FR-008 precisa saber se há migração pendente, e quem serve
+    lê a tabela para isso. O defeito de S3 é a **escrita** (marcar uma migração de guarda como
+    aplicada), e ela continua negada;
   - `USAGE, SELECT` nas sequências, sem `UPDATE`;
   - `USAGE` no esquema `public` e `CONNECT` na base.
 
