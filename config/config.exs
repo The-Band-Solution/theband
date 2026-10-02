@@ -77,7 +77,17 @@ config :tailwind,
 # uma vez por requisição.
 config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id, :tenant_id, :user_id]
+  # `:operator_id` — spec 070, T016, achado O14. O operador da plataforma não é conta de
+  # organização e não tem `user_id`: sem a chave aqui, a linha de log de um ato dele sairia sem
+  # dizer quem fez, mesmo com `Logger.metadata(operator_id: …)` preenchido.
+  metadata: [:request_id, :tenant_id, :user_id, :operator_id]
+
+# Os parâmetros que nunca chegam ao log — spec 070, T016, achado A10. O padrão do Phoenix é só
+# `"password"`. O operador manda código de definição, código de guarda, código do segundo fator e
+# código de recuperação, e cada um abre a conta do operador. O filtro casa por **trecho** do nome
+# do campo: `"token"` cobre `setup_token` e `second_factor_token`, `"code"` cobre
+# `recovery_code` e `confirm_code`.
+config :phoenix, :filter_parameters, ["password", "token", "secret", "code", "totp"]
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
