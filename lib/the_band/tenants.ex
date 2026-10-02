@@ -130,42 +130,45 @@ defmodule TheBand.Tenants do
   end
 
   @doc """
-  Acrescenta ao `multi` o passo `nome`, que troca o estado da organização de `de` para `para` —
-  spec 070, T046a (O10; achado D1). Contrato em
+  Troca o estado da organização de `de` para `para`, **dentro da transação de quem chama** — spec
+  070, T046a (O10; achado D1). Contrato em
   `specs/070-operador-da-plataforma/contracts/sessoes-e-tokens-da-organizacao.md`.
 
-  É a **única** escrita de `tenants.status` fora da criação, e só existe dentro de um `Ecto.Multi`
-  de quem chama: a troca nunca se confirma sem o resto da transação (o episódio, as sessões e os
-  tokens da suspensão). O único chamador é `TheBand.Platform.Suspensions`.
+  É a **única** escrita de `tenants.status` fora da criação. Fora de uma transação ela **levanta**:
+  a troca nunca se confirma sozinha, sem o episódio, as sessões e os tokens da suspensão. Chamar
+  fora é defeito de quem chama, e não caso de negócio. O único chamador é
+  `TheBand.Platform.Suspensions`.
 
   A condição de estado fica **no `WHERE`**, e não numa leitura anterior: duas suspensões paralelas
-  passariam as duas por uma leitura de antes. O passo devolve `{:ok, %Tenant{status: para}}`,
+  passariam as duas por uma leitura de antes. Devolve `{:ok, %Tenant{status: para}}`,
   `{:error, :estado_mudou}` (a organização existe, e o estado já não era `de`) ou
   `{:error, :not_found}`.
 
-  Os pares aceitos são dois, por cabeça de função. Outro é defeito de quem chama, e não caso de
-  negócio.
+  Era `trocar_estado_no_multi/5`, um passo de `Ecto.Multi`. O Dialyzer recusa o termo opaco do
+  `Multi` nesta versão (medido no `mix gates` de 2026-10-02, `call_without_opaque`), e a casa já usa
+  `Repo.transaction/1` pelo mesmo motivo (`item_phase.ex`).
   """
-  @spec trocar_estado_no_multi(Ecto.Multi.t(), atom(), Tenant.t(), String.t(), String.t()) ::
-          Ecto.Multi.t()
-  def trocar_estado_no_multi(multi, nome, %Tenant{id: id}, de, para)
+  @spec trocar_estado(Tenant.t(), String.t(), String.t()) ::
+          {:ok, Tenant.t()} | {:error, :estado_mudou | :not_found}
+  def trocar_estado(%Tenant{id: id}, de, para)
       when (de == "active" and para == "suspended") or (de == "suspended" and para == "active") do
-    Ecto.Multi.run(multi, nome, fn repo, _ ->
-      case repo.update_all(
-             from(t in Tenant, where: t.id == ^id and t.status == ^de, select: t),
-             set: [status: para, updated_at: DateTime.utc_now(:second)]
-           ) do
-        {1, [tenant]} ->
-          {:ok, tenant}
+    unless Repo.in_transaction?(),
+      do: raise(ArgumentError, "trocar_estado/3 só existe dentro da transação de quem chama")
 
-        {0, _} ->
-          {:error,
-           if(repo.exists?(from t in Tenant, where: t.id == ^id),
-             do: :estado_mudou,
-             else: :not_found
-           )}
-      end
-    end)
+    case Repo.update_all(
+           from(t in Tenant, where: t.id == ^id and t.status == ^de, select: t),
+           set: [status: para, updated_at: DateTime.utc_now(:second)]
+         ) do
+      {1, [tenant]} ->
+        {:ok, tenant}
+
+      {0, _} ->
+        {:error,
+         if(Repo.exists?(from t in Tenant, where: t.id == ^id),
+           do: :estado_mudou,
+           else: :not_found
+         )}
+    end
   end
 
   @spec get_by_slug(String.t()) :: Tenant.t() | nil

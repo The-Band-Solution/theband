@@ -138,7 +138,7 @@ defmodule TheBand.Platform.SuspenderTest do
   end
 
   # O5: o "pelo menos um, e só Suspensions" que saiu de T046a.
-  test "trocar_estado_no_multi/5 tem um chamador, e é TheBand.Platform.Suspensions" do
+  test "trocar_estado/3 tem um chamador, e é TheBand.Platform.Suspensions" do
     {:ok, xref} =
       :xref.start(:"xref_#{System.unique_integer([:positive])}", xref_mode: :functions)
 
@@ -148,7 +148,7 @@ defmodule TheBand.Platform.SuspenderTest do
         {:ok, _} = :xref.add_directory(xref, ebin, warnings: false)
 
         {:ok, mods} =
-          :xref.q(xref, ~c"(Mod) (E || 'Elixir.TheBand.Tenants':trocar_estado_no_multi/5)")
+          :xref.q(xref, ~c"(Mod) (E || 'Elixir.TheBand.Tenants':trocar_estado/3)")
 
         mods |> Enum.map(&elem(&1, 0)) |> Enum.reject(&(&1 == TheBand.Tenants))
       after

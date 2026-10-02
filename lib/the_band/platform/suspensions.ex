@@ -19,7 +19,6 @@ defmodule TheBand.Platform.Suspensions do
   import Ecto.Query
 
   alias Ecto.Changeset
-  alias Ecto.Multi
   alias TheBand.Platform.{OperatorSession, Sessions, Suspension, SuspensionReasons}
   alias TheBand.Repo
   alias TheBand.Tenants
@@ -101,16 +100,7 @@ defmodule TheBand.Platform.Suspensions do
       when is_binary(slug) and is_map(attrs) do
     with :ok <- vocabulario(),
          {:ok, tenant} <- organizacao(slug) do
-      Multi.new()
-      |> Multi.run(:autorizacao, fn _, _ -> autorizar(sessao) end)
-      |> Multi.run(:razao, fn _, _ -> abertura(sessao, tenant.id, attrs) end)
-      |> Tenants.trocar_estado_no_multi(:estado, tenant, "active", "suspended")
-      |> Multi.run(:episodio, fn repo, %{razao: changeset} -> repo.insert(changeset) end)
-      |> Multi.run(:sessoes, fn _, _ -> SessoesDasOrganizacoes.encerrar_da_organizacao(tenant) end)
-      |> Multi.run(:tokens, fn _, %{episodio: ep} ->
-        ApiTokens.revogar_por_suspensao(tenant, ep.id)
-      end)
-      |> Repo.transaction()
+      Repo.transaction(fn -> suspensao(sessao, tenant, attrs) end)
       |> depois_do_commit(:organizacao_suspensa, sessao, tenant.id)
     end
     |> registrar_recusa(sessao, slug)
@@ -125,23 +115,47 @@ defmodule TheBand.Platform.Suspensions do
   def reativar(%OperatorSession{} = sessao, slug, attrs) when is_binary(slug) and is_map(attrs) do
     with :ok <- vocabulario(),
          {:ok, tenant} <- organizacao(slug) do
-      # O estado vem antes do episódio aberto: uma organização ativa é `:nao_suspensa`, e não
-      # `:sem_episodio_aberto`.
-      Multi.new()
-      |> Multi.run(:autorizacao, fn _, _ -> autorizar(sessao) end)
-      |> Tenants.trocar_estado_no_multi(:estado, tenant, "suspended", "active")
-      |> Multi.run(:aberto, fn _, _ -> episodio_aberto(tenant.id) end)
-      |> Multi.run(:razao, fn _, %{aberto: ep} -> fechamento(sessao, ep, attrs) end)
-      |> Multi.run(:episodio, fn repo, %{razao: changeset} -> repo.update(changeset) end)
-      |> Multi.run(:sessoes, fn _, _ -> SessoesDasOrganizacoes.encerrar_da_organizacao(tenant) end)
-      |> Multi.put(:tokens, 0)
-      |> Repo.transaction()
+      Repo.transaction(fn -> reativacao(sessao, tenant, attrs) end)
       |> depois_do_commit(:organizacao_reativada, sessao, tenant.id)
     end
     |> registrar_recusa(sessao, slug)
   end
 
   # ------------------------------------------------------------------ os passos
+
+  defp suspensao(sessao, tenant, attrs) do
+    with {:ok, _} <- passo(:autorizacao, autorizar(sessao)),
+         {:ok, changeset} <- passo(:razao, abertura(sessao, tenant.id, attrs)),
+         {:ok, _} <- passo(:estado, Tenants.trocar_estado(tenant, "active", "suspended")),
+         {:ok, ep} <- passo(:episodio, Repo.insert(changeset)),
+         {:ok, ids} <- passo(:sessoes, SessoesDasOrganizacoes.encerrar_da_organizacao(tenant)),
+         {:ok, n} <- passo(:tokens, ApiTokens.revogar_por_suspensao(tenant, ep.id)) do
+      %{episodio: ep, sessoes: ids, tokens: n}
+    else
+      {:error, nome, valor} -> Repo.rollback({nome, valor})
+    end
+  end
+
+  # O estado vem antes do episódio aberto: uma organização ativa é `:nao_suspensa`, e não
+  # `:sem_episodio_aberto`.
+  defp reativacao(sessao, tenant, attrs) do
+    with {:ok, _} <- passo(:autorizacao, autorizar(sessao)),
+         {:ok, _} <- passo(:estado, Tenants.trocar_estado(tenant, "suspended", "active")),
+         {:ok, aberto} <- passo(:aberto, episodio_aberto(tenant.id)),
+         {:ok, changeset} <- passo(:razao, fechamento(sessao, aberto, attrs)),
+         {:ok, ep} <- passo(:episodio, Repo.update(changeset)),
+         {:ok, ids} <- passo(:sessoes, SessoesDasOrganizacoes.encerrar_da_organizacao(tenant)) do
+      %{episodio: ep, sessoes: ids, tokens: 0}
+    else
+      {:error, nome, valor} -> Repo.rollback({nome, valor})
+    end
+  end
+
+  # Cada passo da transação devolve o nome junto com a recusa, para quem traduz saber qual
+  # recusou, como os passos nomeados de research R8. `Repo.transaction/1` e `rollback`, e não
+  # `Ecto.Multi`: o Dialyzer recusa o termo opaco dele nesta versão (2026-10-02).
+  defp passo(_nome, {:ok, valor}), do: {:ok, valor}
+  defp passo(nome, {:error, valor}), do: {:error, nome, valor}
 
   defp vocabulario do
     if SuspensionReasons.vocabulario_declarado?(),
@@ -241,7 +255,7 @@ defmodule TheBand.Platform.Suspensions do
     {:ok, ep}
   end
 
-  defp depois_do_commit({:error, passo, valor, _}, ato, _sessao, tenant_id),
+  defp depois_do_commit({:error, {passo, valor}}, ato, _sessao, tenant_id),
     do: {:error, do_contrato(traduzir(passo, valor), ato), tenant_id}
 
   # `:estado_mudou` é o motivo de `Tenants`; o do contrato depende do ato.
@@ -262,7 +276,7 @@ defmodule TheBand.Platform.Suspensions do
   defp traduzir(:episodio, %Changeset{} = changeset), do: changeset
 
   # A recusa sai daqui, uma por motivo, com o `tenant_id` quando o slug resolveu. O motivo do
-  # `Multi` é traduzido para o do contrato: `:estado_mudou` é `:ja_suspensa` ou `:nao_suspensa`.
+  # passo é traduzido para o do contrato: `:estado_mudou` é `:ja_suspensa` ou `:nao_suspensa`.
   defp registrar_recusa({:ok, _} = ok, _sessao, _slug), do: ok
 
   defp registrar_recusa({:error, motivo, tenant_id}, sessao, _slug),

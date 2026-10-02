@@ -180,7 +180,7 @@ defmodule TheBand.Tenants.Sessions do
   Encerra toda sessão aberta da organização e devolve **os ids** encerrados — spec 070, T046
   (FR-004). Contrato em `specs/070-operador-da-plataforma/contracts/sessoes-e-tokens-da-organizacao.md`.
 
-  Roda dentro do `Multi` da suspensão, e por isso **não avisa**: avisar antes do `commit` seria
+  Roda dentro da transação da suspensão, e por isso **não avisa**: avisar antes do `commit` seria
   avisar o que o banco ainda não confirmou. Quem chama publica `avisar_encerramento({:sessao, id})`
   para cada id, depois do `commit` (A2). Recebe `%Tenant{}`, e não o id cru.
   """

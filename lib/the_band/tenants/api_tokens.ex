@@ -157,7 +157,7 @@ defmodule TheBand.Tenants.ApiTokens do
 
   @doc """
   Revoga todo token vigente da organização, pela suspensão `suspensao_id` — spec 070, T047
-  (FR-013). Roda dentro do `Multi` da suspensão. A condição `revoked_at IS NULL` fica no `WHERE`:
+  (FR-013). Roda dentro da transação da suspensão. A condição `revoked_at IS NULL` fica no `WHERE`:
   o token já revogado mantém o autor e a razão da primeira revogação.
 
   Recebe o id do episódio por argumento, e não lê `tenant_suspensions`.

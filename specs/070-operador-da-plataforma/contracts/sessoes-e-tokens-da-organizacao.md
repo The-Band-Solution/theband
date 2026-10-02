@@ -47,7 +47,24 @@ A tela de tokens passa a escrever, para a revogação por suspensão, o autor co
 *"revoked when the organisation was suspended"* (inglês, porque é tela), e não o nome de uma conta
 que não existe.
 
-## `TheBand.Tenants.trocar_estado_no_multi(Ecto.Multi.t(), nome :: atom(), %Tenant{}, de :: String.t(), para :: String.t()) :: Ecto.Multi.t()`
+## `TheBand.Tenants.trocar_estado(%Tenant{}, de :: String.t(), para :: String.t()) :: {:ok, %Tenant{}} | {:error, :estado_mudou | :not_found}`
+
+> **Emendado em 2026-10-02, na implementação (T049).** Era
+> `trocar_estado_no_multi(Ecto.Multi.t(), nome, %Tenant{}, de, para) :: Ecto.Multi.t()`. O `mix gates`
+> reprovou no Dialyzer com `call_without_opaque` em todo `Multi.run` sobre `Multi.new()`: nesta
+> combinação de Ecto e Elixir, o termo opaco do `Multi` é recusado. A casa já evita o `Multi` pelo
+> mesmo motivo (`item_phase.ex:63`), e usa `Repo.transaction/1` com `rollback`.
+>
+> A garantia que o `Multi` dava (a troca nunca se confirma sem o resto da transação de quem chama)
+> passa a ser uma **guarda**: fora de `Repo.transaction/1` (`Repo.in_transaction?/0` falso), a
+> função **levanta** `ArgumentError`. É defeito de quem chama, e não caso de negócio. O D1-c, que era
+> o `update_all` executado na construção do `Multi`, vira "chamar fora da transação", e a injeção
+> desse defeito (a guarda retirada) reprova o teste. O resto desta seção continua valendo, com
+> "o passo" lido como "a chamada": o `WHERE` condicional, os dois pares, o chamador único e a
+> tradução de `:estado_mudou` pelo ato.
+
+**O texto abaixo é o da versão com `Multi`**, mantido para o histórico da decisão.
+
 
 A **única** escrita de `tenants.status` fora da criação, e ela só existe **dentro de um
 `Ecto.Multi`** de quem a chama: acrescenta ao `multi` um passo de nome `nome` e devolve o `multi`.
