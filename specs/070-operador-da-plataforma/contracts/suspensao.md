@@ -8,8 +8,8 @@ Depende de: nenhuma ontologia. Usa `TheBand.Tenants`, `TheBand.Tenants.Sessions`
 `TheBand.Tenants.ApiTokens` **só pelas funções públicas** de `sessoes-e-tokens-da-organizacao.md`
 (`Tenants.trocar_estado_no_multi/5`, `Tenants.resumos_para_a_plataforma/0`,
 `Tenants.resumo_para_a_plataforma/1`, `Sessions.encerrar_da_organizacao/1`,
-`ApiTokens.revogar_por_suspensao/2`) e por `Tenants.get_by_slug/1`, que já existe (`tenants.ex:80-81`
-de `development`; emenda U1, abaixo). **Não lê nem escreve a tabela `tenants`**, nem usa o schema `Tenant` em consulta:
+`ApiTokens.revogar_por_suspensao/2`) e por `Tenants.get_by_slug/1`, que já existe (`tenants.ex:92-93`
+de `development`, conferido em `origin/development` em 2026-10-01; emenda U1, abaixo). **Não lê nem escreve a tabela `tenants`**, nem usa o schema `Tenant` em consulta:
 constituição, princípio X, letra D (achado D1 do `/speckit-analyze`, 2026-10-01). As tabelas que
 este módulo consulta são as da `Platform`: `tenant_suspensions`, `platform_operator_sessions` e
 `platform_operator_grants`.
@@ -66,12 +66,18 @@ traduzidas por `SuspensionReasons.rotulo/1`.
 
 Recebe o `:slug` da rota, e não `tenant_id` nem o resumo (U1). O `%Tenant{}` que as funções de
 `Tenants` recebem vem de **`Tenants.get_by_slug/1`**, chamada **uma vez**, por `Suspensions`, antes do
-`Multi` (`nil` daí é o `:not_found` da tabela abaixo). É a **única** leitura de `tenants` do ato: o
-controller não chama `resumo_para_a_plataforma/1` antes, e o passo `:estado` não relê a linha, porque
-a condição de estado está no `WHERE` do `UPDATE`. A struct **não sai** de `Suspensions`: nenhum
+`Multi` (`nil` daí é o `:not_found` da tabela abaixo). É a **única** leitura de `tenants` dentro do
+ato: o controller não chama `resumo_para_a_plataforma/1` antes, e o passo `:estado` não relê a linha,
+porque a condição de estado está no `WHERE` do `UPDATE`. Na recusa, o controller lê o resumo
+**depois**, para re-renderizar; no sucesso, redireciona (`rotas-da-plataforma.md`, U3). A struct **não sai** de `Suspensions`: nenhum
 retorno, sucesso ou recusa, a contém (D1-d; afirmado em T049). O controller responde `404` a
-`:not_found` e a `:nao_autorizado` igualmente (`rotas-da-plataforma.md`), então ler o slug antes de
-`:autorizacao` não diz a quem perdeu a concessão se a organização existe. O passo `:estado` do `Multi` é
+`:not_found` e a `:nao_autorizado`, mas **não** igualmente: `:nao_autorizado` encerra o cookie e
+`:not_found` não (`rotas-da-plataforma.md`). Como o slug é lido antes de `:autorizacao`, um operador
+cuja concessão foi revogada **no meio do ato** distingue, pelo cookie que sobrevive ou não, se o slug
+existia. Fica assim, declarado (achado U2): quem distingue é alguém que tinha o papel um instante
+antes e via a lista inteira de organizações, então o que ele aprende já sabia; o impacto é
+desprezível. Encerrar o cookie também no `:not_found` foi recusado porque derrubaria a sessão do
+operador por um slug digitado errado. O passo `:estado` do `Multi` é
 `Tenants.trocar_estado_no_multi(multi, :estado, tenant, "active", "suspended")`, e
 `{:error, :estado_mudou}` dele vira `{:error, :ja_suspensa}`; `{:error, :not_found}` dele (a
 organização sumiu entre a leitura e o passo) continua `:not_found`.

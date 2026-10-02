@@ -78,11 +78,13 @@ com um código já consumido, e recebe a recusa. Cenário C8 de `seguranca-totp.
 | `DELETE /platform/session` | operador | encerra a sessão no servidor e solta o cookie |
 | `GET /platform/organizations` | operador | a lista (`listar_organizacoes/1`) |
 | `GET /platform/organizations/:slug` | operador | o histórico e o formulário do ato que cabe |
-| `POST /platform/organizations/:slug/suspension` | operador | confere `confirm_slug` igual ao `:slug` da rota, comparação exata, **antes** de `suspender/3`; diferente ou ausente: a recusa da confirmação, e `suspender/3` não é chamada |
-| `POST /platform/organizations/:slug/reactivation` | operador | a mesma conferência de `confirm_slug`, **antes** de `reativar/3` |
+| `POST /platform/organizations/:slug/suspension` | operador | confere `confirm_slug` igual ao `:slug` da rota, comparação exata, **antes** de `suspender/3`; diferente ou ausente: a recusa da confirmação, e `suspender/3` não é chamada. Entrega o `:slug` a `suspender/3` **sem ler `tenants`** antes (`suspensao.md`, U1). Sucesso: **redireciona** (PRG, `302`) para `GET /platform/organizations/:slug`, e a mensagem de sucesso vai por flash, que aqui não carrega segredo; recusa do ato: re-renderiza a página, com o resumo lido **depois** do ato (achado U3) |
+| `POST /platform/organizations/:slug/reactivation` | operador | a mesma conferência de `confirm_slug`, **antes** de `reativar/3`, e as mesmas respostas de sucesso e de recusa |
 | `match :*, "/platform/*caminho"` | todos | **por último dentro do escopo**, na pipeline `:plataforma`, como `router.ex:118-119`: responde o mesmo `404` de `require_operator` (A12) |
 
-Slug inexistente: o mesmo `404`. Organização que existe e o operador não alcança não há: o operador
+Slug inexistente: o mesmo `404`, **também quando `confirm_slug` difere** (achado U4): a recusa da
+confirmação re-renderiza a página, e a leitura do resumo para re-renderizá-la dá `:not_found`, que
+vira o `404` antes de qualquer `422`. Organização que existe e o operador não alcança não há: o operador
 alcança todas, só que só pelas colunas da FR-007.
 
 **Limite por IP (A4) ainda não está neste contrato.** A aplicação não conhece o IP do cliente atrás
@@ -100,10 +102,12 @@ com este contrato emendado **antes** do código. Sem a medição, fica só a esp
 | admin de organização em rota de operador | o mesmo `404` |
 | cookie do operador em `/people`, `/api/v1/people`, `/mcp` | a recusa de quem não tem sessão: redirecionamento a `/sign-in` no navegador, `401` na API e na MCP |
 | `{:error, {:throttled, _}}` em `POST /platform/session`, `/platform/setup`, `/platform/setup/second-factor` ou `/platform/setup/recovery-codes` | **a mesma** resposta de `:invalid_credentials`: frase, status e destino iguais, sem os segundos (A3; `credenciais-do-operador.md`, "Recusa única") |
-| ato recusado | a tela mostra o motivo em inglês, e nada muda |
+| ato bem-sucedido | `302` para `GET /platform/organizations/:slug` (PRG); na requisição do `POST`, **um** `SELECT` em `tenants`, o do ato (U3) |
+| ato recusado | a página re-renderizada mostra o motivo em inglês, e nada muda; **dois** `SELECT` em `tenants` na requisição: o do ato e o do resumo, lido depois dele para re-renderizar (U3) |
 | `confirm_slug` diferente do slug, ou ausente | a página da organização re-renderizada, com o formulário como estava e `Not suspended. The confirmation did not match. Type <slug> exactly. Nothing changed.` (ou `Not reactivated. …`); status `422`; nenhuma função do contexto é chamada, nenhum evento de acesso (não houve tentativa do ato) |
 | `codes_stored` ausente em `POST /platform/setup/recovery-codes` | a página re-renderizada com `Setup not finished. Tick the box to confirm you stored the recovery codes. The codes are not shown again: …`; o `acknowledgement_token` volta no campo oculto; o passo **não** é consumido nem conta falha; os códigos **não** reaparecem |
-| `nao_autorizado` dentro de `suspender/3` | encerra o cookie e responde `404` |
+| `nao_autorizado` dentro de `suspender/3` ou `reativar/3` | encerra o cookie e responde `404` |
+| `not_found` de `suspender/3` ou `reativar/3` | responde `404` e **não** encerra o cookie: é slug errado, e não perda do papel (`suspensao.md`, U2) |
 
 ## O que as rotas NÃO expõem, e por quê
 

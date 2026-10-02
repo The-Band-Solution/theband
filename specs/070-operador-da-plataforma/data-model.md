@@ -199,10 +199,21 @@ de §4 (T044), que cria `tenant_suspensions` e insere os episódios `not_recorde
 ```sql
 CREATE FUNCTION tenant_estado_tem_episodio() RETURNS trigger AS $$
 DECLARE
-  alvo uuid := CASE TG_TABLE_NAME WHEN 'tenants' THEN NEW.id ELSE NEW.tenant_id END;
+  alvo uuid;
   estado text;
   aberto boolean;
 BEGIN
+  -- O ramo por IF, e não um CASE no DECLARE: o PL/pgSQL resolve os dois campos do CASE contra
+  -- o registro NEW, e em `tenants` não há `tenant_id` — toda escrita em `tenants`, inclusive
+  -- create_tenant/1 e o bootstrap, falhava com `record "new" has no field "tenant_id"`
+  -- (medido no postgres:16 do projeto, achado E1 da terceira reanálise). Com IF, só o campo do
+  -- ramo tomado é lido.
+  IF TG_TABLE_NAME = 'tenants' THEN
+    alvo := NEW.id;
+  ELSE
+    alvo := NEW.tenant_id;
+  END IF;
+
   SELECT status INTO estado FROM tenants WHERE id = alvo;
   IF NOT FOUND THEN RETURN NULL; END IF;
   aberto := EXISTS (SELECT 1 FROM tenant_suspensions
@@ -248,7 +259,7 @@ CREATE CONSTRAINT TRIGGER tenant_suspensions_estado_tem_episodio
 
 **De que lado fica, e o princípio X, letra D.** A função lê `tenants` (só `id` e `status`) e
 `tenant_suspensions`, e os triggers ficam nas duas: nenhum lado o escreve sem tocar a tabela do outro.
-É uma **exceção declarada** à letra D, e só no banco. Fica do lado da **`Platform`**, numa migração
+É a **primeira** das duas exceções declaradas à letra D, e só no banco (a segunda é a FK de §6, `api_access_tokens`; `plan.md`, Constitution Check). Fica do lado da **`Platform`**, numa migração
 dela (T044a), porque:
 
 1. o invariante é do episódio (O10, SC-002, a consulta de §7), que é conceito da `Platform`;
@@ -315,7 +326,8 @@ YAML:
 **Na migração de `Tenants`**, `priv/repo/migrations/<ts>_revogacao_por_suspensao.exs` (tarefa T047),
 posterior à de §4, e **não** na do episódio (T044): a tabela é de `Tenants`, e `Platform` não altera
 tabela alheia (achado L1; `plan.md`, Constitution Check, princípio X, letra D). A FK para
-`tenant_suspensions` é referência de integridade, e não leitura: `Tenants` recebe o id do episódio por
+`tenant_suspensions` é a **segunda** exceção declarada à letra D, só no banco (`plan.md`, Constitution
+Check): aponta de `Tenants` para a `Platform`, e é integridade referencial, e não leitura: `Tenants` recebe o id do episódio por
 argumento em `revogar_por_suspensao/2`.
 
 - coluna `revoked_by_suspension_id`, uuid, FK `tenant_suspensions`, `on_delete: :restrict`, null;

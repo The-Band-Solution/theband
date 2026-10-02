@@ -9,7 +9,8 @@ tabela**, e o que muda em `Tenant`.
 > (decisão 1) já dizia que a suspensão pediria funções públicas a `Tenants`. A versão anterior deste
 > contrato punha o `update_all` em `tenants.status` dentro de `Platform.Suspensions` e o
 > `LEFT JOIN LATERAL` sobre `tenants` em `listar_organizacoes/1`; as duas coisas saíram, e entraram
-> `TheBand.Tenants.trocar_estado_no_multi/5` e as duas leituras de resumo, abaixo. Sem exceção.
+> `TheBand.Tenants.trocar_estado_no_multi/5` e as duas leituras de resumo, abaixo. Em Elixir, sem exceção (as duas exceções no banco estão no
+> `plan.md`, Constitution Check).
 
 ## `TheBand.Tenants.Sessions.encerrar_da_organizacao(%Tenant{}) :: {:ok, [Ecto.UUID.t()]}`
 

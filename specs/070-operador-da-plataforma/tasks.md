@@ -16,8 +16,10 @@ emendas D1 (D1-b, D1-c, D1-d de `seguranca-autenticacao.md`): T033 separada de `
 T051 e T054 esperam T056, T053 chama o contexto direto, a coluna de `api_access_tokens` passou de
 T044 para T047. Na segunda passada: **T044a** nova (o trigger de constraint adiado de D1-a, decidido
 pela pessoa mantenedora), e `suspender/3` e `reativar/3` passam a receber o slug (U1 da reanálise),
-em T049, T050, T053 e T056. O grafo de `Pronta quando` foi conferido acíclico por script. Contagem:
-71.
+em T049, T050, T053 e T056. Na terceira (E1, T1, U2–U4, C1, C2, F1): o trigger de §4a sem o `CASE`
+no `DECLARE`, T044a com `create_tenant/1`, T056 com PRG; e T033, T056 e T028a **movidas no arquivo** para
+antes de quem depende delas, com os IDs inalterados. O grafo de `Pronta quando` foi conferido
+acíclico por script. Contagem: 71.
 
 **Gerado em**: 2026-10-01, pelo `/speckit-tasks`. Não há `.specify/extensions.yml`: nenhum hook.
 
@@ -446,6 +448,26 @@ recebe o `404` de um caminho inexistente.
     reprovar); retirar a comparação com `ultimo_passo` (o caso de reuso precisa passar e o teste
     reprovar); **voltar a 10 bytes** por código de recuperação (C2 precisa reprovar)
 
+- [ ] T033 [P] [US2] Registrar os eventos de acesso do operador
+  - **Pronta quando**: `contracts/eventos-de-acesso.md` emendado (A7) e conferido por T008; T016
+    concluída
+  - **Descrição**: em `lib/the_band/tenants/access_events.ex`, as funções do contrato, todas em
+    `:warning`, inclusive `operador_senha_definida/1`, `operador_definicao_recusada/2`,
+    `operador_segundo_fator_cadastrado/1`, `operador_cadastro_recusado/2` e
+    `operador_recuperacao_usada/2`. **Só as funções de evento**: quem as chama (T023, T026, T030)
+    depende desta tarefa, e não o contrário. A asserção de que `definir_senha/3` emite o evento é de
+    T026 (achado O3 do `/speckit-analyze`: a versão anterior desta tarefa exigia `definir_senha/3`,
+    e fechava o ciclo T023 → T033 → T026 → T023). FR-010, O14
+  - **Feita quando**: cada função do contrato, chamada **direto** em `AccessEvents` com os
+    argumentos do contrato, emite uma linha em `:warning` com o nome do evento e o motivo
+    (`operador_definicao_recusada(op, :codigo_errado)` dá a linha com `:codigo_errado`); passando
+    código, senha e segredo de fixture nos argumentos que os aceitam, nenhum deles aparece em nenhuma
+    linha capturada
+  - **Teste**: `test/the_band/platform/eventos_do_operador_test.exs` com `capture_log`, chamando
+    `AccessEvents` direto, sem `Credentials`, e `refute log =~ codigo` (cenário 12). **Defeito a
+    injetar**: incluir o código no metadado de `operador_definicao_recusada/2`; o `refute` precisa
+    reprovar
+
 - [ ] T023 [US2] Conferir a entrada do operador
   - **Pronta quando**: **A1** e **A3** emendados em `contracts/credenciais-do-operador.md` e
     conferidos por T008; T002 (#1048) e T003 (#1047) mergeadas e T007 rebaseada, para copiar a
@@ -552,22 +574,6 @@ recebe o `404` de um caminho inexistente.
     gravar `totp_last_used_step` no sucesso (o reuso precisa passar); consumir o código de
     recuperação sem `used_at IS NULL` no `WHERE` (os dois paralelos precisam passar)
 
-- [ ] T028a [US2] Provar o limite próprio do segundo fator — **bloqueante** (seguranca-totp.md T1, alta)
-  - **Pronta quando**: T023 concluída com `second_factor_failures`; **T030 concluída** (a asserção
-    "`reiniciar_credencial/2` destrava" precisa dela; achado O1); `contracts/credenciais-do-operador.md`,
-    "limite próprio do segundo fator"
-  - **Descrição**: cenários C1 e C1b de `seguranca-totp.md`. C1: senha certa e 10 TOTP errados,
-    avançando `agora` além da espera a cada vez; depois o TOTP **certo**. C1b: 10 senhas erradas com
-    qualquer código, e depois senha e TOTP certos. **Bloqueia T036 e T039**: a área do operador não
-    vai ao ar sem este limite provado
-  - **Feita quando**: em C1, antes da 10ª falha um código certo entra (a guarda de que mediu), e
-    depois dela o certo é recusado com `:invalid_credentials`, evento `:segundo_fator_travado`, sem
-    sessão aberta; `reiniciar_credencial/2` destrava. Em C1b, `second_factor_failures` fica 0 e a
-    entrada legítima passa
-  - **Teste**: `test/the_band/platform/limite_do_segundo_fator_test.exs`. **Defeitos a injetar**, um
-    por vez: contar só em `failed_attempts` (o 11º passa e C1 reprova); incrementar o contador antes
-    de conferir a senha (C1b reprova)
-
 - [ ] T029 [US2] Abrir e conferir a sessão do operador
   - **Pronta quando**: `contracts/sessao-do-operador.md` emendado (A11, A15) e conferido por T008;
     T021 concluída
@@ -616,6 +622,22 @@ recebe o `404` de um caminho inexistente.
     o código de cadastro (C7); retirar a conferência de `ack_code_expires_at` (C16); `revogar/3` sem
     anular `ack_code_hash` (C18)
 
+- [ ] T028a [US2] Provar o limite próprio do segundo fator — **bloqueante** (seguranca-totp.md T1, alta)
+  - **Pronta quando**: T023 concluída com `second_factor_failures`; **T030 concluída** (a asserção
+    "`reiniciar_credencial/2` destrava" precisa dela; achado O1); `contracts/credenciais-do-operador.md`,
+    "limite próprio do segundo fator"
+  - **Descrição**: cenários C1 e C1b de `seguranca-totp.md`. C1: senha certa e 10 TOTP errados,
+    avançando `agora` além da espera a cada vez; depois o TOTP **certo**. C1b: 10 senhas erradas com
+    qualquer código, e depois senha e TOTP certos. **Bloqueia T036 e T039**: a área do operador não
+    vai ao ar sem este limite provado
+  - **Feita quando**: em C1, antes da 10ª falha um código certo entra (a guarda de que mediu), e
+    depois dela o certo é recusado com `:invalid_credentials`, evento `:segundo_fator_travado`, sem
+    sessão aberta; `reiniciar_credencial/2` destrava. Em C1b, `second_factor_failures` fica 0 e a
+    entrada legítima passa
+  - **Teste**: `test/the_band/platform/limite_do_segundo_fator_test.exs`. **Defeitos a injetar**, um
+    por vez: contar só em `failed_attempts` (o 11º passa e C1 reprova); incrementar o contador antes
+    de conferir a senha (C1b reprova)
+
 - [ ] T031 [US2] Provar que conceder de novo não devolve credencial
   - **Pronta quando**: T030 concluída
   - **Descrição**: cenário 4 de `seguranca-autenticacao.md` (**A6**): conceder, definir senha e
@@ -647,26 +669,6 @@ recebe o `404` de um caminho inexistente.
     saída de `mix xref callers TheBand.Platform.Grants` que afirma zero chamadores sob
     `lib/the_band_web/`. **Defeito a injetar**: chamar `Grants.vigente?/1` de um controller de
     rascunho; o teste precisa reprovar
-
-- [ ] T033 [P] [US2] Registrar os eventos de acesso do operador
-  - **Pronta quando**: `contracts/eventos-de-acesso.md` emendado (A7) e conferido por T008; T016
-    concluída
-  - **Descrição**: em `lib/the_band/tenants/access_events.ex`, as funções do contrato, todas em
-    `:warning`, inclusive `operador_senha_definida/1`, `operador_definicao_recusada/2`,
-    `operador_segundo_fator_cadastrado/1`, `operador_cadastro_recusado/2` e
-    `operador_recuperacao_usada/2`. **Só as funções de evento**: quem as chama (T023, T026, T030)
-    depende desta tarefa, e não o contrário. A asserção de que `definir_senha/3` emite o evento é de
-    T026 (achado O3 do `/speckit-analyze`: a versão anterior desta tarefa exigia `definir_senha/3`,
-    e fechava o ciclo T023 → T033 → T026 → T023). FR-010, O14
-  - **Feita quando**: cada função do contrato, chamada **direto** em `AccessEvents` com os
-    argumentos do contrato, emite uma linha em `:warning` com o nome do evento e o motivo
-    (`operador_definicao_recusada(op, :codigo_errado)` dá a linha com `:codigo_errado`); passando
-    código, senha e segredo de fixture nos argumentos que os aceitam, nenhum deles aparece em nenhuma
-    linha capturada
-  - **Teste**: `test/the_band/platform/eventos_do_operador_test.exs` com `capture_log`, chamando
-    `AccessEvents` direto, sem `Credentials`, e `refute log =~ codigo` (cenário 12). **Defeito a
-    injetar**: incluir o código no metadado de `operador_definicao_recusada/2`; o `refute` precisa
-    reprovar
 
 - [ ] T034 [P] [US2] Provar a paridade das duas autenticações
   - **Pronta quando**: T023 concluída
@@ -871,7 +873,9 @@ de antes vai para `/sign-in`. Com o encerramento retirado, o teste precisa dar `
     `suspended`, sem episódio, é **recusado** quando a conferência acontece (erro com o nome
     `tenant_estado_tem_episodio`); o mesmo para reativar por `update_all` com o episódio aberto, e
     para abrir um episódio numa organização `active`; a sequência legítima — `status` primeiro, depois
-    o episódio, na mesma transação — **passa**; o round trip `mix ecto.migrate` / `mix ecto.rollback
+    o episódio, na mesma transação — **passa**; `Tenants.create_tenant/1` de uma organização `active`
+    **passa**, e o `INSERT` de uma organização já `suspended` sem episódio é **recusado** (achado T1
+    da terceira reanálise: toda escrita em `tenants` passa pelo trigger, e a criação é a mais comum); o round trip `mix ecto.migrate` / `mix ecto.rollback
     --step 1` volta ao estado anterior; com uma organização `suspended` sem episódio semeada antes, o
     `up` levanta dizendo quantas
   - **Teste**: `test/the_band/platform/estado_tem_episodio_test.exs`. O sandbox nunca faz `COMMIT`,
@@ -879,7 +883,9 @@ de antes vai para `/sign-in`. Com o encerramento retirado, o teste precisa dar `
     tenant_suspensions_estado_tem_episodio IMMEDIATE` no fim da transação (é o `COMMIT` visto de
     dentro do sandbox). **Defeitos a injetar**, um por vez: o trigger **removido** (o `update_all` sem
     episódio passa e o teste reprova); o trigger criado **`NOT DEFERRABLE`** (imediato) — a sequência
-    legítima, estado antes do episódio, é recusada no primeiro `UPDATE` e o teste reprova
+    legítima, estado antes do episódio, é recusada no primeiro `UPDATE` e o teste reprova; voltar o
+    `CASE TG_TABLE_NAME … NEW.tenant_id` para o `DECLARE` (o caso de `create_tenant/1` reprova com
+    `record "new" has no field "tenant_id"`; achado E1)
 
 - [ ] T045 [US1] Provar que o episódio é um só e não se reescreve
   - **Pronta quando**: T044 concluída
@@ -1008,6 +1014,33 @@ de antes vai para `/sign-in`. Com o encerramento retirado, o teste precisa dar `
     sandbox não faz `COMMIT` (fora dele, T044a o recusa): é a defesa para quem desligou o trigger; no
     sucesso, `SET CONSTRAINTS ALL IMMEDIATE` depois do ato, como em T049
 
+- [ ] T056 [US1] Tela do histórico e do ato
+  - **Pronta quando**: **T012 aprovado**; T038a, T040, T048, T049 e T050 concluídas;
+    `contracts/rotas-da-plataforma.md`, `contracts/suspensao.md`
+  - **Descrição**: `organizacao/2` em `Suspensions` (o resumo por `Tenants.resumo_para_a_plataforma/1`,
+    de T038a; o histórico de `tenant_suspensions`, do mais novo ao mais antigo, razões por
+    `SuspensionReasons.rotulo/1`), o último episódio em `listar_organizacoes/1` — **uma** consulta da
+    `Platform` em `tenant_suspensions` (`max(suspended_at)` por `tenant_id`), composta em memória com
+    os resumos pelo `id`, sem `join` com `tenants` (achado D1) e sem consulta por organização —, e os
+    controllers de `GET /platform/organizations/:slug`,
+    `POST …/suspension` e `POST …/reactivation` — estes entregam o `:slug` da rota a `suspender/3` e
+    `reativar/3` **sem ler `tenants`** antes (U1); o **sucesso redireciona** (PRG) para
+    `GET /platform/organizations/:slug`, e a **recusa re-renderiza** a página, com o resumo lido por
+    `organizacao/2` **depois** do ato (achado U3); `confirm_slug` diferente re-renderiza pela mesma
+    leitura, e se ela der `:not_found` o `404` vence (achado U4) —, exatamente como o protótipo: só o ato que cabe ao
+    estado, razões da base, nota obrigatória onde a base diz, recusa como estado com o motivo em
+    inglês. FR-003, FR-006
+  - **Feita quando**: suspender e reativar pela tela funcionam, e o sucesso responde `302` para a
+    página da organização; slug inexistente dá o `404`, inclusive com `confirm_slug` diferente; o
+    histórico mostra quem, quando e por quê nas duas pontas, e `not_recorded` com o rótulo da base
+  - **Teste**: `test/the_band_web/plataforma/historico_e_ato_test.exs`, com a razão fora da lista
+    recusada e nada mudando. A telemetria filtrada pelo processo conta os `SELECT` em `tenants` de
+    cada `POST`: **um** no sucesso (o de `get_by_slug/1`, e o redirecionamento não lê na mesma
+    requisição); **dois** na recusa do ato (o do ato e o do resumo para re-renderizar); **um** no
+    `confirm_slug` diferente (só o do resumo; o ato não é chamado) (U1, U3). **Defeito a injetar**:
+    o controller chamar `resumo_para_a_plataforma/1` **antes** do ato; o sucesso conta dois e o teste
+    reprova. Caso do U4: slug inexistente com `confirm_slug` diferente dá `404`, e não `422`
+
 - [ ] T051 [US1] Provar que suspender derruba sessões e tokens
   - **Pronta quando**: T050 concluída; T041 concluída; **T056 concluída** (os dois `POST` de ato,
     que o teste exercita e cuja lista permitida entra em T041; achado O4)
@@ -1071,26 +1104,6 @@ de antes vai para `/sign-in`. Com o encerramento retirado, o teste precisa dar `
     `operador_ato_recusado` com ele
   - **Teste**: `test/the_band/platform/eventos_dos_atos_test.exs` com `capture_log`. **Defeito a
     injetar**: retirar a chamada em `reativar/3`; o caso precisa reprovar
-
-- [ ] T056 [US1] Tela do histórico e do ato
-  - **Pronta quando**: **T012 aprovado**; T038a, T040, T048, T049 e T050 concluídas;
-    `contracts/rotas-da-plataforma.md`, `contracts/suspensao.md`
-  - **Descrição**: `organizacao/2` em `Suspensions` (o resumo por `Tenants.resumo_para_a_plataforma/1`,
-    de T038a; o histórico de `tenant_suspensions`, do mais novo ao mais antigo, razões por
-    `SuspensionReasons.rotulo/1`), o último episódio em `listar_organizacoes/1` — **uma** consulta da
-    `Platform` em `tenant_suspensions` (`max(suspended_at)` por `tenant_id`), composta em memória com
-    os resumos pelo `id`, sem `join` com `tenants` (achado D1) e sem consulta por organização —, e os
-    controllers de `GET /platform/organizations/:slug`,
-    `POST …/suspension` e `POST …/reactivation` — estes entregam o `:slug` da rota a `suspender/3` e
-    `reativar/3` **sem ler `tenants`** antes (U1) —, exatamente como o protótipo: só o ato que cabe ao
-    estado, razões da base, nota obrigatória onde a base diz, recusa como estado com o motivo em
-    inglês. FR-003, FR-006
-  - **Feita quando**: suspender e reativar pela tela funcionam; slug inexistente dá o `404`; o
-    histórico mostra quem, quando e por quê nas duas pontas, e `not_recorded` com o rótulo da base
-  - **Teste**: `test/the_band_web/plataforma/historico_e_ato_test.exs`, com a razão fora da lista
-    recusada e nada mudando; nos dois `POST`, a telemetria filtrada pelo processo conta **um**
-    `SELECT` em `tenants` (U1). **Defeito a injetar**: o controller chamar
-    `resumo_para_a_plataforma/1` antes do ato; a contagem dá duas e o teste reprova
 
 - [ ] T057 [US1] Medir o tempo do ato e a recusa em lote
   - **Pronta quando**: T056 concluída
