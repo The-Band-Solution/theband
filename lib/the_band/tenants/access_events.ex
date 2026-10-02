@@ -154,6 +154,136 @@ defmodule TheBand.Tenants.AccessEvents do
     )
   end
 
+  # ------------------------------------------------- o operador da plataforma (spec 070)
+  #
+  # Contrato em `specs/070-operador-da-plataforma/contracts/eventos-de-acesso.md` (FR-010, O14,
+  # A7). Todos em `:warning`. O ator vem do `Logger.metadata(operator_id: …)` do plug da área do
+  # operador, e nunca de `user_id`, que significa `users.id` em toda linha (research R12).
+  #
+  # **As guardas são a proteção**: cada função aceita só id, átomo e contagem. Código de
+  # definição, de cadastro, de guarda, de recuperação, código TOTP, senha e segredo não cabem em
+  # nenhuma assinatura, e um teste confere que nenhum aparece numa linha capturada (A7).
+
+  @doc "Suspensão ou reativação de uma organização. `tenant_id` é o da organização **afetada**."
+  @spec ato_de_plataforma(
+          :organizacao_suspensa | :organizacao_reativada,
+          Ecto.UUID.t(),
+          keyword()
+        ) ::
+          :ok
+  def ato_de_plataforma(ato, tenant_id, extra)
+      when ato in [:organizacao_suspensa, :organizacao_reativada] and is_list(extra) do
+    registrar_operador("ato de plataforma", [ato: ato, tenant_id: tenant_id] ++ extra)
+  end
+
+  @doc "O papel de operador concedido pelo comando de release."
+  @spec operador_concedido(Ecto.UUID.t(), String.t()) :: :ok
+  def operador_concedido(operator_id, declarado_por) when is_binary(declarado_por),
+    do:
+      registrar_operador("operador concedido",
+        operator_id: operator_id,
+        declarado_por: declarado_por,
+        via: :release_command
+      )
+
+  @doc "O papel de operador revogado pelo comando de release, com quantas sessões caíram."
+  @spec operador_revogado(Ecto.UUID.t(), String.t(), non_neg_integer()) :: :ok
+  def operador_revogado(operator_id, declarado_por, sessoes)
+      when is_binary(declarado_por) and is_integer(sessoes),
+      do:
+        registrar_operador("operador revogado",
+          operator_id: operator_id,
+          declarado_por: declarado_por,
+          sessoes_encerradas: sessoes,
+          via: :release_command
+        )
+
+  @doc "A credencial do operador reiniciada pelo comando de release."
+  @spec operador_credencial_reiniciada(Ecto.UUID.t(), String.t()) :: :ok
+  def operador_credencial_reiniciada(operator_id, declarado_por) when is_binary(declarado_por),
+    do:
+      registrar_operador("operador credencial reiniciada",
+        operator_id: operator_id,
+        declarado_por: declarado_por,
+        via: :release_command
+      )
+
+  @doc "Entrada do operador aceita, com quantas tentativas falhas o sucesso apagou."
+  @spec operador_entrada_aceita(Ecto.UUID.t(), non_neg_integer()) :: :ok
+  def operador_entrada_aceita(operator_id, apagadas) when is_integer(apagadas),
+    do:
+      registrar_operador("operador entrada aceita",
+        operator_id: operator_id,
+        falhas_apagadas: apagadas
+      )
+
+  @doc "Entrada do operador recusada, com o motivo interno de `Credentials`."
+  @spec operador_entrada_recusada(Ecto.UUID.t() | nil, atom()) :: :ok
+  def operador_entrada_recusada(operator_id, motivo) when is_atom(motivo),
+    do: registrar_operador("operador entrada recusada", operator_id: operator_id, motivo: motivo)
+
+  @doc "O primeiro passo da definição aceito: a senha definida (A7)."
+  @spec operador_senha_definida(Ecto.UUID.t()) :: :ok
+  def operador_senha_definida(operator_id),
+    do: registrar_operador("operador senha definida", operator_id: operator_id)
+
+  @doc "A definição de senha recusada, com o motivo (A7, A14)."
+  @spec operador_definicao_recusada(Ecto.UUID.t() | nil, atom()) :: :ok
+  def operador_definicao_recusada(operator_id, motivo) when is_atom(motivo),
+    do:
+      registrar_operador("operador definição recusada", operator_id: operator_id, motivo: motivo)
+
+  @doc "O terceiro passo do cadastro aceito: é aqui que o segundo fator passa a valer."
+  @spec operador_segundo_fator_cadastrado(Ecto.UUID.t()) :: :ok
+  def operador_segundo_fator_cadastrado(operator_id),
+    do: registrar_operador("operador segundo fator cadastrado", operator_id: operator_id)
+
+  @doc "Um passo do cadastro do segundo fator recusado, com o motivo."
+  @spec operador_cadastro_recusado(Ecto.UUID.t() | nil, atom()) :: :ok
+  def operador_cadastro_recusado(operator_id, motivo) when is_atom(motivo),
+    do: registrar_operador("operador cadastro recusado", operator_id: operator_id, motivo: motivo)
+
+  @doc "Um código de recuperação consumido, com quantos restam."
+  @spec operador_recuperacao_usada(Ecto.UUID.t(), non_neg_integer()) :: :ok
+  def operador_recuperacao_usada(operator_id, restantes) when is_integer(restantes),
+    do:
+      registrar_operador("operador recuperação usada",
+        operator_id: operator_id,
+        restantes: restantes
+      )
+
+  @doc "O segundo fator travou no limite (T1). Sai uma vez, na transição."
+  @spec operador_segundo_fator_travado(Ecto.UUID.t()) :: :ok
+  def operador_segundo_fator_travado(operator_id),
+    do: registrar_operador("operador segundo fator travado", operator_id: operator_id)
+
+  @doc "A espera crescente do operador acionada."
+  @spec operador_espera_acionada(Ecto.UUID.t(), pos_integer()) :: :ok
+  def operador_espera_acionada(operator_id, segundos) when is_integer(segundos),
+    do:
+      registrar_operador("operador espera acionada", operator_id: operator_id, segundos: segundos)
+
+  @doc "A sessão do operador derrubada, com o motivo de `Platform.Sessions.conferir/2`."
+  @spec operador_sessao_derrubada(Ecto.UUID.t() | nil, atom()) :: :ok
+  def operador_sessao_derrubada(operator_id, motivo) when is_atom(motivo),
+    do: registrar_operador("operador sessão derrubada", operator_id: operator_id, motivo: motivo)
+
+  @doc "Um ato de suspender ou reativar recusado. `tenant_id` é nil quando o slug não resolveu."
+  @spec operador_ato_recusado(Ecto.UUID.t(), Ecto.UUID.t() | nil, atom()) :: :ok
+  def operador_ato_recusado(operator_id, tenant_id, motivo) when is_atom(motivo),
+    do:
+      registrar_operador("operador ato recusado",
+        operator_id: operator_id,
+        tenant_id: tenant_id,
+        motivo: motivo
+      )
+
+  defp registrar_operador(evento, campos) do
+    Logger.warning(fn ->
+      "acesso: #{evento} · " <> Enum.map_join(campos, " ", fn {k, v} -> "#{k}=#{inspect(v)}" end)
+    end)
+  end
+
   # `warning` para recusa, ato administrativo, espera acionada — e para **entrada aceita
   # que apagou tentativa falha**. `info` para o resto.
   #
