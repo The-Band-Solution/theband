@@ -4,6 +4,9 @@ defmodule TheBandWeb.Router do
   import TheBandWeb.Plugs.CurrentScope,
     only: [require_user: 2, require_admin: 2, require_operacao: 2]
 
+  import TheBandWeb.Plataforma.OperatorScope,
+    only: [require_operator: 2, no_store: 2, conferir_csrf: 2]
+
   # A CSP num atributo — spec 070, T017 (A8). A pipeline das telas de domínio e a da área do
   # operador (`/platform`, mesma origem) usam o MESMO valor: duas cópias divergiriam no dia em
   # que alguém apertasse uma e esquecesse a outra. O valor não mudou na extração; o teste
@@ -42,6 +45,26 @@ defmodule TheBandWeb.Router do
     plug :put_secure_browser_headers, %{"content-security-policy" => @csp}
 
     plug TheBandWeb.Plugs.CurrentScope
+  end
+
+  # A área do operador da plataforma — spec 070, T036 (FR-009, FR-011). Contrato em
+  # `specs/070-operador-da-plataforma/contracts/rotas-da-plataforma.md`.
+  #
+  # **Sem `CurrentScope`**: a sessão das organizações não é lida aqui, e o operador não é uma
+  # conta de organização. `fetch_session` está só pelo token de CSRF; a sessão do operador vem do
+  # cookie próprio, que `OperatorScope` lê. A CSP é a MESMA de `:browser` (A8): é ela que impede
+  # um script da mesma origem de usar o cookie do operador.
+  pipeline :plataforma do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :put_root_layout, html: {TheBandWeb.Layouts, :root}
+    plug :put_secure_browser_headers, %{"content-security-policy" => @csp}
+    plug :no_store
+
+    # Não o `protect_from_forgery` de `:browser`: a recusa dele LEVANTA, e o endpoint desenha o `403`
+    # a partir da conexão de ANTES da pipeline, sem CSP e sem `no-store` (medido em T038).
+    plug :conferir_csrf
+    plug TheBandWeb.Plataforma.OperatorScope
   end
 
   pipeline :api do
@@ -134,6 +157,35 @@ defmodule TheBandWeb.Router do
     pipe_through [:api, :api_autenticada]
 
     forward "/", TheBandWeb.MCP.Porta
+  end
+
+  # As rotas de `rotas-da-plataforma.md`. Até T039 e T040 elas respondem o `404` do curinga; a
+  # lista já está aqui para o curinga e `require_operator` serem provados contra as rotas reais.
+  scope "/platform", TheBandWeb.Plataforma do
+    pipe_through :plataforma
+
+    get "/sign-in", CaminhoController, :nao_encontrado
+    post "/session", CaminhoController, :nao_encontrado
+    get "/setup", CaminhoController, :nao_encontrado
+    post "/setup", CaminhoController, :nao_encontrado
+    post "/setup/second-factor", CaminhoController, :nao_encontrado
+    post "/setup/recovery-codes", CaminhoController, :nao_encontrado
+
+    scope "/" do
+      pipe_through :require_operator
+
+      delete "/session", CaminhoController, :nao_encontrado
+      get "/organizations", CaminhoController, :nao_encontrado
+      get "/organizations/:slug", CaminhoController, :nao_encontrado
+      post "/organizations/:slug/suspension", CaminhoController, :nao_encontrado
+      post "/organizations/:slug/reactivation", CaminhoController, :nao_encontrado
+    end
+
+    # POR ÚLTIMO (A12): o caminho que não existe recebe o mesmo `404` de `require_operator`, com os
+    # mesmos cabeçalhos — sem esta linha, ele cairia no `404` do endpoint, sem a pipeline, e a
+    # diferença de cabeçalhos diria quais caminhos são rotas de operador.
+    match :*, "/", CaminhoController, :nao_encontrado
+    match :*, "/*caminho", CaminhoController, :nao_encontrado
   end
 
   # A descrição OpenAPI, em JSON. **Sem credencial**, de propósito: ela descreve a forma da

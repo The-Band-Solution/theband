@@ -65,6 +65,22 @@ defmodule TheBandWeb.ConnCase do
   end
 
   @doc """
+  Entra como operador da plataforma — spec 070. Abre uma sessão **de verdade** por
+  `SessaoDoOperador.abrir/2` e põe na requisição o cookie cifrado que a resposta gravaria, como o
+  navegador faria. Sem bcrypt nem TOTP: a entrada pelo formulário tem testes próprios.
+  """
+  def log_in_operador(conn, op) do
+    resposta =
+      Phoenix.ConnTest.build_conn()
+      |> Map.put(:secret_key_base, TheBandWeb.Endpoint.config(:secret_key_base))
+      |> TheBandWeb.Plataforma.SessaoDoOperador.abrir(op)
+      |> Plug.Conn.send_resp(200, "")
+
+    %{value: valor} = resposta.resp_cookies["_the_band_operator"]
+    Plug.Test.put_req_cookie(conn, "_the_band_operator", valor)
+  end
+
+  @doc """
   Declara que esta conta É esta pessoa observada — issue #369.
 
   Sem o elo, a aba de trabalho fecha para todo mundo, inclusive para a própria pessoa: a

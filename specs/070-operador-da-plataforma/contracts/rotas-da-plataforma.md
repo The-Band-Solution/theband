@@ -24,12 +24,19 @@ pipeline :plataforma do
   plug :accepts, ["html"]
   plug :fetch_session            # só pelo token de CSRF
   plug :put_root_layout, html: {TheBandWeb.Layouts, :root}
-  plug :protect_from_forgery
   plug :put_secure_browser_headers, @csp   # a mesma CSP de :browser, num atributo só
   plug :no_store                           # Cache-Control: no-store em toda resposta
+  plug :conferir_csrf                      # a recusa é o 404, com os cabeçalhos acima
   plug TheBandWeb.Plataforma.OperatorScope
 end
 ```
+
+**Emendado em 2026-10-02 por T038**: a conferência de CSRF vem **depois** dos cabeçalhos e não é
+`protect_from_forgery`. Ele levanta `InvalidCSRFTokenError`, e o endpoint desenha o `403` a partir da
+conexão de antes da pipeline: medido, saía só com `content-type`, `cache-control` e `x-request-id`,
+sem CSP e sem `no-store`. `conferir_csrf/2` chama o mesmo `protect_from_forgery` e responde a recusa
+com o `404` de `require_operator/2`, igual para todo `POST` de `/platform` sem token, rota ou não
+(A12).
 
 **A CSP é a defesa da mesma origem (A8).** O cookie `_the_band_operator` não chega ao domínio pela
 rede (`Path=/platform`), mas um script da mesma origem o usa: `SameSite` não barra mesma origem, e
@@ -100,6 +107,7 @@ com este contrato emendado **antes** do código. Sem a medição, fica só a esp
 |---|---|
 | anônimo em rota de operador | `404` com o mesmo status, o mesmo conjunto de cabeçalhos de segurança e o mesmo corpo de `GET /platform/caminho-que-nao-existe`, **depois de retirar o `csrf-token`**, que muda a cada resposta (A12) |
 | admin de organização em rota de operador | o mesmo `404` |
+| `POST` sem token de CSRF, em qualquer caminho de `/platform` | o mesmo `404`, com a CSP e o `no-store` (T038) |
 | cookie do operador em `/people`, `/api/v1/people`, `/mcp` | a recusa de quem não tem sessão: redirecionamento a `/sign-in` no navegador, `401` na API e na MCP |
 | `{:error, {:throttled, _}}` em `POST /platform/session`, `/platform/setup`, `/platform/setup/second-factor` ou `/platform/setup/recovery-codes` | **a mesma** resposta de `:invalid_credentials`: frase, status e destino iguais, sem os segundos (A3; `credenciais-do-operador.md`, "Recusa única") |
 | ato bem-sucedido | `302` para `GET /platform/organizations/:slug` (PRG); na requisição do `POST`, **um** `SELECT` em `tenants`, o do ato (U3) |
