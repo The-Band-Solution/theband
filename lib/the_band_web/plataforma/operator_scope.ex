@@ -67,21 +67,6 @@ defmodule TheBandWeb.Plataforma.OperatorScope do
   end
 
   @doc """
-  A conferência do token de CSRF, com a recusa **respondida** em vez de levantada.
-
-  `Phoenix.Controller.protect_from_forgery/2` levanta `InvalidCSRFTokenError`, e a página que o
-  endpoint desenha para ela parte da conexão de antes da pipeline: sai sem a CSP e sem `no-store`
-  (medido em T038). Aqui a recusa é o `404` de `nao_encontrado/1`, que já os leva, e que é o mesmo
-  para todo `POST` de `/platform` sem token — rota ou não (A12).
-  """
-  @spec conferir_csrf(Plug.Conn.t(), term()) :: Plug.Conn.t()
-  def conferir_csrf(conn, _opts) do
-    Phoenix.Controller.protect_from_forgery(conn, [])
-  rescue
-    Plug.CSRFProtection.InvalidCSRFTokenError -> nao_encontrado(conn)
-  end
-
-  @doc """
   `Cache-Control: no-store` em toda resposta de `/platform`: as páginas do cadastro carregam o
   segredo e os códigos, e a do histórico, o que só o operador lê. Nenhuma pode ficar no cache do
   navegador nem de um proxy.

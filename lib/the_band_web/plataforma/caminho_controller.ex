@@ -17,4 +17,11 @@ defmodule TheBandWeb.Plataforma.CaminhoController do
   @doc "O `404` da área do operador."
   @spec nao_encontrado(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def nao_encontrado(conn, _params), do: OperatorScope.nao_encontrado(conn)
+
+  @doc """
+  O mesmo `404`, para `POST`, `PUT`, `PATCH` e `DELETE`. Ação separada só porque a mesma ação em
+  leitura e escrita é o achado `Config.CSRFRoute` do Sobelow.
+  """
+  @spec nao_encontrado_na_escrita(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def nao_encontrado_na_escrita(conn, _params), do: OperatorScope.nao_encontrado(conn)
 end

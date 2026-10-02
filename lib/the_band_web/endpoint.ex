@@ -57,5 +57,9 @@ defmodule TheBandWeb.Endpoint do
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
+
+  # Antes do roteador, para a página de erro da recusa de CSRF em `/platform` também levar a CSP e o
+  # `no-store` (spec 070, T038). Ver `TheBandWeb.Plataforma.Borda`.
+  plug TheBandWeb.Plataforma.Borda
   plug TheBandWeb.Router
 end

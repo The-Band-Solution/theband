@@ -50,14 +50,18 @@ defmodule TheBandWeb.Plataforma.CabecalhosTest do
     end
   end
 
-  test "o POST sem token de CSRF é recusado com o mesmo 404, e com os cabeçalhos" do
+  # A recusa de CSRF levanta, e a página de erro sai da conexão de antes da pipeline. Os cabeçalhos
+  # vêm de `TheBandWeb.Plataforma.Borda`, no endpoint; sem ela, saíam sem CSP (medido em T038).
+  test "o POST sem token de CSRF é recusado com 403, e com os cabeçalhos" do
     for caminho <- ["/platform/session", "/platform/organizations/x/suspension", "/platform/x"] do
-      conn =
-        build_conn()
-        |> Plug.Conn.put_private(:plug_skip_csrf_protection, false)
-        |> post(caminho, %{})
+      {403, cabecalhos, _corpo} =
+        assert_error_sent(403, fn ->
+          build_conn()
+          |> Plug.Conn.put_private(:plug_skip_csrf_protection, false)
+          |> post(caminho, %{})
+        end)
 
-      assert conn.status == 404, caminho
+      conn = %{build_conn() | resp_headers: cabecalhos}
       confere_cabecalhos(conn, "POST #{caminho} sem CSRF")
     end
   end

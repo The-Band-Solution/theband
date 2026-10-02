@@ -5,7 +5,7 @@ defmodule TheBandWeb.Router do
     only: [require_user: 2, require_admin: 2, require_operacao: 2]
 
   import TheBandWeb.Plataforma.OperatorScope,
-    only: [require_operator: 2, no_store: 2, conferir_csrf: 2]
+    only: [require_operator: 2, no_store: 2]
 
   # A CSP num atributo — spec 070, T017 (A8). A pipeline das telas de domínio e a da área do
   # operador (`/platform`, mesma origem) usam o MESMO valor: duas cópias divergiriam no dia em
@@ -20,6 +20,10 @@ defmodule TheBandWeb.Router do
          "base-uri 'self'; " <>
          "form-action 'self'; " <>
          "frame-ancestors 'none'"
+
+  @doc false
+  # Para `TheBandWeb.Plataforma.Borda`, que põe a mesma CSP antes do roteador (070, T038).
+  def csp, do: @csp
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -58,12 +62,12 @@ defmodule TheBandWeb.Router do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :put_root_layout, html: {TheBandWeb.Layouts, :root}
+    plug :protect_from_forgery
+
+    # A recusa de CSRF LEVANTA, e a página de erro sai da conexão de antes da pipeline: por isso a
+    # CSP e o `no-store` também são postos na borda do endpoint (`TheBandWeb.Plataforma.Borda`).
     plug :put_secure_browser_headers, %{"content-security-policy" => @csp}
     plug :no_store
-
-    # Não o `protect_from_forgery` de `:browser`: a recusa dele LEVANTA, e o endpoint desenha o `403`
-    # a partir da conexão de ANTES da pipeline, sem CSP e sem `no-store` (medido em T038).
-    plug :conferir_csrf
     plug TheBandWeb.Plataforma.OperatorScope
   end
 
@@ -176,15 +180,26 @@ defmodule TheBandWeb.Router do
       delete "/session", EntradaController, :delete
       get "/organizations", OrganizacaoController, :index
       get "/organizations/:slug", CaminhoController, :nao_encontrado
-      post "/organizations/:slug/suspension", CaminhoController, :nao_encontrado
-      post "/organizations/:slug/reactivation", CaminhoController, :nao_encontrado
+      post "/organizations/:slug/suspension", CaminhoController, :nao_encontrado_na_escrita
+      post "/organizations/:slug/reactivation", CaminhoController, :nao_encontrado_na_escrita
     end
 
     # POR ÚLTIMO (A12): o caminho que não existe recebe o mesmo `404` de `require_operator`, com os
     # mesmos cabeçalhos — sem esta linha, ele cairia no `404` do endpoint, sem a pipeline, e a
     # diferença de cabeçalhos diria quais caminhos são rotas de operador.
-    match :*, "/", CaminhoController, :nao_encontrado
-    match :*, "/*caminho", CaminhoController, :nao_encontrado
+    #
+    # Uma ação para leitura e outra para escrita: a mesma ação em `GET` e em `POST` é o achado
+    # `Config.CSRFRoute` do Sobelow. As duas respondem pela mesma função.
+    get "/", CaminhoController, :nao_encontrado
+    get "/*caminho", CaminhoController, :nao_encontrado
+    post "/", CaminhoController, :nao_encontrado_na_escrita
+    post "/*caminho", CaminhoController, :nao_encontrado_na_escrita
+    put "/", CaminhoController, :nao_encontrado_na_escrita
+    put "/*caminho", CaminhoController, :nao_encontrado_na_escrita
+    patch "/", CaminhoController, :nao_encontrado_na_escrita
+    patch "/*caminho", CaminhoController, :nao_encontrado_na_escrita
+    delete "/", CaminhoController, :nao_encontrado_na_escrita
+    delete "/*caminho", CaminhoController, :nao_encontrado_na_escrita
   end
 
   # A descrição OpenAPI, em JSON. **Sem credencial**, de propósito: ela descreve a forma da
