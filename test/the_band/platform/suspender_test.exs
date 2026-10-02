@@ -166,4 +166,23 @@ defmodule TheBand.Platform.SuspenderTest do
     assert log =~ "ato de plataforma" and log =~ "ato=:organizacao_suspensa"
     assert log =~ "sessoes=2" and log =~ "tokens=1"
   end
+
+  # S-US1-3: o aviso às telas sai depois do `commit` real só se o ato abrir a própria transação.
+  test "dentro da transação de quem chama, o ato levanta, e nada muda", ctx do
+    assert_raise ArgumentError, ~r/abre a própria transação/, fn ->
+      Repo.transaction(fn -> Platform.suspender(ctx.sessao, ctx.tenant.slug, @razao) end)
+    end
+
+    nada_mudou!(ctx.tenant)
+  end
+
+  # S-US1-4: a tela recebe de quem agiu só o id e o nome, e não os hashes da credencial.
+  test "o histórico traz de quem agiu só o id e o nome", ctx do
+    {:ok, _} = suspender(ctx)
+    {:ok, %{episodios: [ep]}} = Platform.organizacao(ctx.sessao, ctx.tenant.slug)
+
+    assert ep.suspended_by_operator.name
+    assert ep.suspended_by_operator.password_hash == nil
+    assert ep.suspended_by_operator.email == nil
+  end
 end

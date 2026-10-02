@@ -19,7 +19,7 @@ defmodule TheBand.Platform.Suspensions do
   import Ecto.Query
 
   alias Ecto.Changeset
-  alias TheBand.Platform.{OperatorSession, Sessions, Suspension, SuspensionReasons}
+  alias TheBand.Platform.{Operator, OperatorSession, Sessions, Suspension, SuspensionReasons}
   alias TheBand.Repo
   alias TheBand.Tenants
   alias TheBand.Tenants.AccessEvents
@@ -88,7 +88,12 @@ defmodule TheBand.Platform.Suspensions do
           from(s in Suspension,
             where: s.tenant_id == ^resumo.id,
             order_by: [desc: s.suspended_at, desc: s.inserted_at],
-            preload: [:suspended_by_operator, :reactivated_by_operator]
+            # Só o `id` e o `name` de quem agiu: a tela usa o nome, e a struct inteira traria os
+            # hashes da credencial até o template (S-US1-4 de `seguranca-us1.md`).
+            preload: [
+              suspended_by_operator: ^so_o_nome(),
+              reactivated_by_operator: ^so_o_nome()
+            ]
           )
         )
 
@@ -107,6 +112,8 @@ defmodule TheBand.Platform.Suspensions do
       when is_binary(slug) and is_map(attrs) do
     with :ok <- vocabulario(),
          {:ok, tenant} <- organizacao(slug) do
+      fora_de_transacao!()
+
       Repo.transaction(fn -> suspensao(sessao, tenant, attrs) end)
       |> depois_do_commit(:organizacao_suspensa, sessao, tenant.id)
     end
@@ -122,10 +129,25 @@ defmodule TheBand.Platform.Suspensions do
   def reativar(%OperatorSession{} = sessao, slug, attrs) when is_binary(slug) and is_map(attrs) do
     with :ok <- vocabulario(),
          {:ok, tenant} <- organizacao(slug) do
+      fora_de_transacao!()
+
       Repo.transaction(fn -> reativacao(sessao, tenant, attrs) end)
       |> depois_do_commit(:organizacao_reativada, sessao, tenant.id)
     end
     |> registrar_recusa(sessao, slug)
+  end
+
+  defp so_o_nome, do: from(o in Operator, select: struct(o, [:id, :name]))
+
+  # O aviso às telas sai depois do `commit` (A2). Dentro de uma transação de quem chama, o retorno
+  # de `Repo.transaction/1` não é o `commit` real, e o aviso sairia antes dele (S-US1-3).
+  defp fora_de_transacao! do
+    if Repo.in_transaction?(),
+      do:
+        raise(
+          ArgumentError,
+          "o ato de plataforma abre a própria transação; não o chame dentro de outra"
+        )
   end
 
   # ------------------------------------------------------------------ os passos

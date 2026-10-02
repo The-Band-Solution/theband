@@ -68,12 +68,6 @@ defmodule TheBandWeb.Plataforma.OrganizacaoController do
         {:error, :not_found} ->
           OperatorScope.nao_encontrado(conn)
 
-        # O estado mudou por outra aba ou outro operador: a página passa a mostrar o OUTRO ato, e
-        # ele vem vazio. Levar a razão, a nota e o `confirm_slug` já digitados deixaria um clique
-        # reativar o que acabou de ser suspenso, ou o contrário (D-9 da conferência).
-        {:error, motivo} when motivo in [:ja_suspensa, :nao_suspensa] ->
-          pagina(conn, slug, 422, {ato, motivo}, %{}, nil)
-
         {:error, motivo} ->
           pagina(conn, slug, 422, {ato, motivo}, valores, nil)
       end
@@ -90,6 +84,8 @@ defmodule TheBandWeb.Plataforma.OrganizacaoController do
   defp pagina(conn, slug, status, recusa, valores, sucesso) do
     case Platform.organizacao(sessao(conn), slug) do
       {:ok, %{resumo: resumo, episodios: episodios}} ->
+        {recusa, valores} = conferir_o_formulario(recusa, valores, resumo)
+
         conn
         |> put_status(status)
         |> render(:organizacao,
@@ -108,6 +104,22 @@ defmodule TheBandWeb.Plataforma.OrganizacaoController do
         perdeu_o_papel(conn)
     end
   end
+
+  # A página escolhe o formulário pelo estado RELIDO, e não pelo ato enviado. Se o estado mudou
+  # (outra aba, outro operador), o formulário desenhado é o do OUTRO ato: ele vem vazio, e a frase
+  # diz que o estado mudou, qualquer que tenha sido a recusa — inclusive a da razão, da nota ou da
+  # confirmação, que não passam pelo passo `:estado` (S-US1-1 de `seguranca-us1.md`; D-9).
+  defp conferir_o_formulario({ato, _motivo} = recusa, valores, resumo) do
+    desenhado = if resumo.status == "suspended", do: :reativar, else: :suspender
+
+    cond do
+      ato == desenhado -> {recusa, valores}
+      ato == :suspender -> {{:suspender, :ja_suspensa}, %{}}
+      true -> {{:reativar, :nao_suspensa}, %{}}
+    end
+  end
+
+  defp conferir_o_formulario(nil, valores, _resumo), do: {nil, valores}
 
   # A concessão ou a sessão caiu entre o plug e o ato: o cookie sai, e a resposta é o `404`.
   defp perdeu_o_papel(conn),

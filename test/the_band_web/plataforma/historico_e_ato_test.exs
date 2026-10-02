@@ -238,4 +238,85 @@ defmodule TheBandWeb.Plataforma.HistoricoEAtoTest do
     html = conn |> get(~p"/platform/organizations") |> html_response(200)
     assert html =~ "reason not recorded"
   end
+
+  # S-US1-1 de `seguranca-us1.md`: a corrida chega também pelas recusas que não passam pelo passo
+  # `:estado` (razão, nota, confirmação). O formulário desenhado é o do estado relido; se não for o
+  # do ato enviado, ele vem vazio e a frase diz que o estado mudou.
+  defp mudar_por_fora(t, para) do
+    Repo.update_all(from(x in Tenant, where: x.id == ^t.id), set: [status: para])
+  end
+
+  for {nome, ato, para, params, frase} <- [
+        {"suspender sem a nota, já suspensa por outro", "suspension", "suspended",
+         %{"reason" => "other", "note" => ""}, "is already suspended"},
+        {"suspender com a confirmação errada, já suspensa por outro", "suspension", "suspended",
+         %{"reason" => "other", "note" => "nota digitada", "confirm_slug" => "errado"},
+         "is already suspended"},
+        {"reativar com razão fora da lista, já reativada por outro", "reactivation", "active",
+         %{"reason" => "inventada", "note" => "nota digitada"}, "is not suspended"},
+        {"reativar com a confirmação errada, já reativada por outro", "reactivation", "active",
+         %{"reason" => "contract_resumed", "note" => "nota digitada", "confirm_slug" => "errado"},
+         "is not suspended"}
+      ] do
+    @ato ato
+    @para para
+    @params params
+    @frase frase
+    test "corrida: #{nome} — o outro formulário vem vazio, e a frase diz o estado", %{
+      conn: conn,
+      tenant: t
+    } do
+      # O estado de partida é o oposto do que outro operador deixou.
+      if @para == "active" do
+        agir(conn, t, "suspension", %{"reason" => "contract_ended", "confirm_slug" => t.slug})
+        # outro operador reativa, por fora
+        Repo.update_all(
+          from(s in Suspension, where: s.tenant_id == ^t.id and is_nil(s.reactivated_at)),
+          set: [
+            reactivated_at: DateTime.utc_now(:second),
+            reactivated_by_operator_id: ctx_op(t),
+            reactivate_reason: "contract_resumed"
+          ]
+        )
+      end
+
+      mudar_por_fora(t, @para)
+      params = Map.put_new(@params, "confirm_slug", t.slug)
+
+      html = html_response(agir(conn, t, @ato, params), 422)
+      assert html =~ @frase
+      refute html =~ "nota digitada"
+      refute html =~ ~s(value="#{t.slug}")
+      refute html =~ "checked"
+    end
+  end
+
+  defp ctx_op(t) do
+    Repo.one!(
+      from(s in Suspension,
+        where: s.tenant_id == ^t.id,
+        order_by: [desc: s.suspended_at],
+        limit: 1,
+        select: s.suspended_by_operator_id
+      )
+    )
+  end
+
+  test "controle: sem corrida, a recusa da nota mantém o formulário como a pessoa o deixou", %{
+    conn: conn,
+    tenant: t
+  } do
+    html =
+      conn
+      |> agir(t, "suspension", %{
+        "reason" => "other",
+        "note" => "",
+        "confirm_slug" => t.slug
+      })
+      |> html_response(422)
+
+    assert html =~ "A note is required for this reason"
+    assert html =~ ~s(value="#{t.slug}")
+    assert html =~ "checked"
+  end
 end
