@@ -12,6 +12,8 @@ defmodule TheBand.Platform.Operator do
   """
   use Ecto.Schema
 
+  import Ecto.Changeset
+
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
 
@@ -37,5 +39,21 @@ defmodule TheBand.Platform.Operator do
     field :ack_code_expires_at, :utc_datetime
 
     timestamps(type: :utc_datetime)
+  end
+
+  @doc """
+  A política de senha do operador: 12 a 128 caracteres, a mesma das contas de organização
+  (`User.senha_changeset/3`). Devolve o hash, ou o changeset com o erro, sem gravar nada.
+  """
+  @spec validar_senha(String.t()) :: {:ok, String.t()} | {:error, Ecto.Changeset.t()}
+  def validar_senha(senha) do
+    {%{}, %{password: :string}}
+    |> cast(%{password: senha}, [:password])
+    |> validate_required([:password])
+    |> validate_length(:password, min: 12, max: 128)
+    |> case do
+      %{valid?: true} -> {:ok, Bcrypt.hash_pwd_salt(senha)}
+      invalido -> {:error, invalido}
+    end
   end
 end
