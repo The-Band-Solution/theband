@@ -9,8 +9,15 @@ Desenhado em **2026-10-03** pelo agente Design, tarefa T018 ([#883](https://gith
 de [`../tasks.md`](../tasks.md). Publicado em **<https://claude.ai/artifact/S5ZD8j7dsaDSH4QZsfYJUP>**;
 **a cópia aqui é a que vale** — o endereço pode mudar, a spec não pode depender dele.
 
-**Estado: versão 1, para aprovação.** D1–D9 propostas; Q1–Q4 abertas. Nenhuma data de aprovação
-ainda: T018 continua bloqueada pelo protótipo até a pessoa mantenedora aprovar.
+**Estado: versão 2, APROVADA em 2026-10-03** pela pessoa mantenedora (via coordenador): D1–D9
+como propostas; Q1 (b), Q2 (b), Q3 (b), Q4 (a) condicionada ao acordo do agente `security`.
+Republicada no mesmo endereço. A T018 deixa de estar bloqueada pelo protótipo; o conserto do
+defeito da T019 (abaixo) vem antes dela.
+
+| versão | data | o que mudou |
+|---|---|---|
+| 1 | 2026-10-03 | primeira, para aprovação |
+| 2 | 2026-10-03 | respostas aplicadas, só a opção escolhida desenhada: 1a ganha a credencial inativa vencida com a linha que pede para remover (Q1); some o `pending` de 1d e 2d (Q2); a marca `replace` também na aba atual em 1a e no telefone (Q3); 2f ganha a condição do aval de segurança (Q4); D1–D9 e Q1–Q4 marcadas *Decided 2026-10-03* |
 
 A estrutura seção a seção — **a régua do QA** — está na seção 3 do [`PROMPT.md`](PROMPT.md).
 
@@ -35,7 +42,7 @@ meses de calendário é real: `TheBand.Credenciais.Idade.limite_em_meses/0`.
 | router, 2026-08-28 | `/tools` e `/ai` são operacionais: administrador ou concessão organization; `/tools` recortado pelas organizações concedidas, `/ai` inteiro |
 | `tool_credentials.validated_at` `NOT NULL` | a idade desconhecida não acontece hoje em credencial de ferramenta; desenhada (1d) porque o estado existe |
 
-## As decisões de desenho — *propostas em 2026-10-03*, para aprovação
+## As decisões de desenho — *Decided 2026-10-03*, pela pessoa mantenedora, D1–D9 aprovadas
 
 | # | decisão | a razão |
 |---|---|---|
@@ -49,14 +56,14 @@ meses de calendário é real: `TheBand.Credenciais.Idade.limite_em_meses/0`.
 | **D8** | `API_KEY` do ambiente: `age unknown`, a ausência dita como da plataforma, dentro do aviso de ambiente que já existe | achado 3 |
 | **D9** | Em `/tools`, a coluna `validated at` vira `registered` com data e marca; em `/ai`, `checked against the provider at` fica e `key registered` entra | na ferramenta os dois instantes coincidem; no modelo, não |
 
-## As perguntas abertas — para o Product Owner levar
+## As perguntas que estavam abertas — *Decided 2026-10-03*, pela pessoa mantenedora
 
-| # | pergunta | opções | recomendação |
-|---|---|---|---|
-| **Q1** | Credencial de ferramenta **inativa** com mais de três meses? | (a) o mesmo pedido; (b) sem pedido, a linha com data e marca, e uma linha discreta pedindo para **remover** se não serve mais; (c) só a data e a marca | **(b)** — o segredo continua em repouso (é do que a 064 trata), mas "trocar" é a ação errada para o que ninguém usa |
-| **Q2** | `age unknown` pede alguma coisa? | (a) só a marca; (b) marca mais aviso tracejado com o caminho para uma data conhecida (trocar; para a do ambiente, quem opera o servidor ou gravar uma da organização) — desenhado em 1d e 2d | **(b)** — FR-019 proíbe contá-la como no prazo; a marca sozinha não diz o que fazer, e a do ambiente é a de maior alcance |
-| **Q3** | Marca além da tela que administra? | (a) só nela, como a FR-017; (b) também na aba Connected tools / AI provider — desenhado em 2a e no telefone; (c) (b) mais navegação principal ou e-mail, escopo novo | **(b)** — um assign por tela; a SC-009 só se cumpre por inteiro com (c), que vai ao backlog como spec própria |
-| **Q4** | Regravar a **mesma** chave: dizer? | (a) o flash diz que é a mesma e que conta desde a data antiga (2f), comparando `secret_set_at` antes e depois; (b) o flash de sempre | **(a)**, com o aval do agente `security` — sem isso quem só trocou o modelo lê "saved" e acha o pedido atendido; o achado 5 diz que a igualdade não dá nada a quem já pode sobrescrever, e as datas do cartão já a revelam |
+| # | pergunta | opções | recomendação | decisão |
+|---|---|---|---|---|
+| **Q1** | Credencial de ferramenta **inativa** com mais de três meses? | (a) o mesmo pedido; (b) sem pedido, a linha com data e marca, e uma linha discreta pedindo para **remover** se não serve mais; (c) só a data e a marca | **(b)** — o segredo continua em repouso (é do que a 064 trata), mas "trocar" é a ação errada para o que ninguém usa | **(b)**, com a recomendação: sem pedido de troca; a linha pede para remover |
+| **Q2** | `age unknown` pede alguma coisa? | (a) só a marca; (b) marca mais aviso tracejado com o caminho para uma data conhecida (trocar; para a do ambiente, quem opera o servidor ou gravar uma da organização) — desenhado em 1d e 2d | **(b)** — FR-019 proíbe contá-la como no prazo; a marca sozinha não diz o que fazer, e a do ambiente é a de maior alcance | **(b)**, com a recomendação |
+| **Q3** | Marca além da tela que administra? | (a) só nela, como a FR-017; (b) também na aba Connected tools / AI provider — desenhado em 2a e no telefone; (c) (b) mais navegação principal ou e-mail, escopo novo | **(b)** — um assign por tela; a SC-009 só se cumpre por inteiro com (c), que vai ao backlog como spec própria | **(b)**, com a recomendação; (c) vira spec própria no backlog (issue aberta pelo coordenador) |
+| **Q4** | Regravar a **mesma** chave: dizer? | (a) o flash diz que é a mesma e que conta desde a data antiga (2f), comparando `secret_set_at` antes e depois; (b) o flash de sempre | **(a)**, com o aval do agente `security` — sem isso quem só trocou o modelo lê "saved" e acha o pedido atendido; o achado 5 diz que a igualdade não dá nada a quem já pode sobrescrever, e as datas do cartão já a revelam | **(a)**, **condicionada** ao acordo do agente `security` (achado 5); sem o acordo, o flash de sempre. Item C.1 da régua |
 
 ## Medidas novas
 
