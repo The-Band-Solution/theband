@@ -127,6 +127,14 @@
   .notice.refused{color:var(--clay);background-image:repeating-linear-gradient(135deg,color-mix(in srgb,var(--clay) 9%,transparent) 0 3px,transparent 3px 7px)}
   .notice.done{color:var(--verdete)}
   .notice.warn{color:var(--amber)}
+  /* The house flash (core_components flash/1): a toast in the corner, info or error, with its own icon and a close button. */
+  .toast{display:flex;gap:.6rem;align-items:flex-start;border:1.5px solid currentColor;border-radius:var(--box);padding:.65rem .8rem;max-width:24rem;align-self:flex-end;background:var(--paper)}
+  .toast .ic{font-family:var(--serif);font-style:italic;font-weight:700;flex:none;width:1.4rem;height:1.4rem;display:inline-flex;align-items:center;
+             justify-content:center;border:1.5px solid currentColor;border-radius:50%;font-size:var(--meta)}
+  .toast div{font-family:var(--serif);font-size:var(--meta);line-height:1.55;color:var(--ink);flex:1;min-width:0}
+  .toast .x{font-family:var(--mono);color:var(--ink-soft);flex:none}
+  .toast.info{color:var(--info-blue);background-color:color-mix(in srgb,var(--info-blue) 8%,var(--paper))}
+  .toast.error{color:var(--clay);background-color:color-mix(in srgb,var(--clay) 8%,var(--paper))}
 
   /* The confirmation panel: same family as the disable and reactivate forms that sit under the table today. */
   .panel{border:1.5px solid var(--paper-line);border-radius:var(--box);background:var(--paper-shade);padding:1rem;display:flex;flex-direction:column;gap:.85rem;max-width:44rem}
@@ -198,7 +206,7 @@
 <div class="wrap">
 
   <header>
-    <p class="eyebrow">Prototype · spec 072 · issue #568 · version 1 · 2026-10-02 · awaiting the maintainer's approval</p>
+    <p class="eyebrow">Prototype · spec 072 · issue #568 · version 2 · 2026-10-03 · approved by the maintainer</p>
     <h1>Administrator Role on Accounts</h1>
     <p class="prose">The changes to <code>/accounts</code> that let an administrator make another active account an administrator, remove the role from one, and step down, without the organisation ever ending up with no active administrator. Everything else on the screen stays as it is today; only what changes is drawn in full.</p>
     <div class="tools">
@@ -206,7 +214,7 @@
       <button type="button" id="phone" aria-pressed="false">Phone width (360 px)</button>
       <span class="note">Every state must read without colour, and at 360 px without sideways scroll.</span>
     </div>
-    <p class="note" style="margin-top:.75rem">All names, e-mails, dates and notes are <span class="ex">example</span>. The organisation <b>Acme Labs</b> and the people <b>Ana, Rui, Bia, Caio, Dora and Edu Example</b> are fictitious. What is new on the screen carries <span class="new">new</span>; the column that changes is tinted blue in the table.</p>
+    <p class="note" style="margin-top:.75rem">Version 2 carries the maintainer's decisions of 2026-10-03, listed at the end under “What changed in version 2”. All names, e-mails, dates and notes are <span class="ex">example</span>. The organisation <b>Acme Labs</b> and the people <b>Ana, Rui, Bia, Caio, Dora and Edu Example</b> are fictitious. What is new on the screen carries <span class="new">new</span>; the column that changes is tinted blue in the table.</p>
   </header>
 
   <section aria-label="Marks used on these screens">
@@ -309,7 +317,7 @@
                 <td data-label="Management" class="mgmt"><div class="mgmt-cell">
                   <span class="chip decl">administrator</span>
                   <p class="cellnote">since 01 Sep · by Ana Example · <b>not counted while the account is disabled</b></p>
-                  <p class="cellnote">Role changes wait for reactivation.</p>
+                  <a class="act demote" href="#s3">Remove admin role…</a>
                 </div></td>
                 <td data-label="Account"><span class="chip left">disabled</span><p class="cellnote">since 25 Sep 11:30 · by Ana Example · Left the organisation</p></td>
                 <td data-label="Sign-in credential"><span class="word">password set</span><p class="cellnote">kept, and it opens nothing while the account is disabled</p></td>
@@ -344,7 +352,8 @@
           <li><span class="when">03 Sep 09:05</span><div class="what"><b>Ana Example</b> made <b>Caio Example</b> administrator · <span class="word">member → administrator</span><br><q>Covering the tool connections while Edu is away.</q></div></li>
           <li><span class="when">01 Sep 15:20</span><div class="what"><b>Ana Example</b> made <b>Edu Example</b> administrator · <span class="word">member → administrator</span><br><span class="absent-note">no note</span></div></li>
         </ul>
-        <p class="note">Ana Example's role is older than this record: the first account of an organisation is created administrator, and that is not a role change. Her row says so instead of inventing an entry. Disabling and reactivating are not role changes either; they stay in each row's access history.</p>
+        <p class="prose" style="font-size:var(--meta);color:var(--ink-soft);max-width:44rem">An account that was an administrator before this record began has no entry here, and its row says so instead of inventing one: the first account of an organisation is created administrator, and that is not a role change. Disabling and reactivating are not role changes either; they stay in each row's access history.</p>
+        <p class="note">Edu Example's row is a disabled administrator: the role is kept, not counted, and can be removed (Q1, decided (b)); it can never be granted to a disabled account. Dora Example's row is a disabled member, the only case that reads “Role changes wait for reactivation.”</p>
       </div>
     </div>
   </section>
@@ -366,14 +375,14 @@
           <div class="conseq">
             <p class="conseq-h">what happens when you confirm</p>
             <ul>
-              <li>Bia can connect and disconnect tools, manage their credentials, run syncs, and manage the accounts on this screen. That includes removing <b>your</b> administrator role.</li>
-              <li>It takes effect at her next action. She does not need to sign in again.</li>
+              <li>Bia Example can connect and disconnect tools, manage their credentials, run syncs, and manage the accounts on this screen. That includes removing <b>your</b> administrator role.</li>
+              <li>It takes effect at their next action. They do not need to sign in again.</li>
               <li>The change is recorded with <b>your name, this instant</b> and the note below, under “Administrator changes”.</li>
             </ul>
             <p class="conseq-h" style="margin-top:.35rem">what it does not do</p>
             <ul class="not">
-              <li>Her password, her GitHub link and her open sessions do not change.</li>
-              <li>Her teams, her work and every measure about her do not change. This is about what she can manage, not about what she did.</li>
+              <li>Their password, their GitHub link and their open sessions do not change.</li>
+              <li>Their teams, their work and every measure about them do not change. This is about what they can manage, not about what they did.</li>
             </ul>
           </div>
 
@@ -388,8 +397,12 @@
           </div>
         </form>
 
-        <div class="notice done" role="status"><span class="ic">✓</span><div><b>Bia Example is now an administrator.</b> Recorded at 02 Oct 14:02, by you. Her row and “Administrator changes” show it; the header now reads 3 active administrators.</div></div>
+        <div class="notice done" role="status"><span class="ic">✓</span><div><b>Bia Example is now an administrator.</b> Recorded at 02 Oct 14:02, by you. The row and “Administrator changes” show it; the header now reads 3 active administrators.</div></div>
         <p class="note">The confirmation line appears after the act, in place of the panel. Drawn here together so both read at rest.</p>
+
+        <p class="conseq-h">the same panel, after a note longer than 2000 characters</p>
+        <div class="notice refused" role="alert"><span class="ic">!</span><div><b>Not changed: the note is longer than 2000 characters.</b></div></div>
+        <p class="note">The refusal appears above the panel, and the panel stays open with the note as it was typed, so it can be shortened rather than written again. The same refusal applies to the note of “Remove admin role” and “Step down”.</p>
       </div>
     </div>
   </section>
@@ -411,14 +424,14 @@
           <div class="conseq">
             <p class="conseq-h">what happens when you confirm</p>
             <ul>
-              <li>Rui stops managing tools, credentials, syncs and accounts. A screen he has open stops acting as administrator <b>at his next action</b>, without waiting for him to reconnect.</li>
+              <li>Rui Example stops managing tools, credentials, syncs and accounts. A screen they have open stops acting as administrator <b>at their next action</b>, without waiting for them to reconnect.</li>
               <li>The organisation keeps 1 active administrator: you.</li>
               <li>The change is recorded with <b>your name, this instant</b> and the note below.</li>
             </ul>
             <p class="conseq-h" style="margin-top:.35rem">what it does not do</p>
             <ul class="not">
-              <li><b>It does not remove access.</b> Rui keeps signing in, as a member. If he left the organisation, disabling the account is the act.</li>
-              <li>His sessions, password and GitHub link do not change. Nothing he did is erased.</li>
+              <li><b>It does not remove access.</b> Rui Example keeps signing in, as a member. If they left the organisation, disabling the account is the act.</li>
+              <li>Their sessions, password and GitHub link do not change. Nothing they did is erased.</li>
             </ul>
           </div>
 
@@ -432,6 +445,9 @@
             <button type="button" class="btn quiet">Cancel</button>
           </div>
         </form>
+
+        <div class="notice done" role="status"><span class="ic">✓</span><div><b>Rui Example is no longer an administrator, and keeps signing in as a member.</b> Recorded at 02 Oct 14:05, by you. The row and “Administrator changes” show it; the header now reads 1 active administrator.</div></div>
+        <p class="note">The confirmation line appears after the act, in place of the panel, as on screen 2. The count is the one after the act.</p>
       </div>
     </div>
   </section>
@@ -496,7 +512,7 @@
   <section id="s5" aria-labelledby="s5h">
     <p class="band">screen 5 · the last active administrator</p>
     <h2 id="s5h">The organisation would have no active administrator</h2>
-    <p class="note">Two states of the same rule. At rest, when only one administrator is active, the act is refused in place before anyone tries. After a race, when two administrators stepped down at the same moment, one passes and the other is refused by the same guard.</p>
+    <p class="note">Two states of the same rule. At rest, when only one administrator is active, the act is refused in place before anyone tries. After a race, when another administrator stepped down while this panel was open, the act is refused by the same guard.</p>
 
     <div class="frame">
       <div class="bar"><span class="route"><b>GET</b> /accounts · one active administrator</span><span class="state-tag">signed in as Rui Example · administrator</span></div>
@@ -529,9 +545,10 @@
           </table>
         </div>
 
-        <p class="conseq-h">after a race · two administrators stepped down at the same moment</p>
-        <div class="notice refused" role="alert"><span class="ic">!</span><div><b>Not changed: the organisation would have no active administrator.</b> Ana Example stepped down at 14:02, a moment before this request, so you are now the only one. Your role is unchanged.</div></div>
-        <p class="note">The mark stays as it was, and the row re-renders with the refused button above. The same sentence and the same guard refuse disabling the last administrator, so the two acts cannot together leave the organisation without one.</p>
+        <p class="conseq-h">after a race · Rui opened “Step down…” and Ana stepped down before he confirmed</p>
+        <div class="notice refused" role="alert"><span class="ic">!</span><div><b>Not changed: the organisation would have no active administrator.</b> Ana Example stepped down at 02 Oct 14:02, so you are now the only one. Your role is unchanged.</div></div>
+        <p class="note">The refusal names a change only when it happened after the panel was opened, with its date and time. A change that was already on the screen when the person decided is not cited, and the refusal then reads “Not changed: the organisation would have no active administrator. Your role is unchanged.” “so you are now the only one” is written only when the change was someone stepping down and the refused act is stepping down too. Other cases name the change as it was recorded: “Ana Example removed the administrator role from Caio Example at 02 Oct 14:02.” When the refused act was removing someone else's role, the last sentence names that person: “Rui Example's role is unchanged.”</p>
+        <p class="note">The mark stays as it was, the panel closes, and the row re-renders with the refused button above. The same sentence and the same guard refuse disabling the last administrator, so the two acts cannot together leave the organisation without one.</p>
       </div>
     </div>
   </section>
@@ -545,7 +562,7 @@
     <div class="frame">
       <div class="bar"><span class="route"><b>event</b> make administrator · refused, stale</span><span class="state-tag">signed in as Ana Example · administrator</span></div>
       <div class="screen">
-        <div class="notice refused" role="alert"><span class="ic">!</span><div><b>Not changed: Bia Example is already an administrator.</b> Rui Example made her one at 14:02. The row below shows her current role.</div></div>
+        <div class="notice refused" role="alert"><span class="ic">!</span><div><b>Not changed: Bia Example is already an administrator.</b> Rui Example made the change at 14:02.</div></div>
         <div class="tablewrap">
           <table class="stacked">
             <thead><tr><th>Person</th><th class="changed">Management · changed</th><th>Account</th></tr></thead>
@@ -563,6 +580,10 @@
           </table>
         </div>
         <p class="note">The mirror case reads the same way: “Not changed: Rui Example is already a member. Bia Example removed the role at 14:05.” The refusal names the current role and the change that got there first, so nobody has to guess whether their click did anything. The panel closes, because what it described no longer exists.</p>
+
+        <p class="conseq-h">the account was disabled in another tab</p>
+        <div class="notice refused" role="alert"><span class="ic">!</span><div><b>Not changed: Dora Example's account is disabled.</b> Role changes wait for reactivation.</div></div>
+        <p class="note">Ana opened “Make administrator…” for Dora while the account was active; Rui disabled it before she confirmed. A disabled account is never made administrator. The panel closes and the row re-renders as a disabled member, with no role act.</p>
       </div>
     </div>
   </section>
@@ -577,10 +598,10 @@
       <div class="bar"><span class="route"><b>redirect</b> → /people</span><span class="state-tag">phone · Rui Example · member</span></div>
       <div class="screen">
         <div class="appbar"><span class="brand">The Band</span><span class="navx"><b>People</b><span>Teams</span><span>Work</span></span></div>
-        <div class="notice refused" role="alert"><span class="ic">!</span><div><b>Only organisation administrators can do that.</b></div></div>
-        <p class="note">Rui, after his role was removed. The sentence is the one the admin screens already use for any member; the action he clicked did not run.</p>
-        <div class="notice done" role="status"><span class="ic">✓</span><div><b>You stepped down as administrator of Acme Labs.</b> Recorded at 02 Oct 14:10. Rui Example can give the role back.</div></div>
-        <p class="note">Ana, after stepping down. Her own act succeeded, so she reads a confirmation, not a refusal, and the name of who can undo it.</p>
+        <div class="toast error" role="alert"><span class="ic">!</span><div>Only organisation administrators can do that.</div><span class="x" aria-label="close">×</span></div>
+        <p class="note">Rui, after the role was removed. The sentence and the error toast are the ones the admin screens already use for any member; the action clicked did not run.</p>
+        <div class="toast info" role="alert"><span class="ic">i</span><div>You stepped down as administrator of Acme Labs. Recorded at 02 Oct 14:10. Rui Example can give the role back.</div><span class="x" aria-label="close">×</span></div>
+        <p class="note">Ana, after stepping down. Her own act succeeded, so she reads a confirmation, not a refusal, and the name of who can undo it. It arrives in the house's information toast, the one every screen uses after a redirect (decided 2026-10-03, H): the toast's icon is “information”, and the sentence is what says it worked.</p>
       </div>
     </div>
   </section>
@@ -589,67 +610,79 @@
   <section id="dec" aria-labelledby="dech">
     <p class="band">decisions and open questions</p>
     <h2 id="dech">Decisions and open questions</h2>
-    <p class="note">Every decision below is proposed by Design on 2026-10-02 and becomes <i>Decided</i> when the maintainer approves this version. The questions go to the maintainer through the Product Owner, each with options and a recommendation.</p>
+    <p class="note">Version 1 was approved by the maintainer on 2026-10-03 with every recommendation (Q1–Q6). The conference of the built screen against it raised four more questions (B, P, H, J), decided by the maintainer the same day; version 2 draws the screen with all of them. No question is open.</p>
+
+    <div class="item"><p class="h"><span class="sq"></span>What changed in version 2</p><p class="s">Decided 2026-10-03 · by the maintainer</p>
+      <ul class="changes">
+        <li><b>P · pronoun-free sentences</b> (screens 2, 3, 6). The screen does not know anyone's pronoun, so it writes the full name or “they / their”, and “made the change at 14:02” instead of “made her one”.</li>
+        <li><b>H · the step-down confirmation is the house's information toast</b> (screen 7), not a notice with ✓. The refusal on the same screen is the house's error toast.</li>
+        <li><b>J · three sentences the screen has are drawn</b>: the success of removing someone's role (screen 3), the refusal of a note over 2000 characters with the panel kept open (screen 2), and the refusal of making a disabled account administrator (screen 6).</li>
+        <li><b>Q1 (b) on the row</b> (screen 1). The disabled administrator gets “Remove admin role…” and keeps “not counted while the account is disabled”; “Role changes wait for reactivation.” stays only on the disabled member.</li>
+        <li><b>After a race</b> (screen 5). No “a moment before this request”: the screen does not measure it. The change is cited only when it happened after the panel opened, with date and time; “so you are now the only one” only when someone stepped down and the refused act is stepping down.</li>
+        <li><b>The success sentence</b> (screens 2, 3) ends “The row and “Administrator changes” show it; the header now reads N active administrators.”</li>
+        <li><b>B · rows without a recorded change keep the drawn sentences</b>: “since the organisation was created · no role change recorded” and “never an administrator”. Decided against the QA's recommendation; the risk that an account older than the record reads something the record cannot prove is accepted and written down.</li>
+        <li>The actions header stays “Actions” for screen readers only, and the stacked cell carries <code>data-label="Actions"</code>.</li>
+      </ul></div>
 
     <div class="dec">
-      <div class="item"><p class="h"><span class="sq"></span>D1 · The act lives in the Management cell, beside the mark</p><p class="s">proposed 2026-10-02</p>
+      <div class="item"><p class="h"><span class="sq"></span>D1 · The act lives in the Management cell, beside the mark</p><p class="s">Decided 2026-10-03</p>
         <p>Role and sign-in are two independent facts, which is why the screen already has “two columns for two facts”: disabling does not change the role. The acts column keeps the access acts (reset, disable, reactivate); the role act sits with the role.</p></div>
 
-      <div class="item"><p class="h"><span class="sq"></span>D2 · The dash becomes <span class="word">member</span>, and <span class="chip decl">administrator</span> becomes the declared mark</p><p class="s">proposed 2026-10-02</p>
+      <div class="item"><p class="h"><span class="sq"></span>D2 · The dash becomes <span class="word">member</span>, and <span class="chip decl">administrator</span> becomes the declared mark</p><p class="s">Decided 2026-10-03</p>
         <p>Yes, the <code>—</code> breaks the rule, and worse than an unnamed absence: nothing is missing there. The account has a role, and the dash hides it. The common value is plain words, as <span class="word">active</span> already is. The administrator mark moves from verdete to blue filled, because the screen's own key says blue is what the administration declares and verdete is what collection observes.</p></div>
 
-      <div class="item"><p class="h"><span class="sq"></span>D3 · Confirmation by panel; typing only for stepping down yourself</p><p class="s">proposed 2026-10-02</p>
+      <div class="item"><p class="h"><span class="sq"></span>D3 · Confirmation by panel; typing only for stepping down yourself</p><p class="s">Decided 2026-10-03</p>
         <ul>
           <li><b>Make administrator</b> and <b>remove someone else's role</b>: a panel under the table naming the person and e-mail, with what the act does and does not do, an optional note, and a button whose label repeats the name. Any administrator can undo either in seconds.</li>
           <li><b>Step down</b>: the same panel, plus typing your own e-mail. It is the one act its author cannot undo, which is what the house reserves typing for. Typing on every role change would train people to type without reading.</li>
         </ul></div>
 
-      <div class="item"><p class="h"><span class="sq"></span>D4 · The last administrator is refused at rest and after a race, with the same sentence</p><p class="s">proposed 2026-10-02</p>
+      <div class="item"><p class="h"><span class="sq"></span>D4 · The last administrator is refused at rest and after a race, with the same sentence</p><p class="s">Decided 2026-10-03</p>
         <p>With one active administrator, the act stays in place, dashed, with “The organisation would have no active administrator. Make someone else administrator first.” A race that slips past the screen gets the same sentence from the guard, and the mark stays. The header counts active administrators so the reason is visible before it is needed.</p></div>
 
-      <div class="item"><p class="h"><span class="sq"></span>D5 · A stale act is refused by naming the change that got there first</p><p class="s">proposed 2026-10-02</p>
-        <p>“Not changed: Bia Example is already an administrator. Rui Example made her one at 14:02.” The row re-renders and the panel closes. Without the who and when, the person cannot tell a stale tab from a broken button.</p></div>
+      <div class="item"><p class="h"><span class="sq"></span>D5 · A stale act is refused by naming the change that got there first</p><p class="s">Decided 2026-10-03</p>
+        <p>“Not changed: Bia Example is already an administrator. Rui Example made the change at 14:02.” The row re-renders and the panel closes. Without the who and when, the person cannot tell a stale tab from a broken button.</p></div>
 
-      <div class="item"><p class="h"><span class="sq"></span>D6 · No role act on a disabled account, and a disabled administrator is not counted</p><p class="s">proposed 2026-10-02 · see Q1</p>
-        <p>As the spec's US3 asks. The cell keeps the mark, says “not counted while the account is disabled”, and writes “Role changes wait for reactivation” instead of showing a button.</p></div>
+      <div class="item"><p class="h"><span class="sq"></span>D6 · A disabled account is never made administrator, and a disabled administrator is not counted</p><p class="s">Decided 2026-10-03 · amended by Q1 (b)</p>
+        <p>A disabled administrator keeps the mark, says “not counted while the account is disabled”, and has “Remove admin role…” (Q1 (b)). A disabled member writes “Role changes wait for reactivation.” instead of a button.</p></div>
 
-      <div class="item"><p class="h"><span class="sq"></span>D7 · The record appears in two places: one line per row, the full list below the table</p><p class="s">proposed 2026-10-02</p>
+      <div class="item"><p class="h"><span class="sq"></span>D7 · The record appears in two places: one line per row, the full list below the table</p><p class="s">Decided 2026-10-03</p>
         <p>The row answers “since when, and by whom”. The section “Administrator changes”, newest first, answers the audit question across accounts: who has held the role and who gave it. A mark older than the record says so (“no role change recorded”) instead of an invented entry.</p></div>
 
-      <div class="item"><p class="h"><span class="sq"></span>D8 · The note is optional, kept on the record, and never written to the log</p><p class="s">proposed 2026-10-02</p>
+      <div class="item"><p class="h"><span class="sq"></span>D8 · The note is optional, kept on the record, and never written to the log</p><p class="s">Decided 2026-10-03</p>
         <p>As the spec's assumption and FR-007. A missing note reads “no note”, the phrase the knowledge base already declares in <code>access.account_lifecycle</code>. There is no closed list of reasons.</p></div>
 
-      <div class="item"><p class="h"><span class="sq"></span>D9 · Losing the role with the screen open lands on /people</p><p class="s">proposed 2026-10-02 · see Q3</p>
-        <p>The next action does not run, with the sentence the admin screens already use. Stepping down yourself lands in the same place with a confirmation that names who can undo it.</p></div>
+      <div class="item"><p class="h"><span class="sq"></span>D9 · Losing the role with the screen open lands on /people</p><p class="s">Decided 2026-10-03 · with Q3 (a) and H</p>
+        <p>The next action does not run, with the sentence the admin screens already use, in the error toast. Stepping down yourself lands in the same place with a confirmation in the information toast that names who can undo it.</p></div>
 
-      <div class="item open"><p class="h"><span class="sq"></span>Q1 · Can a disabled administrator have the role removed?</p><p class="s">open · for the maintainer</p>
+      <div class="item"><p class="h"><span class="sq"></span>Q1 · Can a disabled administrator have the role removed?</p><p class="s">Decided 2026-10-03 · (b) · by the maintainer</p>
         <p>The spec disagrees with itself: FR-001 lets an administrator remove the role from “an administrator of the organisation”, without “active”; US3 says a disabled account has neither act. Today, someone who left with the role keeps it, and reactivating the account later brings administration back with it.</p>
         <ul>
-          <li>(a) as drawn: no act on any disabled account;</li>
+          <li>(a) no act on any disabled account;</li>
           <li>(b) “Remove admin role…” also on a disabled administrator, never “Make administrator”. The guard is not affected, because a disabled administrator is not counted.</li>
         </ul>
-        <p><span class="rec">Recommendation: (b).</span> Removing a power that nobody exercises costs nothing and closes the case where a routine reactivation restores administration nobody meant to give. If (b), the spec's US3 scenario 1 is amended and Edu's row gains the act.</p></div>
+        <p><span class="rec">Recommended and decided: (b).</span> Removing a power that nobody exercises costs nothing and closes the case where a routine reactivation restores administration nobody meant to give. The spec's US3 scenario 1 is amended and Edu's row has the act.</p></div>
 
-      <div class="item open"><p class="h"><span class="sq"></span>Q2 · Should making someone administrator also require typing their e-mail?</p><p class="s">open · for the maintainer</p>
-        <ul><li>(a) no, panel only, as drawn;</li><li>(b) yes, type the e-mail of the account being promoted.</li></ul>
-        <p><span class="rec">Recommendation: (a).</span> Granting is the more powerful act, but it is the reversible one, and the panel already names the person and e-mail. Typing earns its cost when the author cannot undo the act.</p></div>
+      <div class="item"><p class="h"><span class="sq"></span>Q2 · Should making someone administrator also require typing their e-mail?</p><p class="s">Decided 2026-10-03 · (a) · by the maintainer</p>
+        <ul><li>(a) no, panel only;</li><li>(b) yes, type the e-mail of the account being promoted.</li></ul>
+        <p><span class="rec">Recommended and decided: (a).</span> Granting is the more powerful act, but it is the reversible one, and the panel already names the person and e-mail. Typing earns its cost when the author cannot undo the act.</p></div>
 
-      <div class="item open"><p class="h"><span class="sq"></span>Q3 · What does someone read when their role was removed while the screen was open?</p><p class="s">open · for the maintainer</p>
-        <ul><li>(a) the existing sentence, “Only organisation administrators can do that.”, as drawn;</li><li>(b) a specific one: “Your administrator role was removed by Ana Example at 14:02.”</li></ul>
-        <p><span class="rec">Recommendation: (a).</span> The check lives in the shared hook and does not know why the role is missing; teaching it means reading the record on every refused request. As a member the person cannot open this screen to read “Administrator changes”, so if (b) is wanted, the hook learns it, and that is a contract change.</p></div>
+      <div class="item"><p class="h"><span class="sq"></span>Q3 · What does someone read when their role was removed while the screen was open?</p><p class="s">Decided 2026-10-03 · (a) · by the maintainer</p>
+        <ul><li>(a) the existing sentence, “Only organisation administrators can do that.”;</li><li>(b) a specific one: “Your administrator role was removed by Ana Example at 14:02.”</li></ul>
+        <p><span class="rec">Recommended and decided: (a).</span> The check lives in the shared hook and does not know why the role is missing; teaching it means reading the record on every refused request. As a member the person cannot open this screen to read “Administrator changes”, so if (b) is wanted, the hook learns it, and that is a contract change.</p></div>
 
-      <div class="item open"><p class="h"><span class="sq"></span>Q4 · Does the table stack on phones in this feature?</p><p class="s">open · for the maintainer</p>
+      <div class="item"><p class="h"><span class="sq"></span>Q4 · Does the table stack on phones in this feature?</p><p class="s">Decided 2026-10-03 · (a) · by the maintainer</p>
         <p>Today the table has six columns and scrolls sideways in a card. The design system (§5) asks any table over three columns to stack with <code>data-label</code>. This prototype draws it stacked.</p>
         <ul><li>(a) yes, in this feature, since the Management cell is being rewritten and the prototype must be the screen;</li><li>(b) no, a separate issue; the prototype is then republished with today's scroll.</li></ul>
-        <p><span class="rec">Recommendation: (a).</span> It is the same table and the same template, and §11.1 makes mobile-first normative for any change to a screen.</p></div>
+        <p><span class="rec">Recommended and decided: (a).</span> It is the same table and the same template, and §11.1 makes mobile-first normative for any change to a screen.</p></div>
 
-      <div class="item open"><p class="h"><span class="sq"></span>Q5 · How long is “Administrator changes”?</p><p class="s">open · for the maintainer</p>
+      <div class="item"><p class="h"><span class="sq"></span>Q5 · How long is “Administrator changes”?</p><p class="s">Decided 2026-10-03 · (b) · by the maintainer</p>
         <ul><li>(a) every entry, always;</li><li>(b) the 20 most recent, with “N earlier changes, all kept” written under the list.</li></ul>
-        <p><span class="rec">Recommendation: (b).</span> It is what the access history on each row already does; at today's size it shows everything, and it will not grow into a page nobody reads.</p></div>
+        <p><span class="rec">Recommended and decided: (b).</span> It is what the access history on each row already does; at today's size it shows everything, and it will not grow into a page nobody reads.</p></div>
 
-      <div class="item open"><p class="h"><span class="sq"></span>Q6 · Do administrators that exist today get an entry in the record?</p><p class="s">open · for the maintainer</p>
-        <ul><li>(a) no: the row writes “no role change recorded”, as drawn;</li><li>(b) yes: a migration writes one entry per current administrator.</li></ul>
-        <p><span class="rec">Recommendation: (a).</span> An entry needs an author and an instant, and the migration knows neither. It would be a fabricated record presented as genuine.</p></div>
+      <div class="item"><p class="h"><span class="sq"></span>Q6 · Do administrators that exist today get an entry in the record?</p><p class="s">Decided 2026-10-03 · (a) · by the maintainer</p>
+        <ul><li>(a) no: the row writes “no role change recorded”;</li><li>(b) yes: a migration writes one entry per current administrator.</li></ul>
+        <p><span class="rec">Recommended and decided: (a).</span> An entry needs an author and an instant, and the migration knows neither. It would be a fabricated record presented as genuine.</p></div>
     </div>
   </section>
 

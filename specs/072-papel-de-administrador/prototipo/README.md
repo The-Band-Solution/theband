@@ -5,11 +5,12 @@ pelas faixas `screen N · nome`, e a seção final `Decisions and open questions
 carregar; os únicos controles são *View in greyscale* e *Phone width (360 px)*.
 
 Desenhado em **2026-10-02** pelo agente Design, a pedido do ciclo da spec 072.
-Publicado em **<https://claude.ai/artifact/2r84DDZBXBRPN7NzXCVpon>** (versão 1); **a cópia aqui é a
-que vale** — o endereço pode mudar, a spec não pode depender dele.
+Publicado em **<https://claude.ai/artifact/2r84DDZBXBRPN7NzXCVpon>** (versão 2, republicada no mesmo
+endereço em 2026-10-03); **a cópia aqui é a que vale** — o endereço pode mudar, a spec não pode
+depender dele.
 
-**Estado: versão 1, aguardando a aprovação da pessoa mantenedora.** As decisões D1–D9 são
-*propostas* até a aprovação; as perguntas Q1–Q6 vão à pessoa mantenedora pelo Product Owner.
+**Estado: versão 2, aprovada.** D1–D9 e Q1–Q6 decididas em 2026-10-03; B, P, H e J, da conferência
+do QA, decididas no mesmo dia (seções *Aprovação* e *Versão 2*). Nenhuma pergunta aberta.
 Republicação é sempre no mesmo endereço.
 
 A estrutura seção a seção — **a régua do QA** — está na seção 3 do [`PROMPT.md`](PROMPT.md).
@@ -43,9 +44,9 @@ de pessoas — o protótipo não publica dado pessoal real.
 | edge case "outra aba" | promover quem já é administrador, ou rebaixar quem já é membro, é recusa de estado que mudou |
 | FR-005, FR-007, Assumptions | registro de quem, quando, de→para e nota livre opcional; a nota não vai ao log; sem razão de lista fechada |
 | FR-008 | rebaixado com tela aberta não age como administrador na próxima ação |
-| US3 cenário 1 | conta desativada sem nenhum dos dois atos (ver Q1) |
+| US3 cenário 1, emendado pela Q1 (b) | conta desativada nunca é promovida; administrador desativado pode ser rebaixado |
 
-## As decisões de desenho — *propostas em 2026-10-02*
+## As decisões de desenho — *propostas em 2026-10-02, decididas em 2026-10-03*
 
 | # | decisão | a razão |
 |---|---|---|
@@ -53,8 +54,8 @@ de pessoas — o protótipo não publica dado pessoal real.
 | **D2** | O `—` vira `member` em palavra simples; `administrator` passa de verdete a **azul cheio** (declarado) | o travessão viola a regra, e pior que ausência sem nome: **não falta nada ali**, a conta tem papel e o travessão o esconde. O comum é palavra, como `active`. Azul porque a própria legenda da tela diz que azul é o que a administração declara, e verdete é o que a coleta observa |
 | **D3** | Confirmação por **painel** sob a tabela (pessoa e e-mail nomeados, o que faz e o que não faz, nota opcional, botão que repete o nome). **Digitar o próprio e-mail só para deixar o papel** | deixar o papel é o único ato que o autor não desfaz — depois dele não abre mais a tela. É para isso que a casa reserva digitar o identificador (070, Q2). Digitar em toda mudança treinaria a digitar sem ler; promover e rebaixar outro qualquer administrador desfaz em segundos |
 | **D4** | O último administrador é recusado **em repouso** (botão tracejado no lugar, com a frase) e **depois de corrida** (aviso com a mesma frase), e a marca continua. O cabeçalho conta `N active administrators` | a razão fica visível antes de ser preciso; o mesmo guarda e a mesma frase valem para desativar o último |
-| **D5** | Recusa por estado que mudou nomeia **a mudança que chegou antes**: "Not changed: Bia Example is already an administrator. Rui Example made her one at 14:02." A linha re-renderiza e o painel fecha | sem quem e quando, a pessoa não distingue aba velha de botão quebrado |
-| **D6** | Conta desativada: nenhum ato; a célula escreve "Role changes wait for reactivation". Administrador desativado leva "not counted while the account is disabled" | US3; e o guarda conta só administrador **ativo**, o que a tela precisa dizer |
+| **D5** | Recusa por estado que mudou nomeia **a mudança que chegou antes**: "Not changed: Bia Example is already an administrator. Rui Example made the change at 14:02." (versão 2, P). A linha re-renderiza e o painel fecha | sem quem e quando, a pessoa não distingue aba velha de botão quebrado |
+| **D6** | Conta desativada nunca é promovida. Administrador desativado leva "not counted while the account is disabled" e "Remove admin role…" (Q1 (b)); membro desativado escreve "Role changes wait for reactivation." | US3 emendada; e o guarda conta só administrador **ativo**, o que a tela precisa dizer |
 | **D7** | O registro aparece em dois lugares: **uma linha por conta** na célula (desde quando, por quem) e a seção **"Administrator changes"** abaixo da tabela, da organização inteira, mais recente primeiro. Marca mais velha que o registro escreve "no role change recorded" | a linha responde "desde quando"; a seção responde a pergunta de auditoria — quem teve o papel e quem deu. Desativar e reativar não entram: ficam no histórico de acesso da linha |
 | **D8** | Nota opcional, guardada no registro, nunca no log; ausência escrita "no note", a frase já declarada em `access.account_lifecycle` | FR-007 e Assumptions |
 | **D9** | Perder o papel com a tela aberta leva a `/people` com a frase que as telas de admin já usam. Deixar o papel leva ao mesmo lugar com confirmação que nomeia quem pode devolver | FR-008; a ação não roda, e quem deixou o papel sabe a quem pedir |
@@ -105,4 +106,39 @@ reaproveitada.
 | Q6 | (a) nenhuma entrada fabricada para os administradores de hoje |
 
 A tela implementada é **exatamente** esta. Mudança volta ao protótipo antes do código.
+
+## Versão 2 — 2026-10-03
+
+A conferência do QA (`conferencia.md`, 072/T012) achou na tela frases que divergiam do protótipo
+por boas razões, e frases que o protótipo não tinha. **Decidido pela pessoa mantenedora em
+2026-10-03**:
+
+| id | decisão |
+|---|---|
+| **B** | (b) a linha sem episódio fica como desenhada: "since the organisation was created · no role change recorded" no administrador, "never an administrator" no membro. Contra a recomendação do QA; o risco (uma conta anterior à 072 pode ler o que o registro não prova) fica aceito e escrito |
+| **P** | (a) a forma sem pronome é aceita: a tela não sabe o pronome de ninguém |
+| **H** | (a) o sucesso de deixar o papel sai no toast `:info` da casa |
+| **J** | as três frases que a tela tinha sem protótipo são aceitas como estão no código |
+
+O Design republicou o protótipo **no mesmo endereço**, para que ele volte a ser exatamente a régua
+da tela. O que mudou, e por quê:
+
+| tela | o que mudou | por quê |
+|---|---|---|
+| 1 | a linha de Edu (administrador desativado) ganhou "Remove admin role…" e perdeu "Role changes wait for reactivation.", que fica só na de Dora (membro desativado) | Q1 (b), aprovada e não desenhada na versão 1 |
+| 1 | a frase sob "Administrator changes" passou à forma geral que a tela escreve, sem nomear Ana | item 9, sem pronome (P) |
+| 2 | "Bia Example can connect…", "their next action. They do not…", "Their password… Their teams… what they can manage" | P |
+| 2 | o sucesso ganhou a terceira frase na forma neutra: "The row and “Administrator changes” show it; the header now reads 3 active administrators." | item 17 |
+| 2 | novo estado: a recusa da nota com mais de 2000 caracteres, com o painel aberto e a nota preservada | J |
+| 3 | "A screen they have open… at their next action… for them to reconnect", "If they left…", "Their sessions… Nothing they did…" | P |
+| 3 | novo: o sucesso de rebaixar, "Rui Example is no longer an administrator, and keeps signing in as a member. Recorded at 02 Oct 14:05, by you. The row and “Administrator changes” show it; the header now reads 1 active administrator." | J |
+| 5 | a recusa depois de corrida perdeu "a moment before this request" e ganhou a data: "Ana Example stepped down at 02 Oct 14:02, so you are now the only one."; a nota diz quando a mudança é citada (só depois de o painel abrir) e quando "so you are now the only one" vale | item 27: a tela não mede "um instante antes", e citar uma mudança anterior atribuiria a recusa a quem não a causou |
+| 6 | "Rui Example made the change at 14:02.", sem "The row below shows her current role." | P |
+| 6 | novo estado: "Not changed: Dora Example's account is disabled. Role changes wait for reactivation." | J |
+| 7 | o sucesso de deixar o papel e a recusa de quem perdeu o papel aparecem como os toasts da casa (`:info` e `:error`), e não como aviso com ✓ e aviso hachurado | H; a recusa já era o flash de erro de hoje (item 30), e o desenho passou a mostrá-lo como é |
+| decisões | D1–D9 e Q1–Q6 marcadas *Decided 2026-10-03*; D6 reescrita com a Q1 (b); seção "What changed in version 2" | — |
+
+A régua (`PROMPT.md` §3) foi ajustada nos itens 4, 13, 14, 17, 19, 20, 27, 29, 31 e 34, e ganhou
+21a e 36–38 com as frases de J. O item 34 (`Actions` só para leitor de tela e `data-label="Actions"`)
+já estava desenhado na versão 1; a régua agora o escreve.
 

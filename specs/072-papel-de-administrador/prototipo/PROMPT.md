@@ -50,8 +50,15 @@ Arquivo: [`accounts-admin-role.html`](accounts-admin-role.html) · publicado em
 
 ## 3. A estrutura aprovada, seção por seção — a régua do QA
 
-> **Estado**: versão 1, **ainda não aprovada**. Quando a pessoa mantenedora aprovar, esta seção
-> vira a régua. Itens que dependem de pergunta aberta estão marcados com a pergunta.
+> **Estado**: **versão 2, aprovada.** A versão 1 foi aprovada pela pessoa mantenedora em
+> 2026-10-03 com as recomendações Q1 (b), Q2 (a), Q3 (a), Q4 (a), Q5 (b), Q6 (a). A conferência do
+> QA (`conferencia.md`) levou quatro perguntas novas, **decididas pela pessoa mantenedora em
+> 2026-10-03**: **B** (b) as frases desenhadas para a linha sem episódio ficam; **P** (a) a forma
+> sem pronome é aceita; **H** (a) o sucesso de deixar o papel sai no toast `:info` da casa; **J** as
+> três frases que a tela tinha sem protótipo são aceitas. A versão 2, republicada no mesmo endereço
+> pelo Design em 2026-10-03, desenha a tela com todas elas, e os itens 4, 13, 14, 17, 19, 20, 27,
+> 29, 31 e 34 abaixo estão no texto novo. O item 21a e os itens 36 a 38 são as frases de J. Nenhuma
+> pergunta está aberta.
 
 Para cada item, a tela entregue precisa: existir, na ordem, com o texto, com a marca, com a ação e
 com a recusa.
@@ -74,8 +81,12 @@ com a recusa.
    | administrador ativo, outra pessoa | `administrator`, azul cheio | `since DD Mon · by <autor>` | botão **"Remove admin role…"** |
    | administrador ativo, a própria conta | `administrator`, azul cheio | idem, ou ausência (item 5) | botão **"Step down…"** |
    | membro ativo | palavra `member`, sem marca | `never an administrator` ou `administrator DD Mon – DD Mon · removed by <autor>` | botão **"Make administrator…"** |
-   | administrador desativado | `administrator`, azul cheio | `since … · by … · not counted while the account is disabled` e `Role changes wait for reactivation.` | **nenhum** (Q1) |
+   | administrador desativado | `administrator`, azul cheio | `since … · by …` (ou a forma do item 5) `· not counted while the account is disabled` | botão **"Remove admin role…"** (Q1 (b)); **nunca** "Make administrator" |
    | membro desativado | `member` | `never an administrator` (ou o período) e `Role changes wait for reactivation.` | **nenhum** |
+
+   `Role changes wait for reactivation.` aparece **só** na linha do membro desativado. O membro que
+   deixou o próprio papel lê `… · stepped down` no lugar de `removed by <autor>`; sem a promoção
+   registrada, o período é `administrator until DD Mon`.
 
 5. Administrador sem mudança registrada (a primeira conta): `since the organisation was created ·`
    seguido da marca tracejada **"no role change recorded"**.
@@ -96,26 +107,39 @@ com a recusa.
 10. Abre **abaixo da tabela**, no lugar onde abrem desativar e reativar. Borda azul.
 11. Eyebrow `Make an account administrator`; título `Make <nome> administrator — <e-mail>`.
 12. De→para: `member → administrator` (marca).
-13. Bloco "what happens when you confirm": gerir ferramentas, credenciais, syncs e contas,
-    **incluindo remover o seu papel**; vale na próxima ação dela, sem entrar de novo; registrado com
-    seu nome, este instante e a nota.
-14. Bloco "what it does not do": senha, elo do GitHub e sessões não mudam; equipes, trabalho e
-    medidas não mudam.
+13. Bloco "what happens when you confirm", **sem pronome** (P): *"<nome completo> can connect and
+    disconnect tools, manage their credentials, run syncs, and manage the accounts on this screen.
+    That includes removing **your** administrator role."*; *"It takes effect at their next action.
+    They do not need to sign in again."*; *"The change is recorded with **your name, this instant**
+    and the note below, under “Administrator changes”."*
+14. Bloco "what it does not do": *"Their password, their GitHub link and their open sessions do not
+    change."*; *"Their teams, their work and every measure about them do not change. This is about
+    what they can manage, not about what they did."*
 15. Campo `Note — optional · kept on the record, not written to the log`.
 16. Botão primário **"Make <nome> administrator"** e **"Cancel"**. **Sem campo de digitar** (Q2).
 17. Depois do ato, no lugar do painel: aviso de sucesso com ícone ✓ — *"<nome> is now an
-    administrator. Recorded at DD Mon HH:MM, by you."*; a linha, a seção de mudanças e a contagem
-    refletem a mudança.
+    administrator. Recorded at DD Mon HH:MM, by you. The row and “Administrator changes” show it;
+    the header now reads N active administrators."*, com N depois do ato (singular *"… reads 1
+    active administrator."*); a linha, a seção de mudanças e a contagem refletem a mudança.
 
 ### Tela 3 — painel "Remove admin role" (outra pessoa) aberto
 
 18. Abaixo da tabela, borda barro. Título `Remove the administrator role from <nome> — <e-mail>`;
     de→para `administrator → member`.
-19. "what happens": deixa de gerir; tela aberta dele para de agir como administrador **na próxima
-    ação**; a organização fica com N administradores ativos (nomeia quem); registrado.
-20. "what it does not do": **"It does not remove access."** — continua entrando como membro; para
-    tirar acesso, o ato é desativar. Sessões, senha, elo não mudam.
+19. "what happens", sem pronome (P): *"<nome completo> stops managing tools, credentials, syncs and
+    accounts. A screen they have open stops acting as administrator **at their next action**,
+    without waiting for them to reconnect."*; *"The organisation keeps N active administrator(s):
+    <quem>."*, onde quem está olhando é escrito **"you"**, e não pelo nome; *"The change is recorded
+    with **your name, this instant** and the note below."*
+20. "what it does not do": *"**It does not remove access.** <nome completo> keeps signing in, as a
+    member. If they left the organisation, disabling the account is the act."*; *"Their sessions,
+    password and GitHub link do not change. Nothing they did is erased."*
 21. Nota opcional; botão barro **"Remove <nome>'s administrator role"** e "Cancel". Sem digitar.
+
+    21a. Depois do ato, no lugar do painel: aviso de sucesso com ✓ — *"<nome> is no longer an
+    administrator, and keeps signing in as a member. Recorded at DD Mon HH:MM, by you. The row and
+    “Administrator changes” show it; the header now reads N active administrators."* (J; o mesmo
+    final do item 17).
 
 ### Tela 4 — painel "Step down" (a própria conta) aberto
 
@@ -132,29 +156,55 @@ com a recusa.
     `the only active administrator`; o ato fica **no lugar, tracejado e inerte**, com
     *"The organisation would have no active administrator. Make someone else administrator first."*
 27. Recusa depois de corrida: aviso hachurado com ícone —
-    *"Not changed: the organisation would have no active administrator."* seguido de quem agiu
-    antes e quando, e *"Your role is unchanged."* A marca continua.
+    *"Not changed: the organisation would have no active administrator."*, depois a mudança que a
+    causou, e por fim *"Your role is unchanged."* (ou *"<nome>'s role is unchanged."* quando o ato
+    recusado era rebaixar outra pessoa). A marca continua; o painel fecha. A mudança:
+    - é citada **só se aconteceu depois de o painel abrir**; se é anterior, não é citada, e o aviso
+      fica com a primeira e a última frase;
+    - leva **data e hora**, `DD Mon HH:MM`;
+    - quem deixou o próprio papel lê *"<nome> stepped down at DD Mon HH:MM."*; as demais, *"<autor>
+      removed the administrator role from <conta> at DD Mon HH:MM."* ou *"<autor> made <conta>
+      administrator at DD Mon HH:MM."*;
+    - *", so you are now the only one."* só quando a mudança foi alguém deixar o próprio papel **e**
+      o ato recusado é deixar o papel. Exemplo: *"Ana Example stepped down at 02 Oct 14:02, so you
+      are now the only one."*;
+    - **não** se escreve "a moment before this request": a tela não mede essa distância.
 28. A mesma frase recusa desativar o último administrador.
 
 ### Tela 6 — estado que mudou em outra aba
 
-29. Aviso hachurado: *"Not changed: <nome> is already an administrator. <autor> made her one at
-    HH:MM."* (espelho: *"… is already a member. <autor> removed the role at HH:MM."*). A linha
-    re-renderiza com o papel atual; o painel fecha.
+29. Aviso hachurado: *"Not changed: <nome> is already an administrator. <autor> made the change at
+    HH:MM."* (espelho: *"Not changed: <nome> is already a member. <autor> removed the role at
+    HH:MM."*). Sem pronome (P), e sem frase depois. A linha re-renderiza com o papel atual; o painel
+    fecha.
 
 ### Tela 7 — perdeu o papel com a tela aberta
 
 30. Rebaixado por outro: a próxima ação não roda; redireciona para `/people` com
     *"Only organisation administrators can do that."* (Q3).
-31. Deixou o papel: redireciona para `/people` com aviso de sucesso *"You stepped down as
-    administrator of <organização>. Recorded at DD Mon HH:MM. <nome> can give the role back."*
+31. Deixou o papel: redireciona para `/people` com o **toast `:info` da casa** (H: o flash de
+    informação de todas as telas, com o ícone dele, e não aviso com ✓): *"You stepped down as
+    administrator of <organização>. Recorded at DD Mon HH:MM. <nome> can give the role back."* A
+    recusa do item 30 sai no toast `:error` da casa, como hoje.
 32. Membro nunca vê `/accounts`; nenhum controle de papel aparece para quem não é administrador.
 
 ### Em todas as telas
 
 33. Toda marca tem texto; tudo lê em escala de cinza.
-34. A 360 px, sem rolagem lateral; a tabela empilha com o nome da coluna em cada célula (Q4).
+34. A 360 px, sem rolagem lateral; a tabela empilha com o nome da coluna em cada célula (Q4),
+    **inclusive a dos atos**: o cabeçalho das ações tem o texto *"Actions"* só para leitor de tela
+    (`<span class="sr-only">Actions</span>`) e a célula leva `data-label="Actions"`.
 35. Inglês na tela.
+
+### Frases que a tela tem e a versão 1 não desenhava (J, aceitas em 2026-10-03)
+
+36. O sucesso de rebaixar outra pessoa — item 21a (tela 3).
+37. Nota com mais de 2000 caracteres, em qualquer dos três painéis: aviso hachurado *"Not changed:
+    the note is longer than 2000 characters."* acima do painel, que **continua aberto com a nota**
+    como foi digitada (tela 2).
+38. Promover conta que foi desativada depois de o painel abrir: aviso hachurado *"Not changed:
+    <nome>'s account is disabled. Role changes wait for reactivation."*; o painel fecha e a linha
+    re-renderiza como membro desativado, sem ato (tela 6).
 
 ## 4. Como cada papel usa este arquivo
 
