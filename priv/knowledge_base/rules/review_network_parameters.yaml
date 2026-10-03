@@ -37,7 +37,7 @@ derivation_rule:
       spec 073, FR-008, FR-013 e Assumptions; seguranca.md R2 e R6; decisões
       da pessoa mantenedora de 2026-10-03 (R1, R2, R4, R6, R7)
     note: >
-      PROPOSTA, ainda fora de `priv/knowledge_base/`. Janelas e padrão vêm da spec (FR-013)
+      Aceita na revisão semântica 073/T003 (2026-10-03). Janelas e padrão vêm da spec (FR-013)
       e foram confirmados na decisão de R6. O k e a amostra mínima vêm das Assumptions da
       spec. O grupo mínimo nasceu da sugestão da avaliação de segurança (R2 item 3), e foi
       decidido pela pessoa mantenedora em 2026-10-03 (3). Nenhum valor foi

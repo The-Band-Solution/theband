@@ -1,5 +1,10 @@
 # Proposta de base de conhecimento para as redes complexas
 
+> **2026-10-03, T004**: os YAMLs aprovados na revisão semântica (T003,
+> [`../revisao-semantica.md`](../revisao-semantica.md)) foram **movidos** para `priv/knowledge_base/`, nos
+> destinos da seção 1, junto com `version` opcional no schema de medida. Esta pasta guarda só este
+> README, como registro da proposta e das decisões. A fonte agora é a base.
+
 **Status**: proposta, 2026-10-03. Ainda **não** está em `priv/knowledge_base/`. Fica aqui para
 que nada entre no gate antes da aprovação da pessoa mantenedora.
 
