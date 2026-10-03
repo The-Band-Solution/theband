@@ -207,8 +207,9 @@ lib/the_band/
 │   ├── slice.ex                       puro: o alcance aplicado à leitura → view()
 │   ├── classification.ex              par → aresta | auto_revisao | bot_ou_aplicativo | nao_ligada
 │   ├── parameters.ex                  lê as duas regras da base; levanta se faltar chave
-│   ├── commands.ex                    compute/3: lê, calcula, substitui na transação
+│   ├── commands.ex                    compute/4 (parâmetros explícitos): lê, calcula, substitui na transação
 │   ├── queries.ex                     a leitura vigente por (tenant, organização, janela)
+│   ├── reader.ex                      read/5 (parâmetros explícitos): janela, organização, alcance, recorte, nomes
 │   └── schemas/reading.ex             privado ao módulo
 ├── jobs/compute_review_network.ex     o worker
 ├── jobs/sync_github_eo.ex             + organization_id no ctx; + enqueue em coletar_mudancas/1

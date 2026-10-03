@@ -163,6 +163,34 @@ Nenhuma aresta, contagem, `person_id` ou nome (A11). Quem recebe relê por `read
 
 ---
 
+## Os parâmetros entram pela fachada, e só por ela
+
+`compute/3`, `read/4` e `windows/0` são a fachada: cada uma lê `ReviewNetwork.Parameters` (a base)
+e chama a função interna que recebe os parâmetros como **argumento**:
+
+```elixir
+Commands.compute(Tenant.t(), organization, now :: DateTime.t(), parameters()) :: {:ok, relator}
+Reader.read(Tenant.t(), User.t(), organization_id, window, parameters()) :: mesmo retorno de read/4
+```
+
+**Por quê** (2026-10-03, `/speckit-analyze` sobre `tasks.md`): a base (k, janelas, amostra, grupo
+mínimo, estados que contam) espera a revisão semântica de `proposta-base/`. Com os parâmetros como
+argumento, o cálculo e o recorte são escritos e provados antes da base, sem nenhum valor escrito no
+código para não esperar: o teste passa os parâmetros, e a fachada só existe quando a base existe
+(T013, T017). Nenhuma das duas funções internas aparece na fachada, e ninguém fora do módulo as
+chama.
+
+```elixir
+@type parameters :: %{
+        windows: [pos_integer()], default_window: pos_integer(),
+        ks: [pos_integer()], minimum_sample: pos_integer(), minimum_group_size: pos_integer(),
+        counted_states: [String.t()], knowledge_versions: %{String.t() => pos_integer()}
+      }
+```
+
+Os nomes das chaves **da base** são os que a revisão semântica aceitar (T003); este mapa é a forma
+em memória, e `Parameters` traduz uma na outra.
+
 ## `Graph` — módulo interno, puro
 
 Não é API pública (não aparece na fachada), e é testado direto porque é onde a matemática mora.

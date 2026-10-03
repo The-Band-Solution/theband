@@ -172,7 +172,8 @@ arquivo antes de injetar e `diff` depois de restaurar.
 - [ ] T012 [P] Calcular arestas, totais, grupos e concentração em Elixir puro
   - **Pronta quando**: `contracts/review-network.md`, seção `Graph`; research.md R2 e R5
   - **Descrição**: `lib/the_band/review_network/graph.ex`, sem `Repo`, relógio nem `Logger`:
-    `edges/1` (frequências por `{revisor, autor}`), `totals_by_person/1`, `groups/1` (componentes
+    `build/2` (arestas por frequência de `{revisor, autor}` dos pares da janela, e as solicitações
+    revisadas de cada autor), `totals_by_person/1`, `groups/1` (componentes
     fracos por busca em largura, só nós com aresta, ordenados por tamanho e menor id),
     `concentration/2` (k recebidos como argumento, prefixos de soma, `:sem_revisao` quando o total é
     zero) e `induced/2`. Toda saída ordenada (FR-012)
