@@ -26,6 +26,10 @@ defmodule TheBand.Application do
     # transformando o controle de abuso em causa de erro.
     ApiRateLimit.preparar()
 
+    # O log das consultas nasce ANTES do Repo — issue #1222. O Repo tem `log: false`, e uma
+    # consulta feita antes do handler simplesmente não seria logada; depois dele, sai redigida.
+    :ok = TheBand.Repo.LogDaConsulta.anexar()
+
     children = [
       TheBandWeb.Telemetry,
       TheBand.Repo,
