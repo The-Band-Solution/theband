@@ -8,11 +8,25 @@ de cada pessoa.
 
 Desenhado em **2026-10-03** pelo agente Design, a pedido da pessoa mantenedora (*"olhe os dados que
 ele gera e me faça uma proposta de tela"*). Publicado em
-**<https://claude.ai/artifact/Ni1tRcrWPWXALXpvUxb9Uq>** (versão 1); **a cópia aqui é a que vale** —
-o endereço pode mudar, a spec não pode depender dele.
+**<https://claude.ai/artifact/Ni1tRcrWPWXALXpvUxb9Uq>** (versão 2, republicada no mesmo endereço);
+**a cópia aqui é a que vale** — o endereço pode mudar, a spec não pode depender dele.
 
-**Estado: versão 1, para aprovação.** D1–D10 propostas; Q1–Q5 abertas. Nenhuma tarefa de tela
-começa antes da aprovação (FR-017, plano R15).
+**Estado: APROVADO em 2026-10-03 pela pessoa mantenedora, na versão 2.** D1–D10 aprovadas como
+propostas; Q1–Q5 decididas (abaixo). As tarefas de tela deixam de estar bloqueadas pelo protótipo
+(FR-017, plano R15).
+
+## O que mudou da versão 1 para a 2
+
+| tela | mudança | decisão |
+|---|---|---|
+| leitura da referência | a linha do grafo diz *"no drawing in this slice, a matrix ordered by group sketched for slice 2"* | Q1 |
+| 3 | grupos contados **só entre as pessoas alcançadas**: *"Everyone you reach with a review between them is linked, directly or through others: 5 people."*; some o *"small group"* e a nota de grupos sobre a organização inteira | Q4 |
+| 1, 3 | *"not linked to a person"* passa a dizer *"…matches no observed person, or was deleted at the source"* | base |
+| 4b | sai a variante *"mostra com aviso"*; fica só a fração ausente, *"too few reviews to speak of concentration: 4 of the 10 needed"*, com as contagens ao lado | Q2 |
+| 4d | sai a variante só-data; fica a linha *"A review collection ended on …, after this reading…"*, com a condição escrita | Q3 |
+| 6 | a matriz sai da régua: vira esboço da fatia 2, *"not part of this delivery"* | Q1 |
+| 7 | marcado *"not part of this delivery"* | Q1 |
+| seção final | D1–D10, Q1–Q5 e as decisões da base marcadas *Decided 2026-10-03* | — |
 
 A estrutura seção a seção — **a régua do QA** — está na seção 3 do [`PROMPT.md`](PROMPT.md).
 
@@ -46,7 +60,7 @@ do grafo, em `leds-conectafapes/leds-conectafapes-management-dashboard/report/`.
 | "Hubs": centralidade de grau, cinco primeiros por nome | **adapta**: a fração das 1, 2 e 3 pessoas que mais revisaram, sem nome | responde "depende de poucos?" sem ranquear ninguém (R1) |
 | "desconexo, contendo 1 componentes" | **adota** a contagem de grupos, dita certo: "3 groups" ou "everyone is linked" | a frase se contradiz |
 | comunidades por modularidade (6, 0,4981) | **depois**: fatia 2, contra as equipes declaradas (esboço, tela 7) | comunidade serve à decisão quando posta ao lado da equipe declarada |
-| grafo de 53 nós desenhado de uma vez | **recusa** o novelo; propõe matriz ordenada por grupo (tela 6, Q1) | os rótulos se sobrepõem e ninguém lê quem revisa quem |
+| grafo de 53 nós desenhado de uma vez | **recusa** o novelo; nenhum desenho nesta fatia (Q1); a matriz ordenada por grupo fica no esboço da fatia 2 (tela 6) | os rótulos se sobrepõem e ninguém lê quem revisa quem |
 | a conta da organização (`LEDS`) e `dependabot[bot]` como nós | **recusa** como nó; conta como "left out" | nó é pessoa observada com `account_type = 'person'` (FR-001, R9); o resto é contado, nunca listado |
 | "Papel na rede" por percentil (hub, ponte, coordenador central…) | **recusa** | rótulo em pessoa é julgamento, não medida (FR-018) |
 | intermediação, proximidade, autovetor, com quatro casas | **recusa** | "0,1266" não apoia decisão e ninguém confere à mão (SC-001) |
@@ -71,7 +85,7 @@ do grafo, em `leds-conectafapes/leds-conectafapes-management-dashboard/report/`.
 | contrato `review-network.md`, `view()` | os campos que a tela usa, e o que ela não recebe |
 | `docs/design-system.md` | sólido observado, hachurado derivado, tracejado ausente, sempre com texto; ausência diz de quem é; empilha abaixo de 40 rem; inglês na tela |
 
-## As decisões de desenho — propostas, para aprovar
+## As decisões de desenho — *Decided 2026-10-03*, aprovadas como propostas
 
 | # | decisão | a razão |
 |---|---|---|
@@ -86,15 +100,19 @@ do grafo, em `leds-conectafapes/leds-conectafapes-management-dashboard/report/`.
 | **D9** | Rota `/organizations/:id/review-network?window=30\|90\|180`, qualquer conta do tenant; links de organização quando há mais de uma | confirma research R15 |
 | **D10** | *"people reviewed"* (autores com ao menos uma solicitação revisada), sobre o mesmo recorte das outras duas contagens | precisa de um campo no `view()` do contrato (`authors`); deriva das arestas, sem dado novo |
 
-## As perguntas abertas — com opções e recomendação
+## As perguntas — *Decided 2026-10-03*, pela pessoa mantenedora
 
-| # | pergunta | opções | recomendação |
-|---|---|---|---|
-| **Q1** | Desenhar a rede? | (a) não nesta fatia; (b) a matriz da tela 6 abaixo da lista, a partir de 56 rem, SVG no servidor, nunca no telefone; (c) nó-e-aresta só do grupo escolhido, layout em Elixir, SVG no servidor | **(a) agora, (b) na fatia 2**. A matriz é legível e segura (R13: nomes como nós de texto escapados pelo HEEx, sem `innerHTML`, sem `raw/1`, sem biblioteca JS), mas não acrescenta resposta a "está concentrada?"; ganha lugar quando grupos encontram equipes. (c) traz o novelo de volta acima de ~15 pessoas e um algoritmo de layout para manter |
-| **Q2** | Abaixo da amostra mínima: frações com aviso, ou fração ausente? | (a) aparecem com aviso (edge case da spec; contrato `{:pequena, minimo}`); (b) ausente com motivo e mínimo (`proposta-base`, `sample_below_minimum`), contagens ficam | **(b)**. *"75% de 4 revisões"* convida a leitura que o aviso tenta desfazer. E decidir a unidade do mínimo: a proposta conta solicitações distintas, o contrato conta revisões; a tela mostra revisões, então o mínimo deve ser em revisões. **Spec, contrato e proposta precisam convergir**; a tela 4b desenha as duas |
-| **Q3** | Coleta terminou depois da leitura e ela não foi renovada: dizer? | (a) só data e idade (plano R14); (b) uma linha quando o registro da coleta de revisões mostra fim posterior ao instante da leitura | **(b), se o fim da coleta for registrado por organização fora do Oban**; senão (a). Não lê `oban_jobs`, que é o que o R14 recusou |
-| **Q4** | Grupos para alcance parcial: sobre a organização inteira, ou só sobre quem se alcança? | (a) organização inteira, grupo pequeno sem tamanho (desenhado, tela 3; é o que a medida proposta diz); (b) só entre pessoas alcançadas, como a concentração | **(b)**. *"40 people"* diz a quem é da equipe que 33 pessoas fora do alcance revisam com ela: é contagem do que está fora, que a decisão de 03/10 sobre R2 recusa. Com (b) a tela 3 diria *"everyone with a review between them is linked: 5 people"*, e o grupo mínimo deixa de ser necessário nesta tela. Muda a medida `review.network.unconnected_groups.count` |
-| **Q5** | Mostrar a contagem de bot/app a quem tem alcance parcial? | (a) não, as três só para quem alcança todos (desenhado); (b) bot/app para todos, as outras duas só para administração | **(a)**: a de bot também é atividade em solicitações de quem está fora do alcance |
+| # | pergunta | opções | recomendação | decisão |
+|---|---|---|---|---|
+| **Q1** | Desenhar a rede? | (a) não nesta fatia; (b) matriz em SVG no servidor; (c) grafo do grupo escolhido | (a) agora, (b) na fatia 2 | **(a)**: nenhum desenho nesta fatia. A matriz vai para o esboço da fatia 2, fora desta entrega |
+| **Q2** | Abaixo da amostra mínima? | (a) frações com aviso; (b) fração ausente com motivo | (b), unidade em revisões | **(b)**, decidida pelas respostas da base: a fração fica **ausente** com o motivo e *N de 10*; a unidade é **revisões** (uma pessoa revisando uma solicitação; uma solicitação com dois revisores conta duas) |
+| **Q3** | Coleta terminou depois da leitura? | (a) só data e idade; (b) mais uma linha | (b), se o fim da coleta for registrado por organização | **(b)**: além do instante e da idade, a linha aparece quando o fim da coleta de revisões estiver registrado por organização e for posterior à leitura |
+| **Q4** | Grupos para alcance parcial? | (a) organização inteira, pequeno sem tamanho; (b) só entre alcançados | (b) | **(b)**: contados **só entre as pessoas alcançadas**. Muda `review.network.unconnected_groups.count` (filtro do alcance antes de contar) |
+| **Q5** | Bot/app para alcance parcial? | (a) não; (b) sim | (a) | **(a)**, como desenhado |
+
+**Também decidido para a base (2026-10-03)**: conta apagada no GitHub entra em *"sem pessoa
+ligada"* (`not_linked`), e não em bot; grupo mínimo = **3** (fica declarado em
+`review.network.parameters`; com a Q4 em (b), não aparece nesta tela).
 
 ## Medidas e nomes que a tela pede antes do código
 
@@ -114,15 +132,18 @@ Mantidos de `proposta-base/`: `review.concentration` (necessidade de informaçã
 
 ## O que o protótipo descobriu e a implementação precisa saber
 
-- **Três textos discordam sobre a amostra pequena** (spec, contrato, proposta da base): Q2.
-- **O contrato não traz `authors`** (D10) nem distingue *"abriu nenhuma"* de *"abriu e ninguém
+- **A amostra pequena estava em três versões** (spec, contrato, proposta da base): a Q2 decidiu ausente, em revisões. O edge case da spec e o `sample: {:pequena, minimo}` do contrato precisam acompanhar.
+- **O contrato não traz `authors`** (D10, aprovada) nem distingue *"abriu nenhuma"* de *"abriu e ninguém
   revisou"* (D3, decidido não distinguir).
 - **A linha da pessoa mostra o total verdadeiro, e a concentração conta só o recorte**: na tela 3,
   Bia aparece com *"reviewed 12"* e a concentração diz *10 of 14*. A tela escreve, acima da lista,
   *"Each row shows the person's whole count in the window; the pairs show only people you reach"*.
   É a FR-015, e o QA deve conferir que a frase está lá.
 - **k maior que o número de revisores** (`fewer_reviewers_than_k` da proposta) não está no
-  contrato: a tela 4b mostra *"only 2 people reviewed"* para k = 3.
+  contrato. A régua o mantém (item 4.3); no dado de exemplo da versão 2 ele não aparece desenhado,
+  porque o único recorte com dois revisores ficou abaixo da amostra mínima.
+- **Q4 em (b) muda o contrato**: `groups` passa a ser calculado sobre o subgrafo das pessoas
+  alcançadas, e `small_without_size` deixa de ter uso nesta tela.
 - **Colegas de equipe se veem** (risco residual da segurança): a tela 3 é exatamente isso, Lia lê
   quanto Bia revisou. É a regra decidida, e a pessoa mantenedora a vê desenhada antes de aprovar.
 - **Achado lateral (D5)**: o aviso de `verification_live/people.ex:157-161` promete a liderança
