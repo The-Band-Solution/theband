@@ -325,3 +325,13 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Reativada. Nenhuma sessão nem token voltou."
 msgstr ""
+
+#: lib/the_band_web/live/ai_live/index.ex
+#, elixir-autogen, elixir-format
+msgid "Key checked against the provider and saved (%{masked}). It is the key already registered, so it still counts from %{data}."
+msgstr ""
+
+#: lib/the_band_web/live/ai_live/index.ex
+#, elixir-autogen, elixir-format
+msgid "Key checked against the provider and saved (%{masked}). It replaces the key registered on %{data}; the count starts again today."
+msgstr ""

@@ -374,20 +374,41 @@ defmodule Mix.Tasks.Gates do
     end
   end
 
+  @doc false
+  # O diretório de cópia é único por execução, e não `theband-gate-<caso>`. Com o nome fixo,
+  # dois worktrees rodando `mix gates` ao mesmo tempo usavam a mesma cópia: um apagava ou
+  # sobrescrevia a do outro, e o gate 17 reprovava sem defeito na base (#1224). O pid do SO
+  # separa os processos; o inteiro único separa chamadas dentro do mesmo processo.
+  @spec copy_dir(atom()) :: Path.t()
+  def copy_dir(caso) do
+    Path.join(
+      System.tmp_dir!(),
+      "theband-gate-#{caso}-#{System.pid()}-#{System.unique_integer([:positive])}"
+    )
+  end
+
   defp verdicts_match(python, caso, conteudo) do
-    base = Path.join(System.tmp_dir!(), "theband-gate-#{caso}")
-    File.rm_rf!(base)
-    File.cp_r!("priv/knowledge_base", base)
-    if conteudo, do: File.write!(Path.join(base, "injetado.yaml"), conteudo)
+    base = copy_dir(caso)
 
-    elixir_aprova? = match?({:ok, _}, KnowledgeBase.load(base))
+    {elixir_aprova?, saida, code} =
+      try do
+        File.cp_r!("priv/knowledge_base", base)
+        if conteudo, do: File.write!(Path.join(base, "injetado.yaml"), conteudo)
 
-    {saida, code} =
-      System.cmd(python, ["scripts/validate_knowledge_base.py", "--kb", base],
-        stderr_to_stdout: true
-      )
+        elixir_aprova? = match?({:ok, _}, KnowledgeBase.load(base))
 
-    File.rm_rf!(base)
+        {saida, code} =
+          System.cmd(python, ["scripts/validate_knowledge_base.py", "--kb", base],
+            stderr_to_stdout: true
+          )
+
+        {elixir_aprova?, saida, code}
+      after
+        # Apagado mesmo quando um validador levanta: cópia órfã em tmp não reprova nada,
+        # mas acumula uma base inteira por execução interrompida.
+        File.rm_rf!(base)
+      end
+
     python_aprova? = code == 0
     esperado = caso == :integra
 

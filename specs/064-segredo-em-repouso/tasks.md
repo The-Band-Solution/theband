@@ -176,12 +176,14 @@ troca; uma de ontem, não; uma sem data aparece como **idade desconhecida**.
   - **Feita quando**: os três estados são distinguíveis; o limite de três meses vive num lugar só, não espalhado por tela
   - **Teste**: `test/the_band/credenciais/idade_test.exs` — data de 4 meses atrás dá `:vencida`; de ontem, `:no_prazo`; **`nil` dá `:idade_desconhecida`, e o teste afirma explicitamente que não é `:no_prazo`**. É a violação, não o caminho feliz
 
-- [ ] **T018** Pedir a troca na tela que administra — [#883](https://github.com/The-Band-Solution/theband/issues/883) — **espera protótipo aprovado** (2026-10-03): não há protótipo da tela nesta spec, e a tela não é inventada no código
+- [x] **T018** Pedir a troca na tela que administra — [#883](https://github.com/The-Band-Solution/theband/issues/883) — *feita em 2026-10-03*, contra o protótipo aprovado (versão 2, [`prototipo/`](prototipo/)) e o parecer [`seguranca-c1-mesma-chave.md`](seguranca-c1-mesma-chave.md); contrato em [`contracts/pedido-de-troca.md`](contracts/pedido-de-troca.md)
+  - **Entregue**: `TheBandWeb.IdadeDaCredencial` (marca de três estados, célula, aviso, intervalo); `/tools` com a coluna `registered`, o pedido por rótulo (1.3), o de desativar a antiga (1.7), a inativa que pede remoção (1.8) e o rodapé; `/ai` com `key registered`, o pedido (2.2), a data inferida (2.5), a chave do ambiente como idade desconhecida (2.6), `previous key` (2.7), o flash da mesma chave (2.8, C.1) e a nota do formulário (2.9); a marca `replace` nas abas (A.1); `AI.fetch_sem_segredo/2`; o `@moduledoc` de `/ai` corrigido (R2)
+  - **Achado ao testar (condição 4)**: o Ecto em `:debug` logava a chave do modelo em claro ao gravá-la — corrigido com `log: false` em `AI.put/3`; o mesmo vazamento na credencial de ferramenta foi medido e vai na [#1222](https://github.com/The-Band-Solution/theband/issues/1222)
   - **Obrigações herdadas da avaliação de segurança**: a `API_KEY` do ambiente aparece como *idade desconhecida*, nunca no prazo (achado 3); o `case` sobre o estado enumera os três átomos, sem `_ ->` (achado 4)
   - **Pronta quando**: T017 concluída
   - **Descrição**: nas telas de credencial de ferramenta e de provedor de modelos, mostrar o pedido com **há quanto tempo** ela está em uso — *"registrada há 4 meses"*, não *"credencial antiga"*. O primeiro é acionável; o segundo, não. A coleta **não para**: é pedido, não bloqueio. FR-016, FR-017
   - **Feita quando**: a tela distingue os três estados; nenhuma ação é impedida pelo estado `:vencida`
-  - **Teste**: `test/the_band_web/live/idade_da_credencial_test.exs` — com credencial de 4 meses, o HTML traz o pedido **e o tempo**; com a de ontem, não traz nada; e uma coleta disparada com credencial vencida **continua funcionando**. O último é o que impede a política virar queda de serviço
+  - **Teste**: `test/the_band_web/live/idade_da_credencial_test.exs` — com credencial de 4 meses, o HTML traz o pedido **e o tempo**; com a de ontem, não traz nada; e uma coleta disparada com credencial vencida **continua funcionando**. O último é o que impede a política virar queda de serviço. E `test/the_band_web/live/mesma_chave_test.exs`, as seis condições do parecer C.1
 
 - [x] **T019** [P] Registrar a data da troca — [#884](https://github.com/The-Band-Solution/theband/issues/884) — *feita em 2026-10-03*
   - **Pronta quando**: T017 concluída

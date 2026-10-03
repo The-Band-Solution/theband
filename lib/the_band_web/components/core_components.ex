@@ -410,7 +410,9 @@ defmodule TheBandWeb.CoreComponents do
   cor. A aba atual não é link: link para onde já se está é clique que não leva a lugar
   nenhum.
   """
-  attr :abas, :list, required: true, doc: "lista de %{rotulo:, destino:, atual?:}"
+  attr :abas, :list,
+    required: true,
+    doc: "lista de %{rotulo:, destino:, atual?:}, e `marca:` opcional (texto ao lado do rótulo)"
 
   def abas(assigns) do
     ~H"""
@@ -427,6 +429,15 @@ defmodule TheBandWeb.CoreComponents do
         <.link :if={!aba.atual?} navigate={aba.destino} class="link link-hover opacity-70">
           {aba.rotulo}
         </.link>
+        <%!-- A marca da aba (064/T018, Q3 b): a outra tela aponta para a que pede, e a atual
+              também a leva. Texto e borda, e não só cor. --%>
+        <span
+          :if={aba[:marca]}
+          data-marca-da-aba
+          class="ml-1 rounded-sm border border-current px-1 font-mono text-[0.625rem] text-warning"
+        >
+          {aba[:marca]}
+        </span>
       </span>
     </nav>
     """
