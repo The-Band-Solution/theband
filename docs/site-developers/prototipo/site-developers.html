@@ -1,0 +1,1244 @@
+<title>The Band developers</title>
+<meta name="description" content="Protótipo para aprovação: o site de desenvolvedores do The Band (theband.dev/developers/) no design de theband.dev.">
+<style>
+  /* Layout: a moldura do protótipo é uma página de leitura de theband.dev; cada tela do site
+     vive numa "janela" com container query, para a mesma tela mostrar mesa e telefone
+     conforme a largura da janela, e não a do visor. */
+  :root {
+    /* tokens de theband.dev (landing e /docs/), copiados sem ajuste */
+    --papel: #f1f4f2;
+    --tinta: #17211c;
+    --tinta-2: #4c5c55;
+    --verdete: #2c6b60;
+    --verdete-forte: #1d5a50;
+    --verdete-fundo: #e3ece8;
+    --latao: #96731f;
+    --latao-fundo: #f4eddb;
+    --pauta: #c9d4ce;
+    --cartao: #fafcfa;
+    /* o único token que não vem de theband.dev: `info`, de assets/css/app.css, para a marca
+       `declarado` (sólido azul). theband.dev desenha o declarado tracejado — ver D5. */
+    --info: #23566f;
+    --info-fundo: #e2edf3;
+    --hachura: repeating-linear-gradient(135deg, transparent 0 3px, currentColor 3px 4px);
+    --serif: "Iowan Old Style", Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    --sans: Seravek, "Gill Sans Nova", "Gill Sans", Calibri, "Segoe UI", sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --papel: #101816; --tinta: #dee8e2; --tinta-2: #93a69d;
+      --verdete: #5fa294; --verdete-forte: #7dbcae; --verdete-fundo: #16241f;
+      --latao: #c9a24b; --latao-fundo: #241d0f; --pauta: #26332d; --cartao: #151f1b;
+      --info: #7fb4d6; --info-fundo: #142430;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --papel: #101816; --tinta: #dee8e2; --tinta-2: #93a69d;
+    --verdete: #5fa294; --verdete-forte: #7dbcae; --verdete-fundo: #16241f;
+    --latao: #c9a24b; --latao-fundo: #241d0f; --pauta: #26332d; --cartao: #151f1b;
+    --info: #7fb4d6; --info-fundo: #142430;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--papel); color: var(--tinta);
+    font-family: var(--sans); font-size: 17px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--verdete); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--latao); outline-offset: 2px; }
+  ::selection { background: var(--verdete); color: var(--papel); }
+  .serif { font-family: var(--serif); }
+  .mono, code, kbd { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  code { font-size: .86em; background: var(--verdete-fundo); padding: .05em .3em; border-radius: 3px; overflow-wrap: anywhere; }
+
+  /* ── moldura do protótipo ── */
+  .protot { max-width: 76rem; margin: 0 auto; padding-inline: 1rem; padding-block: 2rem 4rem; }
+  @media (min-width: 40rem) { .protot { padding-inline: 1.5rem; } }
+  .protot > header h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.08; margin: .5rem 0 1rem; text-wrap: balance; }
+  .protot > header h1 em { color: var(--verdete); }
+  .eyebrow { font-family: var(--mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--tinta-2); }
+  .lede { font-size: 1.1rem; color: var(--tinta-2); max-width: 44rem; }
+  .faixa-tela {
+    margin: 3.2rem 0 1rem; padding: .55rem .9rem; border: 1px solid var(--pauta);
+    background: var(--cartao); font-family: var(--mono); font-size: .8rem; letter-spacing: .06em;
+    display: flex; flex-wrap: wrap; gap: .3rem 1rem; justify-content: space-between;
+  }
+  .faixa-tela b { color: var(--verdete); font-weight: 600; }
+  .faixa-tela span { color: var(--tinta-2); }
+  .anotacao {
+    border: 1px dotted var(--tinta-2); padding: .7rem .9rem; margin: .9rem 0;
+    font-size: .88rem; color: var(--tinta-2); max-width: 52rem;
+  }
+  .anotacao::before { content: "nota do protótipo · "; font-family: var(--mono); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; }
+  .linha-janelas { display: flex; flex-wrap: wrap; gap: 1.2rem; align-items: flex-start; }
+  .linha-janelas > * { min-width: 0; }
+
+  /* janela de navegador: só a barra do endereço, para dizer onde a tela vive */
+  .janela { border: 1px solid var(--pauta); background: var(--papel); container-type: inline-size; width: 100%; overflow: hidden; }
+  .janela.telefone { width: 360px; max-width: 100%; flex: none; }
+  .janela .endereco { display: flex; gap: .5rem; align-items: center; padding: .4rem .7rem; border-bottom: 1px solid var(--pauta); background: var(--cartao); font-family: var(--mono); font-size: .72rem; color: var(--tinta-2); overflow-x: auto; white-space: nowrap; }
+  .janela .endereco::before { content: ""; width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--pauta); flex: none; }
+  .legenda-janela { font-family: var(--mono); font-size: .72rem; color: var(--tinta-2); margin: .35rem 0 0; }
+
+  /* ── marcas de proveniência: forma + texto, nunca só cor ── */
+  .marca { display: inline-flex; align-items: center; gap: .4rem; padding: .16rem .55rem; border-radius: 3px; font-family: var(--mono); font-size: .72rem; font-weight: 600; line-height: 1.4; vertical-align: middle; white-space: nowrap; }
+  .marca .q { width: 11px; height: 11px; border-radius: 2px; flex: none; }
+  .marca.observado { background: var(--verdete-fundo); color: var(--verdete); }
+  .marca.observado .q { background: var(--verdete); }
+  .marca.declarado { background: var(--info-fundo); color: var(--info); }
+  .marca.declarado .q { background: var(--info); }
+  .marca.derivado { border: 1px solid var(--latao); color: var(--latao); }
+  .marca.derivado .q { border: 1px solid var(--latao); background: var(--hachura); }
+  .marca.ausente { border: 1px dashed var(--tinta-2); color: var(--tinta-2); font-weight: 500; }
+  .marca.ausente .q { border: 1.5px dashed var(--tinta-2); }
+  .marca.exemplo { border: 1px solid var(--tinta-2); color: var(--tinta-2); font-weight: 500; }
+  .legenda { display: flex; flex-wrap: wrap; gap: .6rem; margin: 1rem 0; }
+
+  /* ════════════ O SITE (o que vai para theband.dev/developers/) ════════════ */
+  .site { font-size: 16px; }
+  .site .topo {
+    display: flex; align-items: center; gap: .6rem 1rem; flex-wrap: wrap;
+    padding: .7rem 1rem; border-bottom: 1px solid var(--pauta); background: var(--cartao);
+  }
+  .site .topo nav { display: flex; align-items: center; gap: .5rem; font-size: .88rem; min-width: 0; }
+  .site .topo .nome { font-weight: 600; color: var(--tinta); text-decoration: none; }
+  .site .topo .aqui { color: var(--tinta-2); }
+  .site .busca {
+    flex: 1 1 14rem; display: none; align-items: center; gap: .5rem; min-width: 0; max-width: 24rem;
+    border: 1px solid var(--pauta); background: var(--papel); border-radius: 4px; padding: .32rem .6rem;
+    font-size: .88rem; color: var(--tinta-2);
+  }
+  .site .busca svg { flex: none; }
+  .site .busca .txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .site .busca.ativa { border-color: var(--verdete); color: var(--tinta); box-shadow: 0 0 0 2px var(--verdete-fundo); }
+  .site kbd { font-size: .7rem; border: 1px solid var(--pauta); border-radius: 3px; padding: 0 .3rem; color: var(--tinta-2); }
+  .site .links { display: none; align-items: center; gap: 1rem; font-size: .88rem; margin-left: auto; }
+  .site .entrar { display: inline-block; padding: .38rem .9rem; border-radius: 999px; background: var(--verdete); color: var(--papel); font-weight: 600; font-size: .84rem; text-decoration: none; white-space: nowrap; }
+  .site .icone { margin-left: auto; display: flex; gap: .3rem; }
+  .site .icone button { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--pauta); background: var(--papel); color: var(--tinta); border-radius: 4px; cursor: pointer; }
+  .site .build {
+    display: flex; flex-wrap: wrap; gap: .4rem .8rem; align-items: center;
+    padding: .4rem 1rem; border-bottom: 1px solid var(--pauta); font-size: .76rem; color: var(--tinta-2);
+  }
+  @container (min-width: 46rem) {
+    .site .busca { display: flex; }
+    .site .links { display: flex; }
+    .site .icone { display: none; }
+  }
+
+  .site .corpo { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .site .lateral, .site .sumario { display: none; }
+  @container (min-width: 60rem) {
+    .site .corpo.tres { grid-template-columns: 14.5rem minmax(0, 1fr); }
+    .site .lateral { display: block; border-right: 1px solid var(--pauta); padding: 1.2rem .9rem 2rem; font-size: .86rem; }
+  }
+  @container (min-width: 76rem) {
+    .site .corpo.tres { grid-template-columns: 14.5rem minmax(0, 1fr) 13rem; }
+    .site .sumario { display: block; padding: 1.4rem 1rem; font-size: .82rem; border-left: 1px solid var(--pauta); }
+  }
+  .site .conteudo { padding: 1.4rem 1rem 2rem; min-width: 0; }
+  @container (min-width: 46rem) { .site .conteudo { padding: 2rem 2.2rem 2.6rem; } }
+  .site .conteudo > * { max-width: 44rem; }
+  .site .conteudo > .largo { max-width: none; }
+
+  .site .lateral ul, .site .sumario ul, .gaveta ul { list-style: none; margin: 0; padding: 0; }
+  .site .lateral li { margin: .1rem 0; }
+  .site .lateral .sec { font-weight: 600; color: var(--tinta); display: flex; justify-content: space-between; gap: .4rem; padding: .25rem .4rem; }
+  .site .lateral .sec .n { font-family: var(--mono); font-weight: 400; color: var(--tinta-2); font-size: .74rem; }
+  .site .lateral .sub { padding-left: .7rem; border-left: 1px solid var(--pauta); margin: .2rem 0 .5rem .4rem; }
+  .site .lateral .sub a, .site .sumario a { display: block; padding: .18rem .45rem; color: var(--tinta-2); text-decoration: none; border-radius: 3px; }
+  .site .lateral .sub a.atual { color: var(--verdete); background: var(--verdete-fundo); font-weight: 600; }
+  .site .sumario .t { font-family: var(--mono); font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--tinta-2); margin-bottom: .5rem; }
+  .site .sumario a.atual { color: var(--verdete); border-left: 2px solid var(--verdete); border-radius: 0; }
+  .site .sumario .n2 { padding-left: .8rem; }
+
+  .site .migalha { font-size: .8rem; color: var(--tinta-2); margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: .3rem; }
+  .site .migalha a { color: var(--tinta-2); }
+  .site h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(1.7rem, 4.2cqi, 2.6rem); line-height: 1.1; margin: .3rem 0 1rem; text-wrap: balance; letter-spacing: -.005em; }
+  .site h1 em { color: var(--verdete); }
+  .site h2 { font-family: var(--serif); font-weight: 500; font-size: 1.5rem; line-height: 1.2; margin: 2.2rem 0 .7rem; text-wrap: balance; }
+  .site h2 .num { color: var(--verdete); font-style: italic; margin-right: .45rem; }
+  .site h3 { font-size: 1.05rem; font-weight: 600; margin: 1.6rem 0 .5rem; }
+  .site p { margin: 0 0 1rem; }
+  .site .mudo { color: var(--tinta-2); }
+  .site blockquote { margin: 1.3rem 0; padding: 0 0 0 1rem; border-left: 3px solid var(--latao); font-family: var(--serif); font-style: italic; color: var(--tinta-2); font-size: 1.05rem; }
+  .site blockquote cite { display: block; font-style: normal; font-family: var(--mono); font-size: .74rem; margin-top: .3rem; }
+  .site ol, .site .conteudo ul { padding-left: 1.3rem; }
+  .site li { margin: .3rem 0; }
+
+  /* metadados da página: o `recibo` de theband.dev */
+  .site .recibo { background: var(--cartao); border: 1px solid var(--pauta); padding: 1rem 1.1rem; margin: 0 0 1.4rem; font-size: .88rem; display: grid; grid-template-columns: 1fr; gap: .1rem 1rem; }
+  @container (min-width: 46rem) { .site .recibo { grid-template-columns: max-content 1fr; } }
+  .site .recibo dt { font-family: var(--mono); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--tinta-2); padding-top: .45rem; }
+  .site .recibo dd { margin: 0; padding-top: .3rem; min-width: 0; overflow-wrap: anywhere; }
+
+  /* tabela: rolagem própria; empilha com data-label abaixo de 40rem */
+  .site .tabela { overflow-x: auto; margin: 1rem 0 1.3rem; }
+  .site table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  .site th, .site td { border-bottom: 1px solid var(--pauta); padding: .5rem .6rem; text-align: left; vertical-align: top; }
+  .site th { font-family: var(--mono); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--tinta-2); font-weight: 500; }
+  .site td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  @container (max-width: 40rem) {
+    .site table.stacked thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .site table.stacked tr { display: block; border: 1px solid var(--pauta); background: var(--cartao); padding: .4rem .7rem; margin-bottom: .6rem; }
+    .site table.stacked td { display: block; border: 0; padding: .25rem 0; text-align: left; }
+    .site table.stacked td::before { content: attr(data-label); display: block; font-family: var(--mono); font-size: .66rem; letter-spacing: .08em; text-transform: uppercase; color: var(--tinta-2); }
+  }
+
+  .site .pauta { height: 33px; margin: 1.2rem 0; background: repeating-linear-gradient(to bottom, var(--pauta) 0 1px, transparent 1px 8px); background-size: 100% 33px; background-repeat: no-repeat; position: relative; }
+  .site .pauta .nota { position: absolute; width: 10px; height: 8px; border-radius: 50% / 42%; background: var(--verdete); transform: rotate(-18deg); }
+  .site .pauta .nota.der { background: none; color: var(--latao); border: 1px solid var(--latao); }
+  .site .pauta .nota.der::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--hachura); }
+
+  /* home */
+  .site .assinatura { font-family: var(--mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--tinta-2); }
+  .site .chamada { font-size: 1.12rem; color: var(--tinta-2); text-wrap: pretty; }
+  .site .perguntas { list-style: none; padding: 0 !important; margin: 1rem 0 0; }
+  .site .perguntas li { margin: 0; padding: .75rem 0; border-top: 1px solid var(--pauta); font-family: var(--serif); font-size: 1.08rem; display: grid; grid-template-columns: 1fr; gap: .1rem 1.2rem; }
+  @container (min-width: 46rem) { .site .perguntas li { grid-template-columns: 1fr 15rem; align-items: baseline; } }
+  .site .perguntas li:last-child { border-bottom: 1px solid var(--pauta); }
+  .site .perguntas a { font-family: var(--sans); font-size: .9rem; }
+  .site .grupos { display: grid; grid-template-columns: 1fr; gap: 1.6rem; margin-top: 1.2rem; }
+  @container (min-width: 46rem) { .site .grupos { grid-template-columns: 1fr 1fr; } }
+  .site .grupo .rom { font-family: var(--mono); font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--verdete); font-weight: 700; margin-bottom: .5rem; }
+  .site .secoes { display: grid; gap: 1px; background: var(--pauta); border: 1px solid var(--pauta); }
+  .site .secao { background: var(--cartao); padding: .85rem 1rem; display: grid; grid-template-columns: 1fr auto; gap: .1rem .8rem; text-decoration: none; color: var(--tinta); }
+  .site .secao:hover { background: var(--verdete-fundo); }
+  .site .secao b { font-weight: 600; }
+  .site .secao .n { font-family: var(--mono); font-size: .74rem; color: var(--tinta-2); align-self: baseline; white-space: nowrap; }
+  .site .secao .d { grid-column: 1 / -1; font-size: .86rem; color: var(--tinta-2); }
+  .site .secao .d .marca { margin-top: .3rem; }
+
+  .site .curso { list-style: none; padding: 0 !important; margin: 1rem 0; }
+  .site .curso li { margin: 0; padding: .8rem 0; border-top: 1px solid var(--pauta); display: grid; grid-template-columns: 3.2rem 1fr; gap: .2rem .8rem; }
+  .site .curso li:last-child { border-bottom: 1px solid var(--pauta); }
+  .site .curso .id { font-family: var(--mono); color: var(--verdete); font-weight: 600; }
+  .site .curso .t { font-family: var(--serif); font-size: 1.02rem; }
+  .site .curso .m { grid-column: 2; display: flex; flex-wrap: wrap; gap: .4rem .7rem; align-items: center; font-size: .8rem; color: var(--tinta-2); }
+
+  .site .rodape { border-top: 1px solid var(--pauta); padding: 1.3rem 1rem 1.8rem; font-size: .82rem; color: var(--tinta-2); display: grid; gap: .5rem; }
+  @container (min-width: 46rem) { .site .rodape { padding-inline: 2.2rem; } }
+  .site .rodape .l { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem 1rem; }
+  .site .rodape p { margin: 0; max-width: 46rem; }
+  .site abbr[title] { text-decoration: underline dotted; text-underline-offset: 3px; }
+
+  .site .vizinhas { display: grid; grid-template-columns: 1fr; gap: .6rem; margin-top: 2rem; }
+  @container (min-width: 46rem) { .site .vizinhas { grid-template-columns: 1fr 1fr; } }
+  .site .vizinhas a { border: 1px solid var(--pauta); padding: .7rem .9rem; text-decoration: none; display: block; }
+  .site .vizinhas small { display: block; font-family: var(--mono); font-size: .7rem; color: var(--tinta-2); letter-spacing: .06em; text-transform: uppercase; }
+  .site .vizinhas .prox { text-align: right; }
+  .site .editar { font-size: .82rem; display: flex; flex-wrap: wrap; gap: .4rem 1rem; color: var(--tinta-2); margin-top: 1.6rem; border-top: 1px solid var(--pauta); padding-top: .8rem; }
+  .site .trecho { font-family: var(--mono); font-size: .76rem; color: var(--tinta-2); border-top: 1px dashed var(--tinta-2); border-bottom: 1px dashed var(--tinta-2); padding: .5rem 0; margin: 1.4rem 0; }
+
+  /* figura: Mermaid herdando os tokens (no MkDocs: --md-mermaid-*) */
+  .site figure { margin: 1.2rem 0 1.6rem; border: 1px solid var(--pauta); background: var(--cartao); padding: 1rem; }
+  .site figure .diagrama { overflow-x: auto; }
+  .site figcaption { font-size: .82rem; color: var(--tinta-2); margin-top: .7rem; display: flex; flex-wrap: wrap; gap: .4rem .8rem; align-items: center; }
+  .site details { margin-top: .6rem; font-size: .84rem; color: var(--tinta-2); }
+  .site details summary { cursor: pointer; color: var(--verdete); }
+  .site details pre { overflow-x: auto; font-size: .76rem; background: var(--papel); border: 1px solid var(--pauta); padding: .7rem; }
+  .site pre.mermaid { margin: 0; background: none; border: 0; font-family: var(--sans); }
+  .site .mermaid svg { max-width: 100%; height: auto; font-family: var(--sans) !important; }
+  .site .mermaid svg rect.basic, .site .mermaid svg .node rect, .site .mermaid svg .statediagram-state rect { fill: var(--papel) !important; stroke: var(--verdete) !important; stroke-width: 1.2px !important; }
+  .site .mermaid svg .transition, .site .mermaid svg .flowchart-link, .site .mermaid svg path.relation { stroke: var(--tinta-2) !important; }
+  .site .mermaid svg marker path, .site .mermaid svg marker { fill: var(--tinta-2) !important; stroke: var(--tinta-2) !important; }
+  .site .mermaid svg text, .site .mermaid svg tspan { fill: var(--tinta) !important; }
+  .site .mermaid svg span, .site .mermaid svg p, .site .mermaid svg div { color: var(--tinta) !important; }
+  .site .mermaid svg .edgeLabel, .site .mermaid svg .edgeLabel rect, .site .mermaid svg .edgeLabel p, .site .mermaid svg .edgeLabel span { background-color: var(--cartao) !important; fill: var(--cartao) !important; color: var(--tinta-2) !important; }
+  .site .mermaid svg .note rect, .site .mermaid svg .statediagram-note rect, .site .mermaid svg rect.note { fill: var(--latao-fundo) !important; stroke: var(--latao) !important; }
+  .site .mermaid svg .state-start, .site .mermaid svg circle.state-start { fill: var(--verdete) !important; stroke: var(--verdete) !important; }
+  .site .mermaid svg .state-end { fill: var(--tinta) !important; }
+  .site .mermaid svg line, .site .mermaid svg .divider { stroke: var(--pauta) !important; }
+
+  /* busca: painel de resultados */
+  .resultados { border: 1px solid var(--pauta); background: var(--cartao); margin: 0 1rem 1rem; }
+  @container (min-width: 46rem) { .resultados { margin: 0 0 1rem auto; width: min(36rem, 100%); position: relative; right: 1rem; } }
+  .resultados .cab { padding: .55rem .9rem; border-bottom: 1px solid var(--pauta); font-size: .78rem; color: var(--tinta-2); display: flex; justify-content: space-between; gap: .6rem; flex-wrap: wrap; }
+  .resultados ol { list-style: none; margin: 0; padding: 0; }
+  .resultados li { padding: .6rem .9rem; border-bottom: 1px solid var(--pauta); margin: 0; }
+  .resultados li.foco { background: var(--verdete-fundo); }
+  .resultados .onde { font-family: var(--mono); font-size: .68rem; color: var(--tinta-2); letter-spacing: .04em; display: flex; flex-wrap: wrap; gap: .3rem .6rem; align-items: center; }
+  .resultados .tit { font-weight: 600; color: var(--verdete); text-decoration: none; display: block; margin: .1rem 0; font-size: .92rem; }
+  .resultados .tre { font-size: .8rem; color: var(--tinta-2); overflow-wrap: anywhere; }
+  .resultados mark { background: var(--latao-fundo); color: var(--tinta); padding: 0 .1em; }
+  .resultados .pe { padding: .55rem .9rem; font-size: .76rem; color: var(--tinta-2); }
+  .resultados.vazio .nada { padding: 1rem .9rem; font-family: var(--serif); font-size: 1rem; }
+
+  /* gaveta do telefone */
+  .gaveta { border-top: 1px solid var(--pauta); font-size: .92rem; }
+  .gaveta > ul > li { border-bottom: 1px solid var(--pauta); }
+  .gaveta .sec { display: flex; justify-content: space-between; align-items: center; min-height: 44px; padding: 0 1rem; color: var(--tinta); text-decoration: none; font-weight: 600; }
+  .gaveta .sec .n { font-family: var(--mono); font-weight: 400; font-size: .74rem; color: var(--tinta-2); }
+  .gaveta .sub a { display: flex; align-items: center; min-height: 40px; padding: 0 1rem 0 1.9rem; color: var(--tinta-2); text-decoration: none; font-size: .88rem; }
+  .gaveta .sub a.atual { color: var(--verdete); background: var(--verdete-fundo); font-weight: 600; }
+  .gaveta .fim { padding: 1rem; display: grid; gap: .7rem; font-size: .88rem; }
+
+  /* 404 e vazio */
+  .site .erro-cod { font-family: var(--mono); font-size: .78rem; letter-spacing: .08em; color: var(--tinta-2); overflow-wrap: anywhere; }
+
+  /* ── decisões ── */
+  .decisoes { display: grid; gap: 0; margin-top: 1rem; }
+  .decisao { border-top: 1px solid var(--pauta); padding: 1rem 0; display: grid; grid-template-columns: 1fr; gap: .3rem 1.4rem; }
+  @media (min-width: 52rem) { .decisao { grid-template-columns: 4rem 1fr; } }
+  .decisao .id { font-family: var(--mono); font-weight: 700; color: var(--verdete); }
+  .decisao.q .id { color: var(--latao); }
+  .decisao h3 { margin: 0 0 .3rem; font-size: 1.05rem; }
+  .decisao p { margin: 0 0 .5rem; max-width: 50rem; }
+  .decisao ol { margin: .2rem 0 .5rem; padding-left: 1.2rem; max-width: 50rem; }
+  .decisao li { margin: .2rem 0; }
+  .rec { font-size: .92rem; border-left: 3px solid var(--verdete); padding-left: .8rem; max-width: 50rem; }
+  .estado { font-family: var(--mono); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--tinta-2); }
+  h2.moldura { font-family: var(--serif); font-weight: 500; font-size: 1.9rem; margin: 3.4rem 0 .5rem; }
+  .tabela-proto { overflow-x: auto; }
+  .tabela-proto table { border-collapse: collapse; font-size: .9rem; min-width: 36rem; }
+  .tabela-proto th, .tabela-proto td { border-bottom: 1px solid var(--pauta); padding: .45rem .6rem; text-align: left; vertical-align: top; }
+  .tabela-proto th { font-family: var(--mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--tinta-2); font-weight: 500; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-busca" viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12.6 12.6 17 17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 20 20"><path d="M3 5.5h14M3 10h14M3 14.5h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-fechar" viewBox="0 0 20 20"><path d="M5 5l10 10M15 5 5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+</svg>
+
+<div class="protot">
+
+<header>
+  <div class="eyebrow">protótipo para aprovação · desenhado em 2026-10-03 · agente Design</div>
+  <h1>O site de desenvolvedores, <em>no design de theband.dev.</em></h1>
+  <p class="lede">
+    Seis telas de <span class="mono">theband.dev/developers/</span>: a home, uma página longa (a ADR 0008),
+    uma página de Modelos com diagrama Mermaid, a navegação e a busca na mesa e no telefone a 360 px,
+    as ausências (página não encontrada, seção sem conteúdo, busca sem JavaScript, diagrama sem script)
+    e a página de uma funcionalidade nova, a 072. Item de backlog: #1267. O texto das telas vem do
+    repositório (<span class="mono">origin/development</span>, 2026-10-03); nada foi inventado, e o
+    que é medida diz quando foi medido.
+  </p>
+  <div class="legenda" aria-label="Legenda das marcas">
+    <span class="marca observado"><span class="q"></span>observado</span>
+    <span class="marca declarado"><span class="q"></span>declarado, com autor e data</span>
+    <span class="marca derivado"><span class="q"></span>derivado: gerado do código ou da base</span>
+    <span class="marca ausente"><span class="q"></span>ausente, com o motivo</span>
+  </div>
+  <p class="anotacao">As telas seguem o tema do visor (claro ou escuro). Cada tela está dentro de uma
+    janela com o endereço real; a janela larga se reorganiza quando o visor é estreito, que é o
+    comportamento que o site terá. As notas pontilhadas como esta são do protótipo e não vão para o site.</p>
+</header>
+
+<!-- ═════════════════════════════ SCREEN 1 ═════════════════════════════ -->
+<div class="faixa-tela" id="tela-1"><b>screen 1 · início</b><span>theband.dev/developers/ · docs/README.md</span></div>
+
+<div class="janela">
+  <div class="endereco">https://theband.dev/developers/</div>
+  <div class="site">
+    <div class="topo">
+      <nav aria-label="Sites do The Band">
+        <a class="nome" href="https://theband.dev/">The Band</a>
+        <span class="aqui">· documentação técnica</span>
+      </nav>
+      <div class="busca" role="search"><svg width="16" height="16"><use href="#i-busca"/></svg><span class="txt">Buscar na documentação técnica</span><kbd>/</kbd></div>
+      <div class="links">
+        <a href="https://theband.dev/docs/">O produto</a>
+        <a href="https://github.com/The-Band-Solution/theband">GitHub</a>
+        <a class="entrar" href="https://app.theband.dev/sign-in">Entrar na plataforma</a>
+      </div>
+      <div class="icone">
+        <button type="button" aria-label="Buscar"><svg width="18" height="18"><use href="#i-busca"/></svg></button>
+        <button type="button" aria-label="Abrir a navegação"><svg width="18" height="18"><use href="#i-menu"/></svg></button>
+      </div>
+    </div>
+    <div class="build">
+      <span class="marca observado" title="observado no build"><span class="q"></span>construída de main @ ce77a10 · 30 set 2026</span>
+      <span class="marca ausente" title="ausente: ver Q5"><span class="q"></span>versão em produção: não informada nesta página</span>
+      <span lang="en">English version pending</span>
+    </div>
+
+    <div class="corpo">
+      <div class="conteudo">
+        <div class="assinatura">The Band · documentação técnica</div>
+        <h1>Como o The Band é construído, <em>e por quê.</em></h1>
+        <p class="chamada">
+          Arquitetura, modelos derivados do código, decisões registradas e o que cada sprint ensinou.
+          Para quem vai contribuir, integrar ou operar. O que o produto faz para quem usa está em
+          <a href="https://theband.dev/docs/">o produto</a>.
+        </p>
+        <p class="mudo">
+          Base científica: tese de doutorado de Paulo Sérgio dos Santos Júnior (UFES, 2023),
+          <em>From Continuous Software Engineering Reference Ontologies to the Integration of Data for
+          Data-Driven Software Development</em>.
+        </p>
+
+        <div class="pauta" aria-hidden="true">
+          <span class="nota" style="left:8%;top:2px"></span><span class="nota" style="left:22%;top:18px"></span>
+          <span class="nota der" style="left:37%;top:10px"></span><span class="nota" style="left:55%;top:25px"></span>
+          <span class="nota" style="left:71%;top:2px"></span><span class="nota der" style="left:86%;top:18px"></span>
+        </div>
+
+        <h2><span class="num">I.</span>Por onde começar</h2>
+        <ul class="perguntas">
+          <li>Entender o que o sistema é e como está organizado <a href="#">Arquitetura · visão geral</a></li>
+          <li>Entender as tabelas e os schemas, e por que têm essa forma <a href="#">Modelo de dados</a></li>
+          <li>Colocar a aplicação em execução, e configurar o ambiente <a href="#">Deployment</a></li>
+          <li>Entender o modelo conceitual <a href="#">Rede de ontologias</a></li>
+          <li>Integrar com a API pública <a href="#">A API pública</a></li>
+          <li>Entender de onde vem um número <a href="#">Necessidades de informação e medidas</a></li>
+          <li>Saber por que uma decisão foi tomada <a href="#">ADRs</a></li>
+          <li>Ler o que os sprints ensinaram <a href="#">Lições aprendidas</a></li>
+        </ul>
+
+        <h2><span class="num">II.</span>As seções</h2>
+        <p class="mudo">Treze seções, agrupadas pelo que quem lê quer fazer. A contagem é de páginas na
+          navegação, tirada do <code>mkdocs.yml</code> no build.</p>
+        <div class="grupos largo">
+          <div class="grupo">
+            <div class="rom">entender</div>
+            <div class="secoes">
+              <a class="secao" href="#"><b>Arquitetura</b><span class="n">3 páginas</span><span class="d">visão geral, modelo de dados e o design system</span></a>
+              <a class="secao" href="#"><b>Modelos</b><span class="n">27 páginas</span><span class="d">classes, banco, estados e DSM, com <span class="mono">arquivo:linha</span><br><span class="marca derivado"><span class="q"></span>derivado do código</span></span></a>
+              <a class="secao" href="#"><b>Ontologias</b><span class="n">16 páginas</span><span class="d">a rede, o índice de conceitos, uma página por ontologia<br><span class="marca derivado"><span class="q"></span>gerado da base de conhecimento</span></span></a>
+              <a class="secao" href="#"><b>Dados externos</b><span class="n">3 páginas</span><span class="d">mapeamentos semânticos e verificação contínua</span></a>
+              <a class="secao" href="#"><b>Medidas</b><span class="n">1 página</span><span class="d">necessidades de informação e medidas<br><span class="marca derivado"><span class="q"></span>gerado da base de conhecimento</span></span></a>
+            </div>
+          </div>
+          <div class="grupo">
+            <div class="rom">usar e integrar</div>
+            <div class="secoes">
+              <a class="secao" href="#"><b>Funcionalidades</b><span class="n">2 páginas</span><span class="d">o que cada tela diz, e o que não diz</span></a>
+              <a class="secao" href="#"><b>API</b><span class="n">2 páginas</span><span class="d">a API pública e o servidor MCP</span></a>
+            </div>
+            <div class="rom" style="margin-top:1.4rem">operar</div>
+            <div class="secoes">
+              <a class="secao" href="#"><b>Operação</b><span class="n">3 páginas</span><span class="d">deployment, runbook de produção, fluxo de uma feature</span></a>
+              <a class="secao" href="#"><b>Releases</b><span class="n">11 páginas</span><span class="d">o histórico, versão por versão</span></a>
+              <a class="secao" href="#"><b>Segurança</b><span class="n">8 páginas</span><span class="d">inventários e consertos, por data</span></a>
+            </div>
+            <div class="rom" style="margin-top:1.4rem">decidir e registrar</div>
+            <div class="secoes">
+              <a class="secao" href="#"><b>Decisões</b><span class="n">11 páginas</span><span class="d">ADRs e RFCs<br><span class="marca declarado"><span class="q"></span>declarado, com data e status</span></span></a>
+              <a class="secao" href="#"><b>Backlog</b><span class="n">19 páginas</span><span class="d">o que construir e em que ordem</span></a>
+              <a class="secao" href="#"><b>Sprints</b><span class="n">69 páginas</span><span class="d">backlogs, reviews, aceitações e as lições aprendidas</span></a>
+            </div>
+          </div>
+        </div>
+
+        <h2><span class="num">III.</span>Funcionalidades novas, e as que ainda não têm página</h2>
+        <p class="mudo">Cada funcionalidade ganha uma página em <a href="#">Funcionalidades</a>, escrita para quem usa, com o link
+          para a spec no GitHub. As specs não são publicadas aqui. O site é construído da <span class="mono">main</span>: o que está
+          só em <span class="mono">development</span> ou num PR aberto aparece com o lugar onde está.</p>
+        <ul class="curso">
+          <li><span class="id">072</span><span class="t"><a href="#tela-6">Promover e rebaixar administradores</a></span>
+            <span class="m"><span class="marca declarado"><span class="q"></span>spec 072 · Draft · 2026-10-02</span><span>em development desde 2026-10-03 (PR #1184)</span><span class="marca ausente"><span class="q"></span>ainda não em produção</span></span></li>
+          <li><span class="id">070</span><span class="t">Suspender e reativar uma organização</span>
+            <span class="m"><span class="marca declarado"><span class="q"></span>spec 070 · Draft · 2026-10-01</span><span>em development</span><span class="marca ausente"><span class="q"></span>página a escrever</span></span></li>
+          <li><span class="id">064</span><span class="t">Todo segredo protegido em repouso</span>
+            <span class="m"><span class="marca declarado"><span class="q"></span>spec 064 · Draft · 2026-09-12</span><span>em development</span><span class="marca ausente"><span class="q"></span>página a escrever</span></span></li>
+          <li><span class="id">071</span><span class="t">Os papéis do banco: o que migra e o que serve</span>
+            <span class="m"><span class="marca declarado"><span class="q"></span>spec 071 · Draft · 2026-10-02</span><span>em development</span><span class="marca ausente"><span class="q"></span>página a escrever</span></span></li>
+          <li><span class="id">073</span><span class="t">Rede de revisão</span>
+            <span class="m"><span class="marca declarado"><span class="q"></span>spec 073 · Draft · 2026-10-03</span><span>PR #1228 aberto</span><span class="marca ausente"><span class="q"></span>entra quando o PR for mergeado</span></span></li>
+          <li><span class="id">074</span><span class="t">A jornada de entrar e sair, vista por quem opera</span>
+            <span class="m"><span class="marca declarado"><span class="q"></span>spec 074 · Draft · 2026-10-03</span><span>PR #1266 aberto</span><span class="marca ausente"><span class="q"></span>entra quando o PR for mergeado</span></span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="rodape">
+      <div class="l">
+        <span><abbr title="Continuum de ontologias de Engenharia de Software da tese">Continuum</abbr> + <abbr title="Software Engineering Ontology Network">SEON</abbr> sobre <abbr title="Unified Foundational Ontology">UFO</abbr></span>
+        <span><a href="https://theband.dev/">theband.dev</a> · <a href="https://theband.dev/docs/">O produto</a> · <a href="https://app.theband.dev/sign-in">A plataforma</a> · <a href="https://github.com/The-Band-Solution/theband">GitHub</a></span>
+      </div>
+      <p>Base científica: Paulo Sérgio dos Santos Júnior, <em>From Continuous Software Engineering Reference Ontologies to the Integration of Data for Data-Driven Software Development</em>, UFES, 2023.</p>
+      <p>Construída com MkDocs a partir de <span class="mono">docs/</span> na <span class="mono">main</span>. Identidade copiada de theband.dev em 2026-10-03. Cada página tem o link para editá-la no GitHub.</p>
+    </div>
+  </div>
+</div>
+<p class="anotacao">Status e data vêm do cabeçalho de cada <code>spec.md</code> (064, 070, 071, 072 em <code>origin/development</code>;
+  073 no PR #1228; 074 no PR #1266). A 071 é mudança de infraestrutura, sem tela: a página dela, se a pessoa
+  mantenedora quiser uma, fica em Operação e não em Funcionalidades. A página da 072 é a tela 6.</p>
+
+<!-- ═════════════════════════════ SCREEN 2 ═════════════════════════════ -->
+<div class="faixa-tela" id="tela-2"><b>screen 2 · página longa: ADR 0008</b><span>/developers/adr/0008-vinculo-observado/ · docs/adr/0008-vinculo-observado.md, 173 linhas</span></div>
+
+<div class="janela">
+  <div class="endereco">https://theband.dev/developers/adr/0008-vinculo-observado/</div>
+  <div class="site">
+    <div class="topo">
+      <nav aria-label="Sites do The Band"><a class="nome" href="#">The Band</a><span class="aqui">· documentação técnica</span></nav>
+      <div class="busca"><svg width="16" height="16"><use href="#i-busca"/></svg><span class="txt">Buscar na documentação técnica</span><kbd>/</kbd></div>
+      <div class="links"><a href="#">O produto</a><a href="#">GitHub</a><a class="entrar" href="#">Entrar na plataforma</a></div>
+      <div class="icone"><button type="button" aria-label="Buscar"><svg width="18" height="18"><use href="#i-busca"/></svg></button><button type="button" aria-label="Abrir a navegação"><svg width="18" height="18"><use href="#i-menu"/></svg></button></div>
+    </div>
+    <div class="corpo tres">
+      <nav class="lateral" aria-label="Navegação da documentação">
+        <ul>
+          <li><a class="sec" href="#">Início</a></li>
+          <li><a class="sec" href="#">Arquitetura <span class="n">3</span></a></li>
+          <li><a class="sec" href="#">Modelos <span class="n">27</span></a></li>
+          <li><a class="sec" href="#">Funcionalidades <span class="n">2</span></a></li>
+          <li><a class="sec" href="#">Ontologias <span class="n">16</span></a></li>
+          <li><a class="sec" href="#">Dados externos <span class="n">3</span></a></li>
+          <li><a class="sec" href="#">Medidas <span class="n">1</span></a></li>
+          <li><span class="sec">Decisões <span class="n">11</span></span>
+            <ul class="sub">
+              <li><a href="#">ADRs</a></li>
+              <li><a href="#">0001 monólito modular elixir</a></li>
+              <li><a href="#">0002 yaml como base de conhecimento</a></li>
+              <li><a href="#">0003 organização por ontologias</a></li>
+              <li><a href="#">0004 one table per kind</a></li>
+              <li><a href="#">0005 telemetria da jornada</a></li>
+              <li><a href="#">0006 coleta paralela</a></li>
+              <li><a href="#">0007 gestor de cotas</a></li>
+              <li><a class="atual" href="#" aria-current="page">0008 vínculo observado</a></li>
+              <li><a href="#">RFCs</a></li>
+              <li><a href="#">RFC 0001 derivação do modelo</a></li>
+            </ul></li>
+          <li><a class="sec" href="#">API <span class="n">2</span></a></li>
+          <li><a class="sec" href="#">Operação <span class="n">3</span></a></li>
+          <li><a class="sec" href="#">Releases <span class="n">11</span></a></li>
+          <li><a class="sec" href="#">Segurança <span class="n">8</span></a></li>
+          <li><a class="sec" href="#">Backlog <span class="n">19</span></a></li>
+          <li><a class="sec" href="#">Sprints <span class="n">69</span></a></li>
+        </ul>
+      </nav>
+
+      <article class="conteudo">
+        <div class="migalha"><a href="#">Decisões</a><span>›</span><a href="#">ADRs</a><span>›</span><span>0008</span></div>
+        <div class="assinatura">ADR 0008</div>
+        <h1>O vínculo observado: a participação que a ferramenta mostra conta como membro, e o papel é o que se declara</h1>
+        <dl class="recibo">
+          <dt>status</dt><dd><span class="marca declarado"><span class="q"></span>Aceita · 2026-09-06</span> decisão da pessoa mantenedora: "2 e 3"</dd>
+          <dt>depende de</dt><dd><a href="#">ADR 0003</a>: o conceito é da EO e a coleta continua passando pela API pública do módulo</dd>
+          <dt>emenda</dt><dd>specs 055 (FR-013 a FR-018) e 058 (FR-026); regra <code>github.team_membership_evidence</code> v2</dd>
+          <dt>reverte, em parte</dt><dd>spec 043, FR-007: a participação passa a ser automática; o papel continua humano</dd>
+        </dl>
+
+        <h2 id="contexto">Contexto</h2>
+        <h3>O que a medida mostrou, em 2026-09-06</h3>
+        <p>A coleta trazia as 8 equipes do GitHub da organização <code>leds-conectafapes</code> com 59 evidências de
+          vínculo (49 pessoas), número conferido contra a origem no mesmo dia. Pela regra da feature 055,
+          evidência não era vínculo até alguém confirmar com papel. Ninguém confirmou.</p>
+        <div class="tabela">
+          <table class="stacked">
+            <thead><tr><th>o que a tela dizia</th><th>medido</th></tr></thead>
+            <tbody>
+              <tr><td data-label="o que a tela dizia">equipes do GitHub com algum vínculo vigente</td><td data-label="medido" class="num"><b>0 de 8</b></td></tr>
+              <tr><td data-label="o que a tela dizia">evidências à espera de confirmação</td><td data-label="medido" class="num">59 (49 pessoas)</td></tr>
+              <tr><td data-label="o que a tela dizia">solicitações dos últimos 56 dias de autores só com evidência pendente</td><td data-label="medido" class="num"><b>838 de 1 077, 78%</b></td></tr>
+              <tr><td data-label="o que a tela dizia">única equipe com medidas</td><td data-label="medido">a derivada, com 31 pessoas que não estão em nenhum time observado</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Para a equipe PLATAFORMA (19 pessoas na origem) a tela mostrava "Equipe sem nenhum vínculo vigente",
+          "19 participações aguardando confirmação" e todas as medidas da feature 058 vazias. Coerente com a
+          regra; inútil para a pergunta que a tela existe para responder.</p>
+        <h3>A regra que estava em vigor, e por quê</h3>
+        <p>A regra <code>github.team_membership_evidence</code> v1 dizia: <code>eo.team_membership</code> é o relator que aloca
+          uma pessoa a um papel numa equipe; o GitHub fornece pessoa e equipe e não fornece papel; logo o vínculo
+          não é materializado. A razão era boa: inventar papel a partir de <code>MAINTAINER</code>/<code>MEMBER</code> produziria
+          um catálogo falso. A consequência prática não foi medida antes:</p>
+        <blockquote>a declaração manual não acontece, e sem ela nenhuma medida por equipe existe.<cite>ADR 0008, Contexto</cite></blockquote>
+
+        <h2 id="decisao">Decisão</h2>
+        <p>Três saídas foram apresentadas à pessoa mantenedora:</p>
+        <ol>
+          <li><b>Confirmar na mão</b>: 59 escolhas de papel agora, e uma a cada pessoa nova. Regra intacta.</li>
+          <li><b>A coleta cria o vínculo</b> como <em>observado</em>, com o papel declaradamente ausente; quem administra declara o papel depois, no mesmo vínculo.</li>
+          <li><b>Só as medidas usam a evidência</b> quando não há declaração, com etiqueta: duas definições de "membro" no sistema.</li>
+        </ol>
+        <p>A decisão foi <b>2 como regra e 3 como transparência</b>: uma única definição de membro (o vínculo), e a
+          tela dizendo sobre quantos observados e quantos declarados cada medida foi calculada.</p>
+        <h3>O que passa a valer</h3>
+        <ol>
+          <li><b>A participação observada vira vínculo na coleta.</b> <code>eo.team_membership</code> com <code>organizational_role_id</code> nulo ("papel não declarado") e <code>started_at</code> nulo: a origem não diz desde quando, e nunca é <code>observed_at</code>.</li>
+          <li><b>Declarar é completar o mesmo vínculo.</b> A ação "confirmar" passa a chamar-se "declarar papel", no vínculo observado, e não num segundo.</li>
+          <li><b>A ausência na origem encerra o observado, e só ele.</b> O vínculo ganha <code>ended_at</code> no instante da ausência. Nunca é apagado.</li>
+          <li><b>Onde a organização já declarou algo, a coleta não cria vínculo.</b> A tela mostra as duas afirmações lado a lado (055, FR-012).</li>
+        </ol>
+        <div class="trecho">[ protótipo: trecho · a página real continua com os itens 5 a 10, "O que isto faz à ontologia", Alternativas consideradas, Consequências, Verificação, Emenda de 2026-09-08 e Referências, no mesmo tratamento ]</div>
+
+        <div class="editar">
+          <a href="https://github.com/The-Band-Solution/theband/edit/development/docs/adr/0008-vinculo-observado.md">Editar esta página no GitHub</a>
+          <span class="mono">docs/adr/0008-vinculo-observado.md</span>
+        </div>
+        <nav class="vizinhas" aria-label="Página anterior e próxima">
+          <a href="#"><small>anterior</small>0007 gestor de cotas</a>
+          <a class="prox" href="#"><small>próxima</small>RFCs</a>
+        </nav>
+      </article>
+
+      <aside class="sumario" aria-label="Nesta página">
+        <div class="t">nesta página</div>
+        <ul>
+          <li><a href="#">Status</a></li>
+          <li><a class="atual" href="#">Contexto</a></li>
+          <li class="n2"><a href="#">O que a medida mostrou</a></li>
+          <li class="n2"><a href="#">A regra que estava em vigor</a></li>
+          <li><a href="#">Decisão</a></li>
+          <li class="n2"><a href="#">O que passa a valer</a></li>
+          <li class="n2"><a href="#">O que isto faz à ontologia</a></li>
+          <li><a href="#">Alternativas consideradas</a></li>
+          <li><a href="#">Consequências</a></li>
+          <li><a href="#">Verificação</a></li>
+          <li><a href="#">Emenda de 2026-09-08</a></li>
+          <li><a href="#">Referências</a></li>
+        </ul>
+      </aside>
+    </div>
+    <div class="rodape">
+      <div class="l">
+        <span><abbr title="Continuum de ontologias de Engenharia de Software da tese">Continuum</abbr> + <abbr title="Software Engineering Ontology Network">SEON</abbr> sobre <abbr title="Unified Foundational Ontology">UFO</abbr></span>
+        <span><a href="#">theband.dev</a> · <a href="#">O produto</a> · <a href="#">A plataforma</a> · <a href="#">GitHub</a></span>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="anotacao">Três colunas a partir de 76 rem de largura útil (navegação, texto, sumário); duas a partir de
+  60 rem (o sumário some, e o título de cada seção continua com âncora); uma coluna abaixo disso, com a
+  navegação na gaveta (tela 4). O texto não passa de 44 rem, perto de 70 caracteres. A tabela de quatro linhas
+  empilha abaixo de 40 rem com <code>data-label</code>, como manda o design system.</p>
+
+<!-- ═════════════════════════════ SCREEN 3 ═════════════════════════════ -->
+<div class="faixa-tela" id="tela-3"><b>screen 3 · modelos: diagrama Mermaid</b><span>/developers/modelos/estados/conta/ · docs/modelos/estados/conta.md</span></div>
+
+<div class="janela">
+  <div class="endereco">https://theband.dev/developers/modelos/estados/conta/</div>
+  <div class="site">
+    <div class="topo">
+      <nav aria-label="Sites do The Band"><a class="nome" href="#">The Band</a><span class="aqui">· documentação técnica</span></nav>
+      <div class="busca"><svg width="16" height="16"><use href="#i-busca"/></svg><span class="txt">Buscar na documentação técnica</span><kbd>/</kbd></div>
+      <div class="links"><a href="#">O produto</a><a href="#">GitHub</a><a class="entrar" href="#">Entrar na plataforma</a></div>
+      <div class="icone"><button type="button" aria-label="Buscar"><svg width="18" height="18"><use href="#i-busca"/></svg></button><button type="button" aria-label="Abrir a navegação"><svg width="18" height="18"><use href="#i-menu"/></svg></button></div>
+    </div>
+    <div class="corpo tres">
+      <nav class="lateral" aria-label="Navegação da documentação">
+        <ul>
+          <li><a class="sec" href="#">Início</a></li>
+          <li><a class="sec" href="#">Arquitetura <span class="n">3</span></a></li>
+          <li><span class="sec">Modelos <span class="n">27</span></span>
+            <ul class="sub">
+              <li><a href="#">Índice</a></li>
+              <li><a href="#">Arquitetura</a></li>
+              <li><a href="#">Classes (UML) · 8</a></li>
+              <li><a href="#">Banco (ERD) · 7</a></li>
+              <li><a href="#">Estados · 8</a></li>
+              <li style="padding-left:.7rem"><a href="#">Mapa dos ciclos de vida</a></li>
+              <li style="padding-left:.7rem"><a href="#">Declaração revogável</a></li>
+              <li style="padding-left:.7rem"><a href="#">Observação</a></li>
+              <li style="padding-left:.7rem"><a href="#">Atividade executada</a></li>
+              <li style="padding-left:.7rem"><a class="atual" href="#" aria-current="page">Conta</a></li>
+              <li style="padding-left:.7rem"><a href="#">Coleta</a></li>
+              <li style="padding-left:.7rem"><a href="#">Projeto declarado</a></li>
+              <li style="padding-left:.7rem"><a href="#">Vínculo de equipe</a></li>
+              <li><a href="#">DSM · 2</a></li>
+            </ul></li>
+          <li><a class="sec" href="#">Funcionalidades <span class="n">2</span></a></li>
+          <li><a class="sec" href="#">Ontologias <span class="n">16</span></a></li>
+          <li><a class="sec" href="#">Decisões <span class="n">11</span></a></li>
+          <li><a class="sec" href="#">… mais 8 seções</a></li>
+        </ul>
+      </nav>
+
+      <article class="conteudo">
+        <div class="migalha"><a href="#">Modelos</a><span>›</span><a href="#">Estados</a><span>›</span><span>Conta</span></div>
+        <div class="assinatura">Modelos · estados</div>
+        <h1>A conta (<code>users</code> e <code>account_disablements</code>)</h1>
+        <dl class="recibo">
+          <dt>o que é</dt><dd><span class="marca derivado"><span class="q"></span>derivado do código</span> máquina de estados lida do código, não lembrada</dd>
+          <dt>fonte</dt><dd class="mono" style="font-size:.8rem">lib/the_band/tenants.ex:126-380 · tenants/account_disablement.ex · tenants/account_lifecycle.ex · tenants/user.ex:38-95 · 3 migrações · 3 testes</dd>
+          <dt>conferido</dt><dd>2026-09-18, contra o código nesta data</dd>
+          <dt>o que não alcança</dt><dd>mudança no código depois de 2026-09-18 só aparece aqui quando a página for regenerada</dd>
+        </dl>
+
+        <p><b>Duas máquinas na mesma linha, e juntá-las já custou caro.</b> Uma responde <em>pode entrar?</em>; a
+          outra, <em>de quem é este painel?</em>. São independentes, e o código diz por que:</p>
+        <blockquote>É "esta conta não entra mais". Não é <code>revoke_person/3</code>, que significa "não sabemos mais qual
+          pessoa observada é esta conta", e o H3 mediu que aquele não remove acesso.<cite>lib/the_band/tenants.ex:223-227</cite></blockquote>
+
+        <h2>Máquina 1: pode entrar?</h2>
+        <div class="tabela">
+          <table>
+            <thead><tr><th>onde</th><th>o que é</th><th>por quê</th></tr></thead>
+            <tbody>
+              <tr><td><code>users.disabled_at</code></td><td>a resposta rápida a "pode entrar?"</td><td>é lida a cada entrada; uma junção por entrada seria caro</td></tr>
+              <tr><td><code>account_disablements</code></td><td>o episódio, com autor, razão, nota e fechamento</td><td>o par de colunas sozinho cabia um episódio, e a reativação o apagava</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <figure class="largo" aria-labelledby="cap-conta">
+          <div class="diagrama">
+<pre class="mermaid">
+stateDiagram-v2
+    direction LR
+
+    [*] --> ativa : create_user/2
+
+    ativa --> desativada : disable_user/4\n[razao do vocabulario declarado]\n[nao pode ser a propria conta]
+    desativada --> ativa : enable_user/4\n[exige episodio ABERTO]
+
+    note right of desativada
+        users.disabled_at preenchido
+        + episodio ABERTO em account_disablements
+        (enabled_at nulo).
+        E gira o session_token.
+        tenants.ex:248-249
+    end note
+
+    note right of ativa
+        users.disabled_at nulo.
+        Reativar NAO devolve a senha.
+        tenants.ex:325-327
+    end note
+</pre>
+          </div>
+          <figcaption id="cap-conta">
+            <span class="marca derivado"><span class="q"></span>derivado de tenants.ex:218-362</span>
+            <span>A máquina "pode entrar?". Estados em caixa com borda verdete, transições em tinta secundária, notas em latão: as cores vêm dos tokens do site, nos dois temas.</span>
+          </figcaption>
+          <details>
+            <summary>ver como tabela</summary>
+            <div class="tabela">
+              <table class="stacked">
+                <thead><tr><th>de</th><th>para</th><th>ato</th><th>guarda</th></tr></thead>
+                <tbody>
+                  <tr><td data-label="de">início</td><td data-label="para">ativa</td><td data-label="ato"><code>create_user/2</code></td><td data-label="guarda">nenhuma</td></tr>
+                  <tr><td data-label="de">ativa</td><td data-label="para">desativada</td><td data-label="ato"><code>disable_user/4</code></td><td data-label="guarda">razão do vocabulário declarado; não pode ser a própria conta</td></tr>
+                  <tr><td data-label="de">desativada</td><td data-label="para">ativa</td><td data-label="ato"><code>enable_user/4</code></td><td data-label="guarda">exige episódio aberto</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+          <details>
+            <summary>ver o código Mermaid</summary>
+<pre>stateDiagram-v2
+    direction LR
+    [*] --> ativa : create_user/2
+    ativa --> desativada : disable_user/4 …
+    desativada --> ativa : enable_user/4 …</pre>
+          </details>
+        </figure>
+
+        <h3>As quatro guardas de <code>disable_user/4</code></h3>
+        <div class="tabela">
+          <table class="stacked">
+            <thead><tr><th>guarda</th><th>erro</th><th>por quê</th></tr></thead>
+            <tbody>
+              <tr><td data-label="guarda">a conta é deste tenant</td><td data-label="erro"><code>:not_found</code></td><td data-label="por quê">recurso de outro tenant devolve "not found"</td></tr>
+              <tr><td data-label="guarda">não é a própria conta</td><td data-label="erro"><code>:nao_pode_desativar_a_si</code></td><td data-label="por quê">num tenant com uma administração só, tranca a organização inteira</td></tr>
+              <tr><td data-label="guarda">ainda está ativa</td><td data-label="erro"><code>:ja_desativada</code></td><td data-label="por quê">desativar duas vezes abriria dois episódios</td></tr>
+              <tr><td data-label="guarda">o vocabulário está carregado</td><td data-label="erro"><code>:vocabulario_nao_declarado</code></td><td data-label="por quê">sem a base, o ato recusa em vez de gravar razão nenhuma</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="trecho">[ protótipo: trecho · a página real continua com a guarda de enable_user/4, a transição recusada, o equívoco, e a Máquina 2 ]</div>
+      </article>
+
+      <aside class="sumario" aria-label="Nesta página">
+        <div class="t">nesta página</div>
+        <ul>
+          <li><a class="atual" href="#">Máquina 1: pode entrar?</a></li>
+          <li class="n2"><a href="#">Onde está o estado</a></li>
+          <li class="n2"><a href="#">A máquina</a></li>
+          <li class="n2"><a href="#">As quatro guardas</a></li>
+          <li class="n2"><a href="#">A guarda de enable_user/4</a></li>
+          <li><a href="#">Máquina 2: de quem é este painel?</a></li>
+        </ul>
+      </aside>
+    </div>
+  </div>
+</div>
+<p class="anotacao">O diagrama é o bloco <code>```mermaid</code> da página, sem mudança no fonte. No MkDocs Material o
+  tema já expõe as cores do Mermaid como variáveis (<code>--md-mermaid-node-bg-color</code>, <code>--md-mermaid-edge-color</code>,
+  <code>--md-mermaid-label-fg-color</code> e as demais); o tema novo as aponta para <code>--papel</code>, <code>--verdete</code>,
+  <code>--tinta-2</code> e <code>--latao</code>, e o diagrama troca de tema junto com a página. Neste protótipo o mesmo efeito
+  é feito por CSS sobre o SVG. Toda figura leva "ver como tabela", que é o padrão dos gráficos de theband.dev.
+  O comentário <code>DERIVADO de …</code> no topo do arquivo, hoje invisível no site, vira o quadro "fonte / conferido".</p>
+
+<!-- ═════════════════════════════ SCREEN 4 ═════════════════════════════ -->
+<div class="faixa-tela" id="tela-4"><b>screen 4 · navegação e busca</b><span>mesa e telefone a 360 px</span></div>
+
+<h3 class="serif" style="font-weight:500;font-size:1.2rem;margin:1rem 0 .5rem">Na mesa: a busca aberta, com resultado e sem resultado</h3>
+<div class="linha-janelas">
+  <div class="janela" style="flex:1 1 34rem">
+    <div class="endereco">https://theband.dev/developers/ · busca "vínculo observado"</div>
+    <div class="site">
+      <div class="topo">
+        <nav aria-label="Sites do The Band"><a class="nome" href="#">The Band</a><span class="aqui">· documentação técnica</span></nav>
+        <div class="busca ativa" role="search"><svg width="16" height="16"><use href="#i-busca"/></svg><span class="txt">vínculo observado</span><kbd>esc</kbd></div>
+        <div class="links"><a href="#">O produto</a><a class="entrar" href="#">Entrar na plataforma</a></div>
+        <div class="icone"><button type="button" aria-label="Fechar a busca"><svg width="18" height="18"><use href="#i-fechar"/></svg></button></div>
+      </div>
+      <div style="padding-top:.8rem">
+        <div class="resultados" role="region" aria-label="Resultados da busca">
+          <div class="cab"><span>8 páginas falam de "vínculo observado"</span><span class="mono">↑↓ escolher · enter abrir</span></div>
+          <ol>
+            <li class="foco"><div class="onde">Decisões › ADRs</div><a class="tit" href="#">ADR 0008: O vínculo observado</a><div class="tre">a participação que a ferramenta mostra conta como membro, e o papel é o que se declara</div></li>
+            <li><div class="onde">Backlog <span class="marca ausente"><span class="q"></span>fora da navegação</span></div><a class="tit" href="#">O vínculo observado sem papel: a versão 2 de github.team_membership_evidence</a></li>
+            <li><div class="onde">Sprints › 030 › Aceitação</div><a class="tit" href="#">Sprint 030: Registro de aceitação</a><div class="tre">AC2: equívoco em <mark>vínculo observado</mark>: sai de toda medida; coleta não recria; tela mostra as duas afirmações</div></li>
+            <li><div class="onde">Releases</div><a class="tit" href="#">v0.6.0: a tela da equipe</a><div class="tre">ADR 0008: o <mark>vínculo observado</mark>: a participação que a ferramenta mostra conta como membro</div></li>
+            <li><div class="onde">Modelos › DSM</div><a class="tit" href="#">DSM: feature 060, a tela da equipe</a><div class="tre">saída declarada e equívoco em <mark>vínculo observado</mark> bloqueiam a recriação</div></li>
+          </ol>
+          <div class="pe">e mais 3: RFC 0001, v0.9.2, Estados: vínculo de equipe</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="janela" style="flex:1 1 24rem">
+    <div class="endereco">https://theband.dev/developers/ · busca "sinfonia"</div>
+    <div class="site">
+      <div class="topo">
+        <nav aria-label="Sites do The Band"><a class="nome" href="#">The Band</a></nav>
+        <div class="busca ativa" role="search"><svg width="16" height="16"><use href="#i-busca"/></svg><span class="txt">sinfonia</span><kbd>esc</kbd></div>
+        <div class="icone"><button type="button" aria-label="Fechar a busca"><svg width="18" height="18"><use href="#i-fechar"/></svg></button></div>
+      </div>
+      <div style="padding-top:.8rem">
+        <div class="resultados vazio" role="region" aria-label="Resultados da busca">
+          <div class="cab"><span class="marca ausente"><span class="q"></span>nenhuma página</span></div>
+          <div class="nada">Nenhuma página da documentação técnica fala de "sinfonia".</div>
+          <div class="pe">A busca cobre as 227 páginas publicadas, inclusive as que estão fora da navegação.
+            O que o produto faz para quem usa está em <a href="#">o produto</a>, que esta busca não cobre.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3 class="serif" style="font-weight:500;font-size:1.2rem;margin:2rem 0 .5rem">No telefone, 360 px: a página, a gaveta aberta, a busca aberta</h3>
+<div class="linha-janelas">
+  <div>
+    <div class="janela telefone">
+      <div class="endereco">theband.dev/developers/adr/0008-…</div>
+      <div class="site">
+        <div class="topo">
+          <nav aria-label="Sites do The Band"><a class="nome" href="#">The Band</a><span class="aqui">· doc. técnica</span></nav>
+          <div class="icone"><button type="button" aria-label="Buscar"><svg width="18" height="18"><use href="#i-busca"/></svg></button><button type="button" aria-label="Abrir a navegação"><svg width="18" height="18"><use href="#i-menu"/></svg></button></div>
+        </div>
+        <article class="conteudo">
+          <div class="migalha"><a href="#">Decisões</a><span>›</span><a href="#">ADRs</a><span>›</span><span>0008</span></div>
+          <div class="assinatura">ADR 0008</div>
+          <h1 style="font-size:1.5rem">O vínculo observado: a participação que a ferramenta mostra conta como membro, e o papel é o que se declara</h1>
+          <dl class="recibo">
+            <dt>status</dt><dd><span class="marca declarado"><span class="q"></span>Aceita · 2026-09-06</span></dd>
+            <dt>depende de</dt><dd><a href="#">ADR 0003</a></dd>
+          </dl>
+          <details style="margin:0 0 1rem"><summary>nesta página · 8 seções</summary></details>
+          <h2 style="margin-top:.6rem">Contexto</h2>
+          <div class="tabela">
+            <table class="stacked">
+              <thead><tr><th>o que a tela dizia</th><th>medido</th></tr></thead>
+              <tbody>
+                <tr><td data-label="o que a tela dizia">equipes do GitHub com algum vínculo vigente</td><td data-label="medido" class="num"><b>0 de 8</b></td></tr>
+                <tr><td data-label="o que a tela dizia">evidências à espera de confirmação</td><td data-label="medido" class="num">59 (49 pessoas)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+    </div>
+    <p class="legenda-janela">a · a página: sumário vira "nesta página", tabela empilha</p>
+  </div>
+
+  <div>
+    <div class="janela telefone">
+      <div class="endereco">theband.dev/developers/ · navegação</div>
+      <div class="site">
+        <div class="topo">
+          <nav aria-label="Sites do The Band"><a class="nome" href="#">The Band</a><span class="aqui">· doc. técnica</span></nav>
+          <div class="icone"><button type="button" aria-label="Fechar a navegação"><svg width="18" height="18"><use href="#i-fechar"/></svg></button></div>
+        </div>
+        <nav class="gaveta" aria-label="Navegação da documentação">
+          <ul>
+            <li><a class="sec" href="#">Início</a></li>
+            <li><a class="sec" href="#">Arquitetura <span class="n">3</span></a></li>
+            <li><a class="sec" href="#">Modelos <span class="n">27</span></a></li>
+            <li><a class="sec" href="#">Funcionalidades <span class="n">2</span></a></li>
+            <li><a class="sec" href="#">Ontologias <span class="n">16</span></a></li>
+            <li><span class="sec">Decisões <span class="n">11</span></span>
+              <ul class="sub">
+                <li><a href="#">ADRs</a></li>
+                <li><a href="#">0007 gestor de cotas</a></li>
+                <li><a class="atual" href="#" aria-current="page">0008 vínculo observado</a></li>
+                <li><a href="#">RFCs</a></li>
+              </ul></li>
+            <li><a class="sec" href="#">API <span class="n">2</span></a></li>
+            <li><a class="sec" href="#">Operação <span class="n">3</span></a></li>
+            <li><a class="sec" href="#">… mais 6 seções</a></li>
+          </ul>
+          <div class="fim">
+            <a class="entrar" href="#" style="text-align:center">Entrar na plataforma</a>
+            <a href="#">O produto</a>
+            <a href="#">GitHub</a>
+            <span class="marca observado"><span class="q"></span>main @ ce77a10 · 30 set 2026</span>
+          </div>
+        </nav>
+      </div>
+    </div>
+    <p class="legenda-janela">b · a gaveta: seção atual aberta, alvos de 44 px, Entrar no fim</p>
+  </div>
+
+  <div>
+    <div class="janela telefone">
+      <div class="endereco">theband.dev/developers/ · busca</div>
+      <div class="site">
+        <div class="topo">
+          <div class="busca ativa" role="search" style="display:flex;max-width:none"><svg width="16" height="16"><use href="#i-busca"/></svg><span class="txt">vínculo observado</span></div>
+          <div class="icone" style="margin-left:0"><button type="button" aria-label="Fechar a busca"><svg width="18" height="18"><use href="#i-fechar"/></svg></button></div>
+        </div>
+        <div class="resultados" style="margin:.8rem 0 0;border-inline:0">
+          <div class="cab"><span>8 páginas</span></div>
+          <ol>
+            <li class="foco"><div class="onde">Decisões › ADRs</div><a class="tit" href="#">ADR 0008: O vínculo observado</a></li>
+            <li><div class="onde">Backlog <span class="marca ausente"><span class="q"></span>fora da navegação</span></div><a class="tit" href="#">O vínculo observado sem papel</a></li>
+            <li><div class="onde">Sprints › 030</div><a class="tit" href="#">Sprint 030: Registro de aceitação</a></li>
+            <li><div class="onde">Releases</div><a class="tit" href="#">v0.6.0: a tela da equipe</a></li>
+          </ol>
+          <div class="pe">e mais 4</div>
+        </div>
+      </div>
+    </div>
+    <p class="legenda-janela">c · a busca ocupa a tela; fechar volta à página</p>
+  </div>
+</div>
+<p class="anotacao">Os oito resultados de "vínculo observado" são as páginas de <code>docs/</code> que contêm o termo, contadas
+  com <code>grep -ric</code> em 2026-10-03; a ordem real é a do índice de busca do MkDocs. "sinfonia" não aparece em nenhuma.
+  As 227 páginas são os <code>.md</code> de <code>docs/</code> em development; 176 estão na navegação e 51 não. A busca do MkDocs
+  indexa as 51, e por isso a marca "fora da navegação" aparece no resultado: a pessoa chega a uma página que a
+  navegação não mostra, e é bom saber disso. A marca usa a forma tracejada (ausente) porque o que falta é o lugar na navegação.</p>
+
+<!-- ═════════════════════════════ SCREEN 5 ═════════════════════════════ -->
+<div class="faixa-tela" id="tela-5"><b>screen 5 · página não encontrada e seção sem conteúdo</b><span>404 em /developers/ · Funcionalidades</span></div>
+
+<div class="linha-janelas">
+  <div class="janela" style="flex:1 1 28rem">
+    <div class="endereco">https://theband.dev/developers/modelos/estados/organizacao-suspensa/</div>
+    <div class="site">
+      <div class="topo">
+        <nav aria-label="Sites do The Band"><a class="nome" href="#">The Band</a><span class="aqui">· documentação técnica</span></nav>
+        <div class="busca"><svg width="16" height="16"><use href="#i-busca"/></svg><span class="txt">Buscar na documentação técnica</span><kbd>/</kbd></div>
+        <div class="icone"><button type="button" aria-label="Buscar"><svg width="18" height="18"><use href="#i-busca"/></svg></button><button type="button" aria-label="Abrir a navegação"><svg width="18" height="18"><use href="#i-menu"/></svg></button></div>
+      </div>
+      <div class="conteudo">
+        <div class="erro-cod">404 · /developers/modelos/estados/organizacao-suspensa/</div>
+        <h1>Esta página não está publicada.</h1>
+        <p>Não há página neste endereço. Ou o endereço mudou, ou a página ainda não chegou à
+          <span class="mono">main</span>: a documentação técnica é construída da <span class="mono">main</span>, e o que está só em
+          <span class="mono">development</span> não aparece aqui.</p>
+        <div class="busca" style="display:flex;max-width:none;margin:1rem 0"><svg width="16" height="16"><use href="#i-busca"/></svg><span class="txt">Buscar "organização suspensa"</span></div>
+        <ul>
+          <li><a href="#">Início da documentação técnica</a></li>
+          <li><a href="#">Modelos · índice</a></li>
+          <li><a href="https://github.com/The-Band-Solution/theband/tree/development/docs">A pasta <span class="mono">docs/</span> em development, no GitHub</a></li>
+          <li><a href="#">O produto</a>, se você procurava o que o The Band faz</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="janela" style="flex:1 1 28rem">
+    <div class="endereco">https://theband.dev/developers/funcionalidades/</div>
+    <div class="site">
+      <div class="topo">
+        <nav aria-label="Sites do The Band"><a class="nome" href="#">The Band</a><span class="aqui">· documentação técnica</span></nav>
+        <div class="busca"><svg width="16" height="16"><use href="#i-busca"/></svg><span class="txt">Buscar na documentação técnica</span><kbd>/</kbd></div>
+        <div class="icone"><button type="button" aria-label="Buscar"><svg width="18" height="18"><use href="#i-busca"/></svg></button><button type="button" aria-label="Abrir a navegação"><svg width="18" height="18"><use href="#i-menu"/></svg></button></div>
+      </div>
+      <div class="conteudo">
+        <div class="migalha"><span>Funcionalidades</span></div>
+        <h1>Funcionalidades</h1>
+        <p>O que o produto faz, escrito para quem usa. <b>1 dos 7 grupos de telas em produção tem página.</b>
+          Os outros seis estão no ar e ainda não foram explicados aqui; a lista é a mesma de
+          <a href="#">o produto</a>.</p>
+        <div class="tabela">
+          <table class="stacked">
+            <thead><tr><th>grupo de telas</th><th>rotas</th><th>página</th></tr></thead>
+            <tbody>
+              <tr><td data-label="grupo de telas">A equipe: quem está nela, e o que cada um faz</td><td data-label="rotas" class="mono">/teams/:id</td><td data-label="página"><a href="#">A tela da equipe</a></td></tr>
+              <tr><td data-label="grupo de telas">A equipe feita de equipes</td><td data-label="rotas" class="mono">/teams</td><td data-label="página"><span class="marca ausente"><span class="q"></span>sem página ainda</span></td></tr>
+              <tr><td data-label="grupo de telas">A pessoa, e a competência lida do que ela fez</td><td data-label="rotas" class="mono">/people/:id</td><td data-label="página"><span class="marca ausente"><span class="q"></span>sem página ainda</span></td></tr>
+              <tr><td data-label="grupo de telas">O trabalho, item a item, com a marca do que ele é</td><td data-label="rotas" class="mono">/work</td><td data-label="página"><span class="marca ausente"><span class="q"></span>sem página ainda</span></td></tr>
+              <tr><td data-label="grupo de telas">A coleta, e o que ela alcançou</td><td data-label="rotas" class="mono">/syncs · /tools</td><td data-label="página"><span class="marca ausente"><span class="q"></span>sem página ainda</span></td></tr>
+              <tr><td data-label="grupo de telas">Quem vê o quê</td><td data-label="rotas" class="mono">/access-scopes · /accounts · /roles</td><td data-label="página"><span class="marca ausente"><span class="q"></span>sem página ainda</span></td></tr>
+              <tr><td data-label="grupo de telas">A API, e um agente que pergunta</td><td data-label="rotas" class="mono">/api/v1 · /mcp · /api-tokens</td><td data-label="página"><span class="marca ausente"><span class="q"></span>sem página ainda</span> <a href="#">a API pública</a> explica para quem integra</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mudo">"Sem página ainda" quer dizer que a tela existe e a explicação não foi escrita. Não quer dizer que a
+          tela não existe, nem que não há nada a dizer sobre ela.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="linha-janelas" style="margin-top:1.2rem">
+  <div class="janela" style="flex:1 1 22rem">
+    <div class="endereco">theband.dev/developers/ · JavaScript desligado</div>
+    <div class="site">
+      <div class="topo">
+        <nav aria-label="Sites do The Band"><a class="nome" href="#">The Band</a><span class="aqui">· documentação técnica</span></nav>
+        <div class="busca" style="display:flex"><svg width="16" height="16"><use href="#i-busca"/></svg><span class="txt">A busca precisa de JavaScript</span></div>
+      </div>
+      <div class="conteudo">
+        <p style="margin:0"><span class="marca ausente"><span class="q"></span>busca indisponível</span>
+          Com o JavaScript desligado, a navegação e as páginas funcionam; a busca não. Use a
+          <a href="#">navegação</a> ou a busca do GitHub em <span class="mono">docs/</span>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="janela" style="flex:1 1 22rem">
+    <div class="endereco">theband.dev/developers/modelos/estados/conta/ · o diagrama não carregou</div>
+    <div class="site">
+      <div class="conteudo">
+        <figure style="margin:0">
+          <p style="margin:0 0 .6rem"><span class="marca ausente"><span class="q"></span>diagrama não desenhado</span>
+            O script que desenha o diagrama não carregou. Abaixo, o código do diagrama, que diz o mesmo; a
+            tabela equivalente está em "ver como tabela".</p>
+<pre style="overflow-x:auto;font-size:.74rem;background:var(--papel);border:1px solid var(--pauta);padding:.7rem;margin:0">stateDiagram-v2
+    direction LR
+    [*] --> ativa : create_user/2
+    ativa --> desativada : disable_user/4
+    desativada --> ativa : enable_user/4</pre>
+        </figure>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="legenda-janela">c · busca sem JavaScript · d · diagrama sem o script: nunca campo mudo nem área em branco</p>
+<p class="anotacao">Medido em 2026-10-03: <code>theband.dev/developers/modelos/estados/organizacao-suspensa/</code> responde 404 com a
+  página genérica do GitHub Pages ("Page not found · GitHub Pages"), sem caminho de volta. A página existe em
+  development (spec 070) e ainda não na main. O MkDocs gera <code>/developers/404.html</code>, mas o GitHub Pages só usa o
+  <code>404.html</code> da raiz do domínio, que é da landing: por isso a 404 de developers depende da Q4. Os 7 grupos de
+  telas são os de <code>theband.dev/docs/</code>, seção II.</p>
+
+<!-- ═════════════════════════════ SCREEN 6 ═════════════════════════════ -->
+<div class="faixa-tela" id="tela-6"><b>screen 6 · uma funcionalidade nova: a 072</b><span>/developers/funcionalidades/administradores/ · página a escrever em docs/funcionalidades/</span></div>
+
+<div class="janela">
+  <div class="endereco">https://theband.dev/developers/funcionalidades/administradores/</div>
+  <div class="site">
+    <div class="topo">
+      <nav aria-label="Sites do The Band"><a class="nome" href="#">The Band</a><span class="aqui">· documentação técnica</span></nav>
+      <div class="busca"><svg width="16" height="16"><use href="#i-busca"/></svg><span class="txt">Buscar na documentação técnica</span><kbd>/</kbd></div>
+      <div class="links"><a href="#">O produto</a><a href="#">GitHub</a><a class="entrar" href="#">Entrar na plataforma</a></div>
+      <div class="icone"><button type="button" aria-label="Buscar"><svg width="18" height="18"><use href="#i-busca"/></svg></button><button type="button" aria-label="Abrir a navegação"><svg width="18" height="18"><use href="#i-menu"/></svg></button></div>
+    </div>
+    <div class="corpo tres">
+      <nav class="lateral" aria-label="Navegação da documentação">
+        <ul>
+          <li><a class="sec" href="#">Início</a></li>
+          <li><a class="sec" href="#">Arquitetura <span class="n">3</span></a></li>
+          <li><a class="sec" href="#">Modelos <span class="n">27</span></a></li>
+          <li><span class="sec">Funcionalidades <span class="n">3</span></span>
+            <ul class="sub">
+              <li><a href="#">O que o produto faz</a></li>
+              <li><a href="#">A tela da equipe</a></li>
+              <li><a class="atual" href="#" aria-current="page">Promover e rebaixar administradores</a></li>
+            </ul></li>
+          <li><a class="sec" href="#">Ontologias <span class="n">16</span></a></li>
+          <li><a class="sec" href="#">Decisões <span class="n">11</span></a></li>
+          <li><a class="sec" href="#">… mais 8 seções</a></li>
+        </ul>
+      </nav>
+      <article class="conteudo">
+        <div class="migalha"><a href="#">Funcionalidades</a><span>›</span><span>Administradores</span></div>
+        <div class="assinatura">Funcionalidades · a tela de contas</div>
+        <h1>Promover e rebaixar administradores</h1>
+        <dl class="recibo">
+          <dt>a tela</dt><dd><span class="mono">/accounts</span>, coluna <code>Management</code></dd>
+          <dt>a spec</dt><dd><span class="marca declarado"><span class="q"></span>072 · Draft · 2026-10-02</span> <a href="https://github.com/The-Band-Solution/theband/tree/development/specs/072-papel-de-administrador">specs/072-papel-de-administrador, no GitHub</a></dd>
+          <dt>em produção</dt><dd><span class="marca ausente"><span class="q"></span>ainda não</span> em development desde 2026-10-03; entra na próxima release</dd>
+          <dt>a régua</dt><dd>só o que a tela faz em development; o que a spec pede e a tela não faz fica nomeado no fim</dd>
+        </dl>
+
+        <p>Quem administra uma organização dá a marca de administrador a outra conta ativa, e a tira de quem não deve
+          mais tê-la. Assim a organização não depende de uma pessoa só para conectar ferramentas, gerenciar
+          credenciais e administrar contas.</p>
+
+        <h2>O que você passa a conseguir fazer</h2>
+        <ul>
+          <li><b>Promover</b> uma conta ativa: <code>Make administrator…</code> na coluna <code>Management</code>. A confirmação nomeia a pessoa e aceita uma nota opcional.</li>
+          <li><b>Rebaixar</b> um administrador: <code>Remove admin role…</code>. Vale também para você mesmo, se houver outro administrador ativo.</li>
+          <li><b>Ver quem mudou o quê</b>: a seção <code>Administrator changes</code>, abaixo da tabela, lista cada mudança com quem, quando e a nota. Marca mais antiga que o registro diz <code>no role change recorded</code>.</li>
+        </ul>
+
+        <h2>O que a tela recusa, e diz por quê</h2>
+        <div class="tabela">
+          <table class="stacked">
+            <thead><tr><th>situação</th><th>o que a tela diz</th></tr></thead>
+            <tbody>
+              <tr><td data-label="situação">rebaixar o último administrador ativo, inclusive você</td><td data-label="o que a tela diz"><code>the organisation would have no active administrator</code></td></tr>
+              <tr><td data-label="situação">promover uma conta desativada</td><td data-label="o que a tela diz"><code>Role changes wait for reactivation.</code></td></tr>
+              <tr><td data-label="situação">administrador com a conta desativada</td><td data-label="o que a tela diz"><code>not counted while the account is disabled</code></td></tr>
+              <tr><td data-label="situação">conta de outra organização</td><td data-label="o que a tela diz">"not found", e nunca "sem permissão"</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>O que ela não faz</h2>
+        <ul>
+          <li>Quem não é administrador não vê controle nenhum.</li>
+          <li>Não pede razão de uma lista fechada; a nota é livre e opcional, e sem ela o registro diz <code>no note</code>.</li>
+          <li>A nota fica no registro e não vai para o log.</li>
+        </ul>
+
+        <div class="editar">
+          <a href="#">Editar esta página no GitHub</a>
+          <span class="mono">docs/funcionalidades/administradores.md</span>
+        </div>
+      </article>
+      <aside class="sumario" aria-label="Nesta página">
+        <div class="t">nesta página</div>
+        <ul>
+          <li><a class="atual" href="#">O que você passa a conseguir fazer</a></li>
+          <li><a href="#">O que a tela recusa</a></li>
+          <li><a href="#">O que ela não faz</a></li>
+        </ul>
+      </aside>
+    </div>
+  </div>
+</div>
+<p class="anotacao">O texto vem da spec 072 (US1 a US3) e dos rótulos da tela em <code>lib/</code> de development, conferidos com
+  <code>grep</code> em 2026-10-03: <code>Make administrator…</code>, <code>Remove admin role…</code>, <code>Administrator changes</code>,
+  <code>no role change recorded</code>, <code>Role changes wait for reactivation.</code>, <code>not counted while the account is
+  disabled</code>, <code>no note</code>. O texto final da página é do Product Owner (o quê) com quem implementa; o protótipo fixa a
+  forma: recibo, o que passa a conseguir, o que recusa, o que não faz, link para a spec. Os rótulos ficam em inglês,
+  como na tela, e o texto em português, como já faz <code>funcionalidades/</code>.</p>
+
+<!-- ═════════════════════════════ DECISÕES ═════════════════════════════ -->
+<h2 class="moldura" id="decisoes">Decisões e perguntas abertas</h2>
+<h3 class="serif" style="font-weight:500;font-size:1.3rem;margin:1.6rem 0 .3rem">Já decididas pela pessoa mantenedora (#1267)</h3>
+<div class="decisoes">
+  <div class="decisao"><span class="id">#1267 D1</span><div><h3>As specs entram como uma página por funcionalidade</h3><p>Em <code>docs/funcionalidades/</code>, escrita para quem usa, com link para a spec no GitHub. <code>specs/</code> não é publicado, e os <code>seguranca*.md</code> ficam fora. É a tela 6 e a seção III da home.</p><span class="estado">Decided 2026-10-03</span></div></div>
+  <div class="decisao"><span class="id">#1267 D3</span><div><h3>Os tokens são copiados da landing para o tema do MkDocs, com a data da cópia</h3><p>De <code>gh-pages:index.html</code>: papel, tinta, verdete, latão, pauta, cartão, com o tema escuro; fontes do sistema. O <code>extra_css</code> leva no comentário de onde e quando copiou, e o rodapé diz "Identidade copiada de theband.dev em 2026-10-03". Trazer a landing para o repositório não faz parte deste item.</p><span class="estado">Decided 2026-10-03</span></div></div>
+</div>
+<p class="lede" style="margin-top:1.6rem">As decisões abaixo são do desenho e valem até serem contestadas. As perguntas são da pessoa
+  mantenedora, levadas pelo Product Owner; cada uma tem opções e a recomendação.</p>
+
+<h3 class="serif" style="font-weight:500;font-size:1.3rem;margin:2rem 0 .3rem">O que o site adota de theband.dev</h3>
+<div class="tabela-proto">
+  <table>
+    <thead><tr><th>elemento</th><th>em theband.dev</th><th>no site de developers</th></tr></thead>
+    <tbody>
+      <tr><td>paleta</td><td>papel, tinta, tinta-2, verdete, verdete-forte, verdete-fundo, latão, pauta, cartão, nos dois temas</td><td>os mesmos valores, mapeados nas variáveis <code>--md-*</code> do Material</td></tr>
+      <tr><td>tipografia</td><td>títulos em serifa (Iowan, Palatino), corpo em humanista (Seravek, Gill Sans), mono para números; nenhuma webfont</td><td>igual</td></tr>
+      <tr><td>barra do topo</td><td>landing: botões flutuantes; <span class="mono">/docs/</span>: barra com borda, "The Band · o produto", Entrar</td><td>a barra de <span class="mono">/docs/</span>, com a busca no meio</td></tr>
+      <tr><td>rodapé</td><td>Continuum + SEON sobre UFO, base científica, links</td><td>igual, mais a linha de como a página é construída</td></tr>
+      <tr><td>pauta e numeração</td><td>pauta de cinco linhas como divisor; seções "I., II., III." em itálico verdete</td><td>na home</td></tr>
+      <tr><td>recibo</td><td><code>dl</code> mono com rótulos em versalete</td><td>metadados de toda página: status, fonte, conferido, o que não alcança</td></tr>
+      <tr><td>"ver como tabela"</td><td>todo gráfico tem a tabela atrás de um <code>details</code></td><td>todo diagrama Mermaid</td></tr>
+      <tr><td>citação</td><td>borda latão, serifa itálica</td><td>citações de código com <code>arquivo:linha</code></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 class="serif" style="font-weight:500;font-size:1.3rem;margin:2rem 0 .3rem">Onde theband.dev diverge do design system, e o que este site faz</h3>
+<div class="tabela-proto">
+  <table>
+    <thead><tr><th>#</th><th>divergência</th><th>aqui</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">V1</td><td>o chip "declarado por alguém" da landing é <b>tracejado</b>; o design system reserva o tracejado para a <b>ausência</b></td><td>declarado é sólido azul (<code>info</code> de <code>app.css</code>); tracejado só para ausente</td></tr>
+      <tr><td class="mono">V2</td><td>verdete <code>#2c6b60</code>/<code>#5fa294</code> no site; <code>#1f6f68</code>/<code>#5cbcb2</code> no design system e no <code>app.css</code></td><td>segue theband.dev, porque o pedido é o design dele</td></tr>
+      <tr><td class="mono">V3</td><td>design system: títulos em grotesca, corpo em serifa; theband.dev faz o inverso</td><td>segue theband.dev (D2)</td></tr>
+      <tr><td class="mono">V4</td><td>o tema se chama <code>data-theme</code> na landing e <code>data-tema="claro|escuro"</code> em <span class="mono">/docs/</span></td><td>o Material usa <code>data-md-color-scheme</code>; a ponte usa <code>data-theme</code>, o nome da landing</td></tr>
+      <tr><td class="mono">V5</td><td><span class="mono">/docs/</span> marca <b>v0.10.0</b> como "no ar"; <span class="mono">app.theband.dev/version</span> respondeu <b>0.11.0</b> em 2026-10-03</td><td>fora do escopo deste site; registrado para o Product Owner</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="decisoes">
+  <div class="decisao"><span class="id">D1</span><div><h3>A paleta de theband.dev, nos dois temas</h3><p>Os nove tokens da landing, sem ajuste e com a data da cópia (#1267 D3), mais <code>info</code> para o declarado. No MkDocs, um <code>extra_css</code> aponta <code>--md-default-bg-color</code>, <code>--md-typeset-color</code>, <code>--md-primary-fg-color</code>, <code>--md-accent-fg-color</code> e as variáveis do Mermaid para esses tokens.</p><span class="estado">Decided 2026-10-03 · contestável</span></div></div>
+  <div class="decisao"><span class="id">D2</span><div><h3>A tipografia de theband.dev</h3><p>Títulos em serifa, corpo em humanista, mono para identificadores, caminhos, datas e contagens, sempre com <code>tabular-nums</code>. Nenhuma webfont, como no design system. A inversão em relação ao design system (V3) fica registrada: os sites públicos são uma família, o produto é outra.</p><span class="estado">Decided 2026-10-03 · contestável</span></div></div>
+  <div class="decisao"><span class="id">D3</span><div><h3>A barra do topo de /docs/, com busca</h3><p>"The Band" leva a theband.dev; "documentação técnica" diz onde se está; "O produto", GitHub e "Entrar na plataforma" à direita. No telefone ficam a marca, a busca e o menu, com alvos de 44 px; Entrar, O produto e GitHub vão para o fim da gaveta.</p><span class="estado">Decided 2026-10-03</span></div></div>
+  <div class="decisao"><span class="id">D4</span><div><h3>A proveniência da página, com a gramática da evidência</h3><p>Toda página abre com o recibo: ADR e spec são <b>declaradas</b> (sólido azul, com status e data); modelos, ontologias, mapeamentos e medidas são <b>derivados</b> (hachurado latão, com a fonte e a data da conferência); o commit do build é <b>observado</b> (sólido verdete); o que falta é <b>ausente</b> (tracejado, com o motivo). Sempre com texto ao lado da forma.</p><span class="estado">Decided 2026-10-03</span></div></div>
+  <div class="decisao"><span class="id">D5</span><div><h3>Tracejado só para ausência (V1)</h3><p>O site não copia o chip tracejado de "declarado" da landing. Recomendo ao Product Owner corrigir a landing num item separado.</p><span class="estado">Decided 2026-10-03</span></div></div>
+  <div class="decisao"><span class="id">D6</span><div><h3>Mobile-first, com três larguras</h3><p>Uma coluna por padrão; navegação lateral a partir de 60 rem; sumário à direita a partir de 76 rem. Texto até 44 rem. Tabela com mais de três colunas empilha com <code>data-label</code> abaixo de 40 rem; as demais rolam dentro do próprio quadro, nunca a página.</p><span class="estado">Decided 2026-10-03</span></div></div>
+  <div class="decisao"><span class="id">D7</span><div><h3>Mermaid herda o tema, e toda figura tem tabela</h3><p>Nenhum fonte de diagrama muda. As cores vêm das variáveis <code>--md-mermaid-*</code> apontadas para os tokens. Cada figura ganha legenda com a marca de derivado e "ver como tabela"; o comentário <code>DERIVADO de …</code> do topo do arquivo vira o recibo.</p><span class="estado">Decided 2026-10-03</span></div></div>
+  <div class="decisao"><span class="id">D8</span><div><h3>A home agrupa as treze seções por intenção, sem mudar a navegação</h3><p>Entender, usar e integrar, operar, decidir e registrar. A ordem do <code>nav</code> no <code>mkdocs.yml</code> fica como está; o agrupamento é só da home. Cada seção diz quantas páginas tem na navegação.</p><span class="estado">Decided 2026-10-03</span></div></div>
+  <div class="decisao"><span class="id">D9</span><div><h3>O build diz de onde veio</h3><p>Commit e data da <span class="mono">main</span> que gerou o site, no topo e no fim da gaveta. É fato do build, e por isso observado. Não é a versão em produção (Q5).</p><span class="estado">Decided 2026-10-03</span></div></div>
+  <div class="decisao"><span class="id">D10</span><div><h3>A busca diz o que cobre e o que não cobre</h3><p>Sem resultado, a busca nomeia a ausência e o alcance: as páginas publicadas, inclusive as fora da navegação, e não o produto. Resultado de página fora da navegação leva a marca.</p><span class="estado">Decided 2026-10-03</span></div></div>
+  <div class="decisao"><span class="id">D11</span><div><h3>Seção sem conteúdo lista o que falta</h3><p>Uma seção incompleta mostra o que existe e o que ainda não tem página, com "sem página ainda" e a frase que separa "não escrita" de "não existe". Nunca uma lista curta que parece completa.</p><span class="estado">Decided 2026-10-03</span></div></div>
+  <div class="decisao"><span class="id">D12</span><div><h3>Navegação nos dois sentidos (AC3)</h3><p>O topo leva a theband.dev, a <span class="mono">/docs/</span> e a <span class="mono">app.theband.dev/sign-in</span>; o rodapé repete os três e o GitHub.</p><span class="estado">Decided 2026-10-03</span></div></div>
+  <div class="decisao"><span class="id">D13</span><div><h3>Os estados sem script (AC6)</h3><p>Sem JavaScript, a busca diz que precisa dele e a navegação funciona. Sem o script do Mermaid, a figura mostra o código do diagrama com o aviso, e a tabela continua em "ver como tabela".</p><span class="estado">Decided 2026-10-03</span></div></div>
+  <div class="decisao"><span class="id">D14</span><div><h3>A forma da página de funcionalidade</h3><p>Recibo (a tela, a spec com link, se está em produção, a régua), "O que você passa a conseguir fazer", "O que a tela recusa, e diz por quê", "O que ela não faz". Rótulos da tela em inglês, texto em português.</p><span class="estado">Decided 2026-10-03</span></div></div>
+
+  <div class="decisao"><span class="id">Q1</span><div><h3>Manter o MkDocs com tema próprio, ou trocar de gerador?</h3>
+    <p><b>Resolvida pela #1267 D3</b>, que copia os tokens "para o tema do MkDocs": MkDocs 1.6.1 + Material 9.7.7, como hoje, com <code>extra_css</code> (os tokens), <code>theme.font: false</code> (sai o Roboto do Google Fonts) e <code>theme.custom_dir</code> com três parciais: topo, rodapé e 404. Nenhuma dependência nova, nenhuma ADR. Era a recomendação.</p>
+    <span class="estado">Decided 2026-10-03 · pela #1267 D3</span></div></div>
+  <div class="decisao q"><span class="id">Q2</span><div><h3>Manter o subcaminho /developers/ ou ir para um subdomínio?</h3>
+    <ol>
+      <li><b>Manter <span class="mono">theband.dev/developers/</span>.</b> Mesma origem da landing e de <span class="mono">/docs/</span>; os links já publicados continuam valendo; nada muda no DNS nem no certificado.</li>
+      <li><b><span class="mono">developers.theband.dev</span></b>: outro registro de DNS, outro destino de publicação, e redirecionamento para os links existentes.</li>
+      <li><b>Unificar <span class="mono">/docs/</span> e <span class="mono">/developers/</span></b> num site só, com duas portas.</li>
+    </ol>
+    <p class="rec"><b>Recomendação: 1.</b> O pedido é de design, não de endereço. A troca de domínio custa redirecionamento e DNS sem melhorar a leitura.</p>
+    <span class="estado">Open · com o Product Owner</span></div></div>
+  <div class="decisao q"><span class="id">Q3</span><div><h3>Em que idioma o cabeçalho e o rodapé? (#1267 D2)</h3>
+    <p>Medido em 2026-10-03: a landing abre em português, com botão PT/EN e as duas versões escritas; <span class="mono">/docs/</span> é só português, com "English version pending"; a documentação técnica é português (<code>language: pt-BR</code>), e o AGENTS.md manda documentação em português e interface do produto em inglês.</p>
+    <ol>
+      <li><b>Português no conteúdo e na moldura</b>, com "English version pending" como em <span class="mono">/docs/</span>. Rótulos da tela do produto citados em inglês, como já faz Funcionalidades.</li>
+      <li><b>Moldura bilíngue</b> (topo, busca, rodapé em PT/EN) e conteúdo em português: o botão EN mudaria só a moldura.</li>
+      <li><b>Traduzir</b> o conteúdo: 227 páginas, e duas versões a manter em dia.</li>
+    </ol>
+    <p class="rec"><b>Recomendação: 1.</b> Um botão de idioma que troca só a moldura promete o que não entrega.</p>
+    <span class="estado">Open · com o Product Owner</span></div></div>
+  <div class="decisao q"><span class="id">Q4</span><div><h3>A página não encontrada</h3>
+    <p>O GitHub Pages só serve o <code>404.html</code> da raiz, que é da landing, e hoje nem esse existe: a resposta é a página genérica do GitHub.</p>
+    <ol>
+      <li><b>Um <code>404.html</code> na raiz</b> com a moldura de theband.dev e uma variante para quem estava em <span class="mono">/developers/</span> (busca e links da tela 5). Exige mudar o guarda do <code>docs.yml</code>, que hoje protege a raiz.</li>
+      <li><b>Uma 404 neutra</b> na raiz, com links para os três sites, sem busca.</li>
+      <li><b>Manter a genérica.</b></li>
+    </ol>
+    <p class="rec"><b>Recomendação: 1</b>, com a 2 como o que aparece sem JavaScript. Mexe na raiz da <code>gh-pages</code>; o guarda tem de continuar conferindo <code>CNAME</code> e <code>index.html</code>.</p>
+    <span class="estado">Open · com o Product Owner</span></div></div>
+  <div class="decisao q"><span class="id">Q5</span><div><h3>A versão em produção aparece no site?</h3>
+    <p>Medido em 2026-10-03: <span class="mono">app.theband.dev/version</span> responde <span class="mono">0.11.0</span>, sem <code>Access-Control-Allow-Origin</code>, então o navegador em theband.dev não consegue lê-la. O <code>mix.exs</code> de development diz <span class="mono">0.12.0</span>.</p>
+    <ol>
+      <li><b>Agora: só o commit do build, e "versão em produção: não informada nesta página"</b>, como no protótipo.</li>
+      <li><b>Ler <span class="mono">/version</span> no navegador.</b> Exige CORS na rota, que é mudança de acesso e passa pelo agente security antes.</li>
+      <li><b>Gravar no build a versão do <code>mix.exs</code>.</b> Recusada: é a versão da árvore, não a que está no ar, e versão errada na tela é pior que versão ausente.</li>
+    </ol>
+    <p class="rec"><b>Recomendação: 1 agora, e 2 como item próprio</b> se a pessoa mantenedora quiser a versão aqui, com avaliação de segurança.</p>
+    <span class="estado">Open · com o Product Owner</span></div></div>
+  <div class="decisao"><span class="id">Q6</span><div><h3>Como as specs chegam ao site</h3>
+    <p><b>Resolvida pela #1267 D1</b>: uma página por funcionalidade em <code>docs/funcionalidades/</code>, escrita à mão para quem usa, com link para a spec. A recomendação do protótipo era gerar uma lista do cabeçalho de <code>specs/*/spec.md</code>; fica recusada. A seção III da home lista as páginas, e as que faltam levam "página a escrever" ou "entra quando o PR for mergeado".</p>
+    <span class="estado">Decided 2026-10-03 · pela #1267 D1</span></div></div>
+  <div class="decisao q"><span class="id">Q7</span><div><h3>As 51 páginas fora da navegação</h3>
+    <p>Medido em development, 2026-10-03: 227 páginas em <code>docs/</code>, 176 na navegação, 51 fora. Entre elas as ADRs 0009 e 0010, as releases v0.10.1 a v0.12.0, três modelos da 070 e o runbook de saúde da fila. São publicadas e achadas pela busca, e não aparecem no menu.</p>
+    <ol>
+      <li><b><code>validation: nav: omitted_files: warn</code></b> no <code>mkdocs.yml</code>, que o <code>--strict</code> transforma em falha; <code>not_in_nav</code> para o que é de propósito, como as pastas de protótipo.</li>
+      <li><b>Colocar as 51 na navegação à mão</b>, sem guarda.</li>
+      <li><b>Aceitar como está.</b></li>
+    </ol>
+    <p class="rec"><b>Recomendação: 1</b>, num item próprio, antes do tema novo. Esta pasta de protótipo é publicada pelo mesmo build e seria a 52ª.</p>
+    <span class="estado">Open · com o Product Owner</span></div></div>
+  <div class="decisao q"><span class="id">Q8</span><div><h3>A seção Segurança num site público</h3>
+    <p>O site publica <span class="mono">docs/seguranca/</span>: inventários de achados com data, inclusive os de antes do conserto. O redesenho não muda o conteúdo, mas a home nova dá à seção um lugar visível.</p>
+    <ol>
+      <li><b>Avaliação do agente security</b> sobre o que da seção é público, antes de publicar o tema novo.</li>
+      <li><b>Manter como está</b>, só com o tema novo.</li>
+    </ol>
+    <p class="rec"><b>Recomendação: 1.</b> Pela regra da casa, na dúvida trata-se como segurança. A avaliação é de quem não desenhou o site.</p>
+    <span class="estado">Open · com o Product Owner</span></div></div>
+</div>
+
+<div class="decisoes">
+  <div class="decisao q"><span class="id">Q9</span><div><h3>De onde vem o script do Mermaid (AC11)</h3>
+    <p>Medido em 2026-10-03 no site publicado: o Material carrega o Mermaid de <span class="mono">https://unpkg.com/mermaid@11/dist/mermaid.min.js</span> e as fontes de <span class="mono">fonts.googleapis.com</span>. A landing não faz requisição a terceiro nenhum. As fontes saem com <code>font: false</code>; o Mermaid precisa de escolha.</p>
+    <ol>
+      <li><b>Servir o Mermaid do próprio site</b>: o arquivo da versão 11, fixado, em <code>docs/assets/</code>, carregado por <code>extra_javascript</code>, com o hash conferido no build. É código de terceiro entrando no repositório, e passa pelo agente security.</li>
+      <li><b>Desenhar os diagramas no build</b>, em SVG. Exige Node e o <code>mermaid-cli</code> no CI: tecnologia nova.</li>
+      <li><b>Manter o CDN.</b> Recusa o AC11.</li>
+    </ol>
+    <p class="rec"><b>Recomendação: 1</b>, com o estado da tela 5 (d) quando o script não carregar: o código do diagrama e o aviso, nunca área em branco.</p>
+    <span class="estado">Open · com o Product Owner, avaliação do security</span></div></div>
+</div>
+
+<h3 class="serif" style="font-weight:500;font-size:1.3rem;margin:2.4rem 0 .3rem">Medidas novas para a base de conhecimento</h3>
+<p style="max-width:50rem">Nenhuma. As contagens de páginas são do próprio site, tiradas do <code>mkdocs.yml</code> no build; os números
+  citados nas páginas já estão nos documentos de onde vêm.</p>
+
+</div>
