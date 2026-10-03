@@ -29,6 +29,7 @@ defmodule TheBand.Tenants.Auth do
   alias TheBand.Ontology.SEON.EO.Schemas.Person
   alias TheBand.Repo
   alias TheBand.Tenants.AccessEvents
+  alias TheBand.Tenants.PapelDeAdministrador
   alias TheBand.Tenants.Sessions
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
@@ -307,8 +308,14 @@ defmodule TheBand.Tenants.Auth do
   persistida em claro (mesmas regras do reinício abaixo).
   """
   @spec cadastrar_conta(Tenant.t(), map(), User.t()) ::
-          {:ok, {User.t(), String.t()}} | {:error, Ecto.Changeset.t()}
+          {:ok, {User.t(), String.t()}} | {:error, :nao_autorizado | Ecto.Changeset.t()}
   def cadastrar_conta(%Tenant{id: tenant_id}, attrs, %User{} = actor) do
+    # O ator relido, e não a struct da tela (072, FR-002a): o papel fica congelado no `mount`.
+    with :ok <- PapelDeAdministrador.exigir_ator(tenant_id, actor.id),
+         do: cadastrar_na_transacao(tenant_id, attrs, actor)
+  end
+
+  defp cadastrar_na_transacao(tenant_id, attrs, actor) do
     Repo.transaction(fn ->
       with {:ok, user} <-
              %User{}
@@ -327,11 +334,13 @@ defmodule TheBand.Tenants.Auth do
   é gravada em claro nem logada; a primeira entrada obriga a troca.
   """
   @spec reset_password(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
-          {:ok, String.t()} | {:error, :not_found | Ecto.Changeset.t()}
+          {:ok, String.t()} | {:error, :nao_autorizado | :not_found | Ecto.Changeset.t()}
   def reset_password(%Tenant{id: tenant_id}, user_id, actor_id) do
-    case do_tenant(tenant_id, user_id) do
-      nil -> {:error, :not_found}
-      %User{} = user -> gravar_temporaria(user, "reset", actor_id)
+    with :ok <- PapelDeAdministrador.exigir_ator(tenant_id, actor_id) do
+      case do_tenant(tenant_id, user_id) do
+        nil -> {:error, :not_found}
+        %User{} = user -> gravar_temporaria(user, "reset", actor_id)
+      end
     end
   end
 
