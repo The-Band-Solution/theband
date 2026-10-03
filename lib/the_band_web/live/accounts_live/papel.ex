@@ -111,7 +111,10 @@ defmodule TheBandWeb.AccountsLive.Papel do
   @spec ultimo_admin(map() | nil, String.t() | nil, boolean()) :: String.t()
   def ultimo_admin(antes, de_quem, so_resta_voce? \\ false) do
     [
-      dgettext("errors", "Not changed: the organisation would have no active administrator."),
+      # A consequência vem da base (`access.account_role`, last_active_admin); a moldura é da tela.
+      dgettext("errors", "Not changed: %{consequencia}.",
+        consequencia: AccountRole.frase_ultimo_admin() || "access.account_role.last_active_admin"
+      ),
       antes && quem_agiu(antes, so_resta_voce?),
       de_quem
     ]

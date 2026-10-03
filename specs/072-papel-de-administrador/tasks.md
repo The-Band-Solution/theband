@@ -5,7 +5,7 @@
 
 ## Fase 2: Fundação
 
-- [ ] T001 Restringir o papel a dois valores
+- [x] T001 Restringir o papel a dois valores
   - **Pronta quando**: R5; nada além do repositório
   - **Descrição**:
     - `User.changeset/2` deixa de fazer `cast` de `:role`.
@@ -21,7 +21,7 @@
   - **Teste**: `test/the_band/tenants/papel_restrito_test.exs`. **Defeito a injetar**: voltar o
     `cast` de `:role`; o caso do cadastro precisa reprovar.
 
-- [ ] T002 Registrar as mudanças de papel no banco
+- [x] T002 Registrar as mudanças de papel no banco
   - **Pronta quando**: `data-model.md`; T001
   - **Descrição**: a migração de `account_role_changes`, com os `CHECK`s, os índices e os triggers
     `nao_apaga`, `nao_altera` e `nao_trunca` (`search_path` fixo com `pg_temp` por último). O
@@ -31,7 +31,7 @@
   - **Teste**: `test/the_band/tenants/registro_do_papel_test.exs`. **Defeito a injetar**: tirar o
     `nao_altera`; o `UPDATE` precisa passar e o teste reprovar.
 
-- [ ] T003 O banco recusa papel sem episódio
+- [x] T003 O banco recusa papel sem episódio
   - **Pronta quando**: T002
   - **Descrição**: o trigger de constraint adiado `users_papel_tem_episodio`, `AFTER UPDATE OF
     role`, conferindo `txid_current()` (R3). FR-005, SC-002.
@@ -42,7 +42,7 @@
   - **Teste**: `registro_do_papel_test.exs`, com `SET CONSTRAINTS ALL IMMEDIATE` e a asserção
     sobre `postgres.constraint`. **Defeito a injetar**: o trigger removido.
 
-- [ ] T004 O guarda único do papel
+- [x] T004 O guarda único do papel
   - **Pronta quando**: `contracts/papel.md`; T001
   - **Descrição**: `lib/the_band/tenants/papel_de_administrador.ex`.
     - `travar/3` trava as contas admin ativas por id, confere o ator no conjunto, e trava e relê o
@@ -57,7 +57,7 @@
   - **Teste**: `test/the_band/tenants/papel_de_administrador_test.exs`, a parte do guarda.
     **Defeito a injetar**: decidir pelo alvo recebido; o caso da struct velha precisa reprovar.
 
-- [ ] T005 As frases do papel na base
+- [x] T005 As frases do papel na base
   - **Pronta quando**: R6
   - **Descrição**: `priv/knowledge_base/rules/access_account_role.yaml`, regra `access.account_role`,
     na forma de `access_account_lifecycle.yaml`.
@@ -66,7 +66,7 @@
 
 ## Fase 3: US1 e US2 — promover e rebaixar (P1)
 
-- [ ] T006 [US1] Promover e rebaixar numa transação
+- [x] T006 [US1] Promover e rebaixar numa transação
   - **Pronta quando**: T002–T005; `contracts/papel.md`
   - **Descrição**: `Tenants.promote_user/4` e `demote_user/4`, como o contrato. O aviso e o evento
     saem depois do `commit`. FR-001 a FR-005, FR-007.
@@ -79,7 +79,7 @@
     - conferir o ator pela struct;
     - tirar o `FOR UPDATE`.
 
-- [ ] T007 [US2] A desativação pelo mesmo guarda
+- [x] T007 [US2] A desativação pelo mesmo guarda
   - **Pronta quando**: T004
   - **Descrição**: `disable_user/4` usa `travar/3` no lugar de `resta_um_admin_ativo/2`. S3.
   - **Feita quando**:
@@ -91,7 +91,7 @@
       cruzada também, porque o ator relido sob a trava já não é admin ativo. Registrado na T007.
   - **Teste**: `papel_de_administrador_test.exs`, o caso de S3.
 
-- [ ] T008 [US2] Os atos de administração conferem o ator relido
+- [x] T008 [US2] Os atos de administração conferem o ator relido
   - **Pronta quando**: T004
   - **Descrição**: `exigir_ator/2` no começo de cada ato de R2. FR-002a; S1.
   - **Feita quando**: cada um dos dez atos, chamado com um ator que perdeu a marca, devolve
@@ -99,7 +99,7 @@
   - **Teste**: `test/the_band/tenants/ator_relido_test.exs`, um caso por ato. **Defeito a
     injetar**: tirar a conferência de `ApiTokens.criar/4`; o caso do token precisa reprovar.
 
-- [ ] T009 [US2] A tela aberta do rebaixado cai
+- [x] T009 [US2] A tela aberta do rebaixado cai
   - **Pronta quando**: T006
   - **Descrição**: o `reconferir/2` de `hooks.ex` relê a conta, e numa área admin redireciona para
     `/people` com a frase de hoje (Q3). FR-008, R4.
@@ -110,13 +110,13 @@
 
 ## Fase 4: US3 — a tela (P2)
 
-- [ ] T010 [US3] Ler o registro das mudanças
+- [x] T010 [US3] Ler o registro das mudanças
   - **Pronta quando**: T002
   - **Descrição**: `Tenants.role_changes/2`, com as 20 mais recentes e a contagem total (Q5)
   - **Feita quando**: devolve do mais novo ao mais antigo, só da organização, e a contagem
   - **Teste**: `papel_de_administrador_test.exs`, "role_changes", com dois tenants
 
-- [ ] T011 [US3] A tela de contas do protótipo aprovado
+- [x] T011 [US3] A tela de contas do protótipo aprovado
   - **Pronta quando**: T006, T010; o protótipo aprovado em 2026-10-03
   - **Descrição**: `lib/the_band_web/live/accounts_live/index.ex`, exatamente como
     `prototipo/accounts-admin-role.html`:
@@ -133,7 +133,7 @@
     de membro desativada; nenhum controle para membro
   - **Teste**: `test/the_band_web/live/accounts_papel_test.exs`
 
-- [ ] T012 [US3] Conferir a tela contra o protótipo
+- [x] T012 [US3] Conferir a tela contra o protótipo
   - **Pronta quando**: T011
   - **Descrição**: o QA, item a item da régua, em `prototipo/conferencia.md`
   - **Feita quando**: não há `diverge` aberto sem decisão
