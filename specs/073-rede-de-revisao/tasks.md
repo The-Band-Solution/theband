@@ -32,7 +32,7 @@ arquivo antes de injetar e `diff` depois de restaurar.
 
 **Tarefas humanas** são marcadas **👤 pessoa mantenedora**.
 
-**Andamento em 2026-10-03** (sprint 037): **feitas** T001, T003–T021, T023–T030 menos T022, cada
+**Andamento em 2026-10-03** (sprint 039): **feitas** T001, T003–T021, T023–T030 menos T022, cada
 uma com o defeito injetado visto reprovando (a evidência está na issue). T003 foi a revisão do
 agente semântico (`revisao-semantica.md`, aprovada com emendas). **Abertas**: T002 e T022, da
 pessoa mantenedora (medir em produção; aceitar contra a origem). Desvios da execução, todos

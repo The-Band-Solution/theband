@@ -1,4 +1,4 @@
-# Sprint 037 — a rede de revisão, o backend que não espera
+# Sprint 039 — a rede de revisão, o backend que não espera
 
 **Período**: 2026-10-03 a 2026-10-09, na iteration corrente do GitHub (Sprint 035)
 **Feature**: [073](../../../specs/073-rede-de-revisao/spec.md) · **Plano**: [plan.md](../../../specs/073-rede-de-revisao/plan.md) · **Tarefas**: [tasks.md](../../../specs/073-rede-de-revisao/tasks.md)
