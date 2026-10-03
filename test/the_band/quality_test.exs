@@ -116,24 +116,6 @@ defmodule TheBand.QualityTest do
       assert resumo.sem_avaliacao == 1
       assert resumo.nao_medido == 1
     end
-
-    test "o bot aparece na lista de revisores sem pessoa, e não é fundido", ctx do
-      pr = solicitacao(ctx, 20, ~U[2026-08-01 10:00:00Z])
-      avaliacao(ctx, pr, %{external_submitted_at: ~U[2026-08-01 11:00:00Z]})
-
-      avaliacao(ctx, pr, %{
-        author_type: "Bot",
-        author_login: "dependabot",
-        external_submitted_at: ~U[2026-08-01 11:05:00Z]
-      })
-
-      revisores = Quality.by_reviewer(ctx.tenant)
-
-      assert length(revisores) == 2
-      bot = Enum.find(revisores, &(&1.author_type == "Bot"))
-      # Forçar uma pessoa para o robô inventaria participação que não existe.
-      assert bot.person_id == nil
-    end
   end
 
   describe "o rascunho" do
@@ -147,8 +129,6 @@ defmodule TheBand.QualityTest do
 
       # ...e não produz tempo até a primeira revisão, porque não houve revisão.
       assert Quality.time_to_first_review(ctx.tenant) == []
-      # Nem conta como revisor.
-      assert Quality.by_reviewer(ctx.tenant) == []
     end
   end
 
@@ -165,9 +145,6 @@ defmodule TheBand.QualityTest do
       estados = Quality.for_change_request(ctx.tenant, pr.id) |> Enum.map(& &1.state)
 
       assert estados == ["APPROVED", "CHANGES_REQUESTED"]
-
-      # E o revisor tem as duas contagens separadas — aprovar não apaga ter pedido mudança.
-      assert [%{approved: 1, changes_requested: 1}] = Quality.by_reviewer(ctx.tenant)
     end
   end
 
@@ -210,7 +187,6 @@ defmodule TheBand.QualityTest do
       {outro, _} = tenant_with_admin()
 
       assert Quality.for_change_request(outro, pr.id) == []
-      assert Quality.by_reviewer(outro) == []
       assert Quality.time_to_first_review(outro) == []
     end
   end

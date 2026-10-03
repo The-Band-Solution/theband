@@ -425,32 +425,4 @@ defmodule TheBand.Quality do
       nao_medido: Enum.count(linhas, &is_nil(&1.total))
     }
   end
-
-  @doc """
-  Quem revisou o quê — a participação `qapo.stakeholder_performed_artifact_evaluation`.
-
-  Bot aparece com `person_id` nulo e não é somado a pessoa: forçar uma pessoa para o robô
-  inventaria participação que não existe.
-  """
-  @spec by_reviewer(Tenant.t(), keyword()) :: [map()]
-  def by_reviewer(%Tenant{id: tenant_id}, opts \\ []) do
-    Repo.all(
-      from a in "collected_artifact_evaluations",
-        where:
-          a.tenant_id == type(^tenant_id, :binary_id) and is_nil(a.no_longer_observed_at) and
-            not is_nil(a.external_submitted_at),
-        group_by: [a.author_login, a.author_type, a.author_person_id],
-        order_by: [desc: count(a.id)],
-        limit: ^Keyword.get(opts, :limit, 50),
-        select: %{
-          login: a.author_login,
-          author_type: a.author_type,
-          person_id: type(a.author_person_id, :binary_id),
-          evaluations: count(a.id),
-          approved: fragment("count(?) filter (where ? = 'APPROVED')", a.id, a.state),
-          changes_requested:
-            fragment("count(?) filter (where ? = 'CHANGES_REQUESTED')", a.id, a.state)
-        }
-    )
-  end
 end
