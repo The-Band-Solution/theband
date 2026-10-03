@@ -10,14 +10,19 @@ defmodule TheBandWeb.AccountsLive.Papel do
   quem tem o socket. Separado porque a tela de contas já fazia o ciclo de vida da conta, e o papel
   é o outro fato da linha (D1: "two columns for two facts").
 
-  ## Duas divergências do protótipo, e a razão de cada uma
+  ## Sem episódio, a célula segue o protótipo — decisão da pessoa mantenedora
 
-  - **Sem episódio, a célula diz só "no role change recorded".** O protótipo escreve "since the
-    organisation was created" na primeira conta e "never an administrator" no membro. As duas são
-    afirmações sobre o tempo antes do registro, que começa com a 072, e a Q6 aprovada (nenhuma
-    entrada fabricada) as recusa: uma conta promovida antes da 072 diria o falso.
-  - **Frases sem pronome.** O protótipo escreve "her" e "his". A tela não sabe o pronome de
-    ninguém, e usa o nome ou a forma neutra.
+  O administrador sem mudança registrada diz "since the organisation was created ·" seguido da
+  ausência "no role change recorded", e o membro diz "never an administrator", como o protótipo.
+  Decidido pela pessoa mantenedora em 2026-10-03 (divergência B da conferência), **contra a
+  recomendação** do QA: as duas frases falam do tempo antes do registro, que nasce com a 072, e
+  podem afirmar o que o registro não prova para uma conta promovida ou rebaixada antes dela.
+
+  ## Uma divergência do protótipo, aceita
+
+  **Frases sem pronome.** O protótipo escreve "her" e "his". A tela não sabe o pronome de
+  ninguém, e usa o nome ou a forma neutra. Aceita pela pessoa mantenedora em 2026-10-03
+  (divergência P); o protótipo é que será republicado.
 
   A tela fala inglês, e as frases nascem aqui em inglês de propósito: não traduza de volta.
   """
@@ -37,22 +42,40 @@ defmodule TheBandWeb.AccountsLive.Papel do
   def nome(%{name: nome}) when is_binary(nome) and nome != "", do: nome
   def nome(%{email: email}), do: email
 
-  @doc "A frase do sucesso, no lugar do painel (item 17)."
-  @spec sucesso(:promover | :rebaixar, User.t(), DateTime.t()) :: String.t()
-  def sucesso(:promover, user, quando),
+  @doc """
+  A frase do sucesso, no lugar do painel (item 17), com a contagem de administradores ativos
+  depois do ato. A terceira frase do protótipo vai sem pronome ("The row", e não "Her row").
+  """
+  @spec sucesso(:promover | :rebaixar, User.t(), DateTime.t(), non_neg_integer()) :: String.t()
+  def sucesso(:promover, user, quando, admins),
     do:
       dgettext("sistema", "%{nome} is now an administrator. Recorded at %{quando}, by you.",
         nome: nome(user),
         quando: data_e_hora(quando)
-      )
+      ) <> " " <> onde_aparece(admins)
 
-  def sucesso(:rebaixar, user, quando),
+  def sucesso(:rebaixar, user, quando, admins),
     do:
       dgettext(
         "sistema",
         "%{nome} is no longer an administrator, and keeps signing in as a member. Recorded at %{quando}, by you.",
         nome: nome(user),
         quando: data_e_hora(quando)
+      ) <> " " <> onde_aparece(admins)
+
+  defp onde_aparece(1),
+    do:
+      dgettext(
+        "sistema",
+        "The row and “Administrator changes” show it; the header now reads 1 active administrator."
+      )
+
+  defp onde_aparece(n),
+    do:
+      dgettext(
+        "sistema",
+        "The row and “Administrator changes” show it; the header now reads %{n} active administrators.",
+        n: n
       )
 
   @doc "A frase de quem deixou o próprio papel, já em `/people` (item 31)."
@@ -80,34 +103,51 @@ defmodule TheBandWeb.AccountsLive.Papel do
       )
 
   @doc """
-  A recusa do último administrador (itens 27 e 28). Nomeia quem agiu antes, quando há mudança
-  registrada, e diz que o papel de quem tentou não mudou.
+  A recusa do último administrador (itens 27 e 28). Nomeia quem agiu antes — a mudança que o
+  chamador escolheu, ou `nil` para não nomear ninguém —, com dia e hora, e diz que o papel de quem
+  tentou não mudou. `so_resta_voce?` acrescenta "so you are now the only one", que só é verdade
+  quando quem tentou deixar o papel é o administrador que sobra.
   """
-  @spec ultimo_admin(map() | nil, String.t()) :: String.t()
-  def ultimo_admin(antes, de_quem) do
+  @spec ultimo_admin(map() | nil, String.t() | nil, boolean()) :: String.t()
+  def ultimo_admin(antes, de_quem, so_resta_voce? \\ false) do
     [
       dgettext("errors", "Not changed: the organisation would have no active administrator."),
-      antes && quem_agiu(antes),
+      antes && quem_agiu(antes, so_resta_voce?),
       de_quem
     ]
     |> Enum.reject(&is_nil/1)
     |> Enum.join(" ")
   end
 
-  defp quem_agiu(%{to_role: "member"} = ep),
+  # Quem deixou o próprio papel "stepped down", como a célula já diz.
+  defp quem_agiu(%{to_role: "member", user_id: id, changed_by_user_id: id} = ep, true),
     do:
-      dgettext("errors", "%{autor} removed the administrator role from %{conta} at %{hora}.",
-        autor: nome(ep.changed_by_user),
+      dgettext("errors", "%{conta} stepped down at %{quando}, so you are now the only one.",
         conta: nome(ep.user),
-        hora: hora(ep.inserted_at)
+        quando: data_e_hora(ep.inserted_at)
       )
 
-  defp quem_agiu(ep),
+  defp quem_agiu(%{to_role: "member", user_id: id, changed_by_user_id: id} = ep, false),
     do:
-      dgettext("errors", "%{autor} made %{conta} administrator at %{hora}.",
+      dgettext("errors", "%{conta} stepped down at %{quando}.",
+        conta: nome(ep.user),
+        quando: data_e_hora(ep.inserted_at)
+      )
+
+  defp quem_agiu(%{to_role: "member"} = ep, _so_resta_voce?),
+    do:
+      dgettext("errors", "%{autor} removed the administrator role from %{conta} at %{quando}.",
         autor: nome(ep.changed_by_user),
         conta: nome(ep.user),
-        hora: hora(ep.inserted_at)
+        quando: data_e_hora(ep.inserted_at)
+      )
+
+  defp quem_agiu(ep, _so_resta_voce?),
+    do:
+      dgettext("errors", "%{autor} made %{conta} administrator at %{quando}.",
+        autor: nome(ep.changed_by_user),
+        conta: nome(ep.user),
+        quando: data_e_hora(ep.inserted_at)
       )
 
   @doc "A recusa de quem chegou atrasado (item 29). O episódio vem do contexto, ou é `nil`."
@@ -208,7 +248,7 @@ defmodule TheBandWeb.AccountsLive.Papel do
       </p>
 
       <%= cond do %>
-        <% not User.ativa?(@user) -> %>
+        <% not User.ativa?(@user) and not User.admin?(@user) -> %>
           <p class="text-xs opacity-70">Role changes wait for reactivation.</p>
         <% @unico? -> %>
           <span
@@ -256,20 +296,28 @@ defmodule TheBandWeb.AccountsLive.Papel do
         {periodo(r[:ate_admin], saida)} · {if saida.changed_by_user_id == @user.id,
           do: "stepped down",
           else: "removed by #{@autores[saida.changed_by_user_id] || nome(nil)}"}
-      <% _ -> %>
-        <.absent
-          reason={AccountRole.frase_sem_registro() || "no role change recorded"}
-          class="text-xs"
-        />
+      <% {true, _} -> %>
+        since the organisation was created · <.absent reason={sem_registro()} class="text-xs" />
+      <% {false, _} -> %>
+        never an administrator
     <% end %>
     """
   end
 
   # O período de administrador que terminou. Sem a promoção registrada (anterior à 072), só o fim.
-  defp periodo(%{inserted_at: de}, %{inserted_at: ate}) when de < ate,
-    do: "administrator #{data_curta(de)} – #{data_curta(ate)}"
+  # `DateTime.compare/2`, e nunca `<`: `<` compara o mapa campo a campo, e 28 Sep fica "depois"
+  # de 02 Oct.
+  defp periodo(%{inserted_at: de}, %{inserted_at: ate}) do
+    if DateTime.compare(de, ate) == :lt,
+      do: "administrator #{data_curta(de)} – #{data_curta(ate)}",
+      else: "administrator until #{data_curta(ate)}"
+  end
 
   defp periodo(_entrada, %{inserted_at: ate}), do: "administrator until #{data_curta(ate)}"
+
+  # A frase vem da base. Ausente, a tela mostra a chave, e não uma cópia da frase no código.
+  defp sem_registro,
+    do: AccountRole.frase_sem_registro() || "access.account_role.no_change_recorded"
 
   # ── o painel (itens 10 a 16, 18 a 24) ──
 
@@ -277,6 +325,7 @@ defmodule TheBandWeb.AccountsLive.Papel do
   attr :user, User, required: true
   attr :tenant, :map, required: true
   attr :outros_admins, :list, required: true
+  attr :current_user, User, required: true
 
   @doc false
   def painel(assigns) do
@@ -347,7 +396,7 @@ defmodule TheBandWeb.AccountsLive.Papel do
                 {nome(@user)} stops managing tools, credentials, syncs and accounts. A screen
                 they have open stops acting as administrator <strong>at their next action</strong>, without waiting for them to reconnect.
               </li>
-              <li>{quantos_ficam(@outros_admins)}</li>
+              <li>{quantos_ficam(@outros_admins, @current_user)}</li>
               <li>
                 The change is recorded with <strong>your name, this instant</strong>
                 and the note below.
@@ -437,12 +486,16 @@ defmodule TheBandWeb.AccountsLive.Papel do
     """
   end
 
-  defp quantos_ficam([unico]),
-    do: "The organisation keeps 1 active administrator: #{nome(unico)}."
+  # Quem está olhando é "you", e não o próprio nome (item 19).
+  defp quantos_ficam([unico], eu),
+    do: "The organisation keeps 1 active administrator: #{nome_ou_voce(unico, eu)}."
 
-  defp quantos_ficam(outros),
+  defp quantos_ficam(outros, eu),
     do:
-      "The organisation keeps #{length(outros)} active administrators: #{Enum.map_join(outros, ", ", &nome/1)}."
+      "The organisation keeps #{length(outros)} active administrators: #{Enum.map_join(outros, ", ", &nome_ou_voce(&1, eu))}."
+
+  defp nome_ou_voce(%{id: id}, %{id: id}), do: "you"
+  defp nome_ou_voce(user, _eu), do: nome(user)
 
   defp quem_pode_devolver([unico]), do: "#{nome(unico)}, the administrator who remains, can."
 
@@ -521,7 +574,7 @@ defmodule TheBandWeb.AccountsLive.Papel do
       </div>
 
       <%= if @mudancas.mudancas == [] do %>
-        <.absent reason={AccountRole.frase_sem_registro() || "no role change recorded"} />
+        <.absent reason={sem_registro()} />
       <% else %>
         <ul
           aria-label="Administrator changes"

@@ -362,7 +362,13 @@ defmodule TheBandWeb.AccountsLive.Index do
       when acao in ["promover", "rebaixar", "deixar"] do
     {:noreply,
      assign(socket,
-       papel: %{user_id: user_id, acao: acao, note: "", email: ""},
+       papel: %{
+         user_id: user_id,
+         acao: acao,
+         note: "",
+         email: "",
+         aberto_em: DateTime.utc_now()
+       },
        desativando: nil,
        reativando: nil,
        aviso_papel: nil,
@@ -422,15 +428,15 @@ defmodule TheBandWeb.AccountsLive.Index do
 
       {:ok, ep} ->
         acao = if papel.acao == "promover", do: :promover, else: :rebaixar
+        socket = carregar(socket)
+        admins = Papel.admins_ativos(socket.assigns.users)
 
         {:noreply,
-         socket
-         |> assign(
+         assign(socket,
            papel: nil,
            recusa_papel: nil,
-           aviso_papel: Papel.sucesso(acao, alvo, ep.inserted_at)
-         )
-         |> carregar()}
+           aviso_papel: Papel.sucesso(acao, alvo, ep.inserted_at, admins)
+         )}
 
       {:error, :nao_autorizado} ->
         {:noreply, Hooks.recusar_por_papel(socket)}
@@ -441,10 +447,12 @@ defmodule TheBandWeb.AccountsLive.Index do
   end
 
   # Item 27: a marca fica, e a frase diz quem agiu antes. O painel fecha, porque o que ele
-  # descrevia não existe mais.
+  # descrevia não existe mais. Só se cita a mudança que veio DEPOIS de o painel abrir: uma
+  # anterior já estava na tela quando a pessoa decidiu, e nomeá-la atribuiria a recusa a quem
+  # talvez não a causou.
   defp recusar_papel(socket, papel, alvo, :ultimo_admin_ativo) do
     socket = carregar(socket)
-    antes = List.first(socket.assigns.mudancas.mudancas)
+    antes = mudanca_depois_de(socket.assigns.mudancas.mudancas, papel.aberto_em)
 
     de_quem =
       if papel.acao == "deixar",
@@ -455,7 +463,7 @@ defmodule TheBandWeb.AccountsLive.Index do
      assign(socket,
        papel: nil,
        aviso_papel: nil,
-       recusa_papel: Papel.ultimo_admin(antes, de_quem)
+       recusa_papel: Papel.ultimo_admin(antes, de_quem, papel.acao == "deixar")
      )}
   end
 
@@ -499,6 +507,11 @@ defmodule TheBandWeb.AccountsLive.Index do
        recusa_papel: dgettext("errors", "Account not found.")
      )}
   end
+
+  defp mudanca_depois_de([ep | _], aberto_em),
+    do: if(DateTime.compare(ep.inserted_at, aberto_em) == :gt, do: ep)
+
+  defp mudanca_depois_de([], _aberto_em), do: nil
 
   # Os administradores ativos fora a conta do painel: quem fica, e quem pode devolver o papel.
   defp outros_admins(users, user_id),
@@ -858,7 +871,7 @@ defmodule TheBandWeb.AccountsLive.Index do
                 <th>Management</th>
                 <th>Account</th>
                 <th>Sign-in credential</th>
-                <th></th>
+                <th><span class="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
@@ -913,7 +926,7 @@ defmodule TheBandWeb.AccountsLive.Index do
                     </p>
                   </td>
 
-                  <td data-label="" class="text-right align-top">
+                  <td data-label="Actions" class="text-right align-top">
                     <.acoes_da_linha user={user} current_user={@current_user} />
                   </td>
                 </tr>
@@ -948,9 +961,8 @@ defmodule TheBandWeb.AccountsLive.Index do
         user={user_por_id(@users, @papel.user_id)}
         tenant={@current_tenant}
         outros_admins={outros_admins(@users, @papel.user_id)}
+        current_user={@current_user}
       />
-
-      <Papel.mudancas mudancas={@mudancas} />
 
       <.formulario_de_desativacao
         :if={@desativando}
@@ -966,6 +978,9 @@ defmodule TheBandWeb.AccountsLive.Index do
         autores={@autores}
         escopos={escopos_de(@escopos, @reativando.user_id)}
       />
+
+      <%!-- Depois dos três painéis, que abrem no mesmo lugar, logo abaixo da tabela (item 10). --%>
+      <Papel.mudancas mudancas={@mudancas} />
 
       <.o_que_nao_muda tenant={@current_tenant} entram={@composicao.entram} />
     </Layouts.app>
