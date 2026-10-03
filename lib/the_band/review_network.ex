@@ -4,19 +4,25 @@ defmodule TheBand.ReviewNetwork do
 
   Leitura derivada da participação `qapo.stakeholder_performed_artifact_evaluation` sobre
   `cmpo.change_request`, entre pessoas de `eo.person`: quem revisou quem, numa janela. **Não** é
-  colaboração, e Pull Request não é merge (FR-002, FR-005).
+  colaboração, e Pull Request não é merge (FR-002, FR-005; regra `review.network.edge`).
 
   Só `defdelegate` (§7.1). Contrato em `specs/073-rede-de-revisao/contracts/review-network.md`.
+  Cada função lê os parâmetros da base (`ReviewNetwork.Parameters`); nenhum valor de janela, k ou
+  estado está escrito no código.
 
-  **Estado em 2026-10-03**: só `compute/3` está ligado, e ele levanta até a base declarar os
-  parâmetros (`ReviewNetwork.Parameters`, T013). `read/4`, `windows/0` e `subscribe/1` entram com a
-  T017, quando a base existir; as funções internas que eles chamarão (`Reader.read/5`,
-  `Commands.compute/4`) já estão escritas e provadas com os parâmetros como argumento.
+  - `read/4` — a **única** porta da leitura para quem consulta, recortada pelo alcance recalculado
+    a cada chamada (FR-015);
+  - `compute/3` — só o job chama;
+  - `windows/0` — as janelas permitidas e a padrão, para a tela desenhar a escolha;
+  - `subscribe/1` — o aviso de leitura pronta, só com ids.
 
   Depende de: EO, CMPO, Quality, Changes, Tenants, KnowledgeBase, sempre pela API pública.
   """
 
-  alias TheBand.ReviewNetwork.Commands
+  alias TheBand.ReviewNetwork.{Commands, Notices, Parameters, Reader}
 
+  defdelegate read(tenant, user, organization_id, window), to: Reader
   defdelegate compute(tenant, organization, now), to: Commands
+  defdelegate windows(), to: Parameters
+  defdelegate subscribe(tenant), to: Notices
 end

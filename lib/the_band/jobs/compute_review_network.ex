@@ -25,9 +25,11 @@ defmodule TheBand.Jobs.ComputeReviewNetwork do
   que termina durante um cálculo não o repete, e a leitura alcança o dado na sincronização
   seguinte (intervalo mínimo de 15 minutos). Corrigido no contrato `job.md` no mesmo commit.
 
-  **O caminho feliz** (registro sem par nem nome, aviso só com ids) é a T019, que espera a base.
-  Até lá, `ReviewNetwork.compute/3` levanta (`ReviewNetwork.Parameters`), e ninguém enfileira este
-  job: o gatilho na sincronização é a T020.
+  ## O caminho feliz (T019)
+
+  Calcula as três janelas, registra uma linha por janela só com contagens (FR-021). O aviso no
+  tópico do tenant, só com ids (A11), é de `ReviewNetwork.compute/3`, depois do commit. Único produtor: a sincronização, ao fim da coleta de
+  revisões (T020).
   """
 
   use Oban.Worker,
@@ -44,13 +46,32 @@ defmodule TheBand.Jobs.ComputeReviewNetwork do
   alias TheBand.ReviewNetwork
   alias TheBand.Tenants
 
+  require Logger
+
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"tenant_id" => tenant_id, "organization_id" => organization_id}}) do
     with {:ok, tenant} <- tenant(tenant_id),
          :ok <- ativo(tenant),
          {:ok, organizacao} <- organizacao(tenant, organization_id) do
-      {:ok, _relator} = ReviewNetwork.compute(tenant, organizacao, DateTime.utc_now(:second))
+      inicio = System.monotonic_time(:millisecond)
+      {:ok, relator} = ReviewNetwork.compute(tenant, organizacao, DateTime.utc_now(:second))
+      duracao = System.monotonic_time(:millisecond) - inicio
+
+      registrar(tenant.id, organizacao.id, relator, duracao)
       :ok
+    end
+  end
+
+  # FR-021, R14: organização, janela, contagens e duração — e NUNCA par, nome, login nem
+  # `person_id`. O relator não os carrega, e é por isso que o registro sai dele, e não da leitura.
+  defp registrar(tenant_id, organization_id, %{readings: leituras}, duracao) do
+    for l <- leituras do
+      Logger.info(
+        "rede de revisão calculada: tenant_id=#{tenant_id} organization_id=#{organization_id} " <>
+          "window_days=#{l.window_days} reviews=#{l.reviews} " <>
+          "self_review=#{l.excluded.self_review} bot_or_app=#{l.excluded.bot_or_app} " <>
+          "unlinked_person=#{l.excluded.unlinked_person} duration_ms=#{duracao}"
+      )
     end
   end
 

@@ -25,11 +25,21 @@ defmodule TheBand.ReviewNetwork.Reader do
 
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.ReviewNetwork.Parameters
   alias TheBand.ReviewNetwork.Queries
   alias TheBand.ReviewNetwork.Slice
   alias TheBand.Tenants
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
+
+  @doc """
+  A visão recortada, com os parâmetros da base. É o que a fachada expõe como `read/4`, e é a
+  única porta da leitura para quem consulta (FR-015).
+  """
+  @spec read(Tenant.t(), User.t(), term(), term()) ::
+          {:ok, map()} | {:ausente, :not_computed} | {:error, :not_found | :janela_invalida}
+  def read(tenant, user, organization_id, window),
+    do: read(tenant, user, organization_id, window, Parameters.fetch!())
 
   @doc "A visão recortada da rede, com nomes, ordenada por nome e por nada mais (FR-018a)."
   @spec read(Tenant.t(), User.t(), term(), term(), map()) ::

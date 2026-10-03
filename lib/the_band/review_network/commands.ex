@@ -27,6 +27,7 @@ defmodule TheBand.ReviewNetwork.Commands do
   alias TheBand.Repo
   alias TheBand.ReviewNetwork.Classification
   alias TheBand.ReviewNetwork.Graph
+  alias TheBand.ReviewNetwork.Notices
   alias TheBand.ReviewNetwork.Parameters
   alias TheBand.ReviewNetwork.Schemas.Reading
   alias TheBand.Tenants.Tenant
@@ -49,11 +50,17 @@ defmodule TheBand.ReviewNetwork.Commands do
         }
 
   @doc """
-  Calcula com os parâmetros da base. É o que a fachada expõe, e só o job chama.
+  Calcula com os parâmetros da base e avisa, só com ids, que há leituras novas. É o que a fachada
+  expõe, e só o job chama.
   """
   @spec compute(Tenant.t(), map(), DateTime.t()) :: {:ok, relator()}
-  def compute(tenant, organization, now),
-    do: compute(tenant, organization, now, Parameters.fetch!())
+  def compute(tenant, organization, now) do
+    {:ok, relator} = compute(tenant, organization, now, Parameters.fetch!())
+
+    # Depois do commit (a transação já fechou dentro de compute/4), e só com ids: A11.
+    Notices.broadcast(tenant.id, organization.id, Enum.map(relator.readings, & &1.id))
+    {:ok, relator}
+  end
 
   @doc """
   Calcula as janelas de `parametros.windows` para a organização, e substitui as leituras dela.

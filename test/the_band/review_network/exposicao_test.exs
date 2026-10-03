@@ -30,7 +30,7 @@ defmodule TheBand.ReviewNetwork.ExposicaoTest do
   test "nenhuma ferramenta MCP fala da rede de revisão" do
     ferramentas = Ferramentas.listar()
 
-    assert ferramentas != []
+    assert length(ferramentas) > 0
     refute Enum.any?(ferramentas, &(&1.nome =~ @proibido or inspect(&1.modulo) =~ @proibido))
   end
 

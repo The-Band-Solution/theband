@@ -53,7 +53,8 @@ contagens de exclusão e `duration_ms`. **Nunca** par, nome, login, nem `person_
 ## O aviso
 
 `{:review_network_ready, organization_id, reading_ids}` em `"review_network:" <> tenant_id`,
-depois do `commit` da transação. Só ids (A11).
+depois do `commit` da transação. Só ids (A11). Quem emite é `ReviewNetwork.compute/3`, e não o job, para que o job
+não toque módulo interno de `ReviewNetwork` (corrigido na implementação, 2026-10-03).
 
 ## O que o job NÃO faz
 

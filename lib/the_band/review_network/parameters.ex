@@ -44,6 +44,16 @@ defmodule TheBand.ReviewNetwork.Parameters do
           knowledge_versions: %{String.t() => pos_integer()}
         }
 
+  @doc """
+  As janelas permitidas e a padrão. A tela as usa para desenhar a escolha, e nunca as escreve no
+  próprio código.
+  """
+  @spec windows() :: %{allowed: [pos_integer()], default: pos_integer()}
+  def windows do
+    %{windows: permitidas, default_window: padrao} = fetch!()
+    %{allowed: permitidas, default: padrao}
+  end
+
   @doc "Os parâmetros da base, ou levanta dizendo o que falta."
   @spec fetch!() :: t()
   def fetch! do
