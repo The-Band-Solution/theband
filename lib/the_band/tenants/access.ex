@@ -325,7 +325,9 @@ defmodule TheBand.Tenants.Access do
   """
   @spec pessoas_alcancadas(Tenant.t(), User.t()) :: :todas | {:algumas, MapSet.t()}
   def pessoas_alcancadas(%Tenant{} = tenant, %User{} = user) do
-    if User.admin?(user) do
+    # Administrador DESTE tenant, como nas cláusulas vizinhas (#1181): sem a comparação, um admin
+    # de outra organização receberia `:todas` aqui, se um chamador passasse o tenant errado.
+    if User.admin?(user) and user.tenant_id == tenant.id do
       :todas
     else
       meus = scopes(tenant, user)

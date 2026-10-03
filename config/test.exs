@@ -6,8 +6,11 @@ import Config
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
 config :the_band, TheBand.Repo,
-  username: "postgres",
-  password: "postgres",
+  # Spec 071, T005 (SC-003): a suíte pode rodar conectada pelo papel que serve, para provar que
+  # nenhuma funcionalidade dependia de ser dono. O padrão é o de sempre; o papel e a senha locais
+  # vêm do ambiente só nessa medição (quickstart §2).
+  username: System.get_env("THE_BAND_TEST_DB_USER", "postgres"),
+  password: System.get_env("THE_BAND_TEST_DB_PASSWORD", "postgres"),
   hostname: "localhost",
   database: "the_band_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
@@ -19,6 +22,10 @@ config :the_band, TheBandWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
   secret_key_base: "MbkR9vteR3U/epDrIGuD13uWBM2LjHj/nf5dMJI5AYkZcVcQ5Qpw0JGgxdIpWXjz",
   server: false
+
+# Spec 071: a conferência dos papéis no boot fica desligada no teste, onde o sandbox ainda não
+# está pronto quando a aplicação sobe. Os testes chamam `TheBand.Papeis.conferir/2` direto.
+config :the_band, :conferir_papeis_no_boot, false
 
 # Print only warnings and errors during test
 config :logger, level: :warning

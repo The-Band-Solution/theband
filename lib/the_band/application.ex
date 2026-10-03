@@ -51,8 +51,25 @@ defmodule TheBand.Application do
     ]
 
     opts = [strategy: :one_for_one, name: TheBand.Supervisor]
-    Supervisor.start_link(children, opts)
+
+    with {:ok, pid} <- Supervisor.start_link(children, opts) do
+      conferir_papeis_no_boot()
+      {:ok, pid}
+    end
   end
+
+  # Spec 071, FR-008: a linha dos papéis se repete a cada subida, porque o log do deploy some.
+  # Sem link: uma conferência que falha vira `:inconclusivo` e não derruba o boot. Desligada no
+  # teste, onde o sandbox ainda não está pronto quando a aplicação sobe.
+  defp conferir_papeis_no_boot do
+    if Application.get_env(:the_band, :conferir_papeis_no_boot, true) do
+      Task.start(fn -> avisar_papeis(TheBand.Papeis.conferir(TheBand.Repo)) end)
+    end
+  end
+
+  @doc false
+  def avisar_papeis({:em_vigor, _} = relator), do: Logger.info(TheBand.Papeis.frase(relator))
+  def avisar_papeis(relator), do: Logger.warning(TheBand.Papeis.frase(relator))
 
   # Tell Phoenix to update the endpoint configuration
   # whenever the application is updated.

@@ -73,6 +73,11 @@ O backup só existe depois de restaurado uma vez. O ensaio:
    Dokploy para ele (mesma imagem, `DATABASE_URL` do ensaio).
 4. Conferir os três números NA TELA da instância de ensaio — bateram, o ensaio
    passou; anotar data e números em `docs/releases/` junto do release.
+   **Desde a spec 071**: os papéis não entram no `pg_dump`. No cluster de ensaio, criar
+   `the_band_owner` e `the_band_app` antes de restaurar (§14.2), restaurar como `postgres`, e
+   subir a instância de ensaio com `DATABASE_MIGRATION_URL` do dono e `DATABASE_URL` do papel que
+   serve. O deploy reaplica a concessão. O ensaio só passa se a conferência do §14.4, rodada
+   contra a instância de ensaio, disser **"separação em vigor"**.
 5. Derrubar a instância e o banco de ensaio.
 
 Falhou qualquer passo: o backup NÃO existe de verdade — resolver antes de qualquer
@@ -567,3 +572,108 @@ definitiva: para devolver o papel, concede-se de novo (§13.2).
   um código é reusado (T9). O registro fica no log de acesso, com o prefixo `acesso: operador`.
 - **Phishing em tempo real.** O TOTP não resiste a ele (T10). O endereço da área do operador é o
   da plataforma, e nenhum link para ela é enviado por e-mail.
+
+## §14 Os papéis do banco — spec 071 (#1131)
+
+A aplicação **migra** com um papel dono do esquema e **serve** com outro, sem posse e só com
+leitura e escrita de linhas. Sem isso, quem executasse SQL pela aplicação conseguiria desligar as
+guardas que vivem no banco: os triggers somente-acréscimo, as `CHECK` e as FKs.
+
+- **O alvo** (decidido em 2026-10-02): `the_band_owner`, dono e **não** superusuário, só para
+  migrar; `the_band_app`, sem posse, para servir. O `postgres` fica só para administração e
+  backup.
+- **Nenhuma senha passa por chat, issue, commit ou log.** Gere e guarde você mesma, no painel do
+  Dokploy.
+
+### §14.1 Medir antes de trocar
+
+No terminal do Postgres do Dokploy, como `postgres`, na base da aplicação:
+
+```sql
+SELECT rolname, rolsuper FROM pg_roles WHERE rolname = current_user;          -- quem é você
+SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname = current_database();
+SELECT tableowner, count(*) FROM pg_tables WHERE schemaname = 'public' GROUP BY 1;
+```
+
+Anote, sem senha, na issue #1131:
+- qual papel o `DATABASE_URL` de hoje usa;
+- se ele é superusuário;
+- quem é o dono das tabelas;
+- se o backup agendado do Dokploy usa `--no-acl` ou `--no-owner`.
+
+### §14.2 Criar os papéis e transferir a posse
+
+Gere duas senhas **só hexadecimais**, que não quebram a URL:
+
+```bash
+openssl rand -hex 32
+```
+
+E, como `postgres`, na base da aplicação, com as senhas no lugar de `<…>`:
+
+```sql
+CREATE ROLE the_band_owner LOGIN NOSUPERUSER NOCREATEROLE NOCREATEDB PASSWORD '<senha do dono>';
+CREATE ROLE the_band_app   LOGIN NOSUPERUSER NOCREATEROLE NOCREATEDB NOREPLICATION NOBYPASSRLS
+                            PASSWORD '<senha de quem serve>';
+REASSIGN OWNED BY <o dono de hoje, de §14.1> TO the_band_owner;   -- só nesta base
+ALTER DATABASE <a base> OWNER TO the_band_owner;
+```
+
+**Nunca** `GRANT the_band_owner TO the_band_app`, nem a base com `OWNER the_band_app`. Qualquer um
+dos dois devolve a quem serve o poder de desligar as guardas, e a conferência diz
+`membro_do_dono` ou `dono_de_objeto`.
+
+### §14.3 Trocar as credenciais no painel, ANTES do deploy
+
+No app do Dokploy:
+- **a credencial que migra é um arquivo, e não variável** (#1140). Em *Advanced → Mounts*, crie um
+  **File Mount** com o caminho `/run/secrets/database_migration_url` e o conteúdo
+  `ecto://the_band_owner:<senha do dono>@<host>/<base>`, numa linha só;
+- `DATABASE_URL`: `ecto://the_band_app:<senha de quem serve>@<host>/<base>`;
+- se `DATABASE_MIGRATION_URL` existir no painel, **apague-a**. Pelo ambiente, a credencial fica em
+  `docker inspect` e em todo `docker exec`. Ela continua aceita para a transição, com aviso, e o
+  arquivo vale se os dois existirem.
+
+Reimplantar. O contêiner começa como root só para ler o arquivo:
+- ele prova que `band` não consegue abri-lo, e **não sobe** se conseguir;
+- migra, e concede os privilégios a quem serve;
+- desce a `band` antes do servidor.
+
+O processo que serve não tem capacidade nenhuma e não lê o arquivo. Sem a primeira, o deploy segue os três estados de FR-008:
+- se quem serve ainda é dono, migra como hoje, e diz "NÃO em vigor";
+- se não é dono e não há migração pendente, sobe;
+- se não é dono e há pendente, **não sobe**.
+
+### §14.4 Conferir
+
+No terminal do contêiner da aplicação:
+
+```bash
+/app/bin/the_band rpc 'IO.puts(TheBand.Release.conferir_papeis())'
+```
+
+**Esperado**: `papéis: separação em vigor`. Cole a linha na issue #1131: é ela, e não o merge,
+que fecha a issue (SC-004). Qualquer outro resultado lista os motivos, por exemplo
+`superusuario`, `membro_do_dono` ou `tentativa_passou`.
+
+### §14.5 Desfazer uma migração
+
+O `rollback/2` precisa do dono. Rode-o com a credencial **só na própria linha**:
+
+```bash
+DATABASE_URL="$(cat /run/secrets/database_migration_url)" /app/bin/the_band eval 'TheBand.Release.rollback(TheBand.Repo, <versão>)'
+```
+
+Como root, no terminal do contêiner. O `eval` não abre distribuição, e por isso continua root.
+
+### §14.6 O que isto não fecha
+
+- **Quem é root no contêiner tem a credencial que migra.** Isso inclui o terminal do Dokploy, que
+  entra como root, e o painel, onde está o File Mount. Quem executa código como `band`, o processo
+  que serve, não a alcança (#1140, medido em `specs/071-papeis-do-banco/evidencia-1140.md`).
+- **Todo comando que conecta ao nó** (`rpc`, `remote`) roda como `band`, mesmo digitado por root:
+  é a guarda de `rel/env.sh.eex` (A1), porque a distribuição Erlang é simétrica.
+- **Quem executa código pela aplicação** lê e escreve todo dado de todo tenant. A separação
+  impede **desligar as guardas**, e não o acesso a dado.
+- **Uma tabela criada à mão por outro papel** nasce sem privilégio para quem serve, e falha alto
+  na primeira escrita.

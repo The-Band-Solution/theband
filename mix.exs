@@ -200,7 +200,10 @@ defmodule TheBand.MixProject do
       setup: ["deps.get", "ecto.setup", "assets.setup", "assets.build"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
-      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
+      # Spec 071, T005: conectado como o papel que serve, a suíte não cria nem migra a base,
+      # porque esse papel não tem `CREATE` (é o que a 071 garante). A base é preparada antes, pelo
+      # `postgres` (quickstart §2).
+      test: &testar/1,
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
       "assets.build": ["compile", "tailwind the_band", "esbuild the_band"],
       "assets.deploy": [
@@ -213,5 +216,14 @@ defmodule TheBand.MixProject do
       # por "ci" antes de procurar por "gates".
       ci: ["gates"]
     ]
+  end
+
+  defp testar(args) do
+    unless System.get_env("THE_BAND_TEST_DB_USER") do
+      Mix.Task.run("ecto.create", ["--quiet"])
+      Mix.Task.run("ecto.migrate", ["--quiet"])
+    end
+
+    Mix.Task.run("test", args)
   end
 end

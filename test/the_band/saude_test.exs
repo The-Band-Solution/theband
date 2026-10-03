@@ -171,17 +171,27 @@ defmodule TheBand.SaudeTest do
       assert Release.saude_da_fila() == "parada"
     end
 
-    test "o HEALTHCHECK do Dockerfile chama a função, e não o Postgres" do
-      # Lê o arquivo sem os comentários: o comentário cita a função e não é o comando.
-      comando =
-        "Dockerfile"
+    # Desde a #1140, o HEALTHCHECK vai pelo `/app/bin/saude` (de `rel/saude.sh`), que roda o `rpc`
+    # como `band`: um `rpc` root seria um nó root conectado ao nó de `band` (A1).
+    test "o HEALTHCHECK chama a função pelo bin/saude, como band, e não o Postgres" do
+      sem_comentarios = fn arquivo ->
+        arquivo
         |> File.read!()
         |> String.split("\n")
         |> Enum.reject(&String.starts_with?(String.trim_leading(&1), "#"))
         |> Enum.join("\n")
+      end
 
-      assert comando =~
-               ~r/HEALTHCHECK[^\n]*\\\n\s+CMD .*TheBand\.Release\.saude_da_fila\(\).*grep -qx ok/
+      dockerfile = sem_comentarios.("Dockerfile")
+      assert dockerfile =~ ~r/HEALTHCHECK[^\n]*\\\n\s+CMD \/app\/bin\/saude \| grep -qx ok/
+      assert dockerfile =~ ~r/COPY [^\n]*\/app\/rel\/saude\.sh \/app\/bin\/saude/
+
+      saude = sem_comentarios.("rel/saude.sh")
+      assert saude =~ "TheBand.Release.saude_da_fila()"
+      assert saude =~ "--reuid=band"
+
+      # O `env -u` vem ANTES do `setpriv`, no processo root (A2).
+      assert saude =~ ~r/env -u DATABASE_MIGRATION_URL setpriv/
     end
   end
 end
