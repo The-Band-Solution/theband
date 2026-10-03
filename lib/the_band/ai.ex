@@ -40,6 +40,42 @@ defmodule TheBand.AI do
   end
 
   @doc """
+  A credencial gravada do tenant **sem o segredo** (`secret: nil`) — 064/T018.
+
+  Para quem só precisa das datas, como a marca da aba em `/tools`. `fetch/2` decifra o segredo,
+  e com a chave mestra perdida o tipo levanta ao carregar: a tela que nem mostra a chave cairia
+  por causa dela. O `select` não traz a coluna cifrada, e por isso não há o que decifrar.
+  """
+  @spec fetch_sem_segredo(Tenant.t(), String.t()) ::
+          {:ok, ProviderCredential.t()} | {:error, :not_found}
+  def fetch_sem_segredo(%Tenant{id: tenant_id}, provider \\ "openai") do
+    case Repo.one(
+           from c in ProviderCredential,
+             where: c.tenant_id == ^tenant_id and c.provider == ^provider,
+             select:
+               struct(c, [
+                 :id,
+                 :tenant_id,
+                 :provider,
+                 :base_url,
+                 :default_model,
+                 :last_four,
+                 :declared_by_user_id,
+                 :validated_at,
+                 :secret_set_at,
+                 :previous_secret_set_at,
+                 :last_failure_at,
+                 :last_failure_reason,
+                 :inserted_at,
+                 :updated_at
+               ])
+         ) do
+      nil -> {:error, :not_found}
+      cred -> {:ok, cred}
+    end
+  end
+
+  @doc """
   De onde a chave em uso vem, para a tela poder dizer.
 
   Três estados, e são três fatos diferentes: gravada para este tenant, herdada do ambiente
@@ -118,10 +154,14 @@ defmodule TheBand.AI do
 
       # As datas da troca são calculadas aqui e postas fora do `cast`: vindas de quem chama,
       # uma data recente forjada esconderia uma credencial vencida (achado 2 da avaliação).
+      # `log: false`: em nível `:debug`, o Ecto registra os parâmetros da consulta **antes** de
+      # o tipo cifrar — a chave nova sairia em claro no log (medido em 2026-10-03, condição 4
+      # do parecer C.1, `test/the_band_web/live/mesma_chave_test.exs`). Produção roda em
+      # `:info` e não emitia; desenvolvimento, sim.
       anterior
       |> ProviderCredential.changeset(atributos)
       |> Ecto.Changeset.change(data_da_troca(anterior, secret, agora))
-      |> Repo.insert_or_update()
+      |> Repo.insert_or_update(log: false)
     end
   end
 
