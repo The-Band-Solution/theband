@@ -80,6 +80,18 @@ Duas colunas em `ai_provider_credentials`, ambas `utc_datetime`, anuláveis:
 A comparação entre a chave gravada e a nova é feita em memória, com `Plug.Crypto.secure_compare/2`,
 dentro de `AI`; nenhuma das duas sai do módulo, e o resultado não é registrado em lugar nenhum.
 
+**Emendado em 2026-10-03 pela avaliação de segurança**
+([seguranca-idade-da-credencial.md](../seguranca-idade-da-credencial.md)), antes do código:
+
+- **achado 1**: a primeira gravação não compara nada — a linha vazia tem `secret: nil`, e
+  `secure_compare/2` com `nil` levantaria `FunctionClauseError` com a chave nova nos argumentos.
+  Uma cláusula própria para a linha nova, e a comparação só entre dois binários;
+- **achado 2**: as duas datas **não** entram no `cast` de `ProviderCredential.changeset/2`. São
+  calculadas em `put/3` e postas por `Ecto.Changeset.change/2`; vindas de quem chama, uma data
+  recente forjada esconderia uma credencial vencida;
+- **a ordem verificar → comparar** é mantida: comparar antes de o provedor aceitar faria `put/3`
+  responder, para uma chave inválida, se ela é a gravada.
+
 `validated_at` continua sendo **quando a origem confirmou a chave** — e é atualizado em toda
 gravação, como hoje. Ele deixa de ser a fonte da idade assim que `secret_set_at` existe.
 
@@ -95,6 +107,9 @@ copiaria o mesmo valor e esconderia que a data é inferida.
 - **A credencial de ferramenta.** Não ganha coluna: a troca dela já é uma linha nova, com
   `validated_at` novo, e a antiga continua com a data dela.
 - **O segredo.** Nada aqui lê, imprime ou compara o segredo fora de `AI.put/3`.
+- **A chave do ambiente (`API_KEY`).** Fica **fora** de `Idade`: ela é do processo, não tem
+  linha nem data, e a plataforma não sabe quando foi posta. A tela da T018, quando existir, a
+  mostra como **idade desconhecida** — nunca como no prazo (achado 3 da avaliação).
 
 ## O que a API não expõe, e por quê
 
@@ -116,4 +131,7 @@ copiaria o mesmo valor e esconderia que a data é inferida.
 3. T019: credencial de modelo com `validated_at` de 4 meses → `:vencida`; `AI.put/3` com chave
    diferente → `:no_prazo`, `secret_set_at` gravado e `previous_secret_set_at` igual à data
    antiga. Com a **mesma** chave, continua `:vencida`. Defeito a injetar: `put/3` sem gravar
-   `secret_set_at` na troca — o teste reprova.
+   `secret_set_at` na troca — o teste reprova;
+4. achados 1 e 2: a primeira gravação passa sem comparar (defeito: sem a cláusula da linha nova e
+   sem a guarda de binário — `FunctionClauseError`); o changeset não aceita as datas (defeito:
+   as duas no `cast` — o teste reprova).
