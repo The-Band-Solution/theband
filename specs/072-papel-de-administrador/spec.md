@@ -95,8 +95,8 @@ ato na conta desativada; como membro, nenhum controle.
 **Acceptance Scenarios**:
 
 1. **Given** a tela de contas aberta por um administrador, **When** ela renderiza, **Then** cada
-   membro ativo tem "promover", cada administrador tem "rebaixar", e cada conta desativada não tem
-   nenhum dos dois.
+   membro ativo tem "promover", e cada administrador tem "rebaixar", inclusive o desativado (Q1,
+   decidido em 2026-10-03). Membro desativado não tem ato.
 2. **Given** a recusa do último administrador, **When** ela acontece, **Then** a tela mostra a frase,
    e a marca continua.
 
@@ -106,9 +106,10 @@ ato na conta desativada; como membro, nenhum controle.
   a administração adiante. A tela pede confirmação.
 - **Promover quem já é administrador, ou rebaixar quem já é membro**, é recusado como estado que
   mudou (outra aba chegou antes), e nada muda.
-- **Desativar e reativar uma conta** não muda a marca dela. **Decisão pendente** (S8; Q1 do
-  protótipo): permitir rebaixar um administrador desativado, para a reativação não devolver a
-  administração sem registro. A recomendação é permitir.
+- **Desativar e reativar uma conta** não muda a marca dela. **Decidido em 2026-10-03** (S8; Q1 do
+  protótipo): um administrador desativado **pode ser rebaixado**, para a reativação não devolver a
+  administração sem registro. Promover continua só para conta ativa. Rebaixar um desativado não
+  conta para o guarda, porque ele já não é administrador ativo.
 - **Os tokens de API**: o veredito relê o papel a cada chamada (`api_auth.ex:80`, MCP
   `servidor.ex:39`, medido por leitura), então o token do rebaixado perde o alcance de admin na
   próxima chamada. Os tokens que um admin emitiu para **outros** donos continuam, e são declarados
@@ -163,7 +164,7 @@ ato na conta desativada; como membro, nenhum controle.
   - o domínio confere o ator relido (FR-002a). É a camada que vale mesmo sem o aviso.
 - **FR-009**: A tela de contas MUST mostrar o ato que cabe a cada conta, com confirmação, e a
   recusa como estado, com a frase em inglês. Ela segue o protótipo aprovado pela pessoa
-  mantenedora (`prototipo/`, ainda **por aprovar**).
+  mantenedora em 2026-10-03 (`prototipo/README.md`, "Aprovação").
 
 ### Key Entities
 

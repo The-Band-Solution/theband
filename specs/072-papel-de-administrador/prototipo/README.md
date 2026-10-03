@@ -90,3 +90,19 @@ reaproveitada.
 - **Deixar o papel exige comparar o e-mail digitado no servidor**, como o `confirm_slug` da 070.
   O campo e a recusa entram no contrato do ato ou do evento da LiveView.
 - **A tabela empilhada** é mudança de template que vai além da célula — é a Q4.
+
+## Aprovação — 2026-10-03
+
+**Aprovado pela pessoa mantenedora**, com as recomendações:
+
+| pergunta | decisão |
+|---|---|
+| Q1 | (b) permitir **só** "Remove admin role" em administrador desativado; promover continua só para conta ativa |
+| Q2 | (a) promover **não** exige digitar o e-mail |
+| Q3 | (a) quem foi rebaixado com a tela aberta lê a frase de hoje, "Only organisation administrators can do that." |
+| Q4 | (a) a tabela empilha no telefone nesta feature |
+| Q5 | (b) as 20 mudanças mais recentes, com "N earlier changes, all kept" |
+| Q6 | (a) nenhuma entrada fabricada para os administradores de hoje |
+
+A tela implementada é **exatamente** esta. Mudança volta ao protótipo antes do código.
+
