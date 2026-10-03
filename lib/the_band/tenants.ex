@@ -208,8 +208,13 @@ defmodule TheBand.Tenants do
 
   @spec create_user(Tenant.t(), map()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
   def create_user(%Tenant{id: tenant_id}, attrs) do
+    # Seeds e fixtures: o papel vem explícito, por `com_papel/2`, e não pelo cast (spec 072, S4).
+    # Nenhum caminho de `lib/` chama esta função; a tela usa `cadastrar_conta/3`, que cria `member`.
+    {papel, attrs} = Map.pop(attrs, "role", "member")
+
     %User{}
     |> User.changeset(Map.put(attrs, "tenant_id", tenant_id))
+    |> User.com_papel(papel)
     |> Repo.insert()
   end
 

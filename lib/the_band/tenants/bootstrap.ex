@@ -158,12 +158,13 @@ defmodule TheBand.Tenants.Bootstrap do
   end
 
   defp conta(%Tenant{id: tenant_id}, valores) do
-    User.changeset(%User{}, %{
+    %User{}
+    |> User.changeset(%{
       "email" => valores.email,
       "name" => valores.nome_da_pessoa,
-      "role" => "admin",
       "tenant_id" => tenant_id
     })
+    |> User.com_papel("admin")
   end
 
   defp corrida_perdida?(%Ecto.Changeset{errors: errors}) do
