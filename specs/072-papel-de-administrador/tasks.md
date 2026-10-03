@@ -141,7 +141,7 @@
 
 ## Fase 5: Acabamento
 
-- [ ] T013 Escrever a nota de riscos e abrir o PR
+- [x] T013 Escrever a nota de riscos e abrir o PR
   - **Pronta quando**: T001–T012
   - **Descrição**:
     - o risco residual de `seguranca.md`: os triggers do dono (#1131), a janela do aviso e os tokens
