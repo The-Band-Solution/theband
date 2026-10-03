@@ -171,6 +171,26 @@ defmodule TheBand.Credenciais.IdadeTest do
       refute Map.has_key?(changeset.changes, :previous_secret_set_at)
     end
 
+    test "linha anterior à migração, regravada com a mesma chave, não volta ao prazo", ctx do
+      aceita(2)
+      {:ok, _} = AI.put(ctx.tenant, %{"secret" => @chave}, ctx.user.id)
+
+      {1, _} =
+        Repo.update_all(
+          from(c in ProviderCredential, where: c.tenant_id == ^ctx.tenant.id),
+          set: [secret_set_at: nil, validated_at: @quatro_meses_atras]
+        )
+
+      # Só para trocar o modelo, por exemplo: `validated_at` é reescrito, e a idade não pode
+      # segui-lo (achado do Design ao desenhar a T018).
+      {:ok, _} = AI.put(ctx.tenant, %{"secret" => @chave}, ctx.user.id)
+      {:ok, regravada} = AI.fetch(ctx.tenant)
+
+      assert Idade.em_uso_desde(regravada) == @quatro_meses_atras
+      assert Idade.estado(regravada, DateTime.utc_now(:second)) == :vencida
+      assert regravada.previous_secret_set_at == nil
+    end
+
     test "linha anterior à migração, trocada, guarda a validação como data anterior", ctx do
       aceita(2)
       {:ok, _} = AI.put(ctx.tenant, %{"secret" => @chave}, ctx.user.id)

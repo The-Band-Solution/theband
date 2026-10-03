@@ -75,7 +75,15 @@ Duas colunas em `ai_provider_credentials`, ambas `utc_datetime`, anuláveis:
 |---|---|---|
 | primeira gravação do tenant | `agora` | `nil` — não houve anterior |
 | chave **diferente** da gravada | `agora` | `em_uso_desde/1` da credencial antes da troca |
-| a **mesma** chave, de novo | inalterado | inalterado |
+| a **mesma** chave, de novo | `em_uso_desde/1` de antes da gravação — o mesmo valor, se já preenchido; o `validated_at` **anterior**, se nulo | inalterado |
+
+**Emendado em 2026-10-03, achado do Design ao desenhar a T018.** A primeira versão dizia
+"inalterado" na mesma chave. Numa linha anterior à migração (`secret_set_at` nulo), `put/3`
+reescreve `validated_at` com `agora`, `em_uso_desde/1` cai nele, e a idade voltava a zero sem
+troca — o que a FR-018 proíbe. Fixar `secret_set_at` no início que valia antes da gravação fecha
+o caso. Resta um canto declarado: linha com **as duas** datas nulas, regravada com a mesma chave,
+passa a contar da regravação — `put/3` sempre grava `validated_at`, e nenhuma linha assim existe
+por esse caminho.
 
 A comparação entre a chave gravada e a nova é feita em memória, com `Plug.Crypto.secure_compare/2`,
 dentro de `AI`; nenhuma das duas sai do módulo, e o resultado não é registrado em lugar nenhum.
@@ -105,7 +113,11 @@ copiaria o mesmo valor e esconderia que a data é inferida.
   continua funcionando (FR-016: pedir, e não impedir). Expirar transformaria a política em queda
   de serviço num dia que ninguém escolheu.
 - **A credencial de ferramenta.** Não ganha coluna: a troca dela já é uma linha nova, com
-  `validated_at` novo, e a antiga continua com a data dela.
+  `validated_at` novo — a data da troca fica registrada (FR-018). A antiga continua com a data
+  dela enquanto existir, **desativada**. Se quem administra a **remove**, a data vai junto com o
+  segredo: remover é apagar a credencial por decisão explícita (feature 001), e guardar a data de
+  um segredo que não existe mais não serve à cobrança, que olha só as credenciais vigentes. Não
+  viola a FR-018, que pede a data **da troca**, e não o histórico das anteriores.
 - **O segredo.** Nada aqui lê, imprime ou compara o segredo fora de `AI.put/3`.
 - **A chave do ambiente (`API_KEY`).** Fica **fora** de `Idade`: ela é do processo, não tem
   linha nem data, e a plataforma não sabe quando foi posta. A tela da T018, quando existir, a
