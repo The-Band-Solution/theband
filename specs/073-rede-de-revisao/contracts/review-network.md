@@ -214,6 +214,18 @@ em memória, e `Parameters` traduz uma na outra. O grupo mínimo (3, decidido em
 declarado na base e **não** entra aqui: com a Q4, os grupos são do recorte, e não sobra caso em que
 um tamanho de grupo fale de quem o leitor não alcança. Ele volta na fatia 2.
 
+## Estado da implementação — 2026-10-03
+
+| função | estado |
+|---|---|
+| `Commands.compute/4`, `Reader.read/5`, `Slice.view/4`, `Graph`, `Classification` | escritas e provadas com os parâmetros como argumento |
+| `Parameters.fetch!/0` | lê `review.network.parameters` com as chaves da proposta (`window_days.values.allowed`/`default`, `k_values.values.k`, `min_reviews.values.min_reviews`, `counted_states.values.states`, `version`); **levanta** enquanto a regra não está na base (T004) |
+| `compute/3` (fachada) | ligada; levanta pelo mesmo motivo, e ninguém a chama enquanto o gatilho (T020) não existe |
+| `read/4`, `windows/0`, `subscribe/1` (fachada) | **não** escritas: T017, quando a base existir |
+
+`knowledge_versions` guarda hoje só a versão da regra de parâmetros. As versões das medidas e da
+aresta entram quando o schema de medida ganhar `version` (T003, T004).
+
 ## `Graph` — módulo interno, puro
 
 Não é API pública (não aparece na fachada), e é testado direto porque é onde a matemática mora.

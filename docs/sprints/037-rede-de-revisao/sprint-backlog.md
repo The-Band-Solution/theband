@@ -59,23 +59,23 @@ Nenhuma fecha neste sprint: todas dependem da tela.
 | # | Tarefa | Atende | Issue | Estado |
 |---|---|---|---|---|
 | T001 | Integrar `development`, com a #1181 | US1 | [#1189](https://github.com/The-Band-Solution/theband/issues/1189) | feito |
-| T005 | Criar a tabela da leitura vigente | US1 | [#1193](https://github.com/The-Band-Solution/theband/issues/1193) | a fazer |
-| T006 | Dar a EO as três leituras que a rede pede | US1 | [#1194](https://github.com/The-Band-Solution/theband/issues/1194) | a fazer |
-| T007 | Filtrar os repositórios observados por organização | US1 | [#1195](https://github.com/The-Band-Solution/theband/issues/1195) | a fazer |
-| T008 | Ler os pares revisor–solicitação, com tenant nas duas pontas | US1 | [#1196](https://github.com/The-Band-Solution/theband/issues/1196) | a fazer |
-| T009 | Ler quem abriu solicitação na janela | US1 | [#1197](https://github.com/The-Band-Solution/theband/issues/1197) | a fazer |
-| T010 | Remover o ranking de revisores sem alcance | US1 | [#1198](https://github.com/The-Band-Solution/theband/issues/1198) | a fazer |
-| T011 | Classificar cada par num destino só | US1 | [#1199](https://github.com/The-Band-Solution/theband/issues/1199) | a fazer |
-| T012 | Calcular arestas, totais, grupos e concentração em Elixir puro | US1 | [#1200](https://github.com/The-Band-Solution/theband/issues/1200) | a fazer |
-| T014 | Substituir as três leituras da organização numa transação | US1 | [#1202](https://github.com/The-Band-Solution/theband/issues/1202) | a fazer |
-| T015 | Recortar a concentração e as exclusões pelo alcance | US1 | [#1203](https://github.com/The-Band-Solution/theband/issues/1203) | a fazer |
-| T016 | Ler a rede com o alcance recalculado a cada leitura | US1 | [#1204](https://github.com/The-Band-Solution/theband/issues/1204) | a fazer |
-| T018 | Conferir tenant e organização antes de calcular, e cancelar sem gravar | US1 | [#1206](https://github.com/The-Band-Solution/theband/issues/1206) | a fazer |
-| T023 | Montar a lista por pessoa, ordenada por nome | US2 | [#1211](https://github.com/The-Band-Solution/theband/issues/1211) | a fazer |
-| T025 | Contar os grupos, escondendo o tamanho dos pequenos | US3 | [#1213](https://github.com/The-Band-Solution/theband/issues/1213) | a fazer |
-| T027 | Provar que a rede não sai pela API nem pela MCP | US1 | [#1215](https://github.com/The-Band-Solution/theband/issues/1215) | a fazer |
-| T028 | Abrir a issue do aviso de recorte que promete mais do que aplica | US1 | [#1216](https://github.com/The-Band-Solution/theband/issues/1216) | a fazer |
-| T030 | Contar a conta apagada como sem pessoa ligada, e não como bot, na coleta | US1 | [#1219](https://github.com/The-Band-Solution/theband/issues/1219) | a fazer |
+| T005 | Criar a tabela da leitura vigente | US1 | [#1193](https://github.com/The-Band-Solution/theband/issues/1193) | feito |
+| T006 | Dar a EO as três leituras que a rede pede | US1 | [#1194](https://github.com/The-Band-Solution/theband/issues/1194) | feito |
+| T007 | Filtrar os repositórios observados por organização | US1 | [#1195](https://github.com/The-Band-Solution/theband/issues/1195) | feito |
+| T008 | Ler os pares revisor–solicitação, com tenant nas duas pontas | US1 | [#1196](https://github.com/The-Band-Solution/theband/issues/1196) | feito |
+| T009 | Ler quem abriu solicitação na janela | US1 | [#1197](https://github.com/The-Band-Solution/theband/issues/1197) | feito |
+| T010 | Remover o ranking de revisores sem alcance | US1 | [#1198](https://github.com/The-Band-Solution/theband/issues/1198) | feito |
+| T011 | Classificar cada par num destino só | US1 | [#1199](https://github.com/The-Band-Solution/theband/issues/1199) | feito |
+| T012 | Calcular arestas, totais, grupos e concentração em Elixir puro | US1 | [#1200](https://github.com/The-Band-Solution/theband/issues/1200) | feito |
+| T014 | Substituir as três leituras da organização numa transação | US1 | [#1202](https://github.com/The-Band-Solution/theband/issues/1202) | feito |
+| T015 | Recortar a concentração e as exclusões pelo alcance | US1 | [#1203](https://github.com/The-Band-Solution/theband/issues/1203) | feito |
+| T016 | Ler a rede com o alcance recalculado a cada leitura | US1 | [#1204](https://github.com/The-Band-Solution/theband/issues/1204) | feito |
+| T018 | Conferir tenant e organização antes de calcular, e cancelar sem gravar | US1 | [#1206](https://github.com/The-Band-Solution/theband/issues/1206) | feito |
+| T023 | Montar a lista por pessoa, ordenada por nome | US2 | [#1211](https://github.com/The-Band-Solution/theband/issues/1211) | feito |
+| T025 | Contar os grupos, escondendo o tamanho dos pequenos | US3 | [#1213](https://github.com/The-Band-Solution/theband/issues/1213) | feito |
+| T027 | Provar que a rede não sai pela API nem pela MCP | US1 | [#1215](https://github.com/The-Band-Solution/theband/issues/1215) | feito |
+| T028 | Abrir a issue do aviso de recorte que promete mais do que aplica | US1 | [#1216](https://github.com/The-Band-Solution/theband/issues/1216) | feito |
+| T030 | Contar a conta apagada como sem pessoa ligada, e não como bot, na coleta | US1 | [#1219](https://github.com/The-Band-Solution/theband/issues/1219) | feito |
 
 Tarefa não recebe `Priority`: herda a da user story.
 

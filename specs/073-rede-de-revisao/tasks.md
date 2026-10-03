@@ -32,6 +32,14 @@ arquivo antes de injetar e `diff` depois de restaurar.
 
 **Tarefas humanas** são marcadas **👤 pessoa mantenedora**.
 
+**Andamento em 2026-10-03** (sprint 037): feitas T001, T005–T012, T014–T016, T018, T023, T025, T027,
+T028 e T030, cada uma com o defeito injetado visto reprovando (a evidência está na issue). **T013 em
+parte**: `Parameters` lê a regra da base e levanta sem ela; falta a base real (T004). A fachada tem só
+`compute/3`. Três desvios da execução, registrados nos contratos: a unicidade do job é `:incomplete`
+(o Oban 2.23.1 não aceita deixar `:executing` de fora sem aviso); tirar **um** filtro de tenant de
+`review_pairs/3` não reprova nada, porque a igualdade do join segura o outro; T028 já existia como
+#1185. T030 foi provada sobre a função de classificação da coleta, e não sobre o payload inteiro.
+
 ## Fase 1: Setup
 
 - [x] T001 Integrar `development`, com a #1181
@@ -94,7 +102,7 @@ arquivo antes de injetar e `diff` depois de restaurar.
   - **Teste**: os três comandos, códigos de saída lidos sem pipe. **Defeito a injetar**: apagar
     `minimum_sample` (ou o nome aceito) da regra; `mix knowledge.test` reprova
 
-- [ ] T005 Criar a tabela da leitura vigente
+- [x] T005 Criar a tabela da leitura vigente
   - **Pronta quando**: `data-model.md` §1
   - **Descrição**: `priv/repo/migrations/<ts>_create_review_network_readings.exs`, `change/0`:
     - `review_network_readings` com as colunas de data-model.md §1.1, `tenant_id` com
@@ -112,7 +120,7 @@ arquivo antes de injetar e `diff` depois de restaurar.
     composta, índice único). **Defeito a injetar**: FK simples em `organization_id`; o teste da FK
     composta reprova
 
-- [ ] T006 [P] Dar a EO as três leituras que a rede pede
+- [x] T006 [P] Dar a EO as três leituras que a rede pede
   - **Pronta quando**: `contracts/fronteiras.md`, seção EO
   - **Descrição**: em `lib/the_band/ontology/seon/eo/queries.ex`, delegadas em `eo.ex`:
     - `fetch_organization/2`, por id **e** tenant, id malformado é `{:error, :not_found}` (R4);
@@ -126,7 +134,7 @@ arquivo antes de injetar e `diff` depois de restaurar.
     organizações. **Defeito a injetar**: tirar o filtro de tenant de `fetch_organization/2`; o caso de
     organização de outro tenant reprova
 
-- [ ] T007 [P] Filtrar os repositórios observados por organização
+- [x] T007 [P] Filtrar os repositórios observados por organização
   - **Pronta quando**: `contracts/fronteiras.md`, seção CMPO
   - **Descrição**: opção `organization_id:` em `CMPO.list_observed/2`
     (`lib/the_band/ontology/seon/cmpo/queries.ex`), filtrando `r.organization_id` no banco (§7.2)
@@ -135,7 +143,7 @@ arquivo antes de injetar e `diff` depois de restaurar.
   - **Teste**: `test/the_band/ontology/seon/cmpo/list_observed_organization_test.exs`. **Defeito a
     injetar**: ignorar a opção; o caso de B reprova
 
-- [ ] T008 [P] Ler os pares revisor–solicitação da janela, com tenant nas duas pontas
+- [x] T008 [P] Ler os pares revisor–solicitação da janela, com tenant nas duas pontas
   - **Pronta quando**: `contracts/fronteiras.md`, seção `Quality.review_pairs/3`
   - **Descrição**: `Quality.review_pairs/3` em `lib/the_band/quality.ex`, uma consulta agrupada por
     (conta revisora, solicitação) com `max(external_submitted_at)`; `a.tenant_id` **e** `c.tenant_id`
@@ -150,7 +158,7 @@ arquivo antes de injetar e `diff` depois de restaurar.
     reprova); tirar `c.tenant_id` do `where` e do join (A1 reprova). Cada filtro sozinho é
     redundante com a igualdade do join, e o contrato diz isso
 
-- [ ] T009 [P] Ler quem abriu solicitação na janela
+- [x] T009 [P] Ler quem abriu solicitação na janela
   - **Pronta quando**: `contracts/fronteiras.md`, seção `Changes.change_request_authors/3`
   - **Descrição**: `Changes.change_request_authors/3` em `lib/the_band/changes.ex`: autores com
     pessoa ligada, `c.tenant_id` filtrado, `no_longer_observed_at` nulo, `external_created_at >=
@@ -160,7 +168,7 @@ arquivo antes de injetar e `diff` depois de restaurar.
   - **Teste**: `test/the_band/changes/change_request_authors_test.exs`. **Defeito a injetar**: tirar o
     filtro de tenant; o caso de T2 reprova
 
-- [ ] T010 Remover o ranking de revisores sem alcance
+- [x] T010 Remover o ranking de revisores sem alcance
   - **Pronta quando**: nada; **em commit próprio** (research.md R13)
   - **Descrição**: apagar `Quality.by_reviewer/2` de `lib/the_band/quality.ex` e os testes dela em
     `test/the_band/quality_test.exs`. O isolamento entre tenants que um deles provava passa a T008
@@ -169,7 +177,7 @@ arquivo antes de injetar e `diff` depois de restaurar.
   - **Teste**: `mix compile --warnings-as-errors` e `mix test test/the_band/quality_test.exs`, com o
     código de saída. O teste que guarda é T008, que prova o isolamento na consulta nova
 
-- [ ] T011 [P] Classificar cada par num destino só
+- [x] T011 [P] Classificar cada par num destino só
   - **Pronta quando**: data-model.md §2.1; research.md R3
   - **Descrição**: `lib/the_band/review_network/classification.ex`, puro. Recebe os pares de T008 e o
     mapa de `EO.account_types/2`; devolve `{:aresta, revisor, autor} | :auto_revisao |
@@ -182,7 +190,7 @@ arquivo antes de injetar e `diff` depois de restaurar.
   - **Teste**: `test/the_band/review_network/classification_test.exs`. **Defeito a injetar**: decidir
     bot por `reviewer_type == "Bot"` (o filtro de `Quality`); A14 reprova
 
-- [ ] T012 [P] Calcular arestas, totais, grupos e concentração em Elixir puro
+- [x] T012 [P] Calcular arestas, totais, grupos e concentração em Elixir puro
   - **Pronta quando**: `contracts/review-network.md`, seção `Graph`; research.md R2 e R5
   - **Descrição**: `lib/the_band/review_network/graph.ex`, sem `Repo`, relógio nem `Logger`:
     `build/2` (arestas por frequência de `{revisor, autor}` dos pares da janela, e as solicitações
@@ -217,7 +225,7 @@ recortada pelo alcance, numa janela de 30, 90 ou 180 dias.
 **Teste independente**: com revisões coletadas de uma organização, a tela mostra total, revisores e
 concentração, e os números batem com a contagem manual (SC-001).
 
-- [ ] T014 [US1] Substituir as três leituras da organização numa transação
+- [x] T014 [US1] Substituir as três leituras da organização numa transação
   - **Pronta quando**: T005, T006, T007, T008, T009, T011, T012
   - **Descrição**: `lib/the_band/review_network/schemas/reading.ex` (privado) e
     `lib/the_band/review_network/commands.ex`. `Commands.compute/4` recebe `(tenant, organização,
@@ -235,7 +243,7 @@ concentração, e os números batem com a contagem manual (SC-001).
     pela contagem); gravar `name` em `people` (A12 reprova); contar a auto-revisão como aresta (o
     invariante reprova)
 
-- [ ] T015 [US1] Recortar a concentração e as exclusões pelo alcance
+- [x] T015 [US1] Recortar a concentração e as exclusões pelo alcance
   - **Pronta quando**: T012
   - **Descrição**: `lib/the_band/review_network/slice.ex`, puro. Recebe a leitura, o alcance
     (`:todas` ou `{:algumas, MapSet}`) e os parâmetros; devolve a `view()` sem nomes:
@@ -254,7 +262,7 @@ concentração, e os números batem com a contagem manual (SC-001).
     concentração sobre a rede inteira (o caso de Ana reprova); acrescentar `outside_reach_reviews` à
     view (A7 reprova)
 
-- [ ] T016 [US1] Ler a rede de uma organização com o alcance recalculado a cada leitura
+- [x] T016 [US1] Ler a rede de uma organização com o alcance recalculado a cada leitura
   - **Pronta quando**: T006, T014, T015; `development` com a #1181 (T001)
   - **Descrição**: `lib/the_band/review_network/queries.ex` (a leitura vigente por tenant,
     organização e janela) e `Reader.read/5` em `lib/the_band/review_network/reader.ex`, que recebe os
@@ -285,7 +293,7 @@ concentração, e os números batem com a contagem manual (SC-001).
     uma busca no código de `lib/the_band/review_network/` por literais `[30, 90, 180]` e `[1, 2, 3]`
     não acha nada. **Defeito a injetar**: escrever `@windows [30, 90, 180]` no módulo; o teste reprova
 
-- [ ] T018 [US1] Conferir tenant e organização antes de calcular, e cancelar sem gravar
+- [x] T018 [US1] Conferir tenant e organização antes de calcular, e cancelar sem gravar
   - **Pronta quando**: `contracts/job.md`; T006
   - **Descrição**: `lib/the_band/jobs/compute_review_network.ex`, fila `:transformation`,
     `max_attempts: 3`, unicidade por `(tenant_id, organization_id)` em `available`, `scheduled` e
@@ -362,7 +370,7 @@ concentração, e os números batem com a contagem manual (SC-001).
 
 **Teste independente**: para Bia, as quatro contagens e os pares batem com as revisões da janela.
 
-- [ ] T023 [US2] Montar a lista por pessoa, ordenada por nome, com os pares recortados
+- [x] T023 [US2] Montar a lista por pessoa, ordenada por nome, com os pares recortados
   - **Pronta quando**: T015, T016
   - **Descrição**: em `Slice` e `Reader`: `people` com `given` e `received` (o total verdadeiro da
     pessoa, sobre a rede inteira, R2 item 1), `{:ausente, :nao_revisou}` e
@@ -395,7 +403,7 @@ concentração, e os números batem com a contagem manual (SC-001).
 **Teste independente**: dois grupos que só se revisam entre si dão *"2 groups that do not review
 each other"* com os dois tamanhos.
 
-- [ ] T025 [US3] Contar os grupos só entre as pessoas que quem lê alcança
+- [x] T025 [US3] Contar os grupos só entre as pessoas que quem lê alcança
   - **Pronta quando**: T012, T015
   - **Descrição**: em `Slice`: grupos do **mesmo subgrafo induzido** da concentração
     (`Graph.groups/1` sobre `Graph.induced/2`; Q4, decidido em 2026-10-03); com `:todas`, a rede
@@ -418,7 +426,7 @@ each other"* com os dois tamanhos.
 
 ## Fase 6: Acabamento
 
-- [ ] T027 [P] Provar que a rede não sai pela API nem pela MCP
+- [x] T027 [P] Provar que a rede não sai pela API nem pela MCP
   - **Pronta quando**: nada
   - **Descrição**: `test/the_band/review_network/exposicao_test.exs` lê as rotas de
     `TheBandWeb.Router` e o registro de ferramentas de `lib/the_band/mcp/`, e reprova se alguma rota
@@ -427,7 +435,7 @@ each other"* com os dois tamanhos.
   - **Teste**: o próprio arquivo. **Defeito a injetar**: uma rota de API apontando para um controller
     `ReviewNetworkController`; o teste reprova
 
-- [ ] T028 [P] Abrir a issue do aviso de recorte que promete mais do que aplica
+- [x] T028 [P] Abrir a issue do aviso de recorte que promete mais do que aplica
   - **Pronta quando**: nada
   - **Descrição**: issue `bug` + `security` sobre `lib/the_band_web/live/verification_live/people.ex`,
     cujo aviso diz *"whoever you lead by declared role"* e `pessoas_alcancadas/2` não inclui a
@@ -444,7 +452,7 @@ each other"* com os dois tamanhos.
     revisor pedido e está no projeto
   - **Teste**: `EXIT=0` do `mix gates`; `gh pr view <n> --json reviewRequests` não vazio
 
-- [ ] T030 [P] Contar a conta apagada como sem pessoa ligada, e não como bot, na coleta
+- [x] T030 [P] Contar a conta apagada como sem pessoa ligada, e não como bot, na coleta
   - **Pronta quando**: nada (decisão da pessoa mantenedora de 2026-10-03)
   - **Descrição**: `lib/the_band/ingestion/github_change_requests.ex:321` conta em `de_bot` toda
     avaliação cujo `author.__typename` não é `"User"`, e a avaliação de autor nulo (conta apagada,
