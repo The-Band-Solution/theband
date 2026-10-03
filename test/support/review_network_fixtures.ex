@@ -16,6 +16,26 @@ defmodule TheBand.ReviewNetworkFixtures do
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Quality.Commands, as: QualityCommands
 
+  @doc """
+  Parâmetros **de teste** para as funções internas que os recebem como argumento.
+
+  Não são os da base: são escolhidos para o teste, e por isso vivem em `test/support`. Em produção
+  a fachada os lê da base (T013, T017); nenhum valor daqui chega a `lib/`.
+  """
+  def parametros(extra \\ %{}) do
+    Map.merge(
+      %{
+        windows: [30, 90, 180],
+        default_window: 90,
+        ks: [1, 2, 3],
+        minimum_sample: 10,
+        counted_states: ~w(APPROVED CHANGES_REQUESTED COMMENTED DISMISSED),
+        knowledge_versions: %{"review.network.parameters" => 1}
+      },
+      extra
+    )
+  end
+
   @doc "Uma organização observada e um repositório observado dela."
   def organizacao_com_repositorio(tenant, login \\ nil) do
     login = login || "org-#{System.unique_integer([:positive])}"
