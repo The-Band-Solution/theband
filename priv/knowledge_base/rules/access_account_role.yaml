@@ -1,0 +1,89 @@
+derivation_rule:
+  id: access.account_role
+  version: 1
+  provider: platform
+  status: proposed
+  confidence: high
+
+  name:
+    pt-BR: "A marca de administrador — os dois papéis, a recusa do último e a ausência de registro"
+
+  description:
+    pt-BR: >
+      A tela `/accounts` (spec 072) mostra quem administra a organização, e os atos de promover e
+      rebaixar mudam isso. Este arquivo declara o vocabulário: os rótulos dos dois papéis, a frase
+      da recusa que impede a organização de ficar sem administrador, e a frase de quando uma conta
+      não tem mudança de papel registrada.
+
+      Moram aqui, e não em constante de módulo, pela mesma razão de `access.account_lifecycle`:
+      dizer que alguém **administra** é afirmação da plataforma sobre uma pessoa, e uma mudança de
+      palavra num template mudaria o que se afirma sem que ninguém revisasse.
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: >
+      spec 072, protótipo `specs/072-papel-de-administrador/prototipo/accounts-admin-role.html`,
+      aprovado pela pessoa mantenedora em 2026-10-03; research R6
+    note: >
+      Sem razão de lista fechada, ao contrário da desativação: a spec decide que promover e
+      rebaixar levam nota opcional, e "no note" reaproveita `access.account_lifecycle`.
+
+  rules:
+    roles:
+      name:
+        pt-BR: "Os papéis — dois, e o banco recusa um terceiro"
+      statement:
+        pt-BR: >
+          Uma conta é `admin` ou `member`. O `CHECK users_role_valido` recusa qualquer outro valor,
+          e esta lista é a que a tela nomeia.
+      values:
+        - code: admin
+          label: "administrator"
+          meaning:
+            pt-BR: >
+              Administra a organização: cadastra, desativa e reativa contas, declara pessoas,
+              concede acesso e emite tokens para outras contas.
+        - code: member
+          label: "member"
+          meaning:
+            pt-BR: >
+              Usa a plataforma sem administrá-la. A tela escreve a palavra, e não `—`: membro é um
+              papel, não a ausência de um.
+
+    last_active_admin:
+      name:
+        pt-BR: "A recusa do último administrador ativo"
+      statement:
+        pt-BR: >
+          Rebaixar ou desativar o último administrador ativo é recusado, e a tela diz a
+          consequência em vez de um código de erro.
+      values:
+        refusal: "the organisation would have no active administrator"
+
+    no_change_recorded:
+      name:
+        pt-BR: "A ausência de registro"
+      statement:
+        pt-BR: >
+          Uma conta cujo papel nunca mudou depois de existir não tem episódio. A tela diz isso em
+          palavras, e não inventa um "desde sempre" que ninguém registrou.
+      values:
+        absent_phrase: "no role change recorded"
+
+  refuses:
+    - proposal: "uma razão de lista fechada para promover e rebaixar"
+      by:
+        pt-BR: "spec 072, decisão de escopo"
+      reason:
+        pt-BR: >
+          Não há pergunta que conte promoções por motivo. A nota opcional basta, e uma lista sem
+          consumidor é vocabulário a manter verdadeiro sem que ninguém o leia.
+
+  misinterpretations:
+    - claim:
+        pt-BR: "a conta sem registro de mudança sempre foi deste papel"
+      why_wrong:
+        pt-BR: >
+          O registro começa com a spec 072. Antes dela, o papel mudava sem episódio, e uma conta
+          sem registro pode ter mudado sem que a plataforma saiba.

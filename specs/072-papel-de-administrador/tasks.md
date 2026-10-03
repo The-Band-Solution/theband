@@ -86,7 +86,9 @@
     - a sequência de S3 (desativar com a struct velha de um membro promovido no meio) não deixa a
       organização sem admin;
     - o `:ja_desativada` falso não acontece mais;
-    - o `ultimo_admin_ativo_test.exs` continua verde.
+    - o `ultimo_admin_ativo_test.exs` continua verde, com a invariante de pé (sobra um admin). Os
+      motivos mudaram: o membro que tenta desativar recebe `:nao_autorizado`, e a segunda desativação
+      cruzada também, porque o ator relido sob a trava já não é admin ativo. Registrado na T007.
   - **Teste**: `papel_de_administrador_test.exs`, o caso de S3.
 
 - [ ] T008 [US2] Os atos de administração conferem o ator relido

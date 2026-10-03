@@ -33,6 +33,7 @@ defmodule TheBandWeb.ApiTokenLive.Index do
 
   alias TheBand.Tenants
   alias TheBandWeb.ApiTokenLive.View
+  alias TheBandWeb.Live.Hooks
 
   # As janelas do painel de uso — R2.21. **A janela é escolhida e mostrada**: contagem sem
   # janela é número sem denominador, e "412 leituras" não diz nada sem dizer em quanto tempo.
@@ -208,6 +209,9 @@ defmodule TheBandWeb.ApiTokenLive.Index do
          )
          |> carregar()}
 
+      {:error, :nao_autorizado} ->
+        {:noreply, Hooks.recusar_por_papel(socket)}
+
       {:error, changeset} ->
         {:noreply, assign(socket, erro: motivo(changeset), valor_em_claro: nil)}
     end
@@ -236,6 +240,9 @@ defmodule TheBandWeb.ApiTokenLive.Index do
          ) do
       {:ok, _} ->
         {:noreply, socket |> assign(confirmando: nil, valor_em_claro: nil) |> carregar()}
+
+      {:error, :nao_autorizado} ->
+        {:noreply, Hooks.recusar_por_papel(socket)}
 
       {:error, :not_found} ->
         {:noreply,

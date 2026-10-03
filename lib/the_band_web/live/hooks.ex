@@ -103,20 +103,28 @@ defmodule TheBandWeb.Live.Hooks do
     case on_mount(:current_scope, params, session, socket) do
       {:cont, socket} ->
         if User.admin?(socket.assigns.current_user) do
-          {:cont, socket}
+          # A marca para o `reconferir/2`: esta tela é da área admin, e quem perder o papel
+          # com ela aberta sai daqui (072, FR-008).
+          {:cont, assign(socket, :area_admin, true)}
         else
-          {:halt,
-           socket
-           |> put_flash(
-             :error,
-             dgettext("errors", "Only organisation administrators can do that.")
-           )
-           |> redirect(to: "/people")}
+          {:halt, recusar_por_papel(socket)}
         end
 
       halted ->
         halted
     end
+  end
+
+  @doc """
+  A recusa de quem não administra, numa área admin: a frase de hoje e `/people` (072, Q3). É a
+  mesma do `mount`, e as telas a usam quando um ato devolve `:nao_autorizado` — a janela entre o
+  `commit` do rebaixamento e a entrega do aviso.
+  """
+  @spec recusar_por_papel(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
+  def recusar_por_papel(socket) do
+    socket
+    |> put_flash(:error, dgettext("errors", "Only organisation administrators can do that."))
+    |> redirect(to: "/people")
   end
 
   # A área ativa do menu vem do caminho da request (spec 046, FR-006). Vive na
@@ -148,17 +156,26 @@ defmodule TheBandWeb.Live.Hooks do
     end
   end
 
+  # A conta relida também decide o PAPEL (072, FR-008): o rebaixamento avisa no tópico da conta,
+  # e a tela aberta numa área admin vai para `/people`. A struct do `mount` é trocada pela relida,
+  # para nenhum evento seguinte decidir pelo papel de antes.
   defp reconferir(socket, session) do
     with {:ok, _sessao, user} <- Sessao.conferir(session),
          :ok <- organizacao_ativa(user),
          :ok <- conta_ativa(user) do
-      socket
+      socket |> assign(:current_user, user) |> manter_na_area(user)
     else
       {:error, motivo, dona} ->
         {:halt, derrubada} = derrubar(socket, dona, motivo)
         derrubada
     end
   end
+
+  defp manter_na_area(%{assigns: %{area_admin: true}} = socket, user) do
+    if User.admin?(user), do: socket, else: recusar_por_papel(socket)
+  end
+
+  defp manter_na_area(socket, _user), do: socket
 
   defp derrubar(socket, dona, motivo) do
     {user_id, tenant_id} = dona || {nil, nil}

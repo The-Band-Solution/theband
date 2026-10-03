@@ -14,15 +14,24 @@
 | `:nao_autorizado` | o ator não é admin ativo da organização, relido sob a trava |
 | `:not_found` | a conta não é da organização. A tela diz "não encontrada" (FR-003) |
 | `:ultimo_admin_ativo` | rebaixar o único admin ativo |
-| `:estado_mudou` | promover quem já é admin, ou rebaixar quem já é membro. Volta com o último episódio da conta, para a frase de D5 do protótipo |
+| `{:estado_mudou, episodio \| nil}` | promover quem já é admin, ou rebaixar quem já é membro. Volta com o último episódio da conta, para a frase de D5 do protótipo; `nil` quando a conta não tem episódio. Corrigido na T006: o texto dizia `:estado_mudou` e "volta com", e um átomo não volta com nada |
 | `:conta_desativada` | promover conta desativada. Rebaixar desativada é permitido (Q1) |
 
 Nenhum retorno carrega a struct do ator.
 
-## `TheBand.Tenants.role_changes(%Tenant{}, opts) :: [episodio]`
+## `TheBand.Tenants.role_changes(%Tenant{}, opts) :: %{mudancas: [episodio], total: integer()}`
 
 Os episódios da organização, do mais novo ao mais antigo, `limit: 20` por padrão (Q5), mais a
-contagem total. Só lê; quem chama é a tela de contas, já atrás de `require_admin`.
+contagem total (corrigido na T010: o cabeçalho dizia `[episodio]`, e uma lista não carrega a
+contagem). Quem mudou e quem agiu vêm carregados só com id, nome e e-mail. Só lê; quem chama é a tela de contas, já atrás de `require_admin`.
+
+## `TheBand.Tenants.role_summary(%Tenant{}, user_ids) :: %{user_id => %{ate_admin: episodio | nil, ate_membro: episodio | nil}}`
+
+Para a célula `Management` (T011), e acrescentada ao contrato antes do código dela: o último
+episódio de cada conta **para** `admin` e o último **para** `member`, numa consulta só. Conta sem
+episódio fica fora do mapa. A tela não completa a ausência: sem episódio, ela diz "no role change
+recorded" (Q6), e não "never an administrator" nem "since the organisation was created", que
+afirmariam o que ninguém registrou — o registro começa com a 072.
 
 ## `TheBand.Tenants.PapelDeAdministrador.exigir_ator(tenant_id, actor_id) :: :ok | {:error, :nao_autorizado}`
 

@@ -17,6 +17,8 @@ defmodule TheBand.Tenants do
   alias TheBand.Tenants.AccountLifecycle
   alias TheBand.Tenants.ApiTokens
   alias TheBand.Tenants.Auth
+  alias TheBand.Tenants.MudancaDePapel
+  alias TheBand.Tenants.PapelDeAdministrador
   alias TheBand.Tenants.Sessions
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
@@ -31,6 +33,12 @@ defmodule TheBand.Tenants do
   defdelegate change_password(tenant, user_id, atual, nova), to: Auth
   defdelegate reset_password(tenant, user_id, actor_id), to: Auth
   defdelegate cadastrar_conta(tenant, attrs, actor), to: Auth
+
+  # A marca de administrador — spec 072. Só por estes atos o papel de uma conta existente muda.
+  defdelegate promote_user(tenant, user_id, actor, opts \\ []), to: MudancaDePapel, as: :promover
+  defdelegate demote_user(tenant, user_id, actor, opts \\ []), to: MudancaDePapel, as: :rebaixar
+  defdelegate role_changes(tenant, opts \\ []), to: MudancaDePapel, as: :listar
+  defdelegate role_summary(tenant, user_ids), to: MudancaDePapel, as: :resumo_por_conta
 
   defdelegate scopes(tenant, user), to: Access
   defdelegate pode_gerir_estrutura(tenant, user, team_id), to: Access
@@ -276,9 +284,10 @@ defmodule TheBand.Tenants do
   painel sem nada ter sido pedido.
   """
   @spec declare_person(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
-          {:ok, User.t()} | {:error, :not_found | :taken | Ecto.Changeset.t()}
+          {:ok, User.t()} | {:error, :nao_autorizado | :not_found | :taken | Ecto.Changeset.t()}
   def declare_person(%Tenant{id: tenant_id}, user_id, person_id, actor_id) do
-    with {:ok, user} <- usuaria_do_tenant(tenant_id, user_id) do
+    with :ok <- PapelDeAdministrador.exigir_ator(tenant_id, actor_id),
+         {:ok, user} <- usuaria_do_tenant(tenant_id, user_id) do
       user
       |> gravar_elo(person_id, actor_id)
       |> desfecho_do_elo()
@@ -333,9 +342,10 @@ defmodule TheBand.Tenants do
   `person_revoked_at` que o tira de circulação.
   """
   @spec revoke_person(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
-          {:ok, User.t()} | {:error, :not_found | :not_declared}
+          {:ok, User.t()} | {:error, :nao_autorizado | :not_found | :not_declared}
   def revoke_person(%Tenant{id: tenant_id}, user_id, actor_id) do
-    with {:ok, user} <- usuaria_do_tenant(tenant_id, user_id) do
+    with :ok <- PapelDeAdministrador.exigir_ator(tenant_id, actor_id),
+         {:ok, user} <- usuaria_do_tenant(tenant_id, user_id) do
       if User.elo_vigente?(user) do
         revogar_elo(user, actor_id, DateTime.utc_now(:second))
         {:ok, Repo.get!(User, user.id)}
@@ -392,6 +402,7 @@ defmodule TheBand.Tenants do
           {:ok, User.t()}
           | {:error,
              :not_found
+             | :nao_autorizado
              | :ja_desativada
              | :nao_pode_desativar_a_si
              | :ultimo_admin_ativo
@@ -411,7 +422,8 @@ defmodule TheBand.Tenants do
   # resposta rápida a *"pode entrar?"*; o episódio é o registro.
   defp desativar_na_transacao(user, tenant_id, actor_id, razao) do
     Repo.transaction(fn ->
-      with {:error, motivo} <- resta_um_admin_ativo(user, tenant_id), do: Repo.rollback(motivo)
+      with {:error, motivo} <- guarda_da_desativacao(tenant_id, actor_id, user.id),
+           do: Repo.rollback(motivo)
 
       episodio =
         AccountDisablement.abrir_changeset(%{
@@ -480,9 +492,11 @@ defmodule TheBand.Tenants do
   """
   @spec enable_user(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t(), map()) ::
           {:ok, User.t()}
-          | {:error, :not_found | :ja_ativa | :sem_episodio_aberto | Ecto.Changeset.t()}
+          | {:error,
+             :nao_autorizado | :not_found | :ja_ativa | :sem_episodio_aberto | Ecto.Changeset.t()}
   def enable_user(%Tenant{id: tenant_id}, user_id, actor_id, razao) when is_map(razao) do
-    with {:ok, user} <- usuaria_do_tenant(tenant_id, user_id),
+    with :ok <- PapelDeAdministrador.exigir_ator(tenant_id, actor_id),
+         {:ok, user} <- usuaria_do_tenant(tenant_id, user_id),
          :ok <- ja_desativada(user),
          {:ok, episodio} <- episodio_aberto(tenant_id, user_id) do
       reativar_na_transacao(user, episodio, tenant_id, actor_id, razao)
@@ -626,31 +640,21 @@ defmodule TheBand.Tenants do
 
   defp nao_e_a_si(_user_id, _actor_id), do: :ok
 
-  # O GUARDA DO ÚLTIMO ADMINISTRADOR ATIVO, com trava — issue #1055.
-  #
-  # Trava as contas admin ativas da organização com `FOR UPDATE`, em ordem de id para duas
-  # transações não se travarem em ordem cruzada. A segunda desativação cruzada espera a
-  # primeira, e o PostgreSQL reavalia o `WHERE` nas linhas que ela mudou: a conta recém-
-  # desativada sai do resultado, e a segunda vê um administrador só. Sem a trava, as duas
-  # contariam dois.
-  defp resta_um_admin_ativo(%User{role: "admin"} = user, tenant_id) do
-    ativos =
-      Repo.all(
-        from u in User,
-          where: u.tenant_id == ^tenant_id and u.role == "admin" and is_nil(u.disabled_at),
-          order_by: u.id,
-          lock: "FOR UPDATE",
-          select: u.id
-      )
-
-    cond do
-      user.id not in ativos -> {:error, :ja_desativada}
-      length(ativos) <= 1 -> {:error, :ultimo_admin_ativo}
-      true -> :ok
+  # O GUARDA DO ÚLTIMO ADMINISTRADOR ATIVO — issue #1055, e desde a 072 o MESMO de promover e
+  # rebaixar (T007, achado S3). `travar/3` trava as contas admin ativas em ordem de id, confere o
+  # ator no conjunto e relê o alvo sob a trava. A decisão é pela struct relida: o guarda antigo
+  # decidia pelo papel lido antes da trava, e com a promoção existindo, desativar um membro que
+  # outro admin promoveu no meio passava pelo ramo "não é admin" e deixava a organização sem
+  # nenhum.
+  defp guarda_da_desativacao(tenant_id, actor_id, user_id) do
+    with {:ok, %{alvo: alvo} = travado} <-
+           PapelDeAdministrador.travar(tenant_id, actor_id, user_id),
+         :ok <- ainda_ativa(alvo) do
+      if PapelDeAdministrador.ultimo_admin_ativo?(travado),
+        do: {:error, :ultimo_admin_ativo},
+        else: :ok
     end
   end
-
-  defp resta_um_admin_ativo(%User{}, _tenant_id), do: :ok
 
   defp ainda_ativa(user) do
     if User.ativa?(user), do: :ok, else: {:error, :ja_desativada}

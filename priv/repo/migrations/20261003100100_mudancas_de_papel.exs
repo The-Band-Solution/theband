@@ -32,7 +32,7 @@ defmodule TheBand.Repo.Migrations.MudancasDePapel do
       add :note, :text
       add :txid, :bigint, null: false, default: fragment("txid_current()")
 
-      timestamps(type: :utc_datetime, updated_at: false)
+      timestamps(type: :utc_datetime_usec, updated_at: false)
     end
 
     create index(:account_role_changes, [:tenant_id, :inserted_at])

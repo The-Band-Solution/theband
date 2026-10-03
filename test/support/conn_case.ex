@@ -93,7 +93,21 @@ defmodule TheBandWeb.ConnCase do
   no setup de cada teste que depende dele.
   """
   def elo_de_identidade(tenant, user, pessoa) do
-    {:ok, ligada} = TheBand.Tenants.declare_person(tenant, user.id, pessoa.id, user.id)
+    # Quem declara é um administrador ativo da organização, como na tela: desde a 072 (R2), o
+    # ato confere o ator relido, e a própria conta, se for membro, não se declara.
+    import Ecto.Query, only: [from: 2]
+
+    admin_id =
+      TheBand.Repo.one(
+        from(u in TheBand.Tenants.User,
+          where: u.tenant_id == ^tenant.id and u.role == "admin" and is_nil(u.disabled_at),
+          order_by: u.inserted_at,
+          limit: 1,
+          select: u.id
+        )
+      ) || user.id
+
+    {:ok, ligada} = TheBand.Tenants.declare_person(tenant, user.id, pessoa.id, admin_id)
     ligada
   end
 

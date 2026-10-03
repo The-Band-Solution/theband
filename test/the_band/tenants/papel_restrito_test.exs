@@ -12,7 +12,7 @@ defmodule TheBand.Tenants.PapelRestritoTest do
     %{tenant: tenant, admin: user_fixture(tenant)}
   end
 
-  test "o cadastro pela tela cria member, mesmo com \"role\" => \"admin\" nos atributos", ctx do
+  test ~s(o cadastro pela tela cria member, mesmo com "role" => "admin" nos atributos), ctx do
     {:ok, {user, _temporaria}} =
       Tenants.cadastrar_conta(
         ctx.tenant,

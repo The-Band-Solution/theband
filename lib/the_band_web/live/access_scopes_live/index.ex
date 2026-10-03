@@ -20,6 +20,7 @@ defmodule TheBandWeb.AccessScopesLive.Index do
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.Tenants
+  alias TheBandWeb.Live.Hooks
 
   @impl true
   def mount(_params, _session, socket) do
@@ -122,6 +123,9 @@ defmodule TheBandWeb.AccessScopesLive.Index do
           {:error, %Ecto.Changeset{} = changeset} ->
             {:noreply, assign(socket, erro: motivo_da_recusa(changeset), ok: nil)}
 
+          {:error, :not_admin} ->
+            {:noreply, Hooks.recusar_por_papel(socket)}
+
           {:error, motivo} ->
             {:noreply,
              assign(socket,
@@ -143,6 +147,9 @@ defmodule TheBandWeb.AccessScopesLive.Index do
          socket
          |> assign(ok: dgettext("sistema", "Escopo revogado."), erro: nil)
          |> carregar()}
+
+      {:error, :not_admin} ->
+        {:noreply, Hooks.recusar_por_papel(socket)}
 
       {:error, motivo} ->
         {:noreply,

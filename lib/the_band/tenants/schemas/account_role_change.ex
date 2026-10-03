@@ -21,6 +21,6 @@ defmodule TheBand.Tenants.Schemas.AccountRoleChange do
     field :note, :string
     field :txid, :integer, read_after_writes: true
 
-    timestamps(type: :utc_datetime, updated_at: false)
+    timestamps(type: :utc_datetime_usec, updated_at: false)
   end
 end
