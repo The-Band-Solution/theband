@@ -1,0 +1,65 @@
+measurement:
+  id: review.network.concentration.top_k_share
+  name:
+    pt-BR: "Fração das revisões feitas pelas k pessoas que mais revisaram, sem dizer quem"
+    en: "Share of reviews given by the k people who reviewed most, without saying who"
+  answers_information_need: [review.concentration]
+  value_type: percentage
+  unit: percent
+
+  formula:
+    expression: >
+      Seja P o conjunto de pessoas no alcance de quem consulta (para quem administra, todas
+      as pessoas da organização observada O). Considere só as arestas revisor → autor com
+      revisor E autor em P, na janela W (R1).
+        r(p)   = soma de weight(p → a), a em P          (pares solicitação–revisor de p)
+        R      = soma de r(p), p em P                    (o denominador: revisões, e não solicitações)
+        s_1 >= s_2 >= ... os valores r(p) em ordem decrescente — só os VALORES
+        share_k = 100 * (s_1 + ... + s_k) / R,  para k em review.network.parameters.k_values
+      Empate não muda o valor: share_k é a soma dos k maiores valores, e não depende de
+      qual pessoa ocupa qual posição. A lista ordenada NÃO sai do cálculo — só os k
+      números.
+      Se R = 0: AUSENTE com o motivo `no_review_in_window`.
+      Se o número de solicitações distintas revisadas entre pessoas de P for menor que
+      review.network.parameters.min_reviewed_change_requests: AUSENTE com o motivo
+      `sample_below_minimum`, e a tela diz o mínimo e quantas houve.
+      Se k for maior que o número de revisores em P: share_k é AUSENTE com o motivo
+      `fewer_reviewers_than_k` (100% com dois revisores não diz nada sobre k = 3).
+    inputs:
+      [review_edge_reviewer_person_id, review_edge_author_person_id, review_edge_weight,
+       review_change_request_id, viewer_reach, k_values, min_reviewed_change_requests,
+       window_start, window_end, observed_organization_id]
+
+  scope:
+    levels: [observed_organization]
+    filters:
+      - "recorte pelo alcance de quem consulta ANTES de somar: a fração é sobre as revisões entre pessoas que quem consulta alcança, e a pergunta passa a ser 'a revisão está concentrada entre as pessoas que eu alcanço?' (R1, decidido em 2026-10-03)"
+      - "nenhuma posição é nomeada: a tela mostra 'the person who reviewed most did 75%', e nunca quem é (US1, FR-007)"
+      - "a tela NÃO diz quantas revisões ficaram fora do recorte (R2, decidido em 2026-10-03)"
+    period: "janela móvel de 30, 90 ou 180 dias, padrão 90 (review.network.parameters.window_days)"
+
+  limitations:
+    - "O denominador é REVISÕES (pares solicitação–revisor), e não solicitações. Com uma revisão por solicitação as duas coincidem — é o caso do exemplo da spec, 30 de 40. Com várias revisões por solicitação, '75% das revisões' não é '75% das solicitações passaram por essa pessoa'. A segunda pergunta é de dependência, e pertence à fatia 3."
+    - "Para quem tem alcance parcial a fração é sobre outra população que a de quem administra, e as duas NÃO se comparam: a mesma organização tem uma concentração por alcance."
+    - "Não diz se a concentração é desejada. Uma equipe com um revisor designado por regra terá share_1 alto por desenho."
+    - "Abaixo da amostra mínima a medida é ausente, e não 'baixa' nem 'alta': com poucas revisões, uma a mais muda a fração em dez pontos ou mais (ver review.network.parameters.min_reviewed_change_requests)."
+    - "Herda as limitações de review.network.reviews_given.count: solicitação revisada não é esforço, só o que passa pela ferramenta observada existe, e revisão descartada conta."
+    - "Revisões excluídas (auto-revisão, bot/app, sem pessoa ligada) não estão no numerador nem no denominador. A contagem delas é da leitura, e para quem tem alcance parcial não é mostrada (R2)."
+
+  misinterpretations:
+    - "A MEDIDA NÃO AVALIA A PESSOA. 'A pessoa que mais revisou fez 75%' descreve a organização, e não elogia nem acusa ninguém."
+    - "Tentar descobrir quem é a primeira posição cruzando com a lista por pessoa e chamar isso de leitura da medida. A lista não é ordenada por medida justamente para que isso não seja o caminho natural (FR-018a); quem faz o cruzamento está produzindo o ranking que a plataforma recusa."
+    - "Revisar muito não é qualidade nem esforço; revisar pouco não é omissão."
+    - "Ler share_1 alto como gargalo confirmado. Gargalo é espera: a medida que a mede é review.time_to_first_review.duration, e as duas se leem lado a lado."
+    - "Comparar a concentração de duas organizações, ou de duas contas com alcances diferentes, como se fosse a mesma escala. Número de revisores e designação diferem."
+    - "Ler a ausência por amostra mínima como 'sem concentração'. É 'não se pode falar em concentração com esta amostra'."
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: "spec 073, US1, FR-007 (quarto item), FR-008, FR-015; seguranca.md R1, R2 e R5"
+    note: >
+      Não há equivalente na referência: ela responde "quem é central" nomeando os cinco
+      primeiros por grau, intermediação, proximidade e autovetor. Esta medida responde a
+      pergunta da necessidade — "está concentrada?" — sem precisar dizer quem, e é a
+      substituta declarada dos rankings de centralidade, que esta proposta recusa.

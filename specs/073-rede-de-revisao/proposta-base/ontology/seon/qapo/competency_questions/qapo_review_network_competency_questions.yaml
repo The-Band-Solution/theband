@@ -1,0 +1,77 @@
+ontology: qapo
+subontology: review_network
+provenance:
+  source_type: project_decision
+  year: 2026
+  reference: "spec 073, FR-002, FR-004 e FR-007; proposta de base em specs/073-rede-de-revisao/proposta-base/"
+  note: >
+    Primeiras perguntas de competência da QAPO, que não tinha nenhuma. Não vêm da tese:
+    são as que a rede de revisão precisa que a rede de ontologias responda, escritas antes
+    do código para que a derivação da aresta tenha contra o que ser verificada.
+
+    O prefixo `qapo_review_network` nos ids, e não `qapo`, é deliberado: deixa `qapo.cqNN`
+    livre para as perguntas que vierem da própria QAPO, sem colisão.
+
+    Todas atravessam QAPO, SPO, CMPO e EO pelas relações declaradas, e nenhuma inventa
+    relação direta entre pessoa e avaliação: o caminho passa pelo papel
+    `spo.project_person_stakeholder`, como em `qapo.stakeholder_performed_artifact_evaluation`.
+
+competency_questions:
+  - id: qapo_review_network.cq01
+    question:
+      pt-BR: "Quais pessoas avaliaram uma solicitação de mudança submetida por outra pessoa, numa janela de tempo?"
+      en: "Which people evaluated a change request submitted by another person, within a time window?"
+    concepts:
+      [eo.person, spo.project_person_stakeholder, qapo.artifact_evaluation,
+       qapo.evaluated_artifact, cmpo.change_request, cmpo.change_request_submission]
+    relations:
+      [qapo.stakeholder_performed_artifact_evaluation, qapo.artifact_evaluation_evaluates,
+       cmpo.stakeholder_submitted_change_request, cmpo.submission_produced_change_request]
+    expected_query_type: list
+    rationale: >
+      É a pergunta que define a aresta. Se a rede de ontologias não a responde, a aresta
+      revisor → autor é invenção do código, e não leitura da base. A resposta exige os dois
+      lados: quem participou da avaliação e quem participou da SUBMISSÃO que produziu a
+      solicitação — e não quem a integrou, porque Pull Request não é merge.
+
+  - id: qapo_review_network.cq02
+    question:
+      pt-BR: "Quantas solicitações de mudança distintas de uma pessoa foram avaliadas por outra, numa janela de tempo?"
+      en: "How many distinct change requests of one person were evaluated by another, within a time window?"
+    concepts: [eo.person, qapo.artifact_evaluation, cmpo.change_request]
+    relations:
+      [qapo.stakeholder_performed_artifact_evaluation, qapo.artifact_evaluation_evaluates,
+       cmpo.stakeholder_submitted_change_request]
+    attributes: [submitted_at]
+    expected_query_type: count
+    rationale: >
+      É o peso da aresta. Solicitações DISTINTAS, e não avaliações: várias rodadas da mesma
+      pessoa sobre a mesma solicitação são uma contribuição só. Sem esta pergunta, o peso
+      vira contagem de eventos e infla quem comenta muito em poucas solicitações.
+
+  - id: qapo_review_network.cq03
+    question:
+      pt-BR: "Quais avaliações de artefato sobre solicitações de mudança não ligam duas pessoas distintas, e por qual motivo?"
+      en: "Which artifact evaluations on change requests do not link two distinct people, and for what reason?"
+    concepts: [eo.person, qapo.artifact_evaluation, cmpo.change_request]
+    relations: [qapo.stakeholder_performed_artifact_evaluation, cmpo.stakeholder_submitted_change_request]
+    attributes: [account_type, author_type, state]
+    expected_query_type: aggregate
+    rationale: >
+      As exclusões precisam ser respondíveis pela base, e não só pelo cálculo: auto-revisão
+      (a mesma pessoa nas duas pontas), conta de máquina, e conta sem pessoa ligada. Sem a
+      pergunta, uma revisão excluída some — e a soma das arestas deixa de fechar com o total
+      de revisões, que é o que permite conferir a leitura contra a origem (SC-001).
+
+  - id: qapo_review_network.cq04
+    question:
+      pt-BR: "Entre as pessoas que avaliaram ou tiveram solicitação avaliada numa janela, quais conjuntos não estão ligados por avaliação em sentido nenhum?"
+      en: "Among the people who evaluated or had a change request evaluated in a window, which sets are not linked by evaluation in either direction?"
+    concepts: [eo.person, qapo.artifact_evaluation, cmpo.change_request]
+    relations: [qapo.stakeholder_performed_artifact_evaluation, cmpo.stakeholder_submitted_change_request]
+    expected_query_type: aggregate
+    rationale: >
+      É a pergunta dos grupos (US3). Declara a população — só pessoas com ao menos uma
+      aresta — e o critério — sentido nenhum, isto é, componente fraco. Pessoa sem aresta
+      não é grupo de tamanho 1, e sem essa restrição todo grupo de 1 seria uma pessoa
+      apontada (seguranca.md R2 item 4).

@@ -1,0 +1,216 @@
+derivation_rule:
+  id: review.network.parameters
+  version: 1
+  provider: platform
+  status: proposed
+  confidence: medium
+
+  name:
+    pt-BR: "Os parâmetros da rede de revisão — janelas, k, amostra mínima, grupo mínimo e as exclusões"
+
+  description:
+    pt-BR: >
+      A rede de revisão (spec 073) depende de cinco decisões numéricas e de uma ordem de
+      exclusão. Cada uma muda o que a plataforma afirma sobre pessoas: a janela decide quem
+      aparece, o k decide quanto da concentração se diz, a amostra mínima decide quando a
+      concentração pode ser dita, e o grupo mínimo decide quando um tamanho deixa de apontar
+      para duas pessoas.
+
+      Moram aqui, e não em constante de módulo, pela razão de `team.dashboard.thresholds` e
+      `profile.thresholds`: em constante, o número muda num diff de código e ninguém percebe
+      que a plataforma passou a afirmar outra coisa (spec 073, FR-008).
+
+      **Nenhum destes números é faixa de classificação de pessoa.** A referência que motivou a
+      feature classifica pessoas por percentil (80, 50, 30) e redes por faixas (0,3; 0,7) sem
+      razão escrita (`dashboard_team_graph.py:308`, `:354`, `:404`, `:497-507`). Aqui não há
+      limiar que transforme número em rótulo: cada valor decide **se** algo é dito, nunca
+      **o que** uma pessoa é.
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: >
+      spec 073, FR-004, FR-008, FR-013 e Assumptions; seguranca.md R2, R6 e R9; decisões
+      da pessoa mantenedora de 2026-10-03 (R1, R2, R4, R6, R7)
+    note: >
+      PROPOSTA, ainda fora de `priv/knowledge_base/`. Janelas e padrão vêm da spec (FR-013)
+      e foram confirmados na decisão de R6. O k e a amostra mínima vêm das Assumptions da
+      spec. O grupo mínimo é proposta desta base, sobre a sugestão da avaliação de
+      segurança (R2 item 3), e precisa de decisão da pessoa mantenedora. Nenhum valor foi
+      medido contra o banco: o volume real em 180 dias é pergunta aberta do plano
+      (seguranca.md, "O que eu NÃO verifiquei").
+
+  rules:
+    window_days:
+      name:
+        pt-BR: "As janelas permitidas são 30, 90 e 180 dias; o padrão é 90"
+      statement:
+        pt-BR: >
+          A leitura existe para exatamente três janelas, calculadas juntas ao fim da coleta de
+          revisões. Valor fora da lista é **recusado no domínio** — não arredondado para a
+          mais próxima, nem convertido de texto livre (R6; cenário A8 da avaliação de
+          segurança).
+      note:
+        pt-BR: >
+          **30** é o horizonte de uma redistribuição de revisão: o que aconteceu no último mês
+          é o que se muda no próximo. **90** é o padrão porque cobre ausências comuns — férias
+          de duas a três semanas — sem que uma pessoa ausente apareça como quem não revisa; com
+          30, uma ausência de três semanas domina a leitura. **180** existe para ver se a
+          concentração é estrutural ou episódica: se ela persiste em seis meses, não é efeito
+          de uma ausência.
+
+          A base não declara janela para as medidas de fluxo, que se recortam por sprint; a
+          revisão não tem sprint (é ato sobre solicitação, não item de backlog), e por isso a
+          janela é móvel e declarada aqui.
+      values:
+        allowed: [30, 90, 180]
+        default: 90
+
+    k_values:
+      name:
+        pt-BR: "A concentração é dita para as uma, duas e três pessoas que mais revisaram"
+      statement:
+        pt-BR: >
+          `review.network.concentration.top_k_share` é calculada para k = 1, 2 e 3, e para
+          nenhum outro k. k maior que o número de revisores dá medida ausente, e não 100%.
+      note:
+        pt-BR: >
+          A decisão que a medida apoia é *"se uma ou duas pessoas faltarem, a revisão para?"*.
+          k = 1 responde à ausência de uma pessoa; k = 2 e 3 à de um par ou trio, que é o
+          tamanho típico de quem revisa por designação num repositório. Acima de 3 a pergunta
+          deixa de ser sobre dependência de poucas pessoas e vira distribuição — e uma curva
+          completa de concentração (Lorenz, Gini) induziria a ler a lista inteira em ordem,
+          que é o ranking recusado (FR-018a).
+      values:
+        k: [1, 2, 3]
+
+    min_reviewed_change_requests:
+      name:
+        pt-BR: "A concentração só é dita com ao menos 10 solicitações revisadas na janela"
+      statement:
+        pt-BR: >
+          Com menos de **10** solicitações distintas revisadas entre as pessoas que entram no
+          cálculo (a organização inteira para quem administra; as alcançadas, para alcance
+          parcial), a concentração é **ausente com o motivo `sample_below_minimum`**, e a tela
+          diz o mínimo. As contagens por pessoa e os grupos continuam aparecendo.
+      note:
+        pt-BR: >
+          A razão é aritmética. Com R revisões no denominador e a revisões de uma pessoa, uma
+          revisão a mais dela leva a fração de a/R para (a+1)/(R+1): a mudança é
+          (R − a) / (R(R + 1)), cujo máximo é 1/(R + 1). Com R ≥ 10 a mudança é de no máximo
+          1/11 ≈ 9,1 pontos; com R = 9 chega a 10 pontos, e com menos, a mais. Uma fração que
+          uma única revisão desloca em dez pontos não sustenta a palavra "concentrada".
+
+          O critério está em solicitações revisadas (como a spec escreve) e a conta, em
+          revisões (pares solicitação–revisor). Como cada solicitação revisada contribui com
+          ao menos uma revisão, R ≥ número de solicitações revisadas, e o limite vale.
+
+          **Divergência a decidir**: o edge case da spec diz que, com uma só revisão, "os
+          números aparecem, e a tela avisa". Esta regra propõe que a CONCENTRAÇÃO não apareça
+          abaixo do mínimo (como `flow.completion.forecast`, que não produz previsão abaixo do
+          piso), e que as contagens apareçam. Se a decisão for mostrar a fração com aviso, o
+          valor fica e o comportamento muda para `show_with_warning`.
+      values:
+        min_reviewed_change_requests: 10
+        below_minimum: absent
+
+    min_group_size_shown:
+      name:
+        pt-BR: "Grupo com menos de 3 pessoas não tem o tamanho mostrado a quem não alcança todas"
+      statement:
+        pt-BR: >
+          Em `review.network.unconnected_groups.count`, um grupo com menos de **3** pessoas,
+          cujos integrantes quem consulta não alcança todos, entra em *"N small groups"* sem
+          tamanho. Quem alcança todos os integrantes vê o tamanho. Quem administra alcança
+          todos e vê todos os tamanhos.
+      note:
+        pt-BR: >
+          Pessoa sem aresta não é nó (R2 item 4), então todo grupo tem ao menos 2 pessoas, e o
+          único tamanho que este mínimo esconde é **2**. Um grupo de 2 isolado é uma
+          afirmação sobre exatamente duas pessoas — *"estas duas só revisam uma à outra"* —, e
+          quem conhece a organização as reidentifica por fora (R2). Com 3, a afirmação deixa de
+          se reduzir a um par e passa a ser sobre um conjunto. É o mesmo raciocínio de piso de
+          anonimato (k-anonimato com k = 3), e não prova de que 3 basta: um trio também pode
+          ser reconhecível. Valor maior esconderia grupos legítimos de equipes pequenas; o
+          valor é revisável com dado.
+      values:
+        min_group_size_shown: 3
+
+    exclusions:
+      name:
+        pt-BR: "As três exclusões, em ordem, e o que cada uma conta"
+      statement:
+        pt-BR: >
+          Toda revisão enviada na janela, sobre solicitação da organização observada, termina
+          em **exatamente um** destino: vira aresta, ou entra em **um** motivo de exclusão.
+          Avaliados nesta ordem, o primeiro que se aplica decide:
+
+            1. `bot_or_app` — revisor ou autor é conta de máquina: `eo.person.account_type` em
+               (`bot`, `app`), ou `author_type` diferente de `User`;
+            2. `unlinked_person` — revisor ou autor não está ligado a uma `eo.person`
+               (login não resolvido, ou conta apagada na origem, que chega com autor nulo);
+            3. `self_review` — revisor e autor são a mesma `eo.person`.
+
+          A soma das arestas (em revisões) com as três contagens fecha com o total de
+          revisões enviadas na janela. As contagens aparecem só no agregado da leitura, nunca
+          com login e nunca por pessoa (FR-004, R5, R9).
+      note:
+        pt-BR: >
+          A ordem vai de "não é pessoa" a "é pessoa, mas não sabemos qual" a "é a mesma
+          pessoa": a auto-revisão só é decidível quando as duas pontas estão ligadas, e por
+          isso vem por último. Sem ordem declarada uma revisão de bot sobre a própria
+          solicitação seria contada duas vezes, e os totais deixariam de fechar.
+
+          Conta apagada vai para `unlinked_person`, e não para `bot_or_app`, diferentemente do
+          que a coleta faz hoje (`github_change_requests.ex:321`, que conta autor nulo como
+          bot — R9). Apagar a conta não é evidência de máquina; classificar como bot cairia
+          para o lado plausível, que é o "padrão largo inventa mais".
+      values:
+        order: [bot_or_app, unlinked_person, self_review]
+        counted_by_reason: true
+        listed_by_login: false
+        per_person: false
+
+  refuses:
+    - proposal: "valor de reserva quando o cálculo falha (o 0,01 da referência, `dashboard_team_graph.py:117`)"
+      by:
+        pt-BR: "repositório de referência"
+      reason:
+        pt-BR: >
+          Medida sem valor é ausente com motivo (FR-009). Um valor de reserva é o fallback
+          silencioso que o AGENTS.md §7.7 lista entre os antipadrões: transforma falha em
+          número, e número em decisão.
+    - proposal: "classificar pessoas em papéis por percentil (\"Coordenador central\", \"Hub\", \"Ponte\", \"Colaborador especializado\")"
+      by:
+        pt-BR: "repositório de referência, `dashboard_team_graph.py:497-507`"
+      reason:
+        pt-BR: >
+          É julgamento sobre pessoa, e não medida (FR-018). Os cortes de 80, 50 e 30 não têm
+          razão escrita, e o percentil de uma pessoa muda quando outra entra na rede.
+    - proposal: "janela livre escolhida na tela"
+      by:
+        pt-BR: "spec 073, versão anterior à avaliação de segurança"
+      reason:
+        pt-BR: >
+          Recusada em R6 (2026-10-03): janela livre é entrada externa que vira consulta e job,
+          e a lista fechada é o que impede janela de 100 anos e átomo novo.
+
+  misinterpretations:
+    - claim:
+        pt-BR: "abaixo da amostra mínima, a revisão não está concentrada"
+      why_wrong:
+        pt-BR: >
+          Abaixo do mínimo a plataforma não diz nada sobre concentração. Ausência de leitura
+          não é leitura de ausência.
+    - claim:
+        pt-BR: "\"N small groups\" é um defeito da tela que esconde dado"
+      why_wrong:
+        pt-BR: >
+          É a proteção declarada de R2: o tamanho 2 aponta para duas pessoas. Quem alcança
+          as duas vê o tamanho.
+    - claim:
+        pt-BR: "as contagens de exclusão dizem quem se auto-revisa ou quem usa bot"
+      why_wrong:
+        pt-BR: >
+          São agregadas por motivo, sem login e sem pessoa. Dizem quanto da revisão
+          observada ficou fora da rede, e nada sobre ninguém.

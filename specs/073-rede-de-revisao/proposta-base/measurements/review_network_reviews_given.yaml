@@ -1,0 +1,67 @@
+measurement:
+  id: review.network.reviews_given.count
+  name:
+    pt-BR: "Revisões feitas por uma pessoa, e de quantas pessoas distintas"
+    en: "Reviews a person gave, and of how many distinct people"
+  answers_information_need: [review.concentration]
+  value_type: count
+  unit: change_requests
+
+  # ---------------------------------------------------------------------------
+  # Um par, e não dois números soltos. "12" sem "de 4 pessoas" é o número que vira
+  # ranking; os dois juntos descrevem a forma da participação. A tela os mostra na
+  # mesma célula, e esta declaração os mantém na mesma medida pelo mesmo motivo.
+  #
+  # A unidade declarada é a do primeiro componente. O segundo é contado em pessoas,
+  # e a expressão diz isso — o schema tem um só campo `unit`.
+  # ---------------------------------------------------------------------------
+  formula:
+    expression: >
+      Sobre as arestas da leitura (organização observada O, janela W), regidas por
+      github.pull_request_review.to.qapo.artifact_evaluation.as_review_edge:
+        reviews_given(p)  = soma de weight(p → a) para todo autor a      [solicitações]
+                          = |{ solicitação c : existe revisão de p sobre c, enviada em W }|
+        reviewed_people(p) = |{ a : weight(p → a) > 0 }|                  [pessoas]
+      weight(p → a) = número de solicitações DISTINTAS de a que p revisou em W.
+      Se não existe aresta saindo de p: as duas são AUSENTES com o motivo
+      `did_not_review_in_window`, nunca 0.
+    inputs:
+      [review_edge_reviewer_person_id, review_edge_author_person_id, review_edge_weight,
+       window_start, window_end, observed_organization_id]
+
+  scope:
+    levels: [person]
+    filters:
+      - "só arestas da organização observada consultada, buscada por id e tenant juntos (spec 073, FR-001, R4)"
+      - "só revisões ENVIADAS dentro da janela, pelo instante de envio (`submitted_at`); pendente não entra (FR-003)"
+      - "revisões excluídas pela regra review.network.parameters (auto-revisão, bot/app, sem pessoa ligada) não entram, e são contadas no agregado da leitura — nunca por pessoa (FR-004, R5, R9)"
+      - "a linha de pessoa alcançável mostra o TOTAL VERDADEIRO dela, inclusive revisões de pessoas fora do alcance de quem consulta; esses pares não viram linha nem número (FR-015, R2 item 1)"
+      - "a lista é ordenada por nome; nenhuma coluna desta medida ordena nem se oferece para ordenar (FR-018a)"
+    period: "janela móvel de 30, 90 ou 180 dias, padrão 90 (review.network.parameters.window_days)"
+
+  limitations:
+    - "Conta SOLICITAÇÕES revisadas, e não eventos de revisão nem esforço. Uma aprovação sem comentário e três rodadas de revisão longa sobre a mesma solicitação contam igual: um. É deliberado — rodadas inflariam quem comenta muito em poucas solicitações —, e é por isso mesmo que o número não diz nada sobre o trabalho que a revisão deu."
+    - "Só existe o que passou pela ferramenta observada. Revisão em par, em chamada, ou em repositório que a organização não coleta não aparece — e quem trabalha sobretudo ali aparece como quem não revisa."
+    - "Revisão descartada depois de enviada (DISMISSED) CONTA: o ato de revisar aconteceu, e o descarte é decisão posterior sobre ela, frequentemente de outra pessoa ou de uma regra do repositório."
+    - "Comentário (COMMENTED) conta como revisão. A posição da revisão (endosso, objeção, abstenção, ver `qapo.evaluation_verdict`) NÃO entra nesta medida, e a rede não distingue quem aprova de quem pede mudança."
+    - "A carga de revisão depende de designação (CODEOWNERS, revisor obrigatório, regra do repositório), papel, senioridade, férias e fuso. Nenhum desses fatores está na rede, e todos movem o número."
+    - "Pessoa sem revisão na janela tem a medida AUSENTE com motivo, e não zero. Ausência aqui é fato da origem sobre a janela — e não omissão da pessoa."
+    - "O autor da solicitação é resolvido na coleta. Solicitação cujo autor só foi ligado a uma pessoa depois de integrada fica como 'sem pessoa ligada' até ser coletada de novo (seguranca.md, 'O que eu NÃO verifiquei'). O total de exclusões por esse motivo está na leitura."
+
+  misinterpretations:
+    - "A MEDIDA NÃO AVALIA A PESSOA. Ela descreve a forma da revisão na organização; usá-la em avaliação de desempenho é o uso que a plataforma recusa, e a tela diz isso ao lado da lista (FR-018a, R5)."
+    - "Revisar muito não é qualidade nem esforço. O número não distingue revisão cuidadosa de aprovação automática feita por gente."
+    - "Revisar pouco não é omissão. A pessoa pode não ser designada, estar em outro repositório, de férias, ou revisar fora da ferramenta."
+    - "Ordenar as pessoas por esta medida. As linhas não compartilham denominador — designação e repositório diferem — e o primeiro colocado de uma lista ordenada é um rótulo de 'hub' com outro nome. Nenhuma coluna de medida ordena a lista, e nenhuma se oferece para ordenar."
+    - "Ler 'de 4 pessoas' como alcance social ou influência. É quantas pessoas distintas abriram as solicitações que ela revisou na janela — nada sobre importância."
+    - "Somar as linhas e chamar de total da organização. Uma solicitação revisada por duas pessoas aparece nas duas linhas; o total de revisões da organização é a soma dos pesos das arestas, e o de solicitações revisadas é outra contagem."
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: "spec 073, US2, FR-007 (primeiro item), FR-009, FR-018a; seguranca.md R2 e R5"
+    note: >
+      Corresponde, no repositório de referência, ao par "Atribui issues para N
+      desenvolvedores" / "Total de Issues Atribuídas". Lá a aresta é delegação
+      (autor da issue → designado) e o número vem com percentil e rótulo de papel; aqui
+      a aresta é revisão, o número vem sem percentil, e o rótulo não existe (FR-018).
