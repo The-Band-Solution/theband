@@ -110,9 +110,9 @@ spec.
 | T014 | Remover a coluna antiga | US2 | [#879](https://github.com/The-Band-Solution/theband/issues/879) | a fazer — **destrutiva**; última, de propósito |
 | T015 | Documentar o efeito de uma restauração sobre as sessões | — | [#880](https://github.com/The-Band-Solution/theband/issues/880) | a fazer · `documentation` |
 | T016 | Escrever o procedimento de girar todas as sessões | — | [#881](https://github.com/The-Band-Solution/theband/issues/881) | a fazer · `documentation` |
-| T017 | Saber a idade de cada credencial | — (FR-016, FR-019) | [#882](https://github.com/The-Band-Solution/theband/issues/882) | a fazer |
-| T018 | Pedir a troca na tela que administra | — (FR-017) | [#883](https://github.com/The-Band-Solution/theband/issues/883) | a fazer — **tela**: protótipo antes do código |
-| T019 | Registrar a data da troca | — (FR-018) | [#884](https://github.com/The-Band-Solution/theband/issues/884) | a fazer |
+| T017 | Saber a idade de cada credencial | — (FR-016, FR-019) | [#882](https://github.com/The-Band-Solution/theband/issues/882) | feito (2026-10-03) — `Credenciais.Idade`, três estados, prazo num lugar só |
+| T018 | Pedir a troca na tela que administra | — (FR-017) | [#883](https://github.com/The-Band-Solution/theband/issues/883) | a fazer — **tela**: espera protótipo aprovado; não há nenhum na spec em 2026-10-03 |
+| T019 | Registrar a data da troca | — (FR-018) | [#884](https://github.com/The-Band-Solution/theband/issues/884) | feito (2026-10-03) — `AI.put/3` grava a data da troca e a anterior; a mesma chave não zera |
 
 Tarefa não recebe `Priority`: herda a da user story que atende.
 
