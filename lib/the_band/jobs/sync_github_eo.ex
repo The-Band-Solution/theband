@@ -29,7 +29,6 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   require Logger
 
   alias TheBand.Ingestion
-  alias TheBand.Jobs.ComputeReviewNetwork
   alias TheBand.Ingestion.Cota
   alias TheBand.Ingestion.GithubBranches
   alias TheBand.Ingestion.GithubChangeRequests
@@ -40,6 +39,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   alias TheBand.Ingestion.GithubWorkItems
   alias TheBand.Ingestion.Janela
   alias TheBand.Integrations.GitHub.Client
+  alias TheBand.Jobs.ComputeReviewNetwork
   alias TheBand.Ontology.SEON.EO
   alias TheBand.RawData
   alias TheBand.SemanticIntegration.Mapper

@@ -79,7 +79,14 @@ Nenhuma fecha neste sprint: todas dependem da tela.
 
 Tarefa não recebe `Priority`: herda a da user story.
 
-## Fora do escopo deste sprint
+## Acréscimo de 2026-10-03, depois da revisão semântica e do protótipo aprovado
+
+Com a base aceita (T003, T004) e o protótipo aprovado, o escopo do sprint passou a ser a feature
+inteira até o PR. Entraram e foram feitas: T003, T004, T013, T017, T019, T020, T021, T024, T026 e
+T029. Ficam abertas T002 e T022, da pessoa mantenedora, e as US #1186–#1188, que só fecham com
+aceitação.
+
+## Fora do escopo deste sprint (a lista de antes do acréscimo)
 
 | Tarefa | Issue | Por quê |
 |---|---|---|

@@ -32,13 +32,13 @@ arquivo antes de injetar e `diff` depois de restaurar.
 
 **Tarefas humanas** são marcadas **👤 pessoa mantenedora**.
 
-**Andamento em 2026-10-03** (sprint 037): feitas T001, T005–T012, T014–T016, T018, T023, T025, T027,
-T028 e T030, cada uma com o defeito injetado visto reprovando (a evidência está na issue). **T013 em
-parte**: `Parameters` lê a regra da base e levanta sem ela; falta a base real (T004). A fachada tem só
-`compute/3`. Três desvios da execução, registrados nos contratos: a unicidade do job é `:incomplete`
-(o Oban 2.23.1 não aceita deixar `:executing` de fora sem aviso); tirar **um** filtro de tenant de
-`review_pairs/3` não reprova nada, porque a igualdade do join segura o outro; T028 já existia como
-#1185. T030 foi provada sobre a função de classificação da coleta, e não sobre o payload inteiro.
+**Andamento em 2026-10-03** (sprint 037): **feitas** T001, T003–T021, T023–T030 menos T022, cada
+uma com o defeito injetado visto reprovando (a evidência está na issue). T003 foi a revisão do
+agente semântico (`revisao-semantica.md`, aprovada com emendas). **Abertas**: T002 e T022, da
+pessoa mantenedora (medir em produção; aceitar contra a origem). Desvios da execução, todos
+registrados no contrato: a unicidade do job é `:incomplete`; tirar **um** filtro de tenant de
+`review_pairs/3` não reprova nada (a igualdade do join segura o outro); o aviso de leitura pronta é
+emitido por `ReviewNetwork.compute/3`, e não pelo job; T028 já existia como #1185.
 
 ## Fase 1: Setup
 
@@ -65,7 +65,7 @@ parte**: `Parameters` lê a regra da base e levanta sem ela; falta a base real (
 
 ## Fase 2: Fundação
 
-- [ ] T003 Revisar a semântica da proposta da base — agente de ontologia e integração semântica
+- [x] T003 Revisar a semântica da proposta da base — agente de ontologia e integração semântica
   - **Pronta quando**: `proposta-base/` com as quatro decisões da pessoa mantenedora de 2026-10-03
     registradas no README dela e as cinco medidas novas que o protótipo pede
     (`review.network.reviews.count`, `.reviewers.count`, `.authors_reviewed.count`,
@@ -89,7 +89,7 @@ parte**: `Parameters` lê a regra da base e levanta sem ela; falta a base real (
   - **Teste**: `/speckit-analyze` não reporta divergência entre a proposta aceita, o modelo e o
     contrato
 
-- [ ] T004 Levar os YAMLs aceitos para a base
+- [x] T004 Levar os YAMLs aceitos para a base
   - **Pronta quando**: T003
   - **Descrição**: copiar de `proposta-base/` para `priv/knowledge_base/` os arquivos da tabela do
     `README.md` da proposta; acrescentar `version` opcional (inteiro ≥ 1) a
@@ -205,7 +205,7 @@ parte**: `Parameters` lê a regra da base e levanta sem ela; falta a base real (
     `%{k: 1, reviews: 30, of: 40}`) e a entrada embaralhada dez vezes. **Defeito a injetar**: devolver
     `0` no lugar de `:no_review_in_window`; o caso de rede vazia reprova
 
-- [ ] T013 Ler os parâmetros da base, e levantar se faltar
+- [x] T013 Ler os parâmetros da base, e levantar se faltar
   - **Pronta quando**: T004 (os YAMLs estão em `priv/knowledge_base/`)
   - **Descrição**: `lib/the_band/review_network/parameters.ex` lê, pelo `KnowledgeBase`, a regra de
     parâmetros e a da aresta, com os nomes de chave aceitos em T003: janelas e padrão, k, amostra
@@ -282,7 +282,7 @@ concentração, e os números batem com a contagem manual (SC-001).
     alcance como argumento em vez de calculá-lo (A13 reprova); buscar a organização só por id (A3
     reprova)
 
-- [ ] T017 [US1] Ligar a fachada aos parâmetros da base
+- [x] T017 [US1] Ligar a fachada aos parâmetros da base
   - **Pronta quando**: T013, T014, T016
   - **Descrição**: `lib/the_band/review_network.ex`, só `defdelegate` para funções que injetam
     `Parameters`: `compute/3`, `read/4`, `windows/0`, `subscribe/1`. Corrigir
@@ -308,7 +308,7 @@ concentração, e os números batem com a contagem manual (SC-001).
     **Defeito a injetar**: trocar o cancelamento por organização não encontrada por um cálculo com
     lista vazia; A10 reprova
 
-- [ ] T019 [US1] Registrar e avisar o cálculo sem par, nome nem login
+- [x] T019 [US1] Registrar e avisar o cálculo sem par, nome nem login
   - **Pronta quando**: T017, T018
   - **Descrição**: no caminho feliz do job: `Logger.info` por janela com organização, janela,
     contagens e duração (FR-021); `Phoenix.PubSub.broadcast` de
@@ -320,7 +320,7 @@ concentração, e os números batem com a contagem manual (SC-001).
   - **Teste**: `compute_review_network_test.exs`, casos de sucesso. **Defeitos a injetar**: logar a
     aresta (A16 reprova); transmitir o relator inteiro, como `recompute_promotions.ex:57` (A11 reprova)
 
-- [ ] T020 [US1] Disparar o cálculo ao fim da coleta de revisões
+- [x] T020 [US1] Disparar o cálculo ao fim da coleta de revisões
   - **Pronta quando**: T019 (disparar antes de o caminho feliz existir enfileiraria, a cada
     sincronização, um job que só levanta)
   - **Descrição**: `lib/the_band/jobs/sync_github_eo.ex`: o `ctx` de `coletar_trabalho/1` ganha
@@ -333,7 +333,7 @@ concentração, e os números batem com a contagem manual (SC-001).
     `test/the_band/review_network/exposicao_test.exs` (caso web). **Defeito a injetar**: enfileirar
     antes do `collect/1`; o caso da etapa que falha reprova
 
-- [ ] T021 [US1] Mostrar a concentração, sem nome, na janela escolhida
+- [x] T021 [US1] Mostrar a concentração, sem nome, na janela escolhida
   - **Pronta quando**: T017, T019, T020 (protótipo aprovado em 2026-10-03; `contracts/tela.md`
     corrigido pela aprovação)
   - **Descrição**: rota `live "/organizations/:id/review-network"` em `lib/the_band_web/router.ex`,
@@ -384,7 +384,7 @@ concentração, e os números batem com a contagem manual (SC-001).
   - **Teste**: `slice_test.exs` e `read_test.exs`, casos da US2. **Defeitos a injetar**: listar o par
     de fora com nome mascarado (A5 reprova); ordenar por `given` (o caso de ordem reprova)
 
-- [ ] T024 [US2] Mostrar a lista por pessoa e os pares
+- [x] T024 [US2] Mostrar a lista por pessoa e os pares
   - **Pronta quando**: T021, T023
   - **Descrição**: a lista na mesma LiveView, `stacked` com `data-label` se tiver mais de três
     colunas; nenhuma coluna ordenável; a frase de que a medida não avalia pessoa **antes** da lista
@@ -414,7 +414,7 @@ each other"* com os dois tamanhos.
   - **Teste**: `slice_test.exs`, casos da US3. **Defeito a injetar**: calcular os grupos sobre a rede
     inteira; A6 reprova
 
-- [ ] T026 [US3] Mostrar os grupos
+- [x] T026 [US3] Mostrar os grupos
   - **Pronta quando**: T021, T025
   - **Descrição**: a frase dos grupos na LiveView, sem desenho de grafo nem biblioteca JS (R13; Q1:
     a matriz fica para a fatia 2)
@@ -443,7 +443,7 @@ each other"* com os dois tamanhos.
   - **Feita quando**: a issue existe, com arquivo e linha, e está ligada a este `tasks.md`
   - **Teste**: `gh issue view <n>` mostra os labels e o texto
 
-- [ ] T029 Fechar os gates, o contrato e o estado da sessão
+- [x] T029 Fechar os gates, o contrato e o estado da sessão
   - **Pronta quando**: T001–T027
   - **Descrição**: `mix gates` com `MIX_TEST_PARTITION=73`, saída redirecionada e código lido;
     `contracts/` conferidos contra o código; `RETOMAR.md` atualizado; PR pelo template, com o tipo de
