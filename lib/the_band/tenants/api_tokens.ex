@@ -47,6 +47,7 @@ defmodule TheBand.Tenants.ApiTokens do
 
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Repo
+  alias TheBand.Tenants.PapelDeAdministrador
   alias TheBand.Tenants.Schemas.ApiAccessToken, as: Token
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
@@ -231,8 +232,29 @@ defmodule TheBand.Tenants.ApiTokens do
   Antes, só `ApiAuth` impedia o **uso** de um token assim; a criação aceitava.
   """
   @spec criar(Tenant.t(), User.t(), map(), User.t()) ::
-          {:ok, Token.t(), String.t()} | {:error, Ecto.Changeset.t()}
-  def criar(%Tenant{id: tenant_id}, %User{id: dono_id} = dono, attrs, %User{id: autor_id} = autor) do
+          {:ok, Token.t(), String.t()} | {:error, :nao_autorizado | Ecto.Changeset.t()}
+  def criar(%Tenant{id: tenant_id} = tenant, %User{} = dono, attrs, %User{} = autor) do
+    # Token para OUTRA conta é ato de administração, e o autor é relido (072, FR-002a; S1): um
+    # rebaixado com a aba aberta criaria token com dono admin, e passaria a ler como ele.
+    with :ok <- autor_pode_criar(tenant_id, dono, autor),
+         do: criar_token(tenant, dono, attrs, autor)
+  end
+
+  defp autor_pode_criar(_tenant_id, %User{id: id}, %User{id: id}), do: :ok
+
+  # O autor de outra organização segue para a recusa do changeset (#1035), que diz qual conta
+  # não é da organização; a conferência do papel é para quem é dela.
+  defp autor_pode_criar(tenant_id, _dono, %User{tenant_id: tenant_id, id: autor_id}),
+    do: PapelDeAdministrador.exigir_ator(tenant_id, autor_id)
+
+  defp autor_pode_criar(_tenant_id, _dono, _autor), do: :ok
+
+  defp criar_token(
+         %Tenant{id: tenant_id},
+         %User{id: dono_id} = dono,
+         attrs,
+         %User{id: autor_id} = autor
+       ) do
     id_publico = gerar_id_publico(@bytes_do_id)
     segredo = gerar_segredo(@bytes_do_segredo)
     valor = prefixo() <> id_publico <> "_" <> segredo
@@ -436,9 +458,11 @@ defmodule TheBand.Tenants.ApiTokens do
   na lista — recusa, nunca gravação silenciosa de uma razão que ninguém vai conseguir contar.
   """
   @spec revogar(Tenant.t(), Ecto.UUID.t(), User.t(), map()) ::
-          {:ok, Token.t()} | {:error, :not_found} | {:error, Ecto.Changeset.t()}
+          {:ok, Token.t()} | {:error, :nao_autorizado | :not_found | Ecto.Changeset.t()}
   def revogar(%Tenant{} = tenant, id, %User{id: autor_id}, razao) do
-    with {:ok, token} <- buscar(tenant, id) do
+    # O token antes do ator: o de outra organização é `:not_found`, e nunca recusa de papel.
+    with {:ok, token} <- buscar(tenant, id),
+         :ok <- PapelDeAdministrador.exigir_ator(tenant.id, autor_id) do
       if token.revoked_at do
         {:ok, token}
       else

@@ -43,7 +43,12 @@ defmodule TheBand.Tenants.UltimoAdminAtivoTest do
     )
   end
 
-  test "desativar o último administrador ativo é recusado com o motivo", ctx do
+  # Desde a 072 (T007), a desativação passa pelo guarda de `PapelDeAdministrador`, que confere o
+  # ator ANTES do último admin: um membro recebe `:nao_autorizado`. Pela desativação, o último
+  # admin ativo só se alcança desativando a si, que tem recusa própria; a recusa
+  # `:ultimo_admin_ativo` vive no rebaixamento, em `papel_de_administrador_test.exs`. O que este
+  # caso continua provando é a invariante: a organização fica com um.
+  test "desativar o último administrador ativo é recusado", ctx do
     {:ok, _} = Tenants.disable_user(ctx.tenant, ctx.b.id, ctx.a.id, @razao)
 
     {:ok, c} =
@@ -52,10 +57,10 @@ defmodule TheBand.Tenants.UltimoAdminAtivoTest do
         "role" => "member"
       })
 
-    # Um membro tentando desativar o último admin chega ao guarda pelo contexto; a tela já o
-    # impediria antes, por não ser admin. O que se prova aqui é o contexto.
-    assert {:error, :ultimo_admin_ativo} =
-             Tenants.disable_user(ctx.tenant, ctx.a.id, c.id, @razao)
+    assert {:error, :nao_autorizado} = Tenants.disable_user(ctx.tenant, ctx.a.id, c.id, @razao)
+
+    assert {:error, :nao_pode_desativar_a_si} =
+             Tenants.disable_user(ctx.tenant, ctx.a.id, ctx.a.id, @razao)
 
     assert admins_ativos(ctx.tenant) == 1
   end
@@ -71,7 +76,8 @@ defmodule TheBand.Tenants.UltimoAdminAtivoTest do
       |> Enum.map(fn {:ok, r} -> r end)
 
     assert Enum.count(resultados, &match?({:ok, _}, &1)) == 1
-    assert Enum.count(resultados, &(&1 == {:error, :ultimo_admin_ativo})) == 1
+    # A segunda transação relê o ator sob a trava: ele acabou de ser desativado (072/T007).
+    assert Enum.count(resultados, &(&1 == {:error, :nao_autorizado})) == 1
     assert admins_ativos(ctx.tenant) == 1
   end
 

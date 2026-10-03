@@ -162,6 +162,14 @@ defmodule TheBandWeb.PeopleLive.Show do
           {:noreply,
            socket |> put_flash(:info, dgettext("sistema", "Account unlinked.")) |> load()}
 
+        {:error, :nao_autorizado} ->
+          {:noreply,
+           put_flash(
+             socket,
+             :error,
+             dgettext("errors", "Only organisation administrators can do that.")
+           )}
+
         {:error, :not_declared} ->
           {:noreply, put_flash(socket, :error, dgettext("errors", "Nothing to unlink."))}
 
@@ -231,6 +239,14 @@ defmodule TheBandWeb.PeopleLive.Show do
          |> load()}
 
       # "Já está em uso" sem dizer de quem manda quem declarou procurar. A plataforma sabe.
+      {:error, :nao_autorizado} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Only organisation administrators can do that.")
+         )}
+
       {:error, :taken} ->
         {:noreply, put_flash(socket, :error, ja_e_de_outra(socket))}
 
