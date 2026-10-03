@@ -487,3 +487,16 @@ com o defeito injetado, com cópia do arquivo antes de injetar. Nenhum segredo r
   classe da R2, e fica como pergunta para um inventário próprio, não para a 073;
 - **os inventários de `docs/seguranca/`** além do de 2026-09-24, e o conteúdo das issues
   `security` abertas além do título. Pelo título, só a #1181 toca esta superfície.
+
+---
+
+## Decisões da pessoa mantenedora — 2026-10-03
+
+| achado | decisão |
+|---|---|
+| R1 | A concentração é calculada só sobre as revisões entre pessoas no alcance de quem consulta, e não nomeia ninguém. Quem administra alcança todos e lê a da organização inteira. |
+| R2 | A tela **não** conta as revisões que envolvem pessoas fora do alcance; diz só que há recorte e qual é a regra (segue o precedente de 2026-09-09). |
+| R4 | "Organização" é a **organização observada** do GitHub dentro do tenant, buscada por id e tenant juntos. |
+| R6, R7 | A tela não pede recálculo: as três janelas são calculadas ao fim da coleta. Uma leitura vigente por organização e janela, sem histórico. |
+
+As emendas da tabela acima entraram na `spec.md` com essas escolhas.
