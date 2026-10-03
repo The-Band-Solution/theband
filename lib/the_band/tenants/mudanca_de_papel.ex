@@ -21,6 +21,7 @@ defmodule TheBand.Tenants.MudancaDePapel do
           | :ultimo_admin_ativo
           | {:estado_mudou, AccountRoleChange.t() | nil}
           | :conta_desativada
+          | :nota_longa
 
   @doc "Promove a administrador uma conta ativa da organização."
   @spec promover(Tenant.t(), Ecto.UUID.t(), User.t(), keyword()) ::
@@ -37,7 +38,15 @@ defmodule TheBand.Tenants.MudancaDePapel do
   def rebaixar(%Tenant{} = tenant, user_id, %User{} = ator, opcoes \\ []),
     do: mudar(tenant, user_id, ator, "member", opcoes)
 
+  @nota_maxima 2000
+
   defp mudar(tenant, user_id, ator, para, opcoes) do
+    if String.length(opcoes[:note] || "") > @nota_maxima,
+      do: {:error, :nota_longa},
+      else: mudar_na_transacao(tenant, user_id, ator, para, opcoes)
+  end
+
+  defp mudar_na_transacao(tenant, user_id, ator, para, opcoes) do
     Repo.transaction(fn ->
       with {:ok, travado} <- PapelDeAdministrador.travar(tenant.id, ator.id, user_id),
            :ok <- cabe(travado, para) do

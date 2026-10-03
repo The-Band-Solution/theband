@@ -44,6 +44,11 @@ defmodule TheBand.Repo.Migrations.MudancasDePapel do
                  "AND from_role <> to_role"
            )
 
+    # A nota é texto livre de quem age; sem teto, é um campo para guardar qualquer coisa (S6).
+    create constraint(:account_role_changes, :account_role_changes_nota_curta,
+             check: "note IS NULL OR char_length(note) <= 2000"
+           )
+
     execute("""
     CREATE FUNCTION account_role_changes_recusa() RETURNS trigger
     SET search_path = pg_catalog, public, pg_temp AS $$

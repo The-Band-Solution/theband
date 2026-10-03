@@ -161,6 +161,36 @@ defmodule TheBand.Tenants.PapelDeAdministradorTest do
       assert papel(ctx.a) == "admin"
     end
 
+    test "a nota longa é recusada antes da transação, e o banco também a recusa", ctx do
+      longa = String.duplicate("a", 2001)
+
+      assert Tenants.promote_user(ctx.tenant, ctx.m.id, ctx.a, note: longa) ==
+               {:error, :nota_longa}
+
+      assert papel(ctx.m) == "member"
+
+      assert {:ok, _} =
+               Tenants.promote_user(ctx.tenant, ctx.m.id, ctx.a,
+                 note: String.duplicate("a", 2000)
+               )
+
+      erro =
+        assert_raise Postgrex.Error, fn ->
+          Repo.query!(
+            "INSERT INTO account_role_changes (id, tenant_id, user_id, changed_by_user_id, from_role, to_role, note, inserted_at) " <>
+              "VALUES (gen_random_uuid(), $1, $2, $3, 'admin', 'member', $4, now())",
+            [
+              Ecto.UUID.dump!(ctx.tenant.id),
+              Ecto.UUID.dump!(ctx.b.id),
+              Ecto.UUID.dump!(ctx.a.id),
+              longa
+            ]
+          )
+        end
+
+      assert erro.postgres.constraint == "account_role_changes_nota_curta"
+    end
+
     test "quem chega atrasado recebe o episódio de quem mudou antes", ctx do
       {:ok, primeiro} = Tenants.demote_user(ctx.tenant, ctx.b.id, ctx.a)
 

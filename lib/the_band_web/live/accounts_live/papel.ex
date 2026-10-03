@@ -396,7 +396,7 @@ defmodule TheBandWeb.AccountsLive.Papel do
           Note
           <span class="font-normal opacity-60">— optional · kept on the record, not written to the log</span>
         </span>
-        <textarea name="note" class="textarea textarea-bordered" rows="2">{@papel.note}</textarea>
+        <textarea name="note" maxlength="2000" class="textarea textarea-bordered" rows="2">{@papel.note}</textarea>
       </label>
 
       <label :if={@papel.acao == "deixar"} class="flex flex-col gap-1">

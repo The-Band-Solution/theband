@@ -16,6 +16,7 @@
 | `:ultimo_admin_ativo` | rebaixar o único admin ativo |
 | `{:estado_mudou, episodio \| nil}` | promover quem já é admin, ou rebaixar quem já é membro. Volta com o último episódio da conta, para a frase de D5 do protótipo; `nil` quando a conta não tem episódio. Corrigido na T006: o texto dizia `:estado_mudou` e "volta com", e um átomo não volta com nada |
 | `:conta_desativada` | promover conta desativada. Rebaixar desativada é permitido (Q1) |
+| `:nota_longa` | a nota passa de 2000 caracteres. Conferido antes da transação; o banco também recusa (`account_role_changes_nota_curta`, S6). Acrescentado na T013 |
 
 Nenhum retorno carrega a struct do ator.
 

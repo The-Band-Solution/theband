@@ -472,6 +472,16 @@ defmodule TheBandWeb.AccountsLive.Index do
      )}
   end
 
+  # O painel fica aberto, com a nota, para quem a encurta não perder o que escreveu.
+  defp recusar_papel(socket, papel, _alvo, :nota_longa) do
+    {:noreply,
+     assign(socket,
+       papel: papel,
+       aviso_papel: nil,
+       recusa_papel: dgettext("errors", "Not changed: the note is longer than 2000 characters.")
+     )}
+  end
+
   defp recusar_papel(socket, _papel, alvo, :conta_desativada) do
     {:noreply,
      socket
