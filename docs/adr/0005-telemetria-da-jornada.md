@@ -2,7 +2,10 @@
 
 ## Status
 
-Proposta — 2026-09-04
+Proposta — 2026-09-04 · **emendada em 2026-10-03** com a escolha do backend (SigNoz), a
+hospedagem, a retenção, a rede e as dependências Hex — ver
+[Emenda de 2026-10-03](#emenda-de-2026-10-03--o-backend-é-o-signoz). Continua **Proposta**:
+aceitá-la é decisão da pessoa mantenedora.
 
 Origem: [ÉPICO #802](https://github.com/The-Band-Solution/theband/issues/802), pedido da
 pessoa mantenedora · Depende de: [ADR 0001](0001-monolito-modular-elixir.md),
@@ -209,6 +212,229 @@ trilha exige retenção longa, imutabilidade e cadeia de custódia — o oposto 
 que S2 exige para dado com identidade.
 
 Esta ADR **não** cria trilha de auditoria, e essa lacuna fica declarada em vez de suposta.
+
+---
+
+## Emenda de 2026-10-03 — o backend é o SigNoz
+
+**Origem**: direção da pessoa mantenedora em 2026-09-24 (*o foco passa a ser tracing com
+SigNoz*) e em 2026-09-27, no [comentário do #802](https://github.com/The-Band-Solution/theband/issues/802):
+*"criar os tracing no signoz, baseado nos cenários e nas jornadas"*. Fecha a decisão 6 de
+`docs/backlog/observabilidade-com-opentelemetry.md` (*onde os dados ficam*). A primeira fatia
+que a usa é a [spec 074](../../specs/074-jornada-entrar-e-sair/spec.md), a J1.
+
+A escolha do produto é da pessoa mantenedora, e está tomada. Esta emenda registra **o que
+ela custa, onde roda, e o que precisa ser verdade para ela não abrir uma porta nova** — as
+quatro coisas que a ADR original deixava para "quando houver número".
+
+### E1. As alternativas, comparadas no que importa aqui
+
+| | Tempo + Loki + Prometheus (+ Grafana) | Serviço gerenciado (Grafana Cloud, Honeycomb, SigNoz Cloud) | **SigNoz no próprio servidor** |
+|---|---|---|---|
+| o que é | quatro produtos, um por sinal, e o Grafana por cima | o backend de outra empresa | um produto: traço, métrica, log e alerta sobre ClickHouse |
+| peças a operar | 4 serviços, 3 armazenamentos, a correlação traço↔métrica configurada à mão | nenhuma | 4 contêineres de longa duração (ClickHouse, ZooKeeper, SigNoz, coletor) e 2 de migração |
+| para onde vai o dado com identidade | fica no VPS | **sai para terceiro** — o `user.id` de quem errou a senha passa a morar fora, sob contrato alheio | fica no VPS |
+| autenticação do painel | a do Grafana | a do fornecedor | própria, com papéis (admin, editor, viewer) |
+| alerta pela **ausência** (US3 do épico) | Prometheus/Alertmanager, sim | sim | sim, alerta sobre métrica e sobre traço |
+| custo | memória de 4 serviços; sem custo por evento | por volume; gratuito até um teto, e o teto muda por decisão do fornecedor | memória e disco do VPS (E3); sem custo por evento |
+| licença | Grafana, Loki e Tempo em AGPL-3.0; Prometheus em Apache-2.0 | contrato comercial | MIT fora de `ee/` e `cmd/enterprise/` (licença própria lá); ClickHouse em Apache-2.0 |
+| o que pesa contra | quatro coisas para observar, num projeto com uma pessoa operando | **S2**: identidade de pessoa sai do sistema por decisão de configuração, e a [FR-024 da 058](../../specs/058-medidas-da-equipe/spec.md) deixa de ser verificável | o ClickHouse é o maior consumidor de memória do VPS depois do Postgres (E3), e a SigNoz trocou o jeito de instalar (E2) |
+
+**Por que SigNoz**: das três, é a única que cumpre ao mesmo tempo **S2** (o dado com
+identidade não sai do servidor) e **o custo de operação de uma pessoa** (um produto, e não
+quatro). O gerenciado ganharia em operação, e perde no requisito que esta ADR declarou
+normativo. A pilha Grafana ganharia em memória por componente, e perde em número de coisas
+a manter de pé — que é, ironicamente, o defeito que este épico existe para enxergar.
+
+**O que fica pior**: um produto com opinião própria sobre armazenamento (ClickHouse), cuja
+instalação suportada mudou de forma no meio de 2026 (E2), e cuja edição empresarial convive
+no mesmo repositório. Trocar de backend continua barato **porque o domínio não conhece o
+backend** (decisão 1 desta ADR): a aplicação fala OTLP, e OTLP é o que os três aceitam.
+
+### E2. Como o SigNoz é instalado — e a armadilha da versão
+
+Medido em 2026-10-03:
+
+- a última versão é `v0.144.0` (`gh api repos/SigNoz/signoz/releases/latest`);
+- **o `docker-compose.yaml` empacotado deixou de existir**: `deploy/docker/` está presente em
+  `v0.125.0` e ausente em `v0.130.0`. `deploy/MIGRATION.md` de `v0.144.0` diz que o
+  `install.sh` e o compose sob `deploy/` estão **deprecados** em favor do *Foundry*
+  (`foundryctl forge` gera os manifestos a partir de um `casting.yaml`; `foundryctl cast` os
+  aplica). A página de instalação em Docker já descreve só o Foundry;
+- o compose de `v0.125.0` publica `4317`, `4318` e `8080` em **todas as interfaces** do host,
+  e traz `SIGNOZ_TOKENIZER_JWT_SECRET=secret` escrito no arquivo.
+
+Consequências, todas vinculantes para a implantação:
+
+1. **O compose implantado é gerado e versionado**, e não baixado no dia. `foundryctl forge`
+   roda na máquina de quem opera, o resultado entra no repositório com as imagens fixadas por
+   tag, e o Dokploy implanta **aquele** arquivo. Imagem `latest` não identifica o que roda —
+   o mesmo argumento do achado H7 da casa;
+2. **nenhuma porta do coletor, do ClickHouse ou do ZooKeeper é publicada no host.** A
+   aplicação alcança o coletor pela rede interna do Docker;
+3. **o segredo do emissor de token do SigNoz vem do ambiente** (variável no Dokploy, nunca
+   no arquivo). O valor do compose de referência, `secret`, é público, e quem o conhece
+   forja sessão no painel.
+
+### E3. Onde o SigNoz roda, e quanto custa
+
+**Medido nesta máquina** (Docker Desktop, aarch64, 10 CPUs, 7,75 GiB para o Docker), com o
+compose de `v0.125.0` (`signoz/signoz:v0.125.0`, `signoz/signoz-otel-collector:v0.144.4`,
+`clickhouse/clickhouse-server:25.5.6`, `signoz/zookeeper:3.7.1`), as portas trocadas para
+`127.0.0.1` e o projeto isolado (`docker compose -p signoz-medida up -d`), sem tocar no
+`the_band_postgres`:
+
+```bash
+docker compose -p signoz-medida up -d          # o compose de v0.125.0, portas em 127.0.0.1
+docker stats --no-stream signoz signoz-otel-collector signoz-clickhouse signoz-zookeeper-1
+python3 carga.py 100000                        # 100 000 spans OTLP/HTTP no formato da J1
+docker exec signoz-clickhouse clickhouse-client -q \
+  "SELECT table, sum(rows), sum(bytes_on_disk) FROM system.parts
+   WHERE database='signoz_traces' AND active GROUP BY table"
+docker system df -v
+docker compose -p signoz-medida down -v        # nada ficou de pé
+```
+
+| contêiner | ocioso (~4 min após subir) | logo após 100 000 spans | 20 s depois |
+|---|---|---|---|
+| `signoz-clickhouse` | 1,27 GiB | 1,63 GiB | 1,48 GiB |
+| `signoz-zookeeper-1` | 773 MiB | 774 MiB | 774 MiB |
+| `signoz` (consulta e painel) | 54 MiB | 54 MiB | 54 MiB |
+| `signoz-otel-collector` | 28 MiB | 291 MiB | 291 MiB |
+| **total** | **≈ 2,1 GiB** | **≈ 2,7 GiB** | **≈ 2,6 GiB** |
+
+- **disco por span**: 100 000 spans da J1 (seis atributos, ids aleatórios) ocuparam
+  **≈ 18,8 MB** no ClickHouse — `signoz_index_v3` 11,1 MB, `tag_attributes_v2` 5,1 MB,
+  `trace_summary` 2,7 MB —, ou seja **≈ 190 bytes por span**. Os 100 000 entraram em 4,8 s;
+- **disco das imagens**: 2,58 GB (ClickHouse 851 MB, ZooKeeper 779 MB, coletor 705 MB,
+  SigNoz 248 MB). Volumes vazios: ~70 MB;
+- **o que esta medida NÃO é**: não é o VPS (é aarch64 com Docker Desktop), não é a versão
+  atual do SigNoz (é a `v0.125.0`, a última com compose empacotado), e o ClickHouse não teve
+  teto de memória. Serve de ordem de grandeza, e bate com a fonte externa abaixo.
+
+**Um defeito encontrado na própria medida, e ele é do tipo que esta casa persegue.** Na
+primeira subida, o coletor (`v0.144.4`) recebia a configuração do servidor (`v0.125.0`) por
+OpAMP; o servidor respondeu erro, e o coletor aplicou uma configuração **`nop`** — sem
+receptor OTLP nas pipelines. Ficou de pé, *healthy*, e **recusava toda conexão em 4318**. Um
+coletor que sobe verde e não recebe nada é o Oban dos quatro dias, no backend de telemetria.
+Rodar o coletor só com `--config` resolveu na medida; na implantação, a defesa é a do E2 —
+versões do servidor e do coletor **fixadas juntas**, e o quickstart da 074 conferindo que um
+span de teste **chegou** ao ClickHouse, e não que o contêiner subiu.
+
+**A J1 em disco**: com 50 pessoas entrando e saindo duas vezes por dia, uns 300 spans por dia
+— **≈ 57 KB por dia, menos de 1 MB em 7 dias**. O disco da J1 é desprezível; o custo é a
+memória ociosa.
+
+**A fonte externa, para conferir a ordem de grandeza**: a Virtua Cloud mediu a `v0.116.1`
+num VPS de 4 vCPU e 8 GB — ~1,6 GB ociosa (ClickHouse ~775 MB, ZooKeeper ~775 MB, SigNoz
+~50 MB, coletor ~35 MB), ~3,4 GB sob ~1 000 linhas de log/s e 100 traços/s, imagens com
+~2,7 GB e ~4,2 GB de disco em 24 h **naquela carga**
+([virtua.cloud](https://www.virtua.cloud/learn/en/tutorials/self-host-signoz-openobserve-vps)).
+A documentação oficial exige **pelo menos 4 GB de memória para o Docker**
+([signoz.io/docs/install/docker](https://signoz.io/docs/install/docker/)).
+
+**A carga da J1 é outra ordem de grandeza.** Entrar e sair produz um punhado de spans por
+pessoa por dia; a carga da fonte é ~8,6 milhões de traços por dia. O que domina o custo aqui
+é a **memória ociosa** do ClickHouse e do ZooKeeper, e não o volume.
+
+**O VPS de produção**: o runbook (§1.1) dimensiona **8 GB** para painel + app + Postgres. O
+tamanho real e a memória livre **não foram medidos** nesta emenda — a sessão não tem acesso
+ao servidor, e a regra da casa proíbe afirmar o que não se mediu.
+
+| opção | o que custa | o que pesa contra |
+|---|---|---|
+| **A. No mesmo VPS, via Dokploy, com teto de memória** | ≈ 2,1 GiB de RAM ociosa, ≈ 2,7 GiB no pico medido; ≈ 2,6 GB de imagens e menos de 1 MB por semana de dado da J1; nenhum custo mensal novo | divide memória com o Postgres e com a aplicação: sem teto, um pico do ClickHouse vira OOM de quem atende |
+| B. Num segundo VPS | um VPS pequeno a mais por mês, e o preço é o da Contabo no dia | o coletor deixa de ser local: o traço atravessa a internet, e o coletor passa a precisar de TLS e autenticação — S4 fica mais difícil, não mais fácil |
+| C. Gerenciado | por volume | recusado em E1 (S2) |
+
+**Recomendação: A**, com três condições, e o critério que a derruba escrito antes:
+
+1. **Teto de memória** nos contêineres do SigNoz (`mem_limit`) e no ClickHouse
+   (`max_server_memory_usage` em 1,5 GB, abaixo do pico medido de 1,63 GiB, que veio de uma
+   rajada de 100 000 spans em 5 s que a J1 não produz), somando no máximo **3 GB** para os
+   quatro contêineres;
+2. **medir antes de subir**: a pessoa mantenedora roda `free -m` e `docker stats --no-stream`
+   no VPS e registra na tarefa 👤 correspondente. **Se a memória disponível, com a aplicação e
+   o Postgres de pé, for menor que 4 GB** (o teto de 3 GB mais 1 GB de folga para o cache de
+   página do Postgres), a opção A cai e vale B;
+3. **medir depois de subir**: o mesmo `docker stats` com o SigNoz ocioso por 5 minutos, no
+   VPS, substitui a medida desta máquina neste documento.
+
+### E4. Retenção
+
+O SigNoz retém **por sinal** (traços, logs, métricas), e não por atributo. Então a regra de
+S2 — *retenção mais curta para o que tem identidade* — se cumpre pelo sinal que carrega a
+identidade:
+
+| sinal | carrega identidade? | retenção recomendada | por quê |
+|---|---|---|---|
+| **traços** | sim — `user.ref` e `tenant.id` (spec 074) | **7 dias** | o que diz **quem** errou serve para agir esta semana: reiniciar a senha, investigar uma campanha. Depois disso é vigilância guardada |
+| **métricas** | **não** — rótulos só de enumeração fechada (`journey.name`, `journey.step`, `outcome`, `failure.reason`) e `tenant.id` | **30 dias** | é a série que responde *"isto piorou?"*, e não diz quem |
+| **logs** | a primeira fatia **não envia log** ao SigNoz | — | o log da aplicação continua onde está; mandar log é decisão de outra fatia, com a mesma redação da #1222 |
+
+Configura-se na tela do SigNoz (*Settings → General → Retention*). A configuração **não é
+código**, e por isso a fatia que a usa tem uma tarefa 👤 com conferência, e não um teste.
+
+### E5. Autenticação, acesso e rede
+
+- **O painel do SigNoz não é público.** Recomendado: nenhuma rota no Traefik; acesso por
+  túnel SSH (`ssh -L`) até a porta do painel. Alternativa, se túnel for incômodo demais:
+  rota no Traefik com HTTPS **e** lista de IPs permitidos **e** o login do SigNoz. A
+  primeira conta criada no SigNoz vira administradora — **o painel não pode ficar alcançável
+  antes de a pessoa mantenedora criar essa conta**;
+- **quem vê**: só quem opera a plataforma. Nenhuma conta de organização cliente vê o SigNoz.
+  É o que mantém S2 e a FR-024 da 058 verdadeiras: o painel tem identidade de pessoas de
+  **todas** as organizações, e por isso não pode ser oferecido a nenhuma delas;
+- **a rede**: a aplicação e o coletor na mesma rede Docker do Dokploy; **o coletor não
+  publica porta no host**, e o endpoint OTLP da aplicação é o nome do serviço na rede
+  interna. Isto **corrige a redação de S4**: "o endpoint é `localhost`" não vale para uma
+  aplicação em contêiner, onde `localhost` é o próprio contêiner. O que S4 queria — *nenhum
+  coletor alcançável de fora* — vale como **nenhuma porta publicada**;
+- **o protocolo**: OTLP sobre HTTP (`4318`), sem TLS **dentro** da rede Docker, porque não
+  atravessa a máquina. Se a opção B de E3 for escolhida, TLS e cabeçalho de autenticação
+  passam a ser obrigatórios, e esta linha muda.
+
+### E6. As dependências Hex — o que entra, e o que não entra
+
+Versões e datas medidas em `hex.pm/api` em 2026-10-03:
+
+| pacote | versão | publicada | licença | entra? | por quê |
+|---|---|---|---|---|---|
+| `opentelemetry_api` | 1.5.0 | 2025-10-17 | Apache-2.0 | **sim** | a API que o handler chama para abrir e fechar span. Mantida pelo projeto OpenTelemetry (`open-telemetry/opentelemetry-erlang`); ~32 M downloads |
+| `opentelemetry` | 1.7.0 | 2025-10-17 | Apache-2.0 | **sim** | o SDK: o processador em lote, a amostragem e o recurso. Exige `opentelemetry_api ~> 1.5.0`. **A 1.4.1 foi aposentada** por *breaking bug* |
+| `opentelemetry_exporter` | 1.11.0 | 2026-09-16 | Apache-2.0 | **sim** | o exportador OTLP. Exige `opentelemetry ~> 1.7.0`, `opentelemetry_api ~> 1.5.0`, `tls_certificate_check ~> 1.18` e `grpcbox` |
+| `grpcbox` (transitiva) | 0.18.0 | 2026-07-11 | Apache-2.0 | vem junto | o exportador a exige mesmo usando HTTP; traz `ts_chatterbox` 0.16.0 (MIT), `ctx` 0.6.0 (Apache-2.0, **sem release desde 2020**), `gproc` 1.3.0 (Apache-2.0), `acceptor_pool` 1.0.1 (Apache-2.0) |
+| `tls_certificate_check` (transitiva) | 1.35.0 | 2026-08-13 | MIT | vem junto | as versões ≤ 1.6.0 foram aposentadas por *Outdated Certification Authorities*; a resolução pega a atual |
+| `opentelemetry_phoenix` | 2.0.1 | 2025-02-21 | Apache-2.0 | **não, na primeira fatia** | o span de rota carrega `url.path` e `url.query`, e a query é onde mora o que S1 proíbe. Responde *"o servidor está bem?"*, que esta ADR já recusou como eixo |
+| `opentelemetry_bandit` | 0.3.0 | 2025-08-21 | Apache-2.0 | **não** | mesmo motivo |
+| `opentelemetry_ecto` | 1.2.0 | **2024-02-06** | Apache-2.0 | **não** | 20 meses sem release. E o span de consulta é exatamente o caminho que a [#1222](https://github.com/The-Band-Solution/theband/issues/1222) fechou no log: se entrar um dia, entra com a **mesma** regra de `TheBand.Repo.LogDaConsulta.redigir?/2`, que lê `TheBand.Rotacao.campos_cifrados/0` |
+| `opentelemetry_oban` | 1.2.0 | 2026-02-27 | Apache-2.0 | **não, nesta fatia** | é da J2/US3 (coleta e o Oban parado) |
+| `opentelemetry_req` | 1.0.0 | 2024-11-21 | Apache-2.0 | **não** | o span de saída HTTP leva URL e cabeçalhos da chamada à origem — onde viaja o token da ferramenta |
+| `opentelemetry_telemetry` | 1.1.2 | 2024-09-24 | Apache-2.0 | **não** | o handler próprio da casa já anexa ao `:telemetry` (decisão 1); a ponte genérica é generalidade sem segundo uso |
+
+**Nenhum instrumentador entra na primeira fatia.** Os spans são os **passos de jornada**,
+emitidos pelo domínio em `:telemetry.execute` e traduzidos por **um** handler — que é onde a
+lista do que pode sair (S1) é aplicada. Cada instrumentador automático seria um segundo
+caminho de atributos para fora do processo, sem passar por essa lista.
+
+As três dependências diretas e as seis transitivas passam pelos gates de dependência da casa
+(`mix hex.audit`, `mix deps.audit`) **antes** do merge, e a aceitação delas é decisão da
+pessoa mantenedora, junto com a desta ADR.
+
+### E7. O que esta emenda NÃO decide
+
+- **o custo por requisição** (Verificação 1) e **o volume de uma coleta** (Verificação 2)
+  continuam sem número: o primeiro só existe com a J1 instrumentada, o segundo com a J2. A
+  J1 é volume desprezível, e por isso a escolha do backend não depende dele; a J2 depende,
+  e reabre E3 quando chegar;
+- **amostragem**: a J1 é exportada **inteira** (sem amostragem). *Tail sampling* volta a ser
+  pergunta quando a J2 trouxer volume;
+- **pseudonimização do identificador de pessoa**: fica para a pessoa mantenedora, com as
+  opções escritas na [avaliação de segurança da 074](../../specs/074-jornada-entrar-e-sair/seguranca.md);
+- **a ordem**: o comentário de 2026-09-27 coloca este épico **depois da 064/US3**
+  ([#887](https://github.com/The-Band-Solution/theband/issues/887), aberta), e a redação de
+  consulta da [#1222](https://github.com/The-Band-Solution/theband/issues/1222) está no PR
+  #1227, ainda não mergeado. A implementação da 074 tem as duas como pré-requisito.
 
 ---
 
