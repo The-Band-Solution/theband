@@ -10,8 +10,13 @@ O cálculo e o recorte da rede de revisão existem e estão provados, com cada c
 reprovando, de modo que a US1 fique a uma base aprovada e a uma tela aprovada de ser entregue.
 
 **Este sprint não entrega nada visível**, e é dito aqui para não parecer que entrega. A US1 só fecha
-com a tela (T021), que espera o protótipo; nenhum PR é aberto antes disso (memória *Vertical
-slice*). O que o sprint entrega é a parte da US1 que não depende de nenhuma das duas aprovações.
+com a tela (T021); nenhum PR é aberto antes disso (memória *Vertical slice*).
+
+**Atualizado em 2026-10-03**: o protótipo foi **aprovado** (v2, `prototipo/`), e as tarefas de tela não
+esperam mais por ele. Esperam a fachada (T017), que espera os parâmetros da base (T013 ← T004 ←
+T003, a revisão semântica). As decisões da pessoa mantenedora do mesmo dia (amostra de 10 revisões e
+concentração ausente abaixo dela; grupos e exclusões pelo recorte; conta apagada como sem pessoa
+ligada; grupo mínimo 3) já estão na spec, no contrato, nas tarefas e em `proposta-base/`.
 
 ## Lições aplicadas
 
@@ -70,6 +75,7 @@ Nenhuma fecha neste sprint: todas dependem da tela.
 | T025 | Contar os grupos, escondendo o tamanho dos pequenos | US3 | [#1213](https://github.com/The-Band-Solution/theband/issues/1213) | a fazer |
 | T027 | Provar que a rede não sai pela API nem pela MCP | US1 | [#1215](https://github.com/The-Band-Solution/theband/issues/1215) | a fazer |
 | T028 | Abrir a issue do aviso de recorte que promete mais do que aplica | US1 | [#1216](https://github.com/The-Band-Solution/theband/issues/1216) | a fazer |
+| T030 | Contar a conta apagada como sem pessoa ligada, e não como bot, na coleta | US1 | [#1219](https://github.com/The-Band-Solution/theband/issues/1219) | a fazer |
 
 Tarefa não recebe `Priority`: herda a da user story.
 
@@ -78,13 +84,13 @@ Tarefa não recebe `Priority`: herda a da user story.
 | Tarefa | Issue | Por quê |
 |---|---|---|
 | T002 medir produção 👤 | [#1190](https://github.com/The-Band-Solution/theband/issues/1190) | acesso à produção; antes do merge da US1 |
-| T003 revisão semântica 👤 | [#1191](https://github.com/The-Band-Solution/theband/issues/1191) | espera `proposta-base/` completa; os estados que contam estão em texto livre na proposta e precisam virar lista legível |
+| T003 revisão semântica | [#1191](https://github.com/The-Band-Solution/theband/issues/1191) | é do agente de ontologia e integração semântica, e não de quem escreveu a proposta; os estados que contam estão em texto livre na proposta e precisam virar lista legível |
 | T004 YAMLs na base | [#1192](https://github.com/The-Band-Solution/theband/issues/1192) | espera T003 |
 | T013 parâmetros da base | [#1201](https://github.com/The-Band-Solution/theband/issues/1201) | espera T004; **nenhum valor escrito no código para não esperar** |
 | T017 a fachada com os parâmetros | [#1205](https://github.com/The-Band-Solution/theband/issues/1205) | espera T013 |
 | T019 caminho feliz do job, log e aviso | [#1207](https://github.com/The-Band-Solution/theband/issues/1207) | espera T017 |
 | T020 o gatilho na sincronização | [#1208](https://github.com/The-Band-Solution/theband/issues/1208) | espera T019: disparar antes enfileiraria um job que só levanta |
-| T021, T024, T026 as telas | [#1209](https://github.com/The-Band-Solution/theband/issues/1209), [#1212](https://github.com/The-Band-Solution/theband/issues/1212), [#1214](https://github.com/The-Band-Solution/theband/issues/1214) | esperam o protótipo aprovado (FR-017) |
+| T021, T024, T026 as telas | [#1209](https://github.com/The-Band-Solution/theband/issues/1209), [#1212](https://github.com/The-Band-Solution/theband/issues/1212), [#1214](https://github.com/The-Band-Solution/theband/issues/1214) | o protótipo foi aprovado; esperam T017, T019 e T020 |
 | T022 aceitação 👤 | [#1210](https://github.com/The-Band-Solution/theband/issues/1210) | espera a tela e a release |
 | T029 gates, PR | [#1217](https://github.com/The-Band-Solution/theband/issues/1217) | fecha a feature; o PR espera T021 |
 
