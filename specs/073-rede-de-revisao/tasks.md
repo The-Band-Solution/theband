@@ -295,7 +295,8 @@ concentração, e os números batem com a contagem manual (SC-001).
     aresta (A16 reprova); transmitir o relator inteiro, como `recompute_promotions.ex:57` (A11 reprova)
 
 - [ ] T020 [US1] Disparar o cálculo ao fim da coleta de revisões
-  - **Pronta quando**: T018
+  - **Pronta quando**: T019 (disparar antes de o caminho feliz existir enfileiraria, a cada
+    sincronização, um job que só levanta)
   - **Descrição**: `lib/the_band/jobs/sync_github_eo.ex`: o `ctx` de `coletar_trabalho/1` ganha
     `organization_id`; `coletar_mudancas/1` chama `ComputeReviewNetwork.enqueue/2` depois de
     `GithubChangeRequests.collect/1` devolver `{:ok, _}`, com o acoplamento escrito ao lado (D6, R8).
@@ -425,7 +426,7 @@ each other"* com os dois tamanhos.
 - T003 → T004 → T013 → T017 → T019; T013 também → T022 (via T021).
 - T005, T006, T007, T008, T009, T011, T012 → T014.
 - T012 → T015 → T016; T006 → T016.
-- T006 → T018 → T019, T020.
+- T006 → T018 → T019 → T020.
 - T015, T016 → T023; T012, T015 → T025.
 - Protótipo aprovado → T021 → T024, T026; T002 e T021 → T022.
 
@@ -434,7 +435,7 @@ each other"* com os dois tamanhos.
 - T010, T027 e T028, a qualquer momento;
 - T015 e T018, depois das suas dependências.
 
-**O que não espera nem a base nem o protótipo**: T005–T012, T014–T016, T018, T020, T023, T025, T027,
+**O que não espera nem a base nem o protótipo**: T005–T012, T014–T016, T018, T023, T025, T027,
 T028. É o escopo do primeiro sprint.
 
 ## Estratégia
