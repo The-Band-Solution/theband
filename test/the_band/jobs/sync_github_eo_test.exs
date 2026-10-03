@@ -570,6 +570,13 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
       assert sync.status == "running", "esperando não é terminado"
       assert Ingestion.etapa_concluida?(sync, "github.user"), "as pessoas (EO) foram concluídas"
       assert Ingestion.etapa_concluida?(sync, "etapa:mudancas")
+
+      # 073/T020: a etapa de mudanças concluída enfileira a rede de revisão da organização
+      # observada, e só dela.
+      assert [%{"tenant_id" => tid, "organization_id" => org_id}] = redes_enfileiradas()
+      assert tid == ctx.tenant.id
+      assert [org_id] == organizacoes_do_tenant(ctx.tenant)
+
       assert Ingestion.etapa_concluida?(sync, "etapa:verificacoes")
       refute Ingestion.etapa_concluida?(sync, "etapa:branches"), "a etapa que a janela pegou"
 
@@ -676,6 +683,9 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
 
       refute Ingestion.etapa_concluida?(sync, "etapa:comentarios"), "GraphQL: sem janela"
       refute Ingestion.etapa_concluida?(sync, "etapa:mudancas"), "GraphQL: sem janela"
+
+      # 073/T020: sem a etapa de mudanças, a rede de revisão não é enfileirada.
+      assert redes_enfileiradas() == []
 
       assert feitas.commits == 0 and not Ingestion.etapa_concluida?(sync, "etapa:arquivos"), """
       Os arquivos de commit (REST) rodaram ANTES das solicitações de mudança, de quem
@@ -912,5 +922,21 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
 
   defp reset_em(segundos) do
     DateTime.utc_now() |> DateTime.add(segundos, :second) |> DateTime.to_iso8601()
+  end
+
+  defp redes_enfileiradas do
+    Repo.all(
+      from j in Oban.Job,
+        where: j.worker == "TheBand.Jobs.ComputeReviewNetwork",
+        select: j.args
+    )
+  end
+
+  defp organizacoes_do_tenant(tenant) do
+    Repo.all(
+      from o in "eo_organizations",
+        where: o.tenant_id == type(^tenant.id, :binary_id),
+        select: type(o.id, :binary_id)
+    )
   end
 end
