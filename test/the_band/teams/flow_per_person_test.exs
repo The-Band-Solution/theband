@@ -147,6 +147,44 @@ defmodule TheBand.Teams.FlowPerPersonTest do
       assert linha.periodos_com_fechamento == 1
     end
 
+    # O INSTANTE `desde` pertence a UM lado só. `abertos_em/3` avalia o estado NO instante
+    # (`criada <= desde`, `fechada > desde`): o que aconteceu exatamente ali já está no aberto
+    # inicial. Se a janela também contasse `>= desde`, o mesmo evento entraria duas vezes.
+    #
+    # Foi o teste instável do PR #1228: `fluxo_por_pessoa_test.exs` grava o fechamento em
+    # `agora − 56 dias` e a tela abre com `desde = agora − 56 dias`; quando o relógio não
+    # avançava um segundo entre os dois, a fechada contava na janela sem nunca ter contado no
+    # inicial, o aberto caía de 1 para 0 e a pessoa virava "nothing to forecast".
+    test "evento exatamente em `desde` conta uma vez, e não duas", ctx do
+      fechou_na_borda = pessoa(ctx.tenant, "bia")
+      # Aberto antes da janela e fechado EXATAMENTE em `desde`, mais um aberto dentro dela.
+      item(ctx, [fechou_na_borda], DateTime.add(ctx.desde, -10, :day), ctx.desde)
+      item(ctx, [fechou_na_borda], DateTime.add(ctx.desde, 7, :day))
+
+      abriu_na_borda = pessoa(ctx.tenant, "caio")
+      # Aberto EXATAMENTE em `desde` e ainda aberto, mais um aberto dentro dela.
+      item(ctx, [abriu_na_borda], ctx.desde)
+      item(ctx, [abriu_na_borda], DateTime.add(ctx.desde, 7, :day))
+
+      linhas =
+        FlowPerPerson.linhas(
+          ctx.tenant,
+          [fechou_na_borda.id, abriu_na_borda.id],
+          :semana,
+          ctx.janela
+        )
+
+      assert FlowPerPerson.aberto_agora(linhas[fechou_na_borda.id]) == 1, """
+      Um item aberto agora, e o aberto derivado diz outro número. A fechada em `desde` já está
+      fora do aberto inicial; contá-la também na janela a subtrai duas vezes.
+      """
+
+      assert FlowPerPerson.aberto_agora(linhas[abriu_na_borda.id]) == 2, """
+      Dois itens abertos agora, e o aberto derivado diz outro número. A criada em `desde` já
+      está no aberto inicial; contá-la também na janela a soma duas vezes.
+      """
+    end
+
     test "o item de DOIS responsáveis conta uma vez para CADA, e nenhuma coluna soma a equipe",
          ctx do
       a = pessoa(ctx.tenant, "ana")
