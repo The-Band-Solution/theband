@@ -147,7 +147,8 @@ arquivo antes de injetar e `diff` depois de restaurar.
     três avaliações da mesma conta na mesma solicitação são **um** par
   - **Teste**: `test/the_band/quality/review_pairs_test.exs`, com `assert` de que mediu antes de cada
     `refute`. **Defeitos a injetar**, um por vez: tirar `a.tenant_id` do `where` e do join (A2
-    reprova); tirar `c.tenant_id` do `where` (A1 reprova)
+    reprova); tirar `c.tenant_id` do `where` e do join (A1 reprova). Cada filtro sozinho é
+    redundante com a igualdade do join, e o contrato diz isso
 
 - [ ] T009 [P] Ler quem abriu solicitação na janela
   - **Pronta quando**: `contracts/fronteiras.md`, seção `Changes.change_request_authors/3`

@@ -26,8 +26,11 @@ recebe `%Tenant{}` e filtra **cada tabela** que toca pelo tenant (princípio V; 
 Uma consulta, agrupada por **(conta revisora, solicitação)**, com `max(external_submitted_at)`.
 
 - `where a.tenant_id == ^t and c.tenant_id == ^t`, e o join é `a.collected_change_request_id ==
-  c.id and a.tenant_id == c.tenant_id` (A1, A2: retirar **qualquer um** dos dois filtros reprova um
-  teste);
+  c.id and a.tenant_id == c.tenant_id`. São três barreiras, e duas quaisquer seguram a terceira: a
+  igualdade do join torna cada filtro redundante com o outro. O teste prova o que importa, que
+  **um lado inteiro** (o filtro dele e a igualdade do join) não pode faltar: tirar o de `a` reprova
+  A2, tirar o de `c` reprova A1 (corrigido na implementação, 2026-10-03: o texto anterior dizia que
+  tirar *qualquer um dos dois filtros* reprovaria, e a igualdade do join impede isso);
 - `c.observed_repository_id in ^ids`; lista vazia devolve `[]` sem consultar;
 - `a.state in ^states` (lista de inclusão vinda da regra; nunca *"diferente de PENDING"*),
   `not is_nil(a.external_submitted_at)`, `a.external_submitted_at >= ^since`;
