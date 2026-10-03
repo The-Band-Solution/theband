@@ -19,6 +19,7 @@ defmodule TheBand.AI do
   import Ecto.Query
 
   alias TheBand.AI.ProviderCredential
+  alias TheBand.Credenciais.Idade
   alias TheBand.Integrations.LLM.HTTP
   alias TheBand.Repo
   alias TheBand.Segredo
@@ -100,6 +101,9 @@ defmodule TheBand.AI do
 
     with {:ok, modelos} <- HTTP.impl().verify(Segredo.novo(secret), base_url: @base_url),
          {:ok, modelo} <- escolher_modelo(attrs, modelos) do
+      agora = DateTime.utc_now(:second)
+      anterior = existente(tenant, provider)
+
       atributos = %{
         tenant_id: tenant_id,
         provider: provider,
@@ -107,17 +111,40 @@ defmodule TheBand.AI do
         default_model: modelo,
         secret: secret,
         declared_by_user_id: user_id,
-        validated_at: DateTime.utc_now(:second),
+        validated_at: agora,
         last_failure_at: nil,
         last_failure_reason: nil
       }
 
-      tenant
-      |> existente(provider)
+      # As datas da troca são calculadas aqui e postas fora do `cast`: vindas de quem chama,
+      # uma data recente forjada esconderia uma credencial vencida (achado 2 da avaliação).
+      anterior
       |> ProviderCredential.changeset(atributos)
+      |> Ecto.Changeset.change(data_da_troca(anterior, secret, agora))
       |> Repo.insert_or_update()
     end
   end
+
+  # 064/T019, FR-018: trocar o segredo zera a contagem da idade e guarda desde quando valia o
+  # anterior. Regravar a mesma chave (para trocar o modelo, por exemplo) **não** é troca, e não
+  # zera nada — senão a cobrança acharia atendida uma troca que não aconteceu.
+  defp data_da_troca(%ProviderCredential{id: nil}, _secret, agora),
+    do: %{secret_set_at: agora, previous_secret_set_at: nil}
+
+  defp data_da_troca(%ProviderCredential{secret: gravado} = anterior, secret, agora) do
+    if mesma_chave?(gravado, secret) do
+      %{}
+    else
+      %{secret_set_at: agora, previous_secret_set_at: Idade.em_uso_desde(anterior)}
+    end
+  end
+
+  # Comparação em memória e em tempo constante; nenhuma das duas sai daqui, e o resultado não é
+  # registrado em lugar nenhum.
+  defp mesma_chave?(gravado, novo) when is_binary(gravado) and is_binary(novo),
+    do: Plug.Crypto.secure_compare(gravado, novo)
+
+  defp mesma_chave?(_gravado, _novo), do: false
 
   @doc "Apaga a credencial. O segredo some — não há histórico de segredo."
   @spec delete(Tenant.t(), String.t()) :: :ok | {:error, :not_found}
