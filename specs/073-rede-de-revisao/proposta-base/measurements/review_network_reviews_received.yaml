@@ -1,5 +1,6 @@
 measurement:
   id: review.network.reviews_received.count
+  version: 1
   name:
     pt-BR: "Solicitações de uma pessoa que foram revisadas, e por quantas pessoas distintas"
     en: "A person's change requests that were reviewed, and by how many distinct people"
@@ -40,6 +41,7 @@ measurement:
     - "Só existe o que passou pela ferramenta observada; revisão fora dela não existe para a plataforma."
     - "Revisão descartada (DISMISSED) conta: a solicitação foi revisada, ainda que a revisão tenha sido retirada depois."
     - "Revisão de bot ou aplicativo não conta. Uma solicitação revisada só por robô aparece como não revisada — o que é correto para a pergunta (ninguém a leu), e precisa ser dito, porque a página da solicitação na origem mostra uma revisão."
+    - "Revisão de conta sem pessoa ligada também não conta: a solicitação revisada só por uma conta que a plataforma não reconheceu aparece como não revisada, ainda que uma pessoa real a tenha lido. A contagem dessas revisões está em review.network.excluded.count."
 
   misinterpretations:
     - "A MEDIDA NÃO AVALIA A PESSOA — nem quem abriu, nem quem revisou."

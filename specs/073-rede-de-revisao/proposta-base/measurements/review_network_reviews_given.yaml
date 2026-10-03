@@ -1,11 +1,12 @@
 measurement:
   id: review.network.reviews_given.count
+  version: 1
   name:
     pt-BR: "Revisões feitas por uma pessoa, e de quantas pessoas distintas"
     en: "Reviews a person gave, and of how many distinct people"
   answers_information_need: [review.concentration]
   value_type: count
-  unit: change_requests
+  unit: reviews
 
   # ---------------------------------------------------------------------------
   # Um par, e não dois números soltos. "12" sem "de 4 pessoas" é o número que vira
@@ -14,12 +15,18 @@ measurement:
   #
   # A unidade declarada é a do primeiro componente. O segundo é contado em pessoas,
   # e a expressão diz isso — o schema tem um só campo `unit`.
+  #
+  # `reviews`, e não `change_requests` (revisão semântica 073/T003): o primeiro componente é
+  # a soma dos pesos que saem de p, e a soma dele sobre todas as pessoas é
+  # `review.network.reviews.count`. As duas medidas têm de declarar a MESMA unidade, senão
+  # o mesmo número aparece com dois nomes. Numericamente é também o número de solicitações
+  # distintas que p revisou, e a expressão diz isso.
   # ---------------------------------------------------------------------------
   formula:
     expression: >
       Sobre as arestas da leitura (organização observada O, janela W), regidas por
-      github.pull_request_review.to.qapo.artifact_evaluation.as_review_edge:
-        reviews_given(p)  = soma de weight(p → a) para todo autor a      [solicitações]
+      review.network.edge:
+        reviews_given(p)  = soma de weight(p → a) para todo autor a      [revisões]
                           = |{ solicitação c : existe revisão de p sobre c, enviada em W }|
         reviewed_people(p) = |{ a : weight(p → a) > 0 }|                  [pessoas]
       weight(p → a) = número de solicitações DISTINTAS de a que p revisou em W.
@@ -34,7 +41,7 @@ measurement:
     filters:
       - "só arestas da organização observada consultada, buscada por id e tenant juntos (spec 073, FR-001, R4)"
       - "só revisões ENVIADAS dentro da janela, pelo instante de envio (`submitted_at`); pendente não entra (FR-003)"
-      - "revisões excluídas pela regra review.network.parameters (auto-revisão, bot/app, sem pessoa ligada) não entram, e são contadas no agregado da leitura — nunca por pessoa (FR-004, R5, R9)"
+      - "revisões excluídas pela regra review.network.edge (auto-revisão, bot/app, sem pessoa ligada) não entram, e são contadas no agregado da leitura — nunca por pessoa (FR-004, R5, R9)"
       - "a linha de pessoa alcançável mostra o TOTAL VERDADEIRO dela, inclusive revisões de pessoas fora do alcance de quem consulta; esses pares não viram linha nem número (FR-015, R2 item 1)"
       - "a lista é ordenada por nome; nenhuma coluna desta medida ordena nem se oferece para ordenar (FR-018a)"
     period: "janela móvel de 30, 90 ou 180 dias, padrão 90 (review.network.parameters.window_days)"
@@ -54,7 +61,7 @@ measurement:
     - "Revisar pouco não é omissão. A pessoa pode não ser designada, estar em outro repositório, de férias, ou revisar fora da ferramenta."
     - "Ordenar as pessoas por esta medida. As linhas não compartilham denominador — designação e repositório diferem — e o primeiro colocado de uma lista ordenada é um rótulo de 'hub' com outro nome. Nenhuma coluna de medida ordena a lista, e nenhuma se oferece para ordenar."
     - "Ler 'de 4 pessoas' como alcance social ou influência. É quantas pessoas distintas abriram as solicitações que ela revisou na janela — nada sobre importância."
-    - "Somar as linhas e chamar de total da organização. Uma solicitação revisada por duas pessoas aparece nas duas linhas; o total de revisões da organização é a soma dos pesos das arestas, e o de solicitações revisadas é outra contagem."
+    - "Somar as linhas e chamar de número de solicitações revisadas. Uma solicitação revisada por duas pessoas aparece nas duas linhas: a soma das linhas é o total de REVISÕES (review.network.reviews.count, para quem alcança todos), e o de solicitações revisadas é outra contagem. Para alcance parcial a soma das linhas visíveis não é nem uma nem outra, porque cada linha traz o total verdadeiro da pessoa, inclusive pares fora do recorte."
 
   provenance:
     source_type: project_decision

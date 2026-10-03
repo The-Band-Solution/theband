@@ -36,8 +36,8 @@ Foram lidos:
 | `measurements/review_network_authors_reviewed_count.yaml` | `measurements/` | medida `review.network.authors_reviewed.count` (pedida pelo protótipo, D10) |
 | `measurements/review_network_people_without_activity_count.yaml` | `measurements/` | medida `review.network.people_without_activity.count` (pedida pelo protótipo) |
 | `measurements/review_network_excluded_count.yaml` | `measurements/` | medida `review.network.excluded.count`, por motivo (pedida pelo protótipo) |
-| `mappings/github/qapo/review_edge.yaml` | `mappings/github/qapo/review_edge.yaml` | mapeamento `github.pull_request_review.to.qapo.artifact_evaluation.as_review_edge` |
-| `rules/review_network_parameters.yaml` | `rules/review_network_parameters.yaml` | regra `review.network.parameters` |
+| `rules/review_network_edge.yaml` | `rules/review_network_edge.yaml` | regra `review.network.edge`: a aresta, os estados que contam e as exclusões (era o mapeamento `…as_review_edge`; ver a seção 6) |
+| `rules/review_network_parameters.yaml` | `rules/review_network_parameters.yaml` | regra `review.network.parameters`: janelas, k, amostra mínima, grupo mínimo |
 | `ontology/seon/qapo/competency_questions/qapo_review_network_competency_questions.yaml` | o mesmo caminho | perguntas `qapo_review_network.cq01`–`cq04` |
 
 O id `review.concentration` segue o padrão de `review.time_to_first_review`. As medidas seguem o
@@ -70,7 +70,7 @@ declarada na rede de ontologias: QAPO sobre CMPO, entre pessoas de EO.
 | **"Papel na rede"** (`:495-510`) | **RECUSAR** | recusa registrada em `review.network.parameters.refuses` | São rótulos como *"Coordenador central"*, *"Hub"*, *"Ponte entre equipes"* e *"Colaborador especializado com foco limitado"*. Saem de percentis com cortes 80, 50 e 30 sem razão escrita. É julgamento sobre pessoa (FR-018). Além disso, o percentil de uma pessoa muda quando outra entra na rede. |
 | **Rankings top-5** por centralidade (`:120-123`) | **RECUSAR** | `review.network.concentration.top_k_share` | A pergunta *"está concentrada?"* se responde com a fração das k primeiras **sem dizer quem**. Nomear o primeiro colocado é o ranking que `flow_per_person_readings.yaml` já recusa. |
 | **Listas "Atribui / Recebe issues"** por pessoa (`:512-529`) | **ADAPTAR** | os pares da US2, sob o alcance | Viram pares de **revisão**, ordenados por nome e não por peso (a referência ordena por peso, `:517`). Par fora do alcance não vira linha (R2). |
-| **Nó = qualquer login** | **RECUSAR** | regra `exclusions` | O relatório lista `dependabot[bot]`, `github-actions[bot]` e a conta de organização `LEDS` como desenvolvedores (`developer_stats.md`), e `LEDS` aparece como membro central de uma comunidade. Aqui só é nó quem é `eo.person` com `account_type = 'person'`. |
+| **Nó = qualquer login** | **RECUSAR** | `review.network.edge` (`exclusions`) | O relatório lista `dependabot[bot]`, `github-actions[bot]` e a conta de organização `LEDS` como desenvolvedores (`developer_stats.md`), e `LEDS` aparece como membro central de uma comunidade. Aqui só é nó quem é `eo.person` com `account_type = 'person'`. |
 | **Laço removido em silêncio** (`assignee != author`, `:71`) | **ADAPTAR** | `self_review`, contado | Auto-revisão não vira aresta, **e é contada** no agregado. Na referência ela some sem registro. |
 | **Erro de linha engolido** (`except Exception`, `:76`) | **RECUSAR** | `fallback: skip` com contagem | Linha que falha some sem contagem, e o total deixa de fechar com a origem. |
 | **Velocidade e Monte Carlo** (`dashboard_organization.py:191-281`) | **RECUSAR** | já existe: `flow.completion.forecast` | Ver a seção 3. Duplicaria uma medida declarada, e a da referência tem defeitos que a da plataforma já evita: semente, piso de amostra, percentil nulo quando não converge. |
@@ -146,7 +146,7 @@ grafo é desconexo, contendo 1 componentes"*.
 
 | Fatia | Pergunta | Acrescenta à base | Depende de |
 |---|---|---|---|
-| **1 — 073 rede de revisão** | *A revisão está concentrada em poucas pessoas? Há grupos que não se revisam?* | 1 necessidade, 4 medidas, 1 mapeamento derivado, 1 regra, 4 perguntas de competência (esta pasta) | QAPO, CMPO, SPO, EO; dado já coletado |
+| **1 — 073 rede de revisão** | *A revisão está concentrada em poucas pessoas? Há grupos que não se revisam?* | 1 necessidade, 9 medidas, 2 regras (aresta e parâmetros), 4 perguntas de competência (esta pasta) | QAPO, CMPO, SPO, EO; dado já coletado |
 | **2 — comunidades observadas × equipes declaradas** | *As equipes declaradas correspondem a quem revisa quem?* | 1 necessidade, 2–3 medidas, regra do algoritmo e da semente | fatia 1 (a aresta); `eo.team_membership` temporal |
 | **3 — pontes e risco de dependência de pessoa** | *Se uma pessoa ficar indisponível, quanto da revisão para?* | 1 necessidade, 2–3 medidas, regra de exibição para quem tem alcance parcial | fatia 1; decisão sobre nomear |
 | **4 — coautoria de artefato** | *Onde o código é alterado por uma pessoa só?* | 1 necessidade, 2–3 medidas, 1 mapeamento pessoa–artefato | CMPO (`cmpo.artifact_copy`, `cmpo.stakeholder_performed_commit`); SysSwO para agrupar além do arquivo |
@@ -259,12 +259,12 @@ Coautoria **não é** colaboração: dois commits no mesmo arquivo podem estar a
 
 | Não confunda | Por quê, aqui | Onde a proposta se protege |
 |---|---|---|
-| **Revisão ≠ colaboração ≠ delegação** | A referência chama delegação (autor da issue → designado) de colaboração. Revisão é um terceiro ato, sobre um artefato. Nenhum dos três é "trabalhar junto". | `equivalence: derived` e justificativa no mapeamento; limitação *"NÃO é colaboração, NÃO é delegação, NÃO é integração"*; FR-005 |
-| **Pull Request ≠ merge** | A aresta é sobre quem revisou a **solicitação**, e não sobre quem integrou. Solicitação revisada não é solicitação integrada. | mapeamento (justificativa); `reviews_received` (limitação); `cq01` |
+| **Revisão ≠ colaboração ≠ delegação** | A referência chama delegação (autor da issue → designado) de colaboração. Revisão é um terceiro ato, sobre um artefato. Nenhum dos três é "trabalhar junto". | `equivalence: derived` e justificativa na regra `review.network.edge`; limitação *"NÃO é colaboração, NÃO é delegação, NÃO é integração"*; FR-005 |
+| **Pull Request ≠ merge** | A aresta é sobre quem revisou a **solicitação**, e não sobre quem integrou. Solicitação revisada não é solicitação integrada. | `review.network.edge` (justificativa); `reviews_received` (limitação); `cq01` |
 | **Pessoa ≠ membro de equipe** | O nó é `eo.person`, pelo papel `spo.project_person_stakeholder`. Equipe só entra na fatia 2, pelo relator `eo.team_membership` e com data. | necessidade (`required_concepts`); FR-001 |
 | **Comunidade observada ≠ equipe** | Um grupo de quem se revisa numa janela não é uma equipe, e nunca recebe nome de equipe. | `unconnected_groups` (limitação); fatia 2 |
 | **Ausência ≠ zero** | Pessoa que não revisou, solicitação não revisada, janela vazia, cálculo não feito, amostra abaixo do mínimo: cada caso tem motivo nomeado. Nunca 0, 0,01 ou `inf`. | fórmula de cada medida; regra `min_reviews`; recusa do 0,01 |
-| **Bot ou conta de organização ≠ pessoa** | `dependabot[bot]`, `github-actions[bot]` e `LEDS` são nós na referência. Aqui o nó exige `account_type = 'person'`, e não só `__typename = User` (R9). | regra `exclusions`; mapeamento (`relations.reviewer.note`) |
+| **Bot ou conta de organização ≠ pessoa** | `dependabot[bot]`, `github-actions[bot]` e `LEDS` são nós na referência. Aqui o nó exige `account_type = 'person'`, e não só `__typename = User` (R9). | `review.network.edge` (`exclusions`, `relations.reviewer.note`) |
 | **Medida ≠ avaliação de pessoa** | Revisar muito não é qualidade, revisar pouco não é omissão, e o número não ordena a lista. | `misinterpretations` das quatro medidas; FR-018/018a |
 | **Fração das revisões ≠ fração das solicitações** | Com vários revisores por solicitação, as duas divergem. A 073 mede revisões; a outra é a pergunta de dependência da fatia 3. | `top_k_share` (limitação) |
 
@@ -285,7 +285,7 @@ desta pasta já as carregam. O texto original de cada pergunta fica abaixo da ta
 |---|---|---|
 | 1 | Abaixo da amostra mínima, a concentração é **ausente com motivo** (`sample_below_minimum`), e as contagens aparecem. A spec foi corrigida | `review.network.parameters.min_reviews` (`below_minimum: absent`); `top_k_share` |
 | 2 | O denominador **e a unidade da amostra** são **revisões** (par revisor–solicitação), e não solicitações. A chave passou de `min_reviewed_change_requests` para `min_reviews` | `top_k_share`; regra `min_reviews` |
-| 3 | Conta apagada ("ghost") entra em **sem pessoa ligada**, e não em bot. Diverge de `github_change_requests.ex:321`, e a 073 tem tarefa para alinhar a coleta (T030) | regra `exclusions`; `review.network.excluded.count` |
+| 3 | Conta apagada ("ghost") entra em **sem pessoa ligada**, e não em bot. Diverge de `github_change_requests.ex:321`, e a 073 tem tarefa para alinhar a coleta (T030) | `review.network.edge` (`exclusions`); `review.network.excluded.count` |
 | 4 | **Grupo mínimo = 3**. Com a Q4 do protótipo (grupos só entre pessoas alcançadas), a regra não tem caso nesta fatia, e fica declarada para a fatia 2 | regra `min_group_size_shown`; `unconnected_groups` |
 
 **Do protótipo, que muda a base**: Q4 (grupos contados só entre pessoas alcançadas) reescreveu
@@ -293,6 +293,18 @@ desta pasta já as carregam. O texto original de cada pergunta fica abaixo da ta
 está em `review.network.excluded.count`; e as cinco medidas novas da seção 1 são os números da tela
 que ainda não tinham declaração. A quinta decisão abaixo (medidas em par) segue aberta para a revisão
 semântica.
+
+**Revisão semântica (073/T003, 2026-10-03)** — parecer em
+[`../revisao-semantica.md`](../revisao-semantica.md). Mudou esta pasta assim:
+
+- a quinta pergunta foi **decidida**: as medidas em par ficam num só arquivo, com a unidade do
+  primeiro componente e o segundo escrito na expressão; `reviews_given` passou a `unit: reviews`,
+  a mesma de `review.network.reviews.count`;
+- a aresta saiu de `mappings/` e virou a regra `review.network.edge`, com os estados que contam e
+  a ordem das exclusões (que saíram de `review.network.parameters`) e a categoria UFO declarada;
+- as perguntas de competência passaram a citar só QAPO e SPO, que é o que a QAPO declara;
+- as nove medidas ganharam `version: 1`, o que exige o campo opcional `version` em
+  `measurement.schema.yaml` no mesmo commit que as levar para a base (research.md R11).
 
 ### O texto original das perguntas
 
@@ -346,6 +358,17 @@ cópia, com os treze YAMLs desta pasta, dá `mix knowledge.validate <cópia>` �
 conhecimento válida — 147 artefatos"* (17 medidas, 9 necessidades, 25 regras). Vista reprovando:
 `review.network.reviews.count` apontando para `review.concentracao_inexistente` → `EXIT=1`, com o
 arquivo e a frase *"responde a review.concentracao_inexistente, que não existe"*.
+
+**Revalidado na revisão semântica (073/T003, 2026-10-03)**, com as emendas aplicadas, numa
+cópia nova da base com os doze YAMLs desta pasta (o mapeamento saiu, a regra da aresta entrou):
+
+| verificação | código de saída | o que diz |
+|---|---|---|
+| `mix knowledge.validate <cópia>`, schema de medida **sem** `version` | `EXIT=1` | as nove medidas: *"campo version não está declarado no schema"* — é o esperado, e é o que impede levar as medidas sem a mudança de schema |
+| o mesmo, com `version` opcional no schema da cópia (research.md R11) | `EXIT=0` | 147 artefatos: 22 mapeamentos, 26 regras, 17 medidas, 9 necessidades, 7 arquivos de perguntas |
+| `mix knowledge.graph <cópia>` | `EXIT=0` | 33 módulos, dependências íntegras |
+| `scripts/validate_knowledge_base.py --kb <cópia>` | `EXIT=0` | 147 arquivos, 17 medidas |
+| vista reprovando: `spo.activity_creates_artifact` trocada por id inexistente nas perguntas | `EXIT=1` | *"qapo_review_network.cq01 referencia spo.activity_creates_artifact_inexistente, que não existe"* |
 
 **O que não foi verificado:**
 

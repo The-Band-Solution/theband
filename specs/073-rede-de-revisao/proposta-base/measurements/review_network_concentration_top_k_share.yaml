@@ -1,5 +1,6 @@
 measurement:
   id: review.network.concentration.top_k_share
+  version: 1
   name:
     pt-BR: "Fração das revisões feitas pelas k pessoas que mais revisaram, sem dizer quem"
     en: "Share of reviews given by the k people who reviewed most, without saying who"

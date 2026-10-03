@@ -1,5 +1,6 @@
 measurement:
   id: review.network.reviews.count
+  version: 1
   name:
     pt-BR: "Revisões na rede, no recorte de quem consulta"
     en: "Reviews in the network, within the reader's reach"

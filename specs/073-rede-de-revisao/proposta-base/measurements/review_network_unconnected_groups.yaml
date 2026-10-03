@@ -1,5 +1,6 @@
 measurement:
   id: review.network.unconnected_groups.count
+  version: 1
   name:
     pt-BR: "Grupos de pessoas que não se revisam entre si, e o tamanho de cada um"
     en: "Groups of people who do not review each other, and the size of each"

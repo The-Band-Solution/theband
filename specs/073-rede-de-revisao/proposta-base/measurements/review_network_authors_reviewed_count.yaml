@@ -1,5 +1,6 @@
 measurement:
   id: review.network.authors_reviewed.count
+  version: 1
   name:
     pt-BR: "Pessoas revisadas, no recorte de quem consulta"
     en: "People reviewed, within the reader's reach"

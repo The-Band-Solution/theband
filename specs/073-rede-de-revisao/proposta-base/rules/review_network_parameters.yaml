@@ -6,12 +6,12 @@ derivation_rule:
   confidence: medium
 
   name:
-    pt-BR: "Os parâmetros da rede de revisão — janelas, k, amostra mínima, grupo mínimo e as exclusões"
+    pt-BR: "Os parâmetros da rede de revisão — janelas, k, amostra mínima e grupo mínimo"
 
   description:
     pt-BR: >
-      A rede de revisão (spec 073) depende de cinco decisões numéricas e de uma ordem de
-      exclusão. Cada uma muda o que a plataforma afirma sobre pessoas: a janela decide quem
+      A rede de revisão (spec 073) depende de quatro decisões numéricas. Cada uma muda o que
+      a plataforma afirma sobre pessoas: a janela decide quem
       aparece, o k decide quanto da concentração se diz, a amostra mínima decide quando a
       concentração pode ser dita, e o grupo mínimo decide quando um tamanho deixa de apontar
       para duas pessoas.
@@ -19,6 +19,10 @@ derivation_rule:
       Moram aqui, e não em constante de módulo, pela razão de `team.dashboard.thresholds` e
       `profile.thresholds`: em constante, o número muda num diff de código e ninguém percebe
       que a plataforma passou a afirmar outra coisa (spec 073, FR-008).
+
+      O que vira aresta — os estados que contam e a ordem das exclusões — NÃO mora aqui: é
+      significado, e está em `review.network.edge` (revisão semântica 073/T003). Estes
+      parâmetros mudam quando a apresentação muda; aquela regra, quando o significado muda.
 
       **Nenhum destes números é faixa de classificação de pessoa.** A referência que motivou a
       feature classifica pessoas por percentil (80, 50, 30) e redes por faixas (0,3; 0,7) sem
@@ -30,13 +34,13 @@ derivation_rule:
     source_type: project_decision
     year: 2026
     reference: >
-      spec 073, FR-004, FR-008, FR-013 e Assumptions; seguranca.md R2, R6 e R9; decisões
+      spec 073, FR-008, FR-013 e Assumptions; seguranca.md R2 e R6; decisões
       da pessoa mantenedora de 2026-10-03 (R1, R2, R4, R6, R7)
     note: >
       PROPOSTA, ainda fora de `priv/knowledge_base/`. Janelas e padrão vêm da spec (FR-013)
       e foram confirmados na decisão de R6. O k e a amostra mínima vêm das Assumptions da
-      spec. O grupo mínimo é proposta desta base, sobre a sugestão da avaliação de
-      segurança (R2 item 3), e precisa de decisão da pessoa mantenedora. Nenhum valor foi
+      spec. O grupo mínimo nasceu da sugestão da avaliação de segurança (R2 item 3), e foi
+      decidido pela pessoa mantenedora em 2026-10-03 (3). Nenhum valor foi
       medido contra o banco: o volume real em 180 dias é pergunta aberta do plano
       (seguranca.md, "O que eu NÃO verifiquei").
 
@@ -131,62 +135,6 @@ derivation_rule:
           valor é revisável com dado.
       values:
         min_group_size_shown: 3
-
-    counted_states:
-      name:
-        pt-BR: "Os estados de revisão que contam, por lista de inclusão"
-      statement:
-        pt-BR: >
-          Entra na rede a avaliação ENVIADA (`submittedAt` não nulo) em um destes estados:
-          APPROVED, CHANGES_REQUESTED, COMMENTED e DISMISSED. PENDING não entra (FR-003).
-          Estado novo da origem **não** entra por omissão: a lista é de inclusão, e nunca
-          "tudo menos PENDING" (research.md R3).
-      note:
-        pt-BR: >
-          Acrescentado em 2026-10-03 pela implementação: a mesma lista estava só em texto livre
-          no mapeamento da aresta (`attributes...derived_from`), e o código não tinha de onde
-          lê-la. A revisão semântica (T003) decide se ela mora aqui ou no mapeamento; o que não
-          muda é que tem de ser legível por máquina. DISMISSED conta porque a revisão aconteceu
-          (limitação declarada).
-      values:
-        states: [APPROVED, CHANGES_REQUESTED, COMMENTED, DISMISSED]
-
-    exclusions:
-      name:
-        pt-BR: "As três exclusões, em ordem, e o que cada uma conta"
-      statement:
-        pt-BR: >
-          Toda revisão enviada na janela, sobre solicitação da organização observada, termina
-          em **exatamente um** destino: vira aresta, ou entra em **um** motivo de exclusão.
-          Avaliados nesta ordem, o primeiro que se aplica decide:
-
-            1. `bot_or_app` — revisor ou autor é conta de máquina: pessoa ligada com
-               `eo.person.account_type` em (`bot`, `app`); conta não ligada que
-               `Mapper.account_type/1` classifica como `bot` ou `app` (pelo `__typename` e
-               pelo sufixo `[bot]`). Autor nulo NÃO é máquina;
-            2. `unlinked_person` — revisor ou autor não está ligado a uma `eo.person`
-               (login não resolvido, ou conta apagada na origem, que chega com autor nulo);
-            3. `self_review` — revisor e autor são a mesma `eo.person`.
-
-          A soma das arestas (em revisões) com as três contagens fecha com o total de
-          revisões enviadas na janela. As contagens aparecem só no agregado da leitura, nunca
-          com login e nunca por pessoa (FR-004, R5, R9).
-      note:
-        pt-BR: >
-          A ordem vai de "não é pessoa" a "é pessoa, mas não sabemos qual" a "é a mesma
-          pessoa": a auto-revisão só é decidível quando as duas pontas estão ligadas, e por
-          isso vem por último. Sem ordem declarada uma revisão de bot sobre a própria
-          solicitação seria contada duas vezes, e os totais deixariam de fechar.
-
-          **Decidido em 2026-10-03**: conta apagada vai para `unlinked_person`, e não para `bot_or_app`, diferentemente do
-          que a coleta faz hoje (`github_change_requests.ex:321`, que conta autor nulo como
-          bot — R9). Apagar a conta não é evidência de máquina; classificar como bot cairia
-          para o lado plausível, que é o "padrão largo inventa mais".
-      values:
-        order: [bot_or_app, unlinked_person, self_review]
-        counted_by_reason: true
-        listed_by_login: false
-        per_person: false
 
   refuses:
     - proposal: "valor de reserva quando o cálculo falha (o 0,01 da referência, `dashboard_team_graph.py:117`)"

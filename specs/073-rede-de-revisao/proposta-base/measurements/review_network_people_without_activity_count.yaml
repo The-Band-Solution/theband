@@ -1,5 +1,6 @@
 measurement:
   id: review.network.people_without_activity.count
+  version: 1
   name:
     pt-BR: "Pessoas sem atividade de revisão na janela"
     en: "People with no review activity in the window"
@@ -24,6 +25,7 @@ measurement:
 
   limitations:
     - "Pessoa da organização é quem EO liga a ela por equipe observada; quem revisa nos repositórios da organização sem estar numa equipe dela entra na rede mas não nesta contagem."
+    - "'Sem atividade' é sem atividade QUE VIROU ARESTA: quem só revisou solicitações de bot ou de conta sem pessoa ligada revisou de fato, e entra nesta contagem. O total dessas revisões está em review.network.excluded.count, por motivo."
 
   misinterpretations:
     - "Ler como 'pessoas inativas'. Elas podem trabalhar em repositório não observado, estar de férias, ou não ter papel de revisão."
