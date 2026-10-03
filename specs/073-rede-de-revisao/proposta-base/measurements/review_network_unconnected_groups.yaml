@@ -9,18 +9,20 @@ measurement:
 
   formula:
     expression: >
-      Seja G o grafo dirigido da leitura (organização observada O, janela W), com nós =
-      pessoas que têm AO MENOS UMA aresta (revisaram ou foram revisadas) e arestas =
-      revisor → autor com weight > 0. Ignora-se a direção (componentes FRACAMENTE
+      Seja P o conjunto de pessoas no alcance de quem consulta (para quem administra, todas
+      as pessoas da organização observada O). Seja G o grafo dirigido da leitura (O, janela
+      W) RECORTADO por P, como a concentração (decidido em 2026-10-03, Q4): nós = pessoas de
+      P com AO MENOS UMA aresta para outra pessoa de P, e arestas = revisor → autor com
+      weight > 0, as duas pontas em P. Ignora-se a direção (componentes FRACAMENTE
       conexos):
         groups      = número de componentes fracamente conexos de G     [grupos]
         size(g)     = número de pessoas no componente g                 [pessoas]
       Pessoa sem aresta NÃO é nó, e por isso não é grupo de tamanho 1 (R2 item 4). Todo
       componente tem ao menos 2 pessoas.
       Se G não tem aresta: AUSENTE com o motivo `no_review_in_window`, nunca 0.
-      Exibição a quem tem alcance parcial: o tamanho de um grupo com menos pessoas que
-      review.network.parameters.min_group_size_shown, e cujos integrantes quem consulta
-      não alcança todos, NÃO é mostrado — o grupo entra em "N small groups", sem tamanho.
+      Quem está fora do alcance não entra em grupo nenhum, e por isso nenhum tamanho fala
+      de quem quem consulta não alcança. O mínimo de grupo
+      (review.network.parameters.min_group_size_shown) não tem caso nesta fatia.
     inputs:
       [review_edge_reviewer_person_id, review_edge_author_person_id, review_edge_weight,
        window_start, window_end, observed_organization_id, viewer_reach]
@@ -28,7 +30,7 @@ measurement:
   scope:
     levels: [observed_organization]
     filters:
-      - "o cálculo é sobre a rede da organização observada inteira; o alcance de quem consulta decide só quais TAMANHOS se mostram (FR-008, R2 item 3)"
+      - "o cálculo é sobre o recorte pelo alcance de quem consulta, o mesmo da concentração (Q4, decidido em 2026-10-03); quem administra lê a organização inteira"
       - "direção ignorada: dois grupos estão separados quando não há revisão em sentido nenhum entre eles"
       - "nenhum integrante é nomeado por esta medida; os nomes, quando aparecem, vêm da lista por pessoa, sob o alcance"
     period: "janela móvel de 30, 90 ou 180 dias, padrão 90 (review.network.parameters.window_days)"
@@ -37,8 +39,7 @@ measurement:
     - "Componente FRACO, e não forte: A revisou B e B nunca revisou A já os põe no mesmo grupo. A pergunta é 'há caminho de revisão entre os dois grupos, em qualquer sentido?', e não 'há reciprocidade?'."
     - "A janela decide o grupo. Dois grupos separados em 30 dias podem estar ligados em 90; a leitura vale para a janela que declara, e a tela a escreve ao lado."
     - "Grupo não é equipe e não é comunidade. É só o conjunto de pessoas ligadas por revisão na janela; comparar com as equipes declaradas é a fatia 2, e não esta medida (FR-019)."
-    - "O número de grupos é calculado sobre a organização inteira, enquanto a concentração (review.network.concentration.top_k_share) é recortada pelo alcance de quem consulta (R1). As duas leituras NÃO são sobre a mesma população para quem tem alcance parcial, e não se combinam."
-    - "O tamanho de um grupo grande inclui pessoas fora do alcance de quem consulta. É informação agregada sobre elas, aceita pela avaliação de segurança (R2 item 3) enquanto o grupo estiver acima do mínimo declarado."
+    - "Para quem tem alcance parcial, dois colegas podem aparecer em grupos separados só porque a pessoa que os liga está fora do alcance. O grupo é da rede que quem consulta alcança, e não da organização."
     - "Pessoas sem aresta na janela não estão em grupo nenhum. A contagem delas, quando aparece, é sobre as pessoas alcançáveis por quem consulta (R2 item 5)."
 
   misinterpretations:

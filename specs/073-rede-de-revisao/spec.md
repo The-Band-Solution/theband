@@ -91,10 +91,13 @@ Quem coordena vê se a revisão forma um bloco só ou grupos que não se revisam
 - **Revisão descartada depois** (dismissed): conta, porque a revisão aconteceu. A limitação é declarada.
 - **Solicitação de outra organização**: nunca entra. Toda leitura é da organização de quem consulta.
 - **Pessoa fora do alcance de quem consulta**: não aparece por nome, como par, nem na fração de concentração. A tela diz que há recorte pelo alcance e qual é a regra, **sem dizer quantas revisões ficaram de fora** (R2, decidido em 2026-10-03; precedente de `verification_live/people.ex`, 2026-09-09).
-- **Grupo pequeno de pessoas fora do alcance**: o tamanho não é mostrado abaixo do mínimo declarado na base (R2).
+- **Grupos para quem tem alcance parcial**: são contados **só entre as pessoas alcançadas**, como a concentração; quem está fora do alcance não entra em grupo nem em tamanho de grupo (Q4, decidido em 2026-10-03 na aprovação do protótipo). O grupo mínimo da base (3) vale para quem alcança todos.
 - **Duas organizações observadas no mesmo tenant**: cada uma tem a sua rede; nenhuma pessoa só da outra aparece (R4).
 - **Cálculo ainda não feito, ou falhou**: a tela diz que a leitura não está disponível e por quê. Nunca mostra zero, nem a leitura de outra janela como se fosse esta.
-- **Janela com uma só revisão**: os números aparecem, e a tela avisa que a amostra é pequena demais para falar em concentração.
+- **Janela com menos revisões que a amostra mínima** (10 revisões, na unidade par revisor–solicitação): as contagens aparecem, e a concentração fica **ausente com motivo**, dizendo o mínimo. Não se mostra fração com aviso (decidido em 2026-10-03: *"75% de 4 revisões"* convida a leitura que o aviso tenta desfazer).
+- **Menos revisores que k**: a fração daquele k fica ausente com motivo (*"only 2 people reviewed"*), e não 100%.
+- **Conta apagada na origem** (autor ou revisor nulo, "ghost"): entra em **sem pessoa ligada**, e não em bot (decidido em 2026-10-03). "Não sei quem é" não é "é máquina". A coleta hoje a conta como bot (`github_change_requests.ex:321`); a divergência é tarefa desta feature.
+- **Coleta terminou depois da leitura** e a leitura não foi renovada: a tela diz, em uma linha, que há coleta mais nova que a leitura (Q3, decidido em 2026-10-03).
 
 ## Requirements *(mandatory)*
 
@@ -119,7 +122,8 @@ Quem coordena vê se a revisão forma um bloco só ou grupos que não se revisam
 - **FR-007**: As medidas MUST estar declaradas na base, cada uma com fórmula, unidade, níveis, limitações e interpretações incorretas:
   - revisões feitas por pessoa, e de quantas pessoas distintas;
   - revisões recebidas por pessoa, e de quantas pessoas distintas;
-  - número de grupos que não se revisam entre si, **entre pessoas com ao menos uma aresta**, e o tamanho de cada um;
+  - número de grupos que não se revisam entre si, **entre pessoas com ao menos uma aresta**, e o tamanho de cada um; para alcance parcial, **só entre as pessoas alcançadas** (Q4);
+  - as contagens que a tela mostra ao lado da concentração: revisões, revisores, pessoas revisadas, pessoas sem atividade de revisão e exclusões por motivo (decidido em 2026-10-03 com o protótipo);
   - fração das revisões feitas pelas k pessoas que mais revisaram, para k = 1, 2 e 3, **sem identificar quem**.
 
   As interpretações incorretas mínimas, em cada medida: a medida não avalia a pessoa; revisar muito não é qualidade nem esforço; revisar pouco não é omissão; a revisão é visível só quando passa pela ferramenta observada (R5).
@@ -128,6 +132,8 @@ Quem coordena vê se a revisão forma um bloco só ou grupos que não se revisam
   - a pessoa não revisou;
   - a pessoa não teve solicitação revisada;
   - a janela não teve revisão;
+  - a janela teve menos revisões que a amostra mínima (só a concentração);
+  - houve menos revisores que k (só a fração daquele k);
   - o cálculo não foi feito.
 
   Nenhuma medida pode ser substituída por um valor de reserva quando o cálculo falha.
@@ -147,9 +153,9 @@ Quem coordena vê se a revisão forma um bloco só ou grupos que não se revisam
 
 - **FR-013**: A tela MUST mostrar a janela em uso e deixar escolher entre 30, 90 e 180 dias, validados no domínio; valor fora da lista é recusado. O padrão é 90. As três janelas são calculadas juntas, ao fim da coleta de revisões, e trocar de janela na tela **não** pede cálculo (R6, decidido em 2026-10-03).
 - **FR-014**: Todo número da tela MUST ser marcado como **derivado**, com texto, e toda ausência MUST ser nomeada, dizendo de quem é: da origem ou da plataforma.
-- **FR-015**: A leitura que chega à tela MUST ser recortada por **uma** função de domínio, com o alcance de quem consulta **recalculado a cada leitura**, pela mesma regra da tela de pessoas. Pessoa fora do alcance não aparece por nome, como par, nem na fração de concentração, que é calculada só sobre as revisões entre pessoas alcançadas (R1). A linha de pessoa alcançável mostra o total dela, e os pares fora do alcance não viram linha nem número. A tela diz que há recorte e qual é a regra, sem dizer quantas revisões ficaram de fora (R2).
+- **FR-015**: A leitura que chega à tela MUST ser recortada por **uma** função de domínio, com o alcance de quem consulta **recalculado a cada leitura**, pela mesma regra da tela de pessoas. Pessoa fora do alcance não aparece por nome, como par, nem na fração de concentração, que é calculada só sobre as revisões entre pessoas alcançadas (R1). A linha de pessoa alcançável mostra o total dela, e os pares fora do alcance não viram linha nem número. A tela diz que há recorte e qual é a regra, sem dizer quantas revisões ficaram de fora (R2). Os grupos, para alcance parcial, são só entre pessoas alcançadas (Q4), e as contagens de exclusão, **inclusive a de bot ou aplicativo**, não aparecem (Q5). A tela diz, acima da lista, que a linha traz o total da pessoa na janela e que os pares mostram só quem se alcança.
 - **FR-016**: A tela MUST funcionar no telefone: empilhada por padrão, e a tabela com mais de três colunas empilha com o nome da coluna em cada célula.
-- **FR-017**: A tela MUST seguir exatamente o protótipo aprovado pela pessoa mantenedora antes do código.
+- **FR-017**: A tela MUST seguir exatamente o protótipo aprovado pela pessoa mantenedora antes do código: [`prototipo/`](prototipo/), aprovado em 2026-10-03 com D1–D10 e as respostas Q1 (sem desenho da rede nesta fatia), Q3, Q4 e Q5.
 
 **O que não se faz**
 
@@ -192,7 +198,7 @@ Quem coordena vê se a revisão forma um bloco só ou grupos que não se revisam
 - **O que conta como revisão**: toda avaliação de artefato **enviada** sobre a solicitação — aprovação, pedido de mudança, comentário, e também a que foi descartada depois. A pendente fica fora.
 - **Peso**: solicitações **distintas**, e não eventos de revisão. Rodadas de comentário inflariam quem comenta muito em poucas solicitações.
 - **Janela padrão de 90 dias**, com 30 e 180 como alternativas. É escolha inicial, e não vem de outra medida: a base não declara janela para as medidas de fluxo, que se recortam por sprint. O protótipo a confirma ou troca.
-- **k = 1, 2, 3 e amostra mínima** declarados na base. A amostra mínima começa em 10 solicitações revisadas, com a razão escrita: abaixo disso, uma revisão a mais muda a fração em mais de dez pontos.
+- **k = 1, 2, 3, amostra mínima e grupo mínimo** declarados na base. A amostra mínima é de **10 revisões** (pares revisor–solicitação, a mesma unidade do denominador da concentração; decidido em 2026-10-03), com a razão escrita: abaixo disso, uma revisão a mais muda a fração em mais de dez pontos. O grupo mínimo é **3** (decidido em 2026-10-03).
 - **O alcance** segue a regra já usada na tela de pessoas (feature 058). Quem administra vê todas as pessoas do próprio tenant (#1181).
 - **A rede é recalculada** quando a coleta de revisões termina, nas três janelas. A tela mostra o instante da leitura.
 - **Sem dependência nova**: o cálculo em escala de dezenas a centenas de pessoas cabe no que a plataforma já tem. A confirmação é do plano.
@@ -203,4 +209,4 @@ Quem coordena vê se a revisão forma um bloco só ou grupos que não se revisam
 - A classificação de conta como pessoa, bot ou aplicativo (já existe).
 - A regra de alcance da tela de pessoas (feature 058), com a #1181 (`pessoas_alcancadas/2` compara o tenant) mergeada antes da tarefa que lê a rede com alcance (R11; PR #1183).
 - **Avaliação do agente `security` antes do código**: feita em [seguranca.md](seguranca.md) (R1–R14), com as emendas incorporadas acima e as decisões da pessoa mantenedora de 2026-10-03 sobre R1, R2, R4, R6 e R7.
-- **Protótipo aprovado pela pessoa mantenedora** antes do código da tela.
+- **Protótipo aprovado pela pessoa mantenedora** antes do código da tela: aprovado em 2026-10-03 ([`prototipo/`](prototipo/)).

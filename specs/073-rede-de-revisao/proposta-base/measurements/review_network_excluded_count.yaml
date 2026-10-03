@@ -1,0 +1,41 @@
+measurement:
+  id: review.network.excluded.count
+  name:
+    pt-BR: "Revisões deixadas fora da rede, por motivo"
+    en: "Reviews left out of the network, by reason"
+  answers_information_need: [review.concentration]
+  value_type: count
+  unit: reviews
+
+  formula:
+    expression: >
+      Para cada motivo m em review.network.parameters.exclusions.order
+      (bot_or_app, unlinked_person, self_review):
+        excluded(m) = número de pares (conta revisora, solicitação) da janela W, na organização O,
+                      cujo primeiro motivo aplicável é m.
+      Invariante: soma dos pesos das arestas + excluded(bot_or_app) + excluded(unlinked_person)
+      + excluded(self_review) = total de pares da janela.
+    inputs: [review_pair, eo_person_account_type, account_type_classification, window_start, window_end, observed_organization_id]
+
+  scope:
+    levels: [observed_organization]
+    filters:
+      - "só para quem alcança todas as pessoas; para alcance parcial as três contagens não aparecem, inclusive a de bot ou aplicativo (R12; Q5, decidido em 2026-10-03)"
+      - "nunca com login e nunca por pessoa (FR-004, R5, R9)"
+    period: "janela móvel de 30, 90 ou 180 dias, padrão 90 (review.network.parameters.window_days)"
+
+  limitations:
+    - "A conta apagada na origem entra em 'sem pessoa ligada', e não em bot (decidido em 2026-10-03); a coleta hoje a conta como bot (github_change_requests.ex:321), e a divergência é tarefa da 073 (T030)."
+    - "Autor ligado a uma pessoa depois da coleta continua 'sem pessoa ligada' até a solicitação ser coletada de novo."
+
+  misinterpretations:
+    - "Ler 'sem pessoa ligada' como bot. É pessoa que a plataforma não reconheceu, muitas vezes real."
+    - "Ler a auto-revisão como falta. Ela é contada no agregado, nunca por pessoa, e pode ser regra do repositório."
+    - "A MEDIDA NÃO AVALIA A PESSOA. Ela descreve a forma da revisão na organização; usá-la em avaliação de desempenho é o uso que a plataforma recusa (FR-018a, R5)."
+    - "Revisar muito não é qualidade nem esforço; revisar pouco não é omissão."
+    - "A revisão só é visível quando passa pela ferramenta observada: revisão em par, em chamada ou em repositório não observado não existe aqui."
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: "spec 073, FR-007 (contagens ao lado da concentração), decidido em 2026-10-03 com a aprovação do protótipo (D10, prototipo/README.md, 'Medidas e nomes que a tela pede')"

@@ -84,13 +84,13 @@ derivation_rule:
       values:
         k: [1, 2, 3]
 
-    min_reviewed_change_requests:
+    min_reviews:
       name:
-        pt-BR: "A concentração só é dita com ao menos 10 solicitações revisadas na janela"
+        pt-BR: "A concentração só é dita com ao menos 10 revisões na janela"
       statement:
         pt-BR: >
-          Com menos de **10** solicitações distintas revisadas entre as pessoas que entram no
-          cálculo (a organização inteira para quem administra; as alcançadas, para alcance
+          Com menos de **10** revisões (pares revisor–solicitação, a unidade do denominador)
+          entre as pessoas que entram no cálculo (a organização inteira para quem administra; as alcançadas, para alcance
           parcial), a concentração é **ausente com o motivo `sample_below_minimum`**, e a tela
           diz o mínimo. As contagens por pessoa e os grupos continuam aparecendo.
       note:
@@ -101,17 +101,12 @@ derivation_rule:
           1/11 ≈ 9,1 pontos; com R = 9 chega a 10 pontos, e com menos, a mais. Uma fração que
           uma única revisão desloca em dez pontos não sustenta a palavra "concentrada".
 
-          O critério está em solicitações revisadas (como a spec escreve) e a conta, em
-          revisões (pares solicitação–revisor). Como cada solicitação revisada contribui com
-          ao menos uma revisão, R ≥ número de solicitações revisadas, e o limite vale.
-
-          **Divergência a decidir**: o edge case da spec diz que, com uma só revisão, "os
-          números aparecem, e a tela avisa". Esta regra propõe que a CONCENTRAÇÃO não apareça
-          abaixo do mínimo (como `flow.completion.forecast`, que não produz previsão abaixo do
-          piso), e que as contagens apareçam. Se a decisão for mostrar a fração com aviso, o
-          valor fica e o comportamento muda para `show_with_warning`.
+          **Decidido pela pessoa mantenedora em 2026-10-03**: o critério e a conta estão na
+          mesma unidade, revisões, e abaixo do mínimo a concentração é AUSENTE com motivo
+          (como `flow.completion.forecast`, que não produz previsão abaixo do piso); as
+          contagens aparecem. A spec foi corrigida no mesmo dia.
       values:
-        min_reviewed_change_requests: 10
+        min_reviews: 10
         below_minimum: absent
 
     min_group_size_shown:
@@ -119,10 +114,11 @@ derivation_rule:
         pt-BR: "Grupo com menos de 3 pessoas não tem o tamanho mostrado a quem não alcança todas"
       statement:
         pt-BR: >
-          Em `review.network.unconnected_groups.count`, um grupo com menos de **3** pessoas,
-          cujos integrantes quem consulta não alcança todos, entra em *"N small groups"* sem
-          tamanho. Quem alcança todos os integrantes vê o tamanho. Quem administra alcança
-          todos e vê todos os tamanhos.
+          Um grupo com menos de **3** pessoas, cujos integrantes quem consulta não alcança
+          todos, não tem o tamanho mostrado. **Decidido em 2026-10-03: 3.** Nesta fatia a
+          regra não tem caso: com a Q4, `review.network.unconnected_groups.count` é calculada
+          só entre as pessoas alcançadas, e todo integrante de todo grupo é alcançado. Fica
+          declarada para a fatia 2 (comunidades), que a reusa.
       note:
         pt-BR: >
           Pessoa sem aresta não é nó (R2 item 4), então todo grupo tem ao menos 2 pessoas, e o
@@ -145,8 +141,10 @@ derivation_rule:
           em **exatamente um** destino: vira aresta, ou entra em **um** motivo de exclusão.
           Avaliados nesta ordem, o primeiro que se aplica decide:
 
-            1. `bot_or_app` — revisor ou autor é conta de máquina: `eo.person.account_type` em
-               (`bot`, `app`), ou `author_type` diferente de `User`;
+            1. `bot_or_app` — revisor ou autor é conta de máquina: pessoa ligada com
+               `eo.person.account_type` em (`bot`, `app`); conta não ligada que
+               `Mapper.account_type/1` classifica como `bot` ou `app` (pelo `__typename` e
+               pelo sufixo `[bot]`). Autor nulo NÃO é máquina;
             2. `unlinked_person` — revisor ou autor não está ligado a uma `eo.person`
                (login não resolvido, ou conta apagada na origem, que chega com autor nulo);
             3. `self_review` — revisor e autor são a mesma `eo.person`.
@@ -161,7 +159,7 @@ derivation_rule:
           isso vem por último. Sem ordem declarada uma revisão de bot sobre a própria
           solicitação seria contada duas vezes, e os totais deixariam de fechar.
 
-          Conta apagada vai para `unlinked_person`, e não para `bot_or_app`, diferentemente do
+          **Decidido em 2026-10-03**: conta apagada vai para `unlinked_person`, e não para `bot_or_app`, diferentemente do
           que a coleta faz hoje (`github_change_requests.ex:321`, que conta autor nulo como
           bot — R9). Apagar a conta não é evidência de máquina; classificar como bot cairia
           para o lado plausível, que é o "padrão largo inventa mais".

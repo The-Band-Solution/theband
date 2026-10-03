@@ -1,0 +1,37 @@
+measurement:
+  id: review.network.people_without_activity.count
+  name:
+    pt-BR: "Pessoas sem atividade de revisão na janela"
+    en: "People with no review activity in the window"
+  answers_information_need: [review.concentration]
+  value_type: count
+  unit: people
+
+  formula:
+    expression: >
+      without_activity = |{ q pessoa (account_type = person) da organização O, alcançada por
+      quem consulta : q não revisou nem teve solicitação revisada na janela W, e não abriu
+      solicitação na janela }|. Pessoa da organização é a que EO liga a ela pela evidência de
+      vínculo com uma equipe da organização.
+    inputs: [observed_organization_id, eo_person_account_type, team_membership_evidence, viewer_reach, window_start, window_end]
+
+  scope:
+    levels: [observed_organization]
+    filters:
+      - "só pessoas alcançadas por quem consulta (R2 item 5)"
+      - "nenhum nome; só a contagem (US2, cenário 3)"
+    period: "janela móvel de 30, 90 ou 180 dias, padrão 90 (review.network.parameters.window_days)"
+
+  limitations:
+    - "Pessoa da organização é quem EO liga a ela por equipe observada; quem revisa nos repositórios da organização sem estar numa equipe dela entra na rede mas não nesta contagem."
+
+  misinterpretations:
+    - "Ler como 'pessoas inativas'. Elas podem trabalhar em repositório não observado, estar de férias, ou não ter papel de revisão."
+    - "A MEDIDA NÃO AVALIA A PESSOA. Ela descreve a forma da revisão na organização; usá-la em avaliação de desempenho é o uso que a plataforma recusa (FR-018a, R5)."
+    - "Revisar muito não é qualidade nem esforço; revisar pouco não é omissão."
+    - "A revisão só é visível quando passa pela ferramenta observada: revisão em par, em chamada ou em repositório não observado não existe aqui."
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: "spec 073, FR-007 (contagens ao lado da concentração), decidido em 2026-10-03 com a aprovação do protótipo (D10, prototipo/README.md, 'Medidas e nomes que a tela pede')"

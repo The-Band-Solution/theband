@@ -11,8 +11,14 @@
   em `priv/knowledge_base/` antes da revisão semântica (T003) e da aprovação da pessoa mantenedora.
   Toda tarefa que lê k, janelas, amostra, grupo mínimo ou os estados que contam depende de T013, e
   T013 depende da base. **Nenhuma tarefa escreve esses valores no código para não esperar**;
-- **a tela**: o protótipo de [`prototipo/`](prototipo/) é do agente `design`. Toda tarefa de tela tem
-  `Pronta quando: protótipo aprovado pela pessoa mantenedora` (FR-017).
+- **a tela**: o protótipo de [`prototipo/`](prototipo/) **foi aprovado em 2026-10-03** (D1–D10; Q1 sem
+  desenho da rede, Q3, Q4, Q5). As tarefas de tela não esperam mais o protótipo; esperam o backend e
+  a fachada (T017), e seguem `prototipo/PROMPT.md` §3, versão 2, como régua (FR-017).
+
+**Decisões de 2026-10-03 que estas tarefas já carregam**: amostra mínima de 10 **revisões** e
+concentração **ausente** abaixo dela; grupos e exclusões pelo recorte (Q4, Q5, bot inclusive); conta
+apagada é *sem pessoa ligada* (T030); grupo mínimo 3, declarado e não lido nesta fatia; a linha de
+coleta mais nova que a leitura (Q3).
 
 O que **não** espera nenhuma das duas: a migração, as leituras pelas fronteiras, a matemática pura,
 o recorte e a leitura com os parâmetros recebidos como argumento, as conferências do job e a remoção
@@ -51,15 +57,21 @@ arquivo antes de injetar e `diff` depois de restaurar.
 
 ## Fase 2: Fundação
 
-- [ ] T003 Revisar a semântica da proposta da base 👤 pessoa mantenedora + agente semântico
-  - **Pronta quando**: `proposta-base/` completa (outro agente)
-  - **Descrição**: decidir, por escrito, as três questões que o plano deixou para a revisão
-    semântica (§8):
+- [ ] T003 Revisar a semântica da proposta da base — agente de ontologia e integração semântica
+  - **Pronta quando**: `proposta-base/` com as quatro decisões da pessoa mantenedora de 2026-10-03
+    registradas no README dela e as cinco medidas novas que o protótipo pede
+    (`review.network.reviews.count`, `.reviewers.count`, `.authors_reviewed.count`,
+    `.people_without_activity.count`, `.excluded.count`)
+  - **Descrição**: revisão pelo agente semântico (que pode bloquear, §13), e não por quem escreveu a
+    proposta. Decidir, por escrito, as questões que o plano deixou para a revisão semântica (§8):
     - a aresta como `mapping:` (como a proposta a escreve, `mappings/github/qapo/review_edge.yaml`)
       ou como `derivation_rule:` (D10, research.md R11);
     - a unidade "par (revisor, solicitação)" (R2), e a limitação *"uma solicitação com dois revisores
       conta duas revisões"* na medida de concentração;
-    - `version` opcional no schema de medida (FR-011).
+    - `version` opcional no schema de medida (FR-011);
+    - os **estados que contam** como lista legível pela máquina (na proposta estão em texto livre,
+      em `review_edge.yaml`, `attributes...derived_from`), sem o que `Parameters` não tem de onde
+      lê-los.
 
     Registrar o vencedor em `research.md` R11 e corrigir `data-model.md` §3 com os **nomes de chave**
     da proposta aceita (a proposta usa uma regra só, `review.network.parameters`, com
@@ -226,13 +238,16 @@ concentração, e os números batem com a contagem manual (SC-001).
   - **Pronta quando**: T012
   - **Descrição**: `lib/the_band/review_network/slice.ex`, puro. Recebe a leitura, o alcance
     (`:todas` ou `{:algumas, MapSet}`) e os parâmetros; devolve a `view()` sem nomes:
-    - total, revisores e concentração sobre o **subgrafo induzido** pelas pessoas alcançadas (R1);
-    - `{:ausente, :sem_revisao_na_janela}` quando o recorte não tem revisão; `{:pequena, minimo}`
-      abaixo da amostra mínima;
-    - exclusões só com `:todas`; com alcance parcial, `{:recortado, :regra}` (research.md R12);
+    - revisões, revisores, pessoas revisadas (`authors`, D10) e concentração sobre o **subgrafo
+      induzido** pelas pessoas alcançadas (R1);
+    - `{:ausente, :sem_revisao_na_janela}` quando o recorte não tem revisão;
+      `{:ausente, {:abaixo_da_amostra_minima, m}}` abaixo de `m` **revisões** do recorte (decidido em
+      2026-10-03); `{:ausente, :fewer_reviewers_than_k}` no k maior que o número de revisores;
+    - exclusões, as três, só com `:todas`; com alcance parcial, `{:recortado, :regra}` (R12, Q5);
     - **nenhum** número sobre o que ficou fora do alcance (R2).
   - **Feita quando**: com Ana fora do alcance, a concentração não conta as revisões dela nem carrega
-    id de ninguém; a `view()` de alcance parcial não tem campo que conte revisões fora (A7); com
+    id de ninguém; com 9 revisões no recorte a concentração é ausente e as contagens aparecem; com 2
+    revisores, k = 3 é ausente e não 100%; a `view()` de alcance parcial não tem campo que conte revisões fora (A7); com
     `:todas`, os números são os da rede inteira
   - **Teste**: `test/the_band/review_network/slice_test.exs`. **Defeitos a injetar**: calcular a
     concentração sobre a rede inteira (o caso de Ana reprova); acrescentar `outside_reach_reviews` à
@@ -245,12 +260,14 @@ concentração, e os números batem com a contagem manual (SC-001).
     parâmetros explícitos: (1) janela contra a lista fechada, aceitando o inteiro ou o texto decimal
     exato, nunca `String.to_atom/1`; (2) `EO.fetch_organization/2`; (3) a leitura vigente;
     (4) `Tenants.pessoas_alcancadas/2` **nesta chamada**; (5) o recorte (T015) e os nomes por
-    `EO.people_names/2`. Número fixo de consultas. FR-013, FR-015, R3, R10
+    `EO.people_names/2`; (6) `newer_collection`, pelo maior `changes_collected_at` dos repositórios
+    observados da organização contra `computed_at` (Q3, research.md R14). Número fixo de consultas. FR-013, FR-015, R3, R10
   - **Feita quando**: `"36500"`, `"-1"`, `"90; drop"`, `"abc"` e `nil` devolvem
     `{:error, :janela_invalida}` sem átomo novo (A8); organização de outro tenant e inexistente
     devolvem o mesmo `{:error, :not_found}` (A3); sem leitura, `{:ausente, :nao_calculada}`; a conta
     que perde o vínculo deixa de ver os colegas na leitura seguinte (A13); com 5 e com 50 pessoas, o
-    mesmo número de consultas
+    mesmo número de consultas; um repositório da organização com corte de coleta posterior ao cálculo
+    dá `newer_collection: {:em, _}`, e um de outra organização não
   - **Teste**: `test/the_band/review_network/read_test.exs`, dois tenants e duas organizações.
     **Defeitos a injetar**: trocar a lista fechada por `String.to_integer/1` (A8 reprova); receber o
     alcance como argumento em vez de calculá-lo (A13 reprova); buscar a organização só por id (A3
@@ -308,15 +325,18 @@ concentração, e os números batem com a contagem manual (SC-001).
     antes do `collect/1`; o caso da etapa que falha reprova
 
 - [ ] T021 [US1] Mostrar a concentração, sem nome, na janela escolhida
-  - **Pronta quando**: **protótipo aprovado pela pessoa mantenedora**; `contracts/tela.md` corrigido
-    pelo protótipo no mesmo commit da aprovação; T017
+  - **Pronta quando**: T017, T019, T020 (protótipo aprovado em 2026-10-03; `contracts/tela.md`
+    corrigido pela aprovação)
   - **Descrição**: rota `live "/organizations/:id/review-network"` em `lib/the_band_web/router.ex`,
     `live_session :autenticado`; `lib/the_band_web/live/review_network_live/show.ex` chama só o que
     `contracts/tela.md` lista. Janela crua para `read/4`; `{:error, :janela_invalida}` faz
     `push_patch` para a padrão; `{:error, :not_found}` volta a `/organizations` com *"Organization not
     found."*; `<.evidence>` em todo número (FR-014); `<.absent>` em toda ausência; o aviso de recorte
     descreve `pessoas_alcancadas/2` como ela é, sem a frase da liderança declarada; mobile-first
-    (FR-016); inglês na tela, com comentário. Exatamente o protótipo (FR-017)
+    (FR-016); inglês na tela, com comentário; a linha de coleta mais nova que a leitura (Q3);
+    concentração ausente abaixo da amostra e no k maior que os revisores; nenhum desenho da rede, e
+    as telas 6 e 7 do protótipo **não** existem (Q1; o item 6.1 da régua vira defeito se aparecerem).
+    Exatamente o protótipo (FR-017), `prototipo/PROMPT.md` §3 v2 como régua
   - **Feita quando**: quem administra lê *"the person who reviewed most did 75%"* sem nome; a conta de
     alcance parcial não lê o nome nem o login de Ana em lugar nenhum do HTML (A4) e não lê quantas
     revisões ficaram fora (A7); login excluído não aparece, e a contagem aparece para quem administra
@@ -356,9 +376,11 @@ concentração, e os números batem com a contagem manual (SC-001).
     de fora com nome mascarado (A5 reprova); ordenar por `given` (o caso de ordem reprova)
 
 - [ ] T024 [US2] Mostrar a lista por pessoa e os pares
-  - **Pronta quando**: **protótipo aprovado pela pessoa mantenedora**; T021, T023
+  - **Pronta quando**: T021, T023
   - **Descrição**: a lista na mesma LiveView, `stacked` com `data-label` se tiver mais de três
-    colunas; nenhuma coluna ordenável; a frase de que a medida não avalia pessoa ao lado da lista;
+    colunas; nenhuma coluna ordenável; a frase de que a medida não avalia pessoa **antes** da lista
+    (D8); a frase *"Each row shows the person's whole count in the window; the pairs show only people
+    you reach"* acima dela (FR-015);
     nenhuma exportação (FR-018b)
   - **Feita quando**: a linha de Bia mostra *"reviewed 12, of 4 people"* e *"was reviewed on 5, by 2
     people"*; Caio tem a ausência em palavras; não há controle de ordenação nem de exportação
@@ -372,25 +394,26 @@ concentração, e os números batem com a contagem manual (SC-001).
 **Teste independente**: dois grupos que só se revisam entre si dão *"2 groups that do not review
 each other"* com os dois tamanhos.
 
-- [ ] T025 [US3] Contar os grupos, escondendo o tamanho dos pequenos de quem não alcança todos
+- [ ] T025 [US3] Contar os grupos só entre as pessoas que quem lê alcança
   - **Pronta quando**: T012, T015
-  - **Descrição**: em `Slice`: grupos da **rede inteira** (`Graph.groups/1`); `shown` com os tamanhos
-    dos grupos que quem lê alcança por inteiro ou que têm pelo menos o grupo mínimo; os outros contam
-    em `small_without_size`; pessoa sem aresta não é grupo. R2 item 3
+  - **Descrição**: em `Slice`: grupos do **mesmo subgrafo induzido** da concentração
+    (`Graph.groups/1` sobre `Graph.induced/2`; Q4, decidido em 2026-10-03); com `:todas`, a rede
+    inteira; pessoa sem aresta não é grupo. O grupo mínimo não é lido (contrato, *Os parâmetros*)
   - **Feita quando**: com `:todas`, todos os tamanhos aparecem; com alcance parcial, um grupo de 1 e
-    um de 2 de gente de fora viram `small_without_size: 2`, sem os tamanhos (A6); rede conexa dá um
-    grupo só
-  - **Teste**: `slice_test.exs`, casos da US3. **Defeito a injetar**: ignorar o grupo mínimo; A6
-    reprova
+    um de 2 de gente de fora **não aparecem**, nem no número de grupos nem em tamanho (A6, reescrito
+    pela Q4); rede conexa dá um grupo só
+  - **Teste**: `slice_test.exs`, casos da US3. **Defeito a injetar**: calcular os grupos sobre a rede
+    inteira; A6 reprova
 
 - [ ] T026 [US3] Mostrar os grupos
-  - **Pronta quando**: **protótipo aprovado pela pessoa mantenedora**; T021, T025
-  - **Descrição**: a frase dos grupos na LiveView, sem desenho de grafo nem biblioteca JS (R13);
-    se o protótipo pedir desenho, SVG em HEEx sem `raw/1`, e a decisão volta ao plano
+  - **Pronta quando**: T021, T025
+  - **Descrição**: a frase dos grupos na LiveView, sem desenho de grafo nem biblioteca JS (R13; Q1:
+    a matriz fica para a fatia 2)
   - **Feita quando**: dois grupos dão *"2 groups that do not review each other"* com os tamanhos; rede
-    conexa diz que todas as pessoas estão ligadas por revisão; os pequenos de fora aparecem sem tamanho
-  - **Teste**: `show_test.exs`, casos da US3. **Defeito a injetar**: renderizar o tamanho dos pequenos
-    (A6 reprova na tela)
+    conexa diz que todas as pessoas estão ligadas por revisão; com alcance parcial, nenhum grupo de
+    gente de fora aparece
+  - **Teste**: `show_test.exs`, casos da US3. **Defeito a injetar**: renderizar os grupos da rede
+    inteira para alcance parcial (A6 reprova na tela)
 
 ## Fase 6: Acabamento
 
@@ -420,6 +443,18 @@ each other"* com os dois tamanhos.
     revisor pedido e está no projeto
   - **Teste**: `EXIT=0` do `mix gates`; `gh pr view <n> --json reviewRequests` não vazio
 
+- [ ] T030 [P] Contar a conta apagada como sem pessoa ligada, e não como bot, na coleta
+  - **Pronta quando**: nada (decisão da pessoa mantenedora de 2026-10-03)
+  - **Descrição**: `lib/the_band/ingestion/github_change_requests.ex:321` conta em `de_bot` toda
+    avaliação cujo `author.__typename` não é `"User"`, e a avaliação de autor nulo (conta apagada,
+    "ghost") cai ali. A rede a classifica como *sem pessoa ligada* (research.md R3; T011). Fazer a
+    coleta usar a mesma regra — `Mapper.account_type/1` sobre o autor, e autor nulo fora de `de_bot`
+    —, para que as duas contagens não discordem. Conferir quem lê `de_bot` antes de mudar
+  - **Feita quando**: uma página com uma avaliação de bot, uma de pessoa e uma de autor nulo dá
+    `de_bot: 1`; a conta de login `algo[bot]` com `__typename` `User` conta como bot, como em EO
+  - **Teste**: o teste da coleta de mudanças com o payload capturado acrescido do autor nulo.
+    **Defeito a injetar**: a regra de hoje (`!= "User"`); o caso do autor nulo reprova
+
 ## Dependências
 
 - T001 → T016 (a leitura com alcance precisa da #1181).
@@ -428,15 +463,14 @@ each other"* com os dois tamanhos.
 - T012 → T015 → T016; T006 → T016.
 - T006 → T018 → T019 → T020.
 - T015, T016 → T023; T012, T015 → T025.
-- Protótipo aprovado → T021 → T024, T026; T002 e T021 → T022.
+- T017, T019, T020 → T021 → T024, T026; T002 e T021 → T022 (o protótipo foi aprovado em 2026-10-03).
 
 **Paralelo**:
 - T006, T007, T008, T009, T011 e T012, entre si (arquivos diferentes, nenhuma dependência pendente);
-- T010, T027 e T028, a qualquer momento;
+- T010, T027, T028 e T030, a qualquer momento;
 - T015 e T018, depois das suas dependências.
 
-**O que não espera nem a base nem o protótipo**: T005–T012, T014–T016, T018, T023, T025, T027,
-T028. É o escopo do primeiro sprint.
+**O que não espera a base**: T005–T012, T014–T016, T018, T023, T025, T027, T028, T030. É o escopo do primeiro sprint.
 
 ## Estratégia
 

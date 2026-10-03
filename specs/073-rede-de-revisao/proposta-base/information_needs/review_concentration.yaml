@@ -46,6 +46,11 @@ information_need:
     - review.network.reviews_received.count
     - review.network.unconnected_groups.count
     - review.network.concentration.top_k_share
+    - review.network.reviews.count
+    - review.network.reviewers.count
+    - review.network.authors_reviewed.count
+    - review.network.people_without_activity.count
+    - review.network.excluded.count
   provenance:
     source_type: project_decision
     year: 2026

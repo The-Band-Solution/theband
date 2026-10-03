@@ -52,7 +52,7 @@ Os que não vêm da segurança:
 | US1, cenário 3 | organização sem revisão: concentração `{:ausente, :sem_revisao_na_janela}`, e o HTML não contém `0%` |
 | US2, cenário 2 | Caio: `received: {:ausente, :sem_solicitacao_revisada}` |
 | US3 | dois grupos sem aresta entre eles: dois tamanhos, ordenados |
-| amostra pequena | uma revisão: os números aparecem, com `{:pequena, 10}` |
+| amostra pequena | uma revisão: as contagens aparecem, e a concentração é `{:ausente, {:abaixo_da_amostra_minima, 10}}` |
 | FR-018a | a lista sai em ordem de nome com as medidas invertidas |
 | teto de consultas | `read/4` com 5 e com 50 pessoas faz o mesmo número de consultas |
 

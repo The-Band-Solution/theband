@@ -31,6 +31,11 @@ Foram lidos:
 | `measurements/review_network_reviews_received.yaml` | `measurements/` | medida `review.network.reviews_received.count` |
 | `measurements/review_network_unconnected_groups.yaml` | `measurements/` | medida `review.network.unconnected_groups.count` |
 | `measurements/review_network_concentration_top_k_share.yaml` | `measurements/` | medida `review.network.concentration.top_k_share` |
+| `measurements/review_network_reviews_count.yaml` | `measurements/` | medida `review.network.reviews.count` (pedida pelo protótipo) |
+| `measurements/review_network_reviewers_count.yaml` | `measurements/` | medida `review.network.reviewers.count` (pedida pelo protótipo) |
+| `measurements/review_network_authors_reviewed_count.yaml` | `measurements/` | medida `review.network.authors_reviewed.count` (pedida pelo protótipo, D10) |
+| `measurements/review_network_people_without_activity_count.yaml` | `measurements/` | medida `review.network.people_without_activity.count` (pedida pelo protótipo) |
+| `measurements/review_network_excluded_count.yaml` | `measurements/` | medida `review.network.excluded.count`, por motivo (pedida pelo protótipo) |
 | `mappings/github/qapo/review_edge.yaml` | `mappings/github/qapo/review_edge.yaml` | mapeamento `github.pull_request_review.to.qapo.artifact_evaluation.as_review_edge` |
 | `rules/review_network_parameters.yaml` | `rules/review_network_parameters.yaml` | regra `review.network.parameters` |
 | `ontology/seon/qapo/competency_questions/qapo_review_network_competency_questions.yaml` | o mesmo caminho | perguntas `qapo_review_network.cq01`–`cq04` |
@@ -258,7 +263,7 @@ Coautoria **não é** colaboração: dois commits no mesmo arquivo podem estar a
 | **Pull Request ≠ merge** | A aresta é sobre quem revisou a **solicitação**, e não sobre quem integrou. Solicitação revisada não é solicitação integrada. | mapeamento (justificativa); `reviews_received` (limitação); `cq01` |
 | **Pessoa ≠ membro de equipe** | O nó é `eo.person`, pelo papel `spo.project_person_stakeholder`. Equipe só entra na fatia 2, pelo relator `eo.team_membership` e com data. | necessidade (`required_concepts`); FR-001 |
 | **Comunidade observada ≠ equipe** | Um grupo de quem se revisa numa janela não é uma equipe, e nunca recebe nome de equipe. | `unconnected_groups` (limitação); fatia 2 |
-| **Ausência ≠ zero** | Pessoa que não revisou, solicitação não revisada, janela vazia, cálculo não feito, amostra abaixo do mínimo: cada caso tem motivo nomeado. Nunca 0, 0,01 ou `inf`. | fórmula de cada medida; regra `min_reviewed_change_requests`; recusa do 0,01 |
+| **Ausência ≠ zero** | Pessoa que não revisou, solicitação não revisada, janela vazia, cálculo não feito, amostra abaixo do mínimo: cada caso tem motivo nomeado. Nunca 0, 0,01 ou `inf`. | fórmula de cada medida; regra `min_reviews`; recusa do 0,01 |
 | **Bot ou conta de organização ≠ pessoa** | `dependabot[bot]`, `github-actions[bot]` e `LEDS` são nós na referência. Aqui o nó exige `account_type = 'person'`, e não só `__typename = User` (R9). | regra `exclusions`; mapeamento (`relations.reviewer.note`) |
 | **Medida ≠ avaliação de pessoa** | Revisar muito não é qualidade, revisar pouco não é omissão, e o número não ordena a lista. | `misinterpretations` das quatro medidas; FR-018/018a |
 | **Fração das revisões ≠ fração das solicitações** | Com vários revisores por solicitação, as duas divergem. A 073 mede revisões; a outra é a pergunta de dependência da fatia 3. | `top_k_share` (limitação) |
@@ -271,10 +276,28 @@ conferido contra o banco. É coisa para o plano medir.
 
 ---
 
-## 6. Decisões pedidas à pessoa mantenedora
+## 6. Decisões da pessoa mantenedora — 2026-10-03
+
+As quatro primeiras foram **decididas** em 2026-10-03, junto da aprovação do protótipo, e os YAMLs
+desta pasta já as carregam. O texto original de cada pergunta fica abaixo da tabela, como registro.
+
+| # | decisão | onde está |
+|---|---|---|
+| 1 | Abaixo da amostra mínima, a concentração é **ausente com motivo** (`sample_below_minimum`), e as contagens aparecem. A spec foi corrigida | `review.network.parameters.min_reviews` (`below_minimum: absent`); `top_k_share` |
+| 2 | O denominador **e a unidade da amostra** são **revisões** (par revisor–solicitação), e não solicitações. A chave passou de `min_reviewed_change_requests` para `min_reviews` | `top_k_share`; regra `min_reviews` |
+| 3 | Conta apagada ("ghost") entra em **sem pessoa ligada**, e não em bot. Diverge de `github_change_requests.ex:321`, e a 073 tem tarefa para alinhar a coleta (T030) | regra `exclusions`; `review.network.excluded.count` |
+| 4 | **Grupo mínimo = 3**. Com a Q4 do protótipo (grupos só entre pessoas alcançadas), a regra não tem caso nesta fatia, e fica declarada para a fatia 2 | regra `min_group_size_shown`; `unconnected_groups` |
+
+**Do protótipo, que muda a base**: Q4 (grupos contados só entre pessoas alcançadas) reescreveu
+`review.network.unconnected_groups.count`; Q5 (exclusões, bot inclusive, só para quem alcança todas)
+está em `review.network.excluded.count`; e as cinco medidas novas da seção 1 são os números da tela
+que ainda não tinham declaração. A quinta decisão abaixo (medidas em par) segue aberta para a revisão
+semântica.
+
+### O texto original das perguntas
 
 1. **Concentração abaixo da amostra mínima**: ausente (proposta) ou mostrada com aviso (texto
-   atual do edge case da spec)? Está em `review.network.parameters.min_reviewed_change_requests`.
+   atual do edge case da spec)? Estava em `review.network.parameters.min_reviewed_change_requests`.
 2. **Grupo mínimo = 3**: é proposta desta base, sobre a sugestão de R2. Esconde só grupos de 2,
    para quem não alcança os dois.
 3. **Denominador da concentração = revisões**, e não solicitações. Coincide com o exemplo da
@@ -317,6 +340,12 @@ precisa de banco: roda `compile` e `app.config`, sem iniciar o `Repo`.
 5. **O validador Python** (`scripts/validate_knowledge_base.py --kb <cópia>`) conta 142 arquivos e
    12 medidas, e acusa um só problema: a falta de `jsonschema` no ambiente, que impede a
    verificação de forma dele. A de forma foi feita pelo validador Elixir (`SchemaCheck`).
+
+**Revalidado em 2026-10-03, depois das decisões da seção 6 e das cinco medidas novas**: a mesma
+cópia, com os treze YAMLs desta pasta, dá `mix knowledge.validate <cópia>` → `EXIT=0`, *"base de
+conhecimento válida — 147 artefatos"* (17 medidas, 9 necessidades, 25 regras). Vista reprovando:
+`review.network.reviews.count` apontando para `review.concentracao_inexistente` → `EXIT=1`, com o
+arquivo e a frase *"responde a review.concentracao_inexistente, que não existe"*.
 
 **O que não foi verificado:**
 

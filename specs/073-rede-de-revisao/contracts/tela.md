@@ -1,10 +1,14 @@
 # Contrato — a tela da rede de revisão
 
-FR-013 a FR-018b. **Provisório**: o protótipo em [`prototipo/`](../prototipo/) decide a forma, e
-**nenhuma linha da LiveView é escrita antes de a pessoa mantenedora aprová-lo** (FR-017). Este
-contrato fixa só o que não depende do desenho: a rota, quem entra, o que a tela chama e o que ela
-não pode fazer. Quando o protótipo for aprovado, este arquivo é corrigido no mesmo commit que
-registrar a aprovação.
+FR-013 a FR-018b. **O protótipo em [`prototipo/`](../prototipo/) foi aprovado pela pessoa
+mantenedora em 2026-10-03** (D1–D10; Q1 sem desenho da rede nesta fatia, Q3, Q4, Q5), e a forma é a
+dele, seção a seção (`prototipo/PROMPT.md` §3 é a régua do QA). Este contrato fixa o que não é
+desenho: a rota, quem entra, o que a tela chama e o que ela não pode fazer.
+
+**O que a aprovação acrescentou aqui**: a linha de coleta mais nova que a leitura (Q3,
+`newer_collection`); grupos e exclusões pelo recorte (Q4, Q5); concentração ausente abaixo da amostra
+mínima e no k maior que os revisores; a frase acima da lista sobre o total da pessoa contra os pares
+alcançados; nenhum desenho de grafo (Q1).
 
 ## Rota e entrada
 

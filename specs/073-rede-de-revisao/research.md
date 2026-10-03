@@ -105,7 +105,9 @@ outra população seria a L67).
    2. **pessoa não ligada**, se qualquer lado não tem `person_id`. A conta apagada na origem
       (`author` nulo, `author_type` nulo) cai **aqui**, e não em bot: `Mapper.account_type(%{})`
       devolve `"person"` (`mapper.ex:101`), e "não sei quem é" não é "é máquina" (R9 da
-      segurança, terceiro item);
+      segurança, terceiro item; **confirmado pela pessoa mantenedora em 2026-10-03**). A coleta
+      diverge: `lib/the_band/ingestion/github_change_requests.ex:321` conta a avaliação de autor
+      nulo como bot. A divergência é tarefa desta feature (tasks.md, T030);
    3. **auto-revisão**, se revisor e autor são a mesma pessoa;
    4. senão, **aresta**.
 
@@ -467,7 +469,9 @@ consulta nova.
 |---|---|---|
 | nenhuma leitura gravada para a organização e a janela | `{:ausente, :nao_calculada}` | a leitura ainda não foi calculada, e quando será (ao fim da próxima coleta) |
 | leitura existe, total de revisões do recorte é zero | concentração `{:ausente, :sem_revisao_na_janela}` | não houve revisão na janela, em palavras, nunca 0% (US1, cenário 3) |
-| total abaixo da amostra mínima | concentração com `amostra: {:pequena, minimo}` | os números aparecem, com o aviso (edge case) |
+| total abaixo da amostra mínima (10 **revisões** do recorte) | concentração `{:ausente, {:abaixo_da_amostra_minima, 10}}` | as contagens aparecem; a fração não (decidido em 2026-10-03, Q2 do protótipo) |
+| k maior que o número de revisores | aquele k com `{:ausente, :fewer_reviewers_than_k}` | *"only 2 people reviewed"* |
+| coleta de mudanças terminou depois da leitura | `newer_collection: {:em, instante}` | uma linha dizendo que há coleta mais nova (Q3) |
 | pessoa que não revisou | `feitas: {:ausente, :nao_revisou}` | em palavras, nunca 0 |
 | pessoa sem solicitação revisada | `recebidas: {:ausente, :sem_solicitacao_revisada}` | em palavras (US2, cenário 2) |
 | organização de outro tenant, ou inexistente | `{:error, :not_found}` | *not found*, nunca *permission denied* (§11.1) |
@@ -481,6 +485,17 @@ porque a busca é por janela.
 **Alternativa recusada**: ler `oban_jobs` para dizer *"o último cálculo falhou"*. Acopla a leitura
 de domínio à tabela de uma dependência, e o Pruner apaga o job em 7 dias
 (`config/config.exs:116`): a frase dependeria da idade da falha.
+
+**Q3, decidida em 2026-10-03**: a tela diz quando uma coleta terminou depois da leitura. **O fim da
+coleta já é registrado por organização, fora do Oban**: `observed_repositories.changes_collected_at`,
+gravado ao fim da coleta de mudanças de cada repositório e devolvido por `CMPO.list_observed/2`.
+**O valor gravado é o instante de corte (o início da passada), e não o do fim**
+(`github_change_requests.ex:483-491`, `marcar_percorrido/3`): só é escrito quando a passada termina,
+mas guarda quando ela começou. A leitura compara o maior deles, entre os repositórios observados da
+organização, com `computed_at`, e diz *"coleta mais nova"* só quando o corte é **posterior** ao
+cálculo. A comparação erra para o lado de não avisar (uma passada que começou antes do cálculo e
+terminou depois não é dita), e nunca avisa de coleta que não trouxe dado novo.
+Nenhuma tabela nova, e nenhuma leitura de `oban_jobs` (a alternativa recusada acima).
 
 ---
 

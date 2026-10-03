@@ -1,0 +1,34 @@
+measurement:
+  id: review.network.reviewers.count
+  name:
+    pt-BR: "Pessoas que revisaram, no recorte de quem consulta"
+    en: "People who reviewed, within the reader's reach"
+  answers_information_need: [review.concentration]
+  value_type: count
+  unit: people
+
+  formula:
+    expression: >
+      reviewers = |{ p em P : existe aresta p → a com a em P }| na janela W da organização O.
+      Se não há aresta no recorte: AUSENTE com o motivo `no_review_in_window`.
+    inputs: [review_edge_reviewer_person_id, review_edge_author_person_id, review_edge_weight, window_start, window_end, observed_organization_id, viewer_reach]
+
+  scope:
+    levels: [observed_organization]
+    filters:
+      - "sobre o recorte pelo alcance de quem consulta: só arestas com as duas pontas em pessoas alcançadas (R1); quem administra lê a organização inteira"
+    period: "janela móvel de 30, 90 ou 180 dias, padrão 90 (review.network.parameters.window_days)"
+
+  limitations:
+    - "Conta pessoas com ao menos uma revisão contável; quem só revisou as próprias solicitações (auto-revisão) não entra."
+
+  misinterpretations:
+    - "Ler um número baixo como 'poucos revisam': quem revisa fora da ferramenta observada não aparece."
+    - "A MEDIDA NÃO AVALIA A PESSOA. Ela descreve a forma da revisão na organização; usá-la em avaliação de desempenho é o uso que a plataforma recusa (FR-018a, R5)."
+    - "Revisar muito não é qualidade nem esforço; revisar pouco não é omissão."
+    - "A revisão só é visível quando passa pela ferramenta observada: revisão em par, em chamada ou em repositório não observado não existe aqui."
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: "spec 073, FR-007 (contagens ao lado da concentração), decidido em 2026-10-03 com a aprovação do protótipo (D10, prototipo/README.md, 'Medidas e nomes que a tela pede')"

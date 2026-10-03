@@ -499,4 +499,7 @@ com o defeito injetado, com cópia do arquivo antes de injetar. Nenhum segredo r
 | R4 | "Organização" é a **organização observada** do GitHub dentro do tenant, buscada por id e tenant juntos. |
 | R6, R7 | A tela não pede recálculo: as três janelas são calculadas ao fim da coleta. Uma leitura vigente por organização e janela, sem histórico. |
 
+| R2 (grupos), na aprovação do protótipo | Os grupos são contados **só entre as pessoas alcançadas** (Q4): nenhum tamanho de grupo fala de quem está fora, e o A6 passa a afirmar que grupo de gente de fora não aparece. |
+| R12 / R9, na aprovação do protótipo | Com alcance parcial, nenhuma das três contagens de exclusão aparece, **inclusive a de bot** (Q5). Conta apagada é *sem pessoa ligada*, e não bot. |
+
 As emendas da tabela acima entraram na `spec.md` com essas escolhas.

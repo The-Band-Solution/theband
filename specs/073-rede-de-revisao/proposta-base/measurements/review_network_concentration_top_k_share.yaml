@@ -20,14 +20,14 @@ measurement:
       qual pessoa ocupa qual posição. A lista ordenada NÃO sai do cálculo — só os k
       números.
       Se R = 0: AUSENTE com o motivo `no_review_in_window`.
-      Se o número de solicitações distintas revisadas entre pessoas de P for menor que
-      review.network.parameters.min_reviewed_change_requests: AUSENTE com o motivo
-      `sample_below_minimum`, e a tela diz o mínimo e quantas houve.
+      Se R for menor que review.network.parameters.min_reviews (em REVISÕES, a mesma
+      unidade do denominador; decidido em 2026-10-03): AUSENTE com o motivo
+      `sample_below_minimum`, e a tela diz o mínimo. As contagens continuam.
       Se k for maior que o número de revisores em P: share_k é AUSENTE com o motivo
       `fewer_reviewers_than_k` (100% com dois revisores não diz nada sobre k = 3).
     inputs:
       [review_edge_reviewer_person_id, review_edge_author_person_id, review_edge_weight,
-       review_change_request_id, viewer_reach, k_values, min_reviewed_change_requests,
+       viewer_reach, k_values, min_reviews,
        window_start, window_end, observed_organization_id]
 
   scope:
@@ -42,7 +42,7 @@ measurement:
     - "O denominador é REVISÕES (pares solicitação–revisor), e não solicitações. Com uma revisão por solicitação as duas coincidem — é o caso do exemplo da spec, 30 de 40. Com várias revisões por solicitação, '75% das revisões' não é '75% das solicitações passaram por essa pessoa'. A segunda pergunta é de dependência, e pertence à fatia 3."
     - "Para quem tem alcance parcial a fração é sobre outra população que a de quem administra, e as duas NÃO se comparam: a mesma organização tem uma concentração por alcance."
     - "Não diz se a concentração é desejada. Uma equipe com um revisor designado por regra terá share_1 alto por desenho."
-    - "Abaixo da amostra mínima a medida é ausente, e não 'baixa' nem 'alta': com poucas revisões, uma a mais muda a fração em dez pontos ou mais (ver review.network.parameters.min_reviewed_change_requests)."
+    - "Abaixo da amostra mínima a medida é ausente, e não 'baixa' nem 'alta': com poucas revisões, uma a mais muda a fração em dez pontos ou mais (ver review.network.parameters.min_reviews)."
     - "Herda as limitações de review.network.reviews_given.count: solicitação revisada não é esforço, só o que passa pela ferramenta observada existe, e revisão descartada conta."
     - "Revisões excluídas (auto-revisão, bot/app, sem pessoa ligada) não estão no numerador nem no denominador. A contagem delas é da leitura, e para quem tem alcance parcial não é mostrada (R2)."
 

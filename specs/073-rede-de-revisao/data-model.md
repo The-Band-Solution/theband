@@ -96,14 +96,15 @@ Calculada **a cada leitura**, a partir da linha vigente e do alcance de quem lê
 
 | campo | sobre qual população | de onde |
 |---|---|---|
-| total de revisões, revisores | **subgrafo induzido** pelas pessoas alcançadas (arestas com as duas pontas alcançadas) | `edges` |
-| concentração k = 1, 2, 3 | o mesmo subgrafo (decisão R1 de 2026-10-03) | `edges` |
+| total de revisões, revisores, pessoas revisadas (`authors`, D10) | **subgrafo induzido** pelas pessoas alcançadas (arestas com as duas pontas alcançadas) | `edges` |
+| concentração k = 1, 2, 3 | o mesmo subgrafo (decisão R1 de 2026-10-03); ausente abaixo de 10 **revisões** do recorte, e ausente no k maior que o número de revisores | `edges` + `minimum_sample` |
 | lista por pessoa, ordenada por nome | pessoas alcançadas da lista | `people` + `edges` + `EO.people_names/2` |
 | totais de uma pessoa | **a rede inteira**: o total é fato sobre ela (R2 da segurança, item 1) | `edges` + `people` |
 | pares de uma pessoa | só pares alcançados; os de fora não viram linha nem número | `edges` |
-| grupos | componentes fracos da **rede inteira**; tamanho escondido abaixo do mínimo para quem não alcança todos os integrantes | `edges` + regra de limiares |
+| grupos | componentes fracos do **mesmo subgrafo** (Q4, decidido em 2026-10-03): com alcance parcial, só entre pessoas alcançadas | `edges` |
+| coleta mais nova que a leitura | o maior `changes_collected_at` dos repositórios observados da organização, contra `computed_at` (Q3) | `CMPO.list_observed/2` |
 | pessoas sem atividade na janela | pessoas `person` da organização, **alcançadas**, fora da lista | `EO.organization_person_ids/2` |
-| exclusões | só com alcance total ([research.md R12](research.md#r12--o-que-a-tela-de-alcance-parcial-mostra-das-exclusões)) | colunas `excluded_*` |
+| exclusões, as três, bot inclusive | só com alcance total (Q5; [research.md R12](research.md#r12--o-que-a-tela-de-alcance-parcial-mostra-das-exclusões)) | colunas `excluded_*` |
 
 ### 2.3 Estados de ausência
 
@@ -157,8 +158,10 @@ O código lê dela, e falha na carga se faltar:
 
 - `version`;
 - `k`: lista crescente de inteiros positivos ([1, 2, 3]);
-- `minimum_sample`: inteiro positivo, com a razão escrita (10);
-- `minimum_group_size`: inteiro ≥ 2, com a razão escrita (proposta da segurança: 3);
+- `minimum_sample`: inteiro positivo, com a razão escrita (10 **revisões**, na unidade par
+  revisor–solicitação; decidido em 2026-10-03);
+- `minimum_group_size`: inteiro ≥ 2, com a razão escrita (3, decidido em 2026-10-03). Declarado, e
+  **não** lido nesta fatia: com a Q4 os grupos são do recorte (contrato, *Os parâmetros*);
 - `windows_days`: lista de inteiros positivos ([30, 90, 180]) e `default_window_days` (90), que
   pertence à lista.
 

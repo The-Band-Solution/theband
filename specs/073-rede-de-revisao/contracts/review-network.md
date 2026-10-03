@@ -37,9 +37,13 @@ Ordem, e cada passo é o que impede um cenário de ataque:
 3. a leitura vigente de `(tenant, organização, janela)`. Sem linha: `{:ausente, :nao_calculada}`;
 4. `Tenants.pessoas_alcancadas(tenant, user)`, **nesta chamada**, nunca recebida de fora nem
    guardada (R10, A13);
-5. o recorte, puro, e os nomes pelas pessoas que sobraram (`EO.people_names/2`).
+5. o recorte, puro, e os nomes pelas pessoas que sobraram (`EO.people_names/2`);
+6. o fim da coleta de mudanças mais recente dos repositórios observados da organização
+   (`CMPO.list_observed/2` com `organization_id:`, o maior `changes_collected_at`), comparado com
+   `computed_at` (Q3, decidido em 2026-10-03). O registro já existe por repositório, fora do Oban,
+   e nenhuma tabela nova é preciso: o plano registra a escolha em research.md R14.
 
-Custo: **quatro consultas** (organização, leitura, pessoas da organização, nomes) mais o que
+Custo: **cinco consultas** (organização, leitura, pessoas da organização, nomes, repositórios) mais o que
 `pessoas_alcancadas/2` custa (três, e uma a mais por organização em escopo,
 `access.ex:302-307`). Nada cresce com o tamanho da rede. Guardado por teste de teto de consultas.
 
@@ -54,13 +58,19 @@ Custo: **quatro consultas** (organização, leitura, pessoas da organização, n
   computed_at: DateTime.t(),
   reach: :total | :parcial,
 
+  # Q3: há coleta de mudanças da organização terminada depois desta leitura?
+  newer_collection: :nenhuma | {:em, DateTime.t()},
+
   # Sobre o subgrafo das pessoas alcançadas (com :total, a rede inteira)
   reviews: non_neg_integer(),                 # pares revisor–solicitação
-  reviewers: non_neg_integer(),
+  reviewers: non_neg_integer(),               # pessoas com ao menos uma revisão feita no recorte
+  authors: non_neg_integer(),                 # pessoas revisadas no recorte (D10)
   concentration:
-    {:ok, %{fractions: [%{k: pos_integer(), reviews: non_neg_integer(), of: pos_integer()}],
-            sample: :suficiente | {:pequena, minimo :: pos_integer()}}}
-    | {:ausente, :sem_revisao_na_janela},
+    {:ok, [%{k: pos_integer(),
+             value: {:ok, %{reviews: pos_integer(), of: pos_integer()}}
+                    | {:ausente, :fewer_reviewers_than_k}}]}
+    | {:ausente, :sem_revisao_na_janela}
+    | {:ausente, {:abaixo_da_amostra_minima, minimo :: pos_integer()}},
 
   # Ordenada por nome, e por nada mais (FR-018a)
   people: [%{
@@ -74,10 +84,9 @@ Custo: **quatro consultas** (organização, leitura, pessoas da organização, n
     pairs_outside_reach?: boolean()
   }],
 
-  groups:
-    {:ok, %{shown: [pos_integer()], small_without_size: non_neg_integer()}}
-    | {:ausente, :sem_revisao_na_janela},
-  people_without_review_activity: non_neg_integer(),
+  # Componentes fracos do MESMO recorte (Q4): com :parcial, só entre pessoas alcançadas
+  groups: {:ok, [pos_integer()]} | {:ausente, :sem_revisao_na_janela},
+  people_without_review_activity: non_neg_integer(),   # pessoas `person` alcançadas da organização
 
   # Só com reach: :total; com :parcial, {:recortado, :regra}
   exclusions:
@@ -92,6 +101,18 @@ Custo: **quatro consultas** (organização, leitura, pessoas da organização, n
 e a tela faz a conta. Assim o SC-001 compara inteiros com a contagem manual, e o arredondamento é
 decisão de apresentação, num lugar só.
 
+**A linha da pessoa e a concentração têm populações diferentes, de propósito** (FR-015, achado do
+protótipo): `given` e `received` são o total da pessoa na janela, sobre a rede inteira (R2, item 1),
+e `reviews`, `reviewers`, `authors`, `concentration` e `groups` são do recorte. Bia aparece com
+*"reviewed 12"* e a concentração pode dizer *10 of 14*. A tela escreve, acima da lista, *"Each row
+shows the person's whole count in the window; the pairs show only people you reach"*, e o QA confere
+que a frase está lá.
+
+**Amostra mínima** (decidido em 2026-10-03): abaixo de `minimum_sample` **revisões** do recorte (a
+mesma unidade do denominador), a concentração é `{:ausente, {:abaixo_da_amostra_minima, m}}`; as
+contagens continuam. k maior que o número de revisores dá `{:ausente, :fewer_reviewers_than_k}`
+naquele k, e nunca 100%.
+
 **Por que `fractions` não traz quem**: é a decisão de 2026-10-03 sobre R1. Nenhum campo da
 concentração carrega `person_id` ou nome, para nenhum leitor, administração inclusive.
 
@@ -102,11 +123,11 @@ concentração carrega `person_id` ou nome, para nenhum leitor, administração 
 | a leitura inteira, sem recorte | R3: filtro na tela é a segunda porta, e foi assim que o H2 nasceu |
 | quantas revisões envolvem pessoas fora do alcance, em qualquer forma | decisão de 2026-10-03 sobre R2; precedente `verification_live/people.ex:147-154` |
 | quantos pares de uma pessoa estão fora do alcance | só `pairs_outside_reach?`, sem número (R2, item 1) |
-| tamanho de grupo abaixo do mínimo para quem não alcança todos os integrantes | R2, item 3; vira `small_without_size` |
+| grupo com pessoa fora do alcance, ou o tamanho dele | Q4: os grupos são do recorte, como a concentração; quem está fora não entra em grupo nenhum |
 | login, de qualquer conta, inclusive das exclusões | R9: identidade fora de qualquer veredito |
 | auto-revisão por pessoa | FR-004, R5: é acusação, e não medida |
 | a pessoa que mais revisou, ou qualquer ordenação por medida | FR-018, FR-018a, R1, R5 |
-| exclusões para alcance parcial | [research.md R12](../research.md#r12--o-que-a-tela-de-alcance-parcial-mostra-das-exclusões) |
+| exclusões para alcance parcial, **inclusive bot ou aplicativo** | [research.md R12](../research.md#r12--o-que-a-tela-de-alcance-parcial-mostra-das-exclusões); Q5, decidido em 2026-10-03 |
 | rótulo de papel, faixa numérica | FR-018 |
 | qualquer formato de exportação | FR-018b |
 | `Ecto.Query`, struct do schema | princípio X, letra I |
@@ -183,13 +204,15 @@ chama.
 ```elixir
 @type parameters :: %{
         windows: [pos_integer()], default_window: pos_integer(),
-        ks: [pos_integer()], minimum_sample: pos_integer(), minimum_group_size: pos_integer(),
+        ks: [pos_integer()], minimum_sample: pos_integer(),
         counted_states: [String.t()], knowledge_versions: %{String.t() => pos_integer()}
       }
 ```
 
 Os nomes das chaves **da base** são os que a revisão semântica aceitar (T003); este mapa é a forma
-em memória, e `Parameters` traduz uma na outra.
+em memória, e `Parameters` traduz uma na outra. O grupo mínimo (3, decidido em 2026-10-03) fica
+declarado na base e **não** entra aqui: com a Q4, os grupos são do recorte, e não sobra caso em que
+um tamanho de grupo fale de quem o leitor não alcança. Ele volta na fatia 2.
 
 ## `Graph` — módulo interno, puro
 
