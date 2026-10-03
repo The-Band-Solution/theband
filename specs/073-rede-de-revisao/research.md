@@ -329,6 +329,10 @@ dispara. Fica declarado no contrato do job.
   **`:executing` fica de fora de propósito**: se uma coleta termina enquanto o cálculo anterior
   roda, o novo entra, e a leitura não perde o dado que acabou de chegar. Período infinito, e não
   os 30 s de `recompute_promotions.ex:38`, que a R6 apontou;
+  **Corrigido na implementação (2026-10-03)**: o Oban 2.23.1 avisa, na compilação, que a lista sem
+  `:executing` e `:suspended` *"may break uniqueness"*, e o gate compila com
+  `--warnings-as-errors`. Vale `states: :incomplete`; a coleta que termina durante um cálculo não o
+  repete, e a sincronização seguinte alcança o dado ([contracts/job.md](contracts/job.md));
 - **argumentos**: `tenant_id` e `organization_id`. **A janela não é argumento**: o job calcula as
   três janelas da base de uma vez (FR-013). Nenhum valor de janela vem de fora;
 - **conferências antes de ler qualquer dado (FR-010)**, nesta ordem, cada falha um `{:cancel,

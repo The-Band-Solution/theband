@@ -132,6 +132,25 @@ derivation_rule:
       values:
         min_group_size_shown: 3
 
+    counted_states:
+      name:
+        pt-BR: "Os estados de revisão que contam, por lista de inclusão"
+      statement:
+        pt-BR: >
+          Entra na rede a avaliação ENVIADA (`submittedAt` não nulo) em um destes estados:
+          APPROVED, CHANGES_REQUESTED, COMMENTED e DISMISSED. PENDING não entra (FR-003).
+          Estado novo da origem **não** entra por omissão: a lista é de inclusão, e nunca
+          "tudo menos PENDING" (research.md R3).
+      note:
+        pt-BR: >
+          Acrescentado em 2026-10-03 pela implementação: a mesma lista estava só em texto livre
+          no mapeamento da aresta (`attributes...derived_from`), e o código não tinha de onde
+          lê-la. A revisão semântica (T003) decide se ela mora aqui ou no mapeamento; o que não
+          muda é que tem de ser legível por máquina. DISMISSED conta porque a revisão aconteceu
+          (limitação declarada).
+      values:
+        states: [APPROVED, CHANGES_REQUESTED, COMMENTED, DISMISSED]
+
     exclusions:
       name:
         pt-BR: "As três exclusões, em ordem, e o que cada uma conta"

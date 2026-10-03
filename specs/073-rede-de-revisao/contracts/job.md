@@ -7,8 +7,15 @@ use Oban.Worker,
   queue: :transformation,
   max_attempts: 3,
   unique: [fields: [:args, :worker], keys: [:tenant_id, :organization_id],
-           states: [:available, :scheduled, :retryable], period: :infinity]
+           states: :incomplete, period: :infinity]
 ```
+
+**Corrigido na implementação (2026-10-03)**: o contrato pedia `states: [:available, :scheduled,
+:retryable]`, deixando `:executing` de fora para que a coleta que termina durante um cálculo
+enfileirasse o seguinte (research.md R9, D7). O Oban 2.23.1 avisa na compilação que a lista sem os
+estados incompletos *"may break uniqueness"*, e o gate compila com `--warnings-as-errors`. Vale o
+grupo `:incomplete`. O que piora: a coleta que termina durante um cálculo não o repete, e a leitura
+alcança o dado na sincronização seguinte (intervalo mínimo de 15 minutos).
 
 ## `enqueue/2`
 

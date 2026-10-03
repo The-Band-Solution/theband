@@ -27,6 +27,7 @@ defmodule TheBand.ReviewNetwork.Commands do
   alias TheBand.Repo
   alias TheBand.ReviewNetwork.Classification
   alias TheBand.ReviewNetwork.Graph
+  alias TheBand.ReviewNetwork.Parameters
   alias TheBand.ReviewNetwork.Schemas.Reading
   alias TheBand.Tenants.Tenant
 
@@ -46,6 +47,13 @@ defmodule TheBand.ReviewNetwork.Commands do
             }
           ]
         }
+
+  @doc """
+  Calcula com os parâmetros da base. É o que a fachada expõe, e só o job chama.
+  """
+  @spec compute(Tenant.t(), %{id: Ecto.UUID.t()}, DateTime.t()) :: {:ok, relator()}
+  def compute(tenant, organization, now),
+    do: compute(tenant, organization, now, Parameters.fetch!())
 
   @doc """
   Calcula as janelas de `parametros.windows` para a organização, e substitui as leituras dela.
