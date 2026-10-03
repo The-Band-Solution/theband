@@ -1,0 +1,703 @@
+<title>Administrator Role on Accounts</title>
+<style>
+  /* Layout: one column of seven screens, each in a frame whose bar names the route and the state shown. */
+  :root{
+    --verdete:#1f6f68; --verdete-deep:#14504a; --paper:#f7f8f7; --paper-shade:#eef0ee; --paper-line:#d7dcd8;
+    --ink:#101614; --ink-soft:#4a5551; --info-blue:#23566f; --amber:#8a5a0c; --clay:#8c3327;
+    --left-grey:#5f6866; --on-mark:#f4f6f4;
+    --grotesk:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+    --serif:ui-serif,Georgia,'Iowan Old Style','Times New Roman',serif;
+    --mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;
+    --tick:.625rem; --micro:.6875rem; --label:.75rem; --meta:.8125rem; --body:.875rem;
+    --prose:1rem; --lead:1.125rem; --title:1.25rem; --section:1.5rem; --hero:1.875rem;
+    --mark:.125rem; --field:.25rem; --box:.5rem;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+    --verdete:#5cbcb2; --verdete-deep:#3f9e94; --paper:#0e1413; --paper-shade:#171f1d; --paper-line:#2b3734;
+    --ink:#e8edeb; --ink-soft:#9aa8a4; --info-blue:#7fb4d6; --amber:#d9a441; --clay:#e08574;
+    --left-grey:#a3adaa; --on-mark:#0e1413;}}
+  :root[data-theme="dark"]{color-scheme:dark;
+    --verdete:#5cbcb2; --verdete-deep:#3f9e94; --paper:#0e1413; --paper-shade:#171f1d; --paper-line:#2b3734;
+    --ink:#e8edeb; --ink-soft:#9aa8a4; --info-blue:#7fb4d6; --amber:#d9a441; --clay:#e08574;
+    --left-grey:#a3adaa; --on-mark:#0e1413;}
+  *{box-sizing:border-box}
+  body{background:var(--paper);color:var(--ink);font-family:var(--grotesk);font-size:var(--body);
+       line-height:1.5;margin:0;padding-block:2rem 5rem;padding-inline:1rem}
+  body.gray .wrap{filter:grayscale(1)}
+  .wrap{max-width:64rem;margin:0 auto;display:flex;flex-direction:column;gap:2.75rem}
+  body.phone .frame{max-width:360px}
+  .eyebrow{font-family:var(--mono);font-size:var(--micro);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 .5rem}
+  h1{font-size:var(--hero);font-weight:650;letter-spacing:-.02em;line-height:1.2;margin:0 0 .75rem;text-wrap:balance}
+  h2{font-size:var(--title);font-weight:650;letter-spacing:-.02em;margin:0;text-wrap:balance}
+  h3{font-size:var(--body);font-weight:650;margin:0}
+  p{margin:0}
+  .prose{font-family:var(--serif);font-size:var(--prose);line-height:1.6;max-width:42rem}
+  .note{font-family:var(--serif);font-size:var(--meta);line-height:1.55;color:var(--ink-soft);max-width:44rem}
+  section{display:flex;flex-direction:column;gap:1rem;min-width:0}
+  code{font-family:var(--mono);font-size:.9em;background:var(--paper-shade);padding:.05rem .25rem;
+       border-radius:var(--mark);border:1px solid var(--paper-line);overflow-wrap:anywhere}
+  a{color:var(--verdete)}
+  :focus-visible{outline:2px solid var(--verdete);outline-offset:2px}
+  .band{font-family:var(--mono);font-size:var(--micro);letter-spacing:.06em;text-transform:uppercase;
+        color:var(--paper);background:var(--ink);padding:.35rem .7rem;border-radius:var(--mark);align-self:flex-start}
+  .tools{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:1rem}
+  .tools button{font:inherit;font-family:var(--mono);font-size:var(--micro);color:var(--ink);background:var(--paper-shade);
+    border:1px solid var(--paper-line);border-radius:var(--mark);padding:.35rem .65rem;cursor:pointer;min-height:2rem}
+  .tools button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .ex{font-family:var(--mono);font-size:var(--tick);letter-spacing:.05em;text-transform:uppercase;color:var(--amber);
+      border:1px dashed currentColor;border-radius:var(--mark);padding:0 .3rem;white-space:nowrap}
+  .new{font-family:var(--mono);font-size:var(--tick);letter-spacing:.05em;text-transform:uppercase;color:var(--info-blue);
+       border:1px solid currentColor;border-radius:var(--mark);padding:0 .3rem;white-space:nowrap}
+
+  /* The frame of a screen: the bar names the route and the state, so the QA knows what is being compared. */
+  .frame{border:1.5px solid var(--paper-line);border-radius:var(--box);background:var(--paper);overflow:hidden;min-width:0}
+  .bar{display:flex;flex-wrap:wrap;gap:.25rem .75rem;align-items:center;justify-content:space-between;
+       background:var(--paper-shade);border-bottom:1.5px solid var(--paper-line);padding:.45rem .75rem}
+  .route{font-family:var(--mono);font-size:var(--micro);color:var(--ink-soft);overflow-wrap:anywhere}
+  .route b{color:var(--ink);font-weight:600}
+  .state-tag{font-family:var(--mono);font-size:var(--tick);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+  .screen{padding:1.25rem 1rem 1.5rem;display:flex;flex-direction:column;gap:1.1rem;min-width:0}
+  @media(min-width:40rem){.screen{padding:1.5rem 1.75rem 1.75rem}}
+  body.phone .screen{padding:1.25rem 1rem 1.5rem}
+  .crumb{font-family:var(--mono);font-size:var(--label);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+  .scr-h1{font-size:var(--section);font-weight:650;letter-spacing:-.02em;margin:.1rem 0 .3rem}
+  .counts{font-family:var(--mono);font-size:var(--meta);font-variant-numeric:tabular-nums}
+  .counts b{font-weight:600}
+  .h2s{font-size:var(--body);font-weight:650}
+  .sub{font-family:var(--mono);font-size:var(--label);color:var(--ink-soft)}
+
+  /* Marks: declared = blue filled, active = plain word, disabled = grey filled, absent = dashed, refused = clay hatched.
+     Text always rides with the shape (WCAG 1.4.1). */
+  .chip{display:inline-flex;align-items:center;gap:.3rem;font-family:var(--mono);font-size:var(--micro);letter-spacing:.03em;
+        padding:.1rem .45rem;border-radius:var(--mark);white-space:nowrap}
+  .decl{background:var(--info-blue);color:var(--on-mark);border:1px solid var(--info-blue)}
+  .left{background:var(--left-grey);color:var(--on-mark);border:1px solid var(--left-grey)}
+  .abs{color:var(--ink-soft);border:1px dashed currentColor;font-style:italic}
+  .sq{display:inline-block;width:.6rem;height:.6rem;border-radius:var(--mark);background:currentColor;flex:none}
+  .word{font-family:var(--mono);font-size:var(--label)}
+
+  /* The accounts table: six columns, so it stacks below 40rem (design-system §5). */
+  .tablewrap{overflow-x:auto;border:1.5px solid var(--paper-line);border-radius:var(--box);background:var(--paper-shade)}
+  table{border-collapse:collapse;width:100%;font-size:var(--body)}
+  th{font-family:var(--mono);font-size:var(--micro);font-weight:500;color:var(--ink-soft);text-align:left;
+     padding:.5rem .65rem;border-bottom:1.5px solid var(--paper-line);white-space:nowrap}
+  td{padding:.6rem .65rem;border-bottom:1px solid var(--paper-line);vertical-align:top}
+  tr.off td{background:color-mix(in srgb,var(--paper-line) 35%,transparent)}
+  tr.flash td{background:color-mix(in srgb,var(--info-blue) 10%,transparent)}
+  th.changed{color:var(--info-blue)}
+  td.mgmt{background:color-mix(in srgb,var(--info-blue) 5%,transparent)}
+  tr.off td.mgmt{background:color-mix(in srgb,var(--paper-line) 45%,transparent)}
+  .pname{font-weight:600}
+  .pmail{font-family:var(--mono);font-size:var(--label);color:var(--ink-soft);overflow-wrap:anywhere}
+  .cellnote{font-size:var(--label);color:var(--ink-soft);line-height:1.45}
+  .ctx{font-size:var(--label);color:var(--ink-soft)}
+  .mgmt-cell{display:flex;flex-direction:column;gap:.3rem;align-items:flex-start;min-width:11rem}
+  .act{font:inherit;font-size:var(--label);font-weight:600;color:var(--verdete);background:transparent;
+       border:1px solid var(--paper-line);border-radius:var(--field);padding:.2rem .55rem;cursor:pointer;
+       text-decoration:none;min-height:1.75rem;display:inline-flex;align-items:center}
+  .act.demote{color:var(--clay)}
+  .act.refused{color:var(--ink-soft);border-style:dashed;cursor:not-allowed;font-weight:500}
+  .refusal-line{font-family:var(--serif);font-size:var(--label);color:var(--ink);max-width:16rem;line-height:1.45}
+  .refusal-line b{font-family:var(--grotesk)}
+  .acts{display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;font-size:var(--label);color:var(--ink-soft)}
+  @media (pointer:coarse){.act{min-height:2.75rem}}
+  @media(max-width:40rem){
+    table.stacked thead{display:none}
+    table.stacked tr{display:block;border-bottom:1.5px solid var(--paper-line);padding:.5rem .7rem}
+    table.stacked td{display:grid;grid-template-columns:6.5rem 1fr;gap:.5rem;border:none;padding:.3rem 0;background:none}
+    table.stacked td::before{content:attr(data-label);font-family:var(--mono);font-size:var(--micro);color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em}
+    table.stacked td.mgmt{background:color-mix(in srgb,var(--info-blue) 6%,transparent);padding:.4rem .3rem;border-radius:var(--mark)}
+    .acts{align-items:flex-start}
+    .mgmt-cell{min-width:0}
+  }
+  body.phone table.stacked thead{display:none}
+  body.phone table.stacked tr{display:block;border-bottom:1.5px solid var(--paper-line);padding:.5rem .7rem}
+  body.phone table.stacked td{display:grid;grid-template-columns:6.5rem 1fr;gap:.5rem;border:none;padding:.3rem 0;background:none}
+  body.phone table.stacked td::before{content:attr(data-label);font-family:var(--mono);font-size:var(--micro);color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em}
+  body.phone table.stacked td.mgmt{background:color-mix(in srgb,var(--info-blue) 6%,transparent);padding:.4rem .3rem;border-radius:var(--mark)}
+  body.phone .acts{align-items:flex-start}
+  body.phone .mgmt-cell{min-width:0}
+
+  /* Notices carry an icon and a word besides the colour. Refused is hatched clay, done is verdete. */
+  .notice{display:flex;gap:.6rem;align-items:flex-start;border:1.5px solid currentColor;border-radius:var(--box);padding:.65rem .8rem;max-width:44rem}
+  .notice .ic{font-family:var(--mono);font-weight:700;flex:none;width:1.4rem;height:1.4rem;display:inline-flex;align-items:center;
+              justify-content:center;border:1.5px solid currentColor;border-radius:50%;font-size:var(--meta)}
+  .notice div{font-family:var(--serif);font-size:var(--meta);line-height:1.55;color:var(--ink)}
+  .notice b{font-family:var(--grotesk)}
+  .notice.refused{color:var(--clay);background-image:repeating-linear-gradient(135deg,color-mix(in srgb,var(--clay) 9%,transparent) 0 3px,transparent 3px 7px)}
+  .notice.done{color:var(--verdete)}
+  .notice.warn{color:var(--amber)}
+  /* The house flash (core_components flash/1): a toast in the corner, info or error, with its own icon and a close button. */
+  .toast{display:flex;gap:.6rem;align-items:flex-start;border:1.5px solid currentColor;border-radius:var(--box);padding:.65rem .8rem;max-width:24rem;align-self:flex-end;background:var(--paper)}
+  .toast .ic{font-family:var(--serif);font-style:italic;font-weight:700;flex:none;width:1.4rem;height:1.4rem;display:inline-flex;align-items:center;
+             justify-content:center;border:1.5px solid currentColor;border-radius:50%;font-size:var(--meta)}
+  .toast div{font-family:var(--serif);font-size:var(--meta);line-height:1.55;color:var(--ink);flex:1;min-width:0}
+  .toast .x{font-family:var(--mono);color:var(--ink-soft);flex:none}
+  .toast.info{color:var(--info-blue);background-color:color-mix(in srgb,var(--info-blue) 8%,var(--paper))}
+  .toast.error{color:var(--clay);background-color:color-mix(in srgb,var(--clay) 8%,var(--paper))}
+
+  /* The confirmation panel: same family as the disable and reactivate forms that sit under the table today. */
+  .panel{border:1.5px solid var(--paper-line);border-radius:var(--box);background:var(--paper-shade);padding:1rem;display:flex;flex-direction:column;gap:.85rem;max-width:44rem}
+  @media(min-width:40rem){.panel{padding:1.25rem}}
+  .panel.grant{border-color:color-mix(in srgb,var(--info-blue) 55%,var(--paper-line))}
+  .panel.take{border-color:color-mix(in srgb,var(--clay) 50%,var(--paper-line))}
+  .panel-h{font-size:var(--body);font-weight:650}
+  .panel-h span{font-family:var(--mono);font-weight:400;color:var(--ink-soft);overflow-wrap:anywhere}
+  .fromto{display:flex;flex-wrap:wrap;align-items:center;gap:.45rem;font-family:var(--mono);font-size:var(--label)}
+  .conseq{border:1px solid var(--paper-line);border-radius:var(--field);padding:.7rem .8rem;background:var(--paper);display:flex;flex-direction:column;gap:.35rem}
+  .conseq-h{font-family:var(--mono);font-size:var(--micro);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+  .conseq ul{margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.25rem;font-family:var(--serif);font-size:var(--meta);line-height:1.5}
+  .conseq ul.not li{color:var(--ink-soft)}
+  .field{display:flex;flex-direction:column;gap:.3rem}
+  label,.lbl{font-size:var(--meta);font-weight:600}
+  .hint{font-family:var(--mono);font-size:var(--label);color:var(--ink-soft);font-weight:400}
+  input[type=text],input[type=email],textarea{font:inherit;font-size:var(--body);color:var(--ink);background:var(--paper);
+    border:1.5px solid var(--paper-line);border-radius:var(--field);padding:.5rem .6rem;width:100%;min-height:2.75rem}
+  textarea{min-height:4rem;font-family:var(--serif)}
+  input.mono{font-family:var(--mono)}
+  input.bad{border-color:var(--clay)}
+  .row-btns{display:flex;flex-wrap:wrap;gap:.5rem}
+  .btn{font:inherit;font-weight:600;font-size:var(--body);border-radius:var(--field);padding:.55rem 1rem;min-height:2.75rem;cursor:pointer;
+       border:1.5px solid var(--info-blue);background:var(--info-blue);color:var(--on-mark)}
+  .btn.danger{background:var(--clay);border-color:var(--clay)}
+  .btn.quiet{background:transparent;color:var(--ink);border-color:var(--paper-line)}
+  .btn[disabled]{opacity:.55;cursor:not-allowed}
+
+  /* The record of role changes. */
+  .log{list-style:none;margin:0;padding:0;border:1.5px solid var(--paper-line);border-radius:var(--box);background:var(--paper-shade)}
+  .log li{display:grid;grid-template-columns:1fr;gap:.2rem;padding:.6rem .8rem;border-bottom:1px solid var(--paper-line)}
+  .log li:last-child{border-bottom:none}
+  @media(min-width:44rem){.log li{grid-template-columns:7.5rem 1fr;gap:.75rem}}
+  body.phone .log li{grid-template-columns:1fr;gap:.2rem}
+  .log .when{font-family:var(--mono);font-size:var(--label);font-variant-numeric:tabular-nums;color:var(--ink-soft)}
+  .log .what{font-size:var(--meta)}
+  .log q{font-family:var(--serif);font-style:italic;color:var(--ink-soft);quotes:"\201C" "\201D"}
+  .log .absent-note{font-family:var(--serif);font-style:italic;color:var(--ink-soft)}
+
+  /* Phone shell for the redirect screen. */
+  .appbar{display:flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:baseline;justify-content:space-between;border-bottom:1px solid var(--paper-line);padding-bottom:.6rem}
+  .brand{font-weight:700;letter-spacing:-.01em}
+  .navx{font-size:var(--label);color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:.75rem}
+  .navx b{color:var(--ink)}
+
+  /* Keys, decisions, questions: full borders and a square marker, never a coloured edge on one side. */
+  .key{display:grid;grid-template-columns:1fr;gap:.6rem;border:1.5px solid var(--paper-line);border-radius:var(--box);padding:.8rem}
+  @media(min-width:44rem){.key{grid-template-columns:1fr 1fr}}
+  .key div{display:flex;gap:.55rem;align-items:flex-start;font-size:var(--label);color:var(--ink-soft)}
+  .key div > :first-child{flex:none}
+  .callout{border:1.5px dashed var(--info-blue);border-radius:var(--box);padding:.7rem .85rem;display:flex;flex-direction:column;gap:.35rem}
+  .callout h3{color:var(--info-blue);font-size:var(--meta)}
+  .callout p{font-family:var(--serif);font-size:var(--meta);line-height:1.55}
+  .dec{display:flex;flex-direction:column;gap:.85rem}
+  .item{border:1.5px solid var(--paper-line);border-radius:var(--box);padding:.75rem .9rem;display:flex;flex-direction:column;gap:.35rem}
+  .item.open{border-style:dashed;border-color:var(--amber)}
+  .item .h{font-weight:650;display:flex;gap:.5rem;align-items:baseline}
+  .item .h .sq{color:var(--verdete);align-self:center}
+  .item.open .h .sq{color:var(--amber)}
+  .item .s{font-family:var(--mono);font-size:var(--micro);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+  .item p,.item li{font-family:var(--serif);font-size:var(--meta);line-height:1.55}
+  .item ul{margin:.1rem 0 0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.2rem}
+  .rec{color:var(--verdete);font-weight:600;font-family:var(--grotesk)}
+  .changes{margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.3rem;font-family:var(--serif);font-size:var(--meta);line-height:1.5;max-width:44rem}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Prototype · spec 072 · issue #568 · version 2 · 2026-10-03 · approved by the maintainer</p>
+    <h1>Administrator Role on Accounts</h1>
+    <p class="prose">The changes to <code>/accounts</code> that let an administrator make another active account an administrator, remove the role from one, and step down, without the organisation ever ending up with no active administrator. Everything else on the screen stays as it is today; only what changes is drawn in full.</p>
+    <div class="tools">
+      <button type="button" id="gray" aria-pressed="false">View in greyscale</button>
+      <button type="button" id="phone" aria-pressed="false">Phone width (360 px)</button>
+      <span class="note">Every state must read without colour, and at 360 px without sideways scroll.</span>
+    </div>
+    <p class="note" style="margin-top:.75rem">Version 2 carries the maintainer's decisions of 2026-10-03, listed at the end under “What changed in version 2”. All names, e-mails, dates and notes are <span class="ex">example</span>. The organisation <b>Acme Labs</b> and the people <b>Ana, Rui, Bia, Caio, Dora and Edu Example</b> are fictitious. What is new on the screen carries <span class="new">new</span>; the column that changes is tinted blue in the table.</p>
+  </header>
+
+  <section aria-label="Marks used on these screens">
+    <div class="key">
+      <div><span class="chip decl"><span class="sq" style="color:var(--on-mark)"></span>administrator</span><span>declared by the administration, so blue and filled, like everything this screen declares. Before: a verdete badge, the colour this screen uses for what collection observed.</span></div>
+      <div><span class="word">member</span><span>plain words, no mark: the common case, the same rule the screen already follows for <span class="word">active</span>. Replaces the <code>—</code>.</span></div>
+      <div><span class="chip left">disabled</span><span>unchanged: the account is closed and on the record. Its role is kept and is not counted.</span></div>
+      <div><span class="act refused" style="pointer-events:none">Step down…</span><span>a refused act stays in place, dashed, with the reason written beside it. A button that disappears teaches nobody anything.</span></div>
+      <div><span class="chip abs">no role change recorded</span><span>written absence: the mark is older than the record. Never a blank, never a dash.</span></div>
+      <div><span class="notice refused" style="padding:.15rem .4rem;border-radius:var(--mark)"><span class="ic" style="width:1rem;height:1rem;font-size:var(--tick)">!</span></span><span>a refusal after the act: hatched clay, with an icon and the word “Not changed”.</span></div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ SCREEN 1 ═══════════════ -->
+  <section id="s1" aria-labelledby="s1h">
+    <p class="band">screen 1 · accounts, at rest</p>
+    <h2 id="s1h">The accounts, with the role and its act in the Management column</h2>
+    <p class="note">Ana Example is signed in and is an administrator. Two accounts are active administrators, so every act is available. The other columns are as today and are drawn only for context.</p>
+
+    <div class="frame">
+      <div class="bar"><span class="route"><b>GET</b> /accounts</span><span class="state-tag">signed in as Ana Example · administrator</span></div>
+      <div class="screen">
+        <div>
+          <p class="crumb">Settings › Accounts</p>
+          <p class="scr-h1">Accounts</p>
+          <p class="counts">6 accounts · 4 can sign in today · 2 disabled · 1 has no password · <b>2 active administrators</b> <span class="new">new</span></p>
+        </div>
+
+        <div class="callout">
+          <h3>Who administers this organisation <span class="new">new</span></h3>
+          <p>An administrator connects tools, manages their credentials, runs syncs, and creates, disables and reactivates accounts on this screen, including making someone else an administrator or removing the role. <b>The organisation always keeps at least one active administrator:</b> the last one cannot step down or be disabled until someone else is made administrator.</p>
+        </div>
+
+        <p class="note">The panels “what this screen is” and “Removing someone's access” stay as they are, above the table. Creating an account still creates a <span class="word">member</span>; the role changes only on the row.</p>
+
+        <div>
+          <p class="h2s">The accounts</p>
+          <p class="sub">6 rows · disabled last, and never hidden</p>
+        </div>
+
+        <div class="tablewrap">
+          <table class="stacked">
+            <thead>
+              <tr>
+                <th>Person</th><th>GitHub</th><th class="changed">Management · changed</th><th>Account</th><th>Sign-in credential</th><th><span class="sr">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-label="Person"><p class="pname">Ana Example <span class="ctx">(you)</span></p><p class="pmail">ana@example.org</p></td>
+                <td data-label="GitHub"><span class="word">ana-ex</span></td>
+                <td data-label="Management" class="mgmt"><div class="mgmt-cell">
+                  <span class="chip decl">administrator</span>
+                  <p class="cellnote">since the organisation was created · <span class="chip abs">no role change recorded</span></p>
+                  <a class="act demote" href="#s4">Step down…</a>
+                </div></td>
+                <td data-label="Account"><span class="word">active</span><p class="cellnote">no disablement recorded</p></td>
+                <td data-label="Sign-in credential"><span class="word">password set</span></td>
+                <td data-label="Actions"><div class="acts"><span>Reset password</span><span>Disable · refused, own account</span></div></td>
+              </tr>
+              <tr>
+                <td data-label="Person"><p class="pname">Rui Example</p><p class="pmail">rui@example.org</p></td>
+                <td data-label="GitHub"><span class="word">rui-ex</span></td>
+                <td data-label="Management" class="mgmt"><div class="mgmt-cell">
+                  <span class="chip decl">administrator</span>
+                  <p class="cellnote">since 14 Sep · by Ana Example</p>
+                  <a class="act demote" href="#s3">Remove admin role…</a>
+                </div></td>
+                <td data-label="Account"><span class="word">active</span><p class="cellnote">no disablement recorded</p></td>
+                <td data-label="Sign-in credential"><span class="word">password set</span></td>
+                <td data-label="Actions"><div class="acts"><span>Reset password</span><span>Disable…</span></div></td>
+              </tr>
+              <tr>
+                <td data-label="Person"><p class="pname">Bia Example</p><p class="pmail">bia@example.org</p></td>
+                <td data-label="GitHub"><span class="ctx">no GitHub account linked</span></td>
+                <td data-label="Management" class="mgmt"><div class="mgmt-cell">
+                  <span class="word">member</span>
+                  <p class="cellnote">never an administrator</p>
+                  <a class="act" href="#s2">Make administrator…</a>
+                </div></td>
+                <td data-label="Account"><span class="word">active</span><p class="cellnote">no disablement recorded</p></td>
+                <td data-label="Sign-in credential"><span class="word" style="color:var(--amber)">temporary, from creation</span></td>
+                <td data-label="Actions"><div class="acts"><span>Reset password</span><span>Disable…</span></div></td>
+              </tr>
+              <tr>
+                <td data-label="Person"><p class="pname">Caio Example</p><p class="pmail">caio@example.org</p></td>
+                <td data-label="GitHub"><span class="word">caio-ex</span></td>
+                <td data-label="Management" class="mgmt"><div class="mgmt-cell">
+                  <span class="word">member</span>
+                  <p class="cellnote">administrator 03 Sep – 20 Sep · removed by Ana Example</p>
+                  <a class="act" href="#s2">Make administrator…</a>
+                </div></td>
+                <td data-label="Account"><span class="word">active</span><p class="cellnote">no disablement recorded</p></td>
+                <td data-label="Sign-in credential"><span class="word">no password</span></td>
+                <td data-label="Actions"><div class="acts"><span>Issue a temporary</span><span>Disable…</span></div></td>
+              </tr>
+              <tr class="off">
+                <td data-label="Person"><p class="pname">Edu Example</p><p class="pmail">edu@example.org</p></td>
+                <td data-label="GitHub"><span class="word">edu-ex</span></td>
+                <td data-label="Management" class="mgmt"><div class="mgmt-cell">
+                  <span class="chip decl">administrator</span>
+                  <p class="cellnote">since 01 Sep · by Ana Example · <b>not counted while the account is disabled</b></p>
+                  <a class="act demote" href="#s3">Remove admin role…</a>
+                </div></td>
+                <td data-label="Account"><span class="chip left">disabled</span><p class="cellnote">since 25 Sep 11:30 · by Ana Example · Left the organisation</p></td>
+                <td data-label="Sign-in credential"><span class="word">password set</span><p class="cellnote">kept, and it opens nothing while the account is disabled</p></td>
+                <td data-label="Actions"><div class="acts"><span>Reset password · refused while disabled</span><span>Reactivate…</span></div></td>
+              </tr>
+              <tr class="off">
+                <td data-label="Person"><p class="pname">Dora Example</p><p class="pmail">dora@example.org</p></td>
+                <td data-label="GitHub"><span class="ctx">link revoked 18 Sep</span></td>
+                <td data-label="Management" class="mgmt"><div class="mgmt-cell">
+                  <span class="word">member</span>
+                  <p class="cellnote">never an administrator</p>
+                  <p class="cellnote">Role changes wait for reactivation.</p>
+                </div></td>
+                <td data-label="Account"><span class="chip left">disabled</span><p class="cellnote">since 18 Sep 09:02 · by Rui Example · Left the organisation</p></td>
+                <td data-label="Sign-in credential"><span class="word">password set</span><p class="cellnote">kept, and it opens nothing while the account is disabled</p></td>
+                <td data-label="Actions"><div class="acts"><span>Reset password · refused while disabled</span><span>Reactivate…</span></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="note">The legend under the table gains three lines: <span class="chip decl">administrator</span>, <span class="word">member</span>, and “the last active administrator cannot step down or be removed — make someone else administrator first”.</p>
+
+        <!-- The record of role changes -->
+        <div id="log">
+          <p class="h2s">Administrator changes <span class="new">new</span></p>
+          <p class="sub">every time someone was made administrator or had the role removed · newest first · nothing here is deleted</p>
+        </div>
+        <ul class="log" aria-label="Administrator changes">
+          <li><span class="when">20 Sep 16:40</span><div class="what"><b>Ana Example</b> removed the administrator role from <b>Caio Example</b> · <span class="word">administrator → member</span><br><q>Moved to the data team; no longer runs the syncs.</q></div></li>
+          <li><span class="when">14 Sep 10:12</span><div class="what"><b>Ana Example</b> made <b>Rui Example</b> administrator · <span class="word">member → administrator</span><br><span class="absent-note">no note</span></div></li>
+          <li><span class="when">03 Sep 09:05</span><div class="what"><b>Ana Example</b> made <b>Caio Example</b> administrator · <span class="word">member → administrator</span><br><q>Covering the tool connections while Edu is away.</q></div></li>
+          <li><span class="when">01 Sep 15:20</span><div class="what"><b>Ana Example</b> made <b>Edu Example</b> administrator · <span class="word">member → administrator</span><br><span class="absent-note">no note</span></div></li>
+        </ul>
+        <p class="prose" style="font-size:var(--meta);color:var(--ink-soft);max-width:44rem">An account that was an administrator before this record began has no entry here, and its row says so instead of inventing one: the first account of an organisation is created administrator, and that is not a role change. Disabling and reactivating are not role changes either; they stay in each row's access history.</p>
+        <p class="note">Edu Example's row is a disabled administrator: the role is kept, not counted, and can be removed (Q1, decided (b)); it can never be granted to a disabled account. Dora Example's row is a disabled member, the only case that reads “Role changes wait for reactivation.”</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ SCREEN 2 ═══════════════ -->
+  <section id="s2" aria-labelledby="s2h">
+    <p class="band">screen 2 · make administrator, confirming</p>
+    <h2 id="s2h">Make Bia Example administrator</h2>
+    <p class="note">Opened by “Make administrator…” on Bia's row. The panel opens under the table, where the disable and reactivate forms already open, and shows its consequences before the button. No typing: the act is reversible by any administrator in seconds, and the panel names the person and the e-mail so the wrong row is visible.</p>
+
+    <div class="frame">
+      <div class="bar"><span class="route"><b>GET</b> /accounts · panel open</span><span class="state-tag">signed in as Ana Example · administrator</span></div>
+      <div class="screen">
+        <form class="panel grant" onsubmit="event.preventDefault()">
+          <p class="conseq-h">Make an account administrator</p>
+          <p class="panel-h">Make Bia Example administrator <span>— bia@example.org</span></p>
+          <div class="fromto"><span class="word">member</span><span aria-hidden="true">→</span><span class="chip decl">administrator</span></div>
+
+          <div class="conseq">
+            <p class="conseq-h">what happens when you confirm</p>
+            <ul>
+              <li>Bia Example can connect and disconnect tools, manage their credentials, run syncs, and manage the accounts on this screen. That includes removing <b>your</b> administrator role.</li>
+              <li>It takes effect at their next action. They do not need to sign in again.</li>
+              <li>The change is recorded with <b>your name, this instant</b> and the note below, under “Administrator changes”.</li>
+            </ul>
+            <p class="conseq-h" style="margin-top:.35rem">what it does not do</p>
+            <ul class="not">
+              <li>Their password, their GitHub link and their open sessions do not change.</li>
+              <li>Their teams, their work and every measure about them do not change. This is about what they can manage, not about what they did.</li>
+            </ul>
+          </div>
+
+          <div class="field">
+            <label for="note-promote">Note <span class="hint">— optional · kept on the record, not written to the log</span></label>
+            <textarea id="note-promote">Takes over the GitHub and Jira connections from October.</textarea>
+          </div>
+
+          <div class="row-btns">
+            <button type="submit" class="btn">Make Bia Example administrator</button>
+            <button type="button" class="btn quiet">Cancel</button>
+          </div>
+        </form>
+
+        <div class="notice done" role="status"><span class="ic">✓</span><div><b>Bia Example is now an administrator.</b> Recorded at 02 Oct 14:02, by you. The row and “Administrator changes” show it; the header now reads 3 active administrators.</div></div>
+        <p class="note">The confirmation line appears after the act, in place of the panel. Drawn here together so both read at rest.</p>
+
+        <p class="conseq-h">the same panel, after a note longer than 2000 characters</p>
+        <div class="notice refused" role="alert"><span class="ic">!</span><div><b>Not changed: the note is longer than 2000 characters.</b></div></div>
+        <p class="note">The refusal appears above the panel, and the panel stays open with the note as it was typed, so it can be shortened rather than written again. The same refusal applies to the note of “Remove admin role” and “Step down”.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ SCREEN 3 ═══════════════ -->
+  <section id="s3" aria-labelledby="s3h">
+    <p class="band">screen 3 · remove admin role from someone else, confirming</p>
+    <h2 id="s3h">Remove the administrator role from Rui Example</h2>
+    <p class="note">Opened by “Remove admin role…” on Rui's row. Same panel family, clay border, because it takes something away. No typing, for the same reason as screen 2.</p>
+
+    <div class="frame">
+      <div class="bar"><span class="route"><b>GET</b> /accounts · panel open</span><span class="state-tag">signed in as Ana Example · administrator</span></div>
+      <div class="screen">
+        <form class="panel take" onsubmit="event.preventDefault()">
+          <p class="conseq-h">Remove an administrator role</p>
+          <p class="panel-h">Remove the administrator role from Rui Example <span>— rui@example.org</span></p>
+          <div class="fromto"><span class="chip decl">administrator</span><span aria-hidden="true">→</span><span class="word">member</span></div>
+
+          <div class="conseq">
+            <p class="conseq-h">what happens when you confirm</p>
+            <ul>
+              <li>Rui Example stops managing tools, credentials, syncs and accounts. A screen they have open stops acting as administrator <b>at their next action</b>, without waiting for them to reconnect.</li>
+              <li>The organisation keeps 1 active administrator: you.</li>
+              <li>The change is recorded with <b>your name, this instant</b> and the note below.</li>
+            </ul>
+            <p class="conseq-h" style="margin-top:.35rem">what it does not do</p>
+            <ul class="not">
+              <li><b>It does not remove access.</b> Rui Example keeps signing in, as a member. If they left the organisation, disabling the account is the act.</li>
+              <li>Their sessions, password and GitHub link do not change. Nothing they did is erased.</li>
+            </ul>
+          </div>
+
+          <div class="field">
+            <label for="note-demote">Note <span class="hint">— optional · kept on the record, not written to the log</span></label>
+            <textarea id="note-demote"></textarea>
+          </div>
+
+          <div class="row-btns">
+            <button type="submit" class="btn danger">Remove Rui Example's administrator role</button>
+            <button type="button" class="btn quiet">Cancel</button>
+          </div>
+        </form>
+
+        <div class="notice done" role="status"><span class="ic">✓</span><div><b>Rui Example is no longer an administrator, and keeps signing in as a member.</b> Recorded at 02 Oct 14:05, by you. The row and “Administrator changes” show it; the header now reads 1 active administrator.</div></div>
+        <p class="note">The confirmation line appears after the act, in place of the panel, as on screen 2. The count is the one after the act.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ SCREEN 4 ═══════════════ -->
+  <section id="s4" aria-labelledby="s4h">
+    <p class="band">screen 4 · step down yourself, confirming by typing your e-mail</p>
+    <h2 id="s4h">Step down as administrator</h2>
+    <p class="note">Opened by “Step down…” on your own row. This is the one act on the screen you cannot undo yourself: once it passes, you can no longer open this screen to give the role back. So it asks you to type the e-mail of your own account, the house's way of confirming a serious act by its identifier (the operator types the slug to suspend an organisation, spec 070).</p>
+
+    <div class="frame">
+      <div class="bar"><span class="route"><b>GET</b> /accounts · panel open</span><span class="state-tag">signed in as Ana Example · administrator</span></div>
+      <div class="screen">
+        <div class="two" style="display:grid;gap:1.25rem;grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr))">
+          <form class="panel take" onsubmit="event.preventDefault()">
+            <p class="conseq-h">Step down as administrator</p>
+            <p class="panel-h">Step down as administrator of Acme Labs <span>— your account, ana@example.org</span></p>
+            <div class="fromto"><span class="chip decl">administrator</span><span aria-hidden="true">→</span><span class="word">member</span></div>
+
+            <div class="conseq">
+              <p class="conseq-h">what happens when you confirm</p>
+              <ul>
+                <li>You stop managing tools, credentials, syncs and accounts, and this screen closes for you at once.</li>
+                <li><b>You cannot give the role back yourself.</b> Rui Example, the administrator who remains, can.</li>
+                <li>The change is recorded with your name, this instant and the note below.</li>
+              </ul>
+              <p class="conseq-h" style="margin-top:.35rem">what it does not do</p>
+              <ul class="not">
+                <li>You keep signing in, as a member. Your sessions and password do not change.</li>
+              </ul>
+            </div>
+
+            <div class="field">
+              <label for="note-self">Note <span class="hint">— optional · kept on the record, not written to the log</span></label>
+              <textarea id="note-self">Handing administration over to Rui while I am on leave.</textarea>
+            </div>
+            <div class="field">
+              <label for="confirm-self">Type your e-mail to confirm <span class="hint">— ana@example.org</span></label>
+              <input id="confirm-self" class="mono" type="email" value="ana@example.org" autocomplete="off">
+            </div>
+            <div class="row-btns">
+              <button type="submit" class="btn danger">Step down as administrator</button>
+              <button type="button" class="btn quiet">Cancel</button>
+            </div>
+          </form>
+
+          <div style="display:flex;flex-direction:column;gap:.75rem;min-width:0">
+            <p class="conseq-h">the same panel, after a mistyped e-mail</p>
+            <div class="field">
+              <label for="confirm-bad">Type your e-mail to confirm <span class="hint">— ana@example.org</span></label>
+              <input id="confirm-bad" class="mono bad" type="email" value="ana@exmaple.org" autocomplete="off" aria-describedby="bad-why">
+            </div>
+            <div class="notice refused" id="bad-why" role="alert"><span class="ic">!</span><div><b>Not changed.</b> That is not the e-mail of your account. You are still an administrator.</div></div>
+            <p class="note">The panel stays open with the note kept, so a typo costs one retype. The button is not disabled while typing: the comparison happens when the form is sent, so the refusal is said in words rather than by a button that will not press.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ SCREEN 5 ═══════════════ -->
+  <section id="s5" aria-labelledby="s5h">
+    <p class="band">screen 5 · the last active administrator</p>
+    <h2 id="s5h">The organisation would have no active administrator</h2>
+    <p class="note">Two states of the same rule. At rest, when only one administrator is active, the act is refused in place before anyone tries. After a race, when another administrator stepped down while this panel was open, the act is refused by the same guard.</p>
+
+    <div class="frame">
+      <div class="bar"><span class="route"><b>GET</b> /accounts · one active administrator</span><span class="state-tag">signed in as Rui Example · administrator</span></div>
+      <div class="screen">
+        <p class="counts">5 accounts · 4 can sign in today · 1 disabled · <b>1 active administrator</b></p>
+        <div class="tablewrap">
+          <table class="stacked">
+            <thead><tr><th>Person</th><th class="changed">Management · changed</th><th>Account</th></tr></thead>
+            <tbody>
+              <tr>
+                <td data-label="Person"><p class="pname">Rui Example <span class="ctx">(you)</span></p><p class="pmail">rui@example.org</p></td>
+                <td data-label="Management" class="mgmt"><div class="mgmt-cell">
+                  <span class="chip decl">administrator</span>
+                  <p class="cellnote">since 14 Sep · by Ana Example · <b>the only active administrator</b></p>
+                  <span class="act refused" aria-disabled="true">Step down…</span>
+                  <p class="refusal-line">The organisation would have no active administrator. Make someone else administrator first.</p>
+                </div></td>
+                <td data-label="Account"><span class="word">active</span></td>
+              </tr>
+              <tr>
+                <td data-label="Person"><p class="pname">Ana Example</p><p class="pmail">ana@example.org</p></td>
+                <td data-label="Management" class="mgmt"><div class="mgmt-cell">
+                  <span class="word">member</span>
+                  <p class="cellnote">administrator until 02 Oct · stepped down</p>
+                  <a class="act" href="#s2">Make administrator…</a>
+                </div></td>
+                <td data-label="Account"><span class="word">active</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="conseq-h">after a race · Rui opened “Step down…” and Ana stepped down before he confirmed</p>
+        <div class="notice refused" role="alert"><span class="ic">!</span><div><b>Not changed: the organisation would have no active administrator.</b> Ana Example stepped down at 02 Oct 14:02, so you are now the only one. Your role is unchanged.</div></div>
+        <p class="note">The refusal names a change only when it happened after the panel was opened, with its date and time. A change that was already on the screen when the person decided is not cited, and the refusal then reads “Not changed: the organisation would have no active administrator. Your role is unchanged.” “so you are now the only one” is written only when the change was someone stepping down and the refused act is stepping down too. Other cases name the change as it was recorded: “Ana Example removed the administrator role from Caio Example at 02 Oct 14:02.” When the refused act was removing someone else's role, the last sentence names that person: “Rui Example's role is unchanged.”</p>
+        <p class="note">The mark stays as it was, the panel closes, and the row re-renders with the refused button above. The same sentence and the same guard refuse disabling the last administrator, so the two acts cannot together leave the organisation without one.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ SCREEN 6 ═══════════════ -->
+  <section id="s6" aria-labelledby="s6h">
+    <p class="band">screen 6 · the state changed in another tab</p>
+    <h2 id="s6h">Already done by someone else</h2>
+    <p class="note">Ana opened “Make administrator…” for Bia in a tab she had left open. Meanwhile Rui made Bia administrator. Ana's confirmation arrives at a state that is no longer the one she saw.</p>
+
+    <div class="frame">
+      <div class="bar"><span class="route"><b>event</b> make administrator · refused, stale</span><span class="state-tag">signed in as Ana Example · administrator</span></div>
+      <div class="screen">
+        <div class="notice refused" role="alert"><span class="ic">!</span><div><b>Not changed: Bia Example is already an administrator.</b> Rui Example made the change at 14:02.</div></div>
+        <div class="tablewrap">
+          <table class="stacked">
+            <thead><tr><th>Person</th><th class="changed">Management · changed</th><th>Account</th></tr></thead>
+            <tbody>
+              <tr class="flash">
+                <td data-label="Person"><p class="pname">Bia Example</p><p class="pmail">bia@example.org</p></td>
+                <td data-label="Management" class="mgmt"><div class="mgmt-cell">
+                  <span class="chip decl">administrator</span>
+                  <p class="cellnote">since 02 Oct · by Rui Example</p>
+                  <a class="act demote" href="#s3">Remove admin role…</a>
+                </div></td>
+                <td data-label="Account"><span class="word">active</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note">The mirror case reads the same way: “Not changed: Rui Example is already a member. Bia Example removed the role at 14:05.” The refusal names the current role and the change that got there first, so nobody has to guess whether their click did anything. The panel closes, because what it described no longer exists.</p>
+
+        <p class="conseq-h">the account was disabled in another tab</p>
+        <div class="notice refused" role="alert"><span class="ic">!</span><div><b>Not changed: Dora Example's account is disabled.</b> Role changes wait for reactivation.</div></div>
+        <p class="note">Ana opened “Make administrator…” for Dora while the account was active; Rui disabled it before she confirmed. A disabled account is never made administrator. The panel closes and the row re-renders as a disabled member, with no role act.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ SCREEN 7 ═══════════════ -->
+  <section id="s7" aria-labelledby="s7h">
+    <p class="band">screen 7 · after losing the role, with the screen open</p>
+    <h2 id="s7h">The next action does not run as administrator</h2>
+    <p class="note">Two paths lead here. Rui had <code>/accounts</code> open when Ana removed his role, and clicked something. Or Ana stepped down herself. In both, the action does not run and the person lands on <code>/people</code>. A member never reaches <code>/accounts</code> at all, so a member sees no control.</p>
+
+    <div class="frame" style="max-width:26rem">
+      <div class="bar"><span class="route"><b>redirect</b> → /people</span><span class="state-tag">phone · Rui Example · member</span></div>
+      <div class="screen">
+        <div class="appbar"><span class="brand">The Band</span><span class="navx"><b>People</b><span>Teams</span><span>Work</span></span></div>
+        <div class="toast error" role="alert"><span class="ic">!</span><div>Only organisation administrators can do that.</div><span class="x" aria-label="close">×</span></div>
+        <p class="note">Rui, after the role was removed. The sentence and the error toast are the ones the admin screens already use for any member; the action clicked did not run.</p>
+        <div class="toast info" role="alert"><span class="ic">i</span><div>You stepped down as administrator of Acme Labs. Recorded at 02 Oct 14:10. Rui Example can give the role back.</div><span class="x" aria-label="close">×</span></div>
+        <p class="note">Ana, after stepping down. Her own act succeeded, so she reads a confirmation, not a refusal, and the name of who can undo it. It arrives in the house's information toast, the one every screen uses after a redirect (decided 2026-10-03, H): the toast's icon is “information”, and the sentence is what says it worked.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ DECISIONS ═══════════════ -->
+  <section id="dec" aria-labelledby="dech">
+    <p class="band">decisions and open questions</p>
+    <h2 id="dech">Decisions and open questions</h2>
+    <p class="note">Version 1 was approved by the maintainer on 2026-10-03 with every recommendation (Q1–Q6). The conference of the built screen against it raised four more questions (B, P, H, J), decided by the maintainer the same day; version 2 draws the screen with all of them. No question is open.</p>
+
+    <div class="item"><p class="h"><span class="sq"></span>What changed in version 2</p><p class="s">Decided 2026-10-03 · by the maintainer</p>
+      <ul class="changes">
+        <li><b>P · pronoun-free sentences</b> (screens 2, 3, 6). The screen does not know anyone's pronoun, so it writes the full name or “they / their”, and “made the change at 14:02” instead of “made her one”.</li>
+        <li><b>H · the step-down confirmation is the house's information toast</b> (screen 7), not a notice with ✓. The refusal on the same screen is the house's error toast.</li>
+        <li><b>J · three sentences the screen has are drawn</b>: the success of removing someone's role (screen 3), the refusal of a note over 2000 characters with the panel kept open (screen 2), and the refusal of making a disabled account administrator (screen 6).</li>
+        <li><b>Q1 (b) on the row</b> (screen 1). The disabled administrator gets “Remove admin role…” and keeps “not counted while the account is disabled”; “Role changes wait for reactivation.” stays only on the disabled member.</li>
+        <li><b>After a race</b> (screen 5). No “a moment before this request”: the screen does not measure it. The change is cited only when it happened after the panel opened, with date and time; “so you are now the only one” only when someone stepped down and the refused act is stepping down.</li>
+        <li><b>The success sentence</b> (screens 2, 3) ends “The row and “Administrator changes” show it; the header now reads N active administrators.”</li>
+        <li><b>B · rows without a recorded change keep the drawn sentences</b>: “since the organisation was created · no role change recorded” and “never an administrator”. Decided against the QA's recommendation; the risk that an account older than the record reads something the record cannot prove is accepted and written down.</li>
+        <li>The actions header stays “Actions” for screen readers only, and the stacked cell carries <code>data-label="Actions"</code>.</li>
+      </ul></div>
+
+    <div class="dec">
+      <div class="item"><p class="h"><span class="sq"></span>D1 · The act lives in the Management cell, beside the mark</p><p class="s">Decided 2026-10-03</p>
+        <p>Role and sign-in are two independent facts, which is why the screen already has “two columns for two facts”: disabling does not change the role. The acts column keeps the access acts (reset, disable, reactivate); the role act sits with the role.</p></div>
+
+      <div class="item"><p class="h"><span class="sq"></span>D2 · The dash becomes <span class="word">member</span>, and <span class="chip decl">administrator</span> becomes the declared mark</p><p class="s">Decided 2026-10-03</p>
+        <p>Yes, the <code>—</code> breaks the rule, and worse than an unnamed absence: nothing is missing there. The account has a role, and the dash hides it. The common value is plain words, as <span class="word">active</span> already is. The administrator mark moves from verdete to blue filled, because the screen's own key says blue is what the administration declares and verdete is what collection observes.</p></div>
+
+      <div class="item"><p class="h"><span class="sq"></span>D3 · Confirmation by panel; typing only for stepping down yourself</p><p class="s">Decided 2026-10-03</p>
+        <ul>
+          <li><b>Make administrator</b> and <b>remove someone else's role</b>: a panel under the table naming the person and e-mail, with what the act does and does not do, an optional note, and a button whose label repeats the name. Any administrator can undo either in seconds.</li>
+          <li><b>Step down</b>: the same panel, plus typing your own e-mail. It is the one act its author cannot undo, which is what the house reserves typing for. Typing on every role change would train people to type without reading.</li>
+        </ul></div>
+
+      <div class="item"><p class="h"><span class="sq"></span>D4 · The last administrator is refused at rest and after a race, with the same sentence</p><p class="s">Decided 2026-10-03</p>
+        <p>With one active administrator, the act stays in place, dashed, with “The organisation would have no active administrator. Make someone else administrator first.” A race that slips past the screen gets the same sentence from the guard, and the mark stays. The header counts active administrators so the reason is visible before it is needed.</p></div>
+
+      <div class="item"><p class="h"><span class="sq"></span>D5 · A stale act is refused by naming the change that got there first</p><p class="s">Decided 2026-10-03</p>
+        <p>“Not changed: Bia Example is already an administrator. Rui Example made the change at 14:02.” The row re-renders and the panel closes. Without the who and when, the person cannot tell a stale tab from a broken button.</p></div>
+
+      <div class="item"><p class="h"><span class="sq"></span>D6 · A disabled account is never made administrator, and a disabled administrator is not counted</p><p class="s">Decided 2026-10-03 · amended by Q1 (b)</p>
+        <p>A disabled administrator keeps the mark, says “not counted while the account is disabled”, and has “Remove admin role…” (Q1 (b)). A disabled member writes “Role changes wait for reactivation.” instead of a button.</p></div>
+
+      <div class="item"><p class="h"><span class="sq"></span>D7 · The record appears in two places: one line per row, the full list below the table</p><p class="s">Decided 2026-10-03</p>
+        <p>The row answers “since when, and by whom”. The section “Administrator changes”, newest first, answers the audit question across accounts: who has held the role and who gave it. A mark older than the record says so (“no role change recorded”) instead of an invented entry.</p></div>
+
+      <div class="item"><p class="h"><span class="sq"></span>D8 · The note is optional, kept on the record, and never written to the log</p><p class="s">Decided 2026-10-03</p>
+        <p>As the spec's assumption and FR-007. A missing note reads “no note”, the phrase the knowledge base already declares in <code>access.account_lifecycle</code>. There is no closed list of reasons.</p></div>
+
+      <div class="item"><p class="h"><span class="sq"></span>D9 · Losing the role with the screen open lands on /people</p><p class="s">Decided 2026-10-03 · with Q3 (a) and H</p>
+        <p>The next action does not run, with the sentence the admin screens already use, in the error toast. Stepping down yourself lands in the same place with a confirmation in the information toast that names who can undo it.</p></div>
+
+      <div class="item"><p class="h"><span class="sq"></span>Q1 · Can a disabled administrator have the role removed?</p><p class="s">Decided 2026-10-03 · (b) · by the maintainer</p>
+        <p>The spec disagrees with itself: FR-001 lets an administrator remove the role from “an administrator of the organisation”, without “active”; US3 says a disabled account has neither act. Today, someone who left with the role keeps it, and reactivating the account later brings administration back with it.</p>
+        <ul>
+          <li>(a) no act on any disabled account;</li>
+          <li>(b) “Remove admin role…” also on a disabled administrator, never “Make administrator”. The guard is not affected, because a disabled administrator is not counted.</li>
+        </ul>
+        <p><span class="rec">Recommended and decided: (b).</span> Removing a power that nobody exercises costs nothing and closes the case where a routine reactivation restores administration nobody meant to give. The spec's US3 scenario 1 is amended and Edu's row has the act.</p></div>
+
+      <div class="item"><p class="h"><span class="sq"></span>Q2 · Should making someone administrator also require typing their e-mail?</p><p class="s">Decided 2026-10-03 · (a) · by the maintainer</p>
+        <ul><li>(a) no, panel only;</li><li>(b) yes, type the e-mail of the account being promoted.</li></ul>
+        <p><span class="rec">Recommended and decided: (a).</span> Granting is the more powerful act, but it is the reversible one, and the panel already names the person and e-mail. Typing earns its cost when the author cannot undo the act.</p></div>
+
+      <div class="item"><p class="h"><span class="sq"></span>Q3 · What does someone read when their role was removed while the screen was open?</p><p class="s">Decided 2026-10-03 · (a) · by the maintainer</p>
+        <ul><li>(a) the existing sentence, “Only organisation administrators can do that.”;</li><li>(b) a specific one: “Your administrator role was removed by Ana Example at 14:02.”</li></ul>
+        <p><span class="rec">Recommended and decided: (a).</span> The check lives in the shared hook and does not know why the role is missing; teaching it means reading the record on every refused request. As a member the person cannot open this screen to read “Administrator changes”, so if (b) is wanted, the hook learns it, and that is a contract change.</p></div>
+
+      <div class="item"><p class="h"><span class="sq"></span>Q4 · Does the table stack on phones in this feature?</p><p class="s">Decided 2026-10-03 · (a) · by the maintainer</p>
+        <p>Today the table has six columns and scrolls sideways in a card. The design system (§5) asks any table over three columns to stack with <code>data-label</code>. This prototype draws it stacked.</p>
+        <ul><li>(a) yes, in this feature, since the Management cell is being rewritten and the prototype must be the screen;</li><li>(b) no, a separate issue; the prototype is then republished with today's scroll.</li></ul>
+        <p><span class="rec">Recommended and decided: (a).</span> It is the same table and the same template, and §11.1 makes mobile-first normative for any change to a screen.</p></div>
+
+      <div class="item"><p class="h"><span class="sq"></span>Q5 · How long is “Administrator changes”?</p><p class="s">Decided 2026-10-03 · (b) · by the maintainer</p>
+        <ul><li>(a) every entry, always;</li><li>(b) the 20 most recent, with “N earlier changes, all kept” written under the list.</li></ul>
+        <p><span class="rec">Recommended and decided: (b).</span> It is what the access history on each row already does; at today's size it shows everything, and it will not grow into a page nobody reads.</p></div>
+
+      <div class="item"><p class="h"><span class="sq"></span>Q6 · Do administrators that exist today get an entry in the record?</p><p class="s">Decided 2026-10-03 · (a) · by the maintainer</p>
+        <ul><li>(a) no: the row writes “no role change recorded”;</li><li>(b) yes: a migration writes one entry per current administrator.</li></ul>
+        <p><span class="rec">Recommended and decided: (a).</span> An entry needs an author and an instant, and the migration knows neither. It would be a fabricated record presented as genuine.</p></div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  (function(){
+    function toggle(id, cls){
+      var b = document.getElementById(id);
+      b.addEventListener('click', function(){
+        var on = document.body.classList.toggle(cls);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }
+    toggle('gray','gray');
+    toggle('phone','phone');
+  })();
+</script>

@@ -30,6 +30,8 @@ defmodule TheBand.ContadorDeConsultasUnicoTest do
       "conta os SELECT em tenants de cada POST de ato (070/T056, U1 e U3), pelo conteúdo",
     "test/the_band/tenants/ultimo_admin_ativo_test.exs" =>
       "captura o SELECT … FOR UPDATE das contas admin ativas, pelo conteúdo",
+    "test/the_band/tenants/papel_de_administrador_test.exs" =>
+      "captura o FOR UPDATE do guarda do papel (072/T004) e abre a janela de S3 depois da leitura do alvo",
     "test/the_band/tenants/auth_test.exs" =>
       "captura o SELECT … FOR UPDATE da conta no login (#1046), pelo conteúdo",
     "test/the_band/work_items/custo_da_vigente_test.exs" =>

@@ -101,13 +101,27 @@ defmodule TheBand.Tenants.User do
     timestamps(type: :utc_datetime)
   end
 
+  # Spec 072, FR-006 (S4 de `specs/072-papel-de-administrador/seguranca.md`): o papel NÃO é
+  # castável. Antes, `cadastrar_conta/3` passava os atributos recebidos a este changeset, e um
+  # chamador que repassasse `"role" => "admin"` criava administrador. O papel entra só por
+  # `com_papel/2`, que o bootstrap e o ato da 072 chamam explicitamente.
   def changeset(user, attrs) do
     user
-    |> cast(attrs, [:email, :name, :role, :tenant_id])
+    |> cast(attrs, [:email, :name, :tenant_id])
     |> validate_required([:email, :tenant_id])
     |> validate_inclusion(:role, @roles)
+    |> check_constraint(:role, name: :users_role_valido)
     |> unique_constraint(:email)
   end
+
+  @doc """
+  Grava o papel no changeset, explicitamente. Só o bootstrap (a primeira conta) e
+  `TheBand.Tenants.create_user/2` (seeds e fixtures) chamam; a mudança de papel de uma conta
+  existente é o ato da spec 072, que escreve com o episódio.
+  """
+  @spec com_papel(Ecto.Changeset.t(), String.t()) :: Ecto.Changeset.t()
+  def com_papel(changeset, papel) when papel in @roles,
+    do: put_change(changeset, :role, papel)
 
   @doc """
   Declara qual pessoa observada é esta conta — issue #369.

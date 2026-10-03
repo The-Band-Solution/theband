@@ -54,6 +54,7 @@ defmodule TheBand.Tenants.Access do
   alias TheBand.Repo
   alias TheBand.Tenants
   alias TheBand.Tenants.Access.ScopeGrant
+  alias TheBand.Tenants.PapelDeAdministrador
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
 
@@ -545,7 +546,10 @@ defmodule TheBand.Tenants.Access do
     cond do
       # Administrador DESTE tenant: a marca é da conta, e a conta é de um tenant —
       # um admin de fora não concede aqui, seja lá como a chamada chegou.
-      not (User.admin?(actor) and actor.tenant_id == tenant.id) ->
+      #
+      # Relido no banco desde a 072 (FR-002a): a struct é a do `mount`, e um rebaixado com a
+      # aba aberta continuaria concedendo. A recusa segue `:not_admin`, que é o contrato.
+      PapelDeAdministrador.exigir_ator(tenant.id, actor.id) != :ok ->
         {:error, :not_admin}
 
       # A CONTA também é conferida contra o tenant, e aqui — não só na tela. Uma
@@ -578,7 +582,7 @@ defmodule TheBand.Tenants.Access do
           {:ok, ScopeGrant.t()} | {:error, :not_admin | :not_found}
   def revoke(%Tenant{id: tenant_id}, grant_id, %User{} = actor) do
     cond do
-      not (User.admin?(actor) and actor.tenant_id == tenant_id) ->
+      PapelDeAdministrador.exigir_ator(tenant_id, actor.id) != :ok ->
         {:error, :not_admin}
 
       grant =
