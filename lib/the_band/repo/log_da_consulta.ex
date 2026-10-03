@@ -36,6 +36,9 @@ defmodule TheBand.Repo.LogDaConsulta do
   chamada pede um nível. `test/the_band/segredo_fora_do_log_test.exs` reprova se aparecer um.
   """
 
+  alias Ecto.Adapters.SQL
+  alias TheBand.Rotacao
+
   require Logger
 
   @evento [:the_band, :repo, :query]
@@ -53,7 +56,7 @@ defmodule TheBand.Repo.LogDaConsulta do
   @doc "As tabelas cujas consultas têm os parâmetros redigidos."
   @spec tabelas_cifradas() :: [String.t()]
   def tabelas_cifradas,
-    do: TheBand.Rotacao.campos_cifrados() |> Enum.map(&elem(&1, 0)) |> Enum.uniq()
+    do: Rotacao.campos_cifrados() |> Enum.map(&elem(&1, 0)) |> Enum.uniq()
 
   @doc "A consulta toca tabela com campo cifrado?"
   @spec redigir?(String.t() | nil, String.t()) :: boolean()
@@ -129,7 +132,7 @@ defmodule TheBand.Repo.LogDaConsulta do
   # pública que ele usa.
   defp chamador(%{stacktrace: [_ | _] = stacktrace, repo: repo}) do
     stacktrace
-    |> Ecto.Adapters.SQL.first_non_ecto_stacktrace(%{repo: repo}, 1)
+    |> SQL.first_non_ecto_stacktrace(%{repo: repo}, 1)
     |> Enum.map(fn {m, f, a, info} ->
       local =
         case info[:file] do

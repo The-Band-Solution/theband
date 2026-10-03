@@ -17,9 +17,12 @@ defmodule TheBand.SegredoForaDoLogTest do
   import Mox
 
   alias TheBand.AI
-  alias TheBand.Platform.{Credentials, Operator}
+  alias TheBand.Platform.{Credentials, Grant, Operator}
+  alias TheBand.Repo.LogDaConsulta
+  alias TheBand.Rotacao
   alias TheBand.Segredo
   alias TheBand.Sources
+  alias TheBand.Sources.{ConnectedTool, ToolCredential}
 
   setup :verify_on_exit!
 
@@ -138,7 +141,7 @@ defmodule TheBand.SegredoForaDoLogTest do
           name: "Op"
         })
 
-      Repo.insert!(%TheBand.Platform.Grant{
+      Repo.insert!(%Grant{
         operator_id: op.id,
         granted_at: DateTime.utc_now(:second),
         granted_via: "release_command",
@@ -185,7 +188,7 @@ defmodule TheBand.SegredoForaDoLogTest do
         capture_log(fn ->
           {1, _} =
             Repo.update_all(
-              from(c in TheBand.Sources.ToolCredential, where: c.connected_tool_id == ^tool.id),
+              from(c in ToolCredential, where: c.connected_tool_id == ^tool.id),
               set: [secret: novo]
             )
         end)
@@ -215,11 +218,9 @@ defmodule TheBand.SegredoForaDoLogTest do
 
       log =
         capture_log(fn ->
-          Repo.all(
-            from c in TheBand.Sources.ToolCredential, where: c.connected_tool_id == ^tool.id
-          )
+          Repo.all(from c in ToolCredential, where: c.connected_tool_id == ^tool.id)
 
-          Repo.all(from t in TheBand.Sources.ConnectedTool, where: t.id == ^tool.id)
+          Repo.all(from t in ConnectedTool, where: t.id == ^tool.id)
         end)
 
       mediu!(log, "tool_credentials")
@@ -246,10 +247,10 @@ defmodule TheBand.SegredoForaDoLogTest do
       assert length(cifrados) >= 3
 
       for {m, source, campo} <- cifrados do
-        assert {source, campo} in TheBand.Rotacao.campos_cifrados(),
+        assert {source, campo} in Rotacao.campos_cifrados(),
                "#{inspect(m)}.#{campo} é cifrado e está fora de Rotacao.campos_cifrados/0"
 
-        assert source in TheBand.Repo.LogDaConsulta.tabelas_cifradas()
+        assert source in LogDaConsulta.tabelas_cifradas()
       end
     end
 
@@ -275,7 +276,7 @@ defmodule TheBand.SegredoForaDoLogTest do
         |> :telemetry.list_handlers()
         |> Enum.map(& &1.id)
 
-      assert TheBand.Repo.LogDaConsulta.id() in ids
+      assert LogDaConsulta.id() in ids
     end
 
     test "uma falha ao formatar não desanexa o handler, nem loga a consulta" do
@@ -292,7 +293,7 @@ defmodule TheBand.SegredoForaDoLogTest do
       refute log =~ "fake-secret-1222-falha"
 
       ids = [:the_band, :repo, :query] |> :telemetry.list_handlers() |> Enum.map(& &1.id)
-      assert TheBand.Repo.LogDaConsulta.id() in ids
+      assert LogDaConsulta.id() in ids
     end
   end
 

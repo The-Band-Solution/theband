@@ -5,6 +5,7 @@ defmodule TheBand.Application do
 
   use Application
 
+  alias TheBand.Repo.LogDaConsulta
   alias TheBandWeb.Plugs.ApiRateLimit
 
   require Logger
@@ -28,7 +29,7 @@ defmodule TheBand.Application do
 
     # O log das consultas nasce ANTES do Repo — issue #1222. O Repo tem `log: false`, e uma
     # consulta feita antes do handler simplesmente não seria logada; depois dele, sai redigida.
-    :ok = TheBand.Repo.LogDaConsulta.anexar()
+    :ok = LogDaConsulta.anexar()
 
     children = [
       TheBandWeb.Telemetry,
