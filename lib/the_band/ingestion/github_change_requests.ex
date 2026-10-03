@@ -32,6 +32,7 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Quality.Commands, as: QualityCommands
   alias TheBand.Repo
+  alias TheBand.SemanticIntegration.Mapper
 
   import Ecto.Query
 
@@ -317,11 +318,25 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
       QualityCommands.mark_unobserved(ctx.tenant, solicitacao_id, Enum.map(reviews, & &1["id"]))
     end
 
-    %{
-      gravadas: length(reviews),
-      de_bot: Enum.count(reviews, &(get_in(&1, ["author", "__typename"]) != "User"))
-    }
+    %{gravadas: length(reviews), de_bot: Enum.count(reviews, &avaliacao_de_maquina?/1)}
   end
+
+  @doc """
+  Se a avaliação é de conta de máquina (bot ou aplicativo) — a contagem `bot_evaluations` do
+  resumo da coleta.
+
+  **A conta apagada na origem (autor nulo) não é máquina**: é conta que a plataforma não sabe de
+  quem é, e a rede de revisão a conta como *sem pessoa ligada* (decisão da pessoa mantenedora de
+  2026-10-03; feature 073, T030). A versão anterior contava como bot tudo o que não tinha
+  `__typename` `User`, e o autor nulo caía ali. A classificação é `Mapper.account_type/1`, a mesma
+  de EO e da rede: o `__typename` **e** o sufixo `[bot]` do login, para que as duas contagens não
+  discordem.
+  """
+  @spec avaliacao_de_maquina?(map()) :: boolean()
+  def avaliacao_de_maquina?(%{"author" => %{} = autor}),
+    do: Mapper.account_type(autor) in ["bot", "app"]
+
+  def avaliacao_de_maquina?(_review), do: false
 
   defp gravar_avaliacao(ctx, solicitacao_id, review) do
     login = get_in(review, ["author", "login"])
