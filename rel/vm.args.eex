@@ -1,0 +1,5 @@
+## #1162 (A6 de `specs/071-papeis-do-banco/seguranca-1140.md`; `seguranca-1162.md`, B2): a
+## distribuição escuta só no loopback. Vale para o nó que serve (vm.args) e para o nó do
+## `rpc`/`remote` (remote.vm.args), que também abre uma porta de escuta. Sem isto, com o cookie
+## da imagem, um contêiner vizinho na rede Docker executava código no nó (medido: uid=1000).
+-kernel inet_dist_use_interface {127,0,0,1}

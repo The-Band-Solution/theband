@@ -38,6 +38,23 @@ if [ "$(id -u)" != 0 ]; then
   exit 1
 fi
 
+# #1162: o nó só fala pelo loopback (`rel/vm.args.eex`), e por isso um cluster por DNS não existiria,
+# em silêncio. Recusar é melhor que subir sozinho achando que está em cluster (B4).
+if [ -n "$DNS_CLUSTER_QUERY" ]; then
+  echo "RECUSADO: DNS_CLUSTER_QUERY definido, e a distribuição é só no loopback (#1162)" >&2
+  exit 1
+fi
+
+# O cookie da distribuição, novo a cada start, antes de qualquer processo de `band` (B5: `/run`
+# não é tmpfs, então o de antes é apagado). Grupo `band` e 0440: o nó que serve, o `rpc` e o
+# HEALTHCHECK, todos como `band`, o leem; ninguém mais. O `umask 077` faz ele nascer 0600.
+rm -rf /run/the_band
+install -d -o root -g band -m 0750 /run/the_band
+od -An -N32 -tx1 /dev/urandom | tr -d ' \n' > /run/the_band/cookie.novo
+chgrp band /run/the_band/cookie.novo
+chmod 0440 /run/the_band/cookie.novo
+mv /run/the_band/cookie.novo /run/the_band/cookie
+
 # Uma função só para descer a `band`: sem a variável que migra (o `env -u` vem ANTES do `setpriv`,
 # no processo root), sem capacidades, com NoNewPrivs, e com o HOME de `band` (o `setpriv` não o
 # troca). Nunca `--reset-env`, que apagaria DATABASE_URL e o resto que o servidor precisa.
