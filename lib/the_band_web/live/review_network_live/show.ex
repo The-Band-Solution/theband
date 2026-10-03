@@ -74,7 +74,7 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
       # O mesmo texto para a de outro tenant e a inexistente: dizer "sem permissão" confirmaria
       # que existe (§11.1, 4.6).
       {:error, :not_found} ->
-        socket |> put_flash(:error, "Not found.") |> push_navigate(to: ~p"/organizations")
+        socket |> put_flash(:error, dgettext("errors", "Not found.")) |> push_navigate(to: ~p"/organizations")
 
       {:ausente, :not_computed} ->
         socket |> com_organizacao(id) |> assign(window: janela(window), visao: :not_computed)
