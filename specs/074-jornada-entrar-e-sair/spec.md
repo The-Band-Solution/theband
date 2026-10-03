@@ -5,7 +5,8 @@
 **Created**: 2026-10-03
 
 **Status**: Draft — emendada em 2026-10-03 com as decisões da [avaliação de segurança](seguranca.md)
-que não são da pessoa mantenedora (marcadas **[seg]**)
+que não são da pessoa mantenedora (anotadas *(seguranca.md, Sn)* em cada requisito). As decisões
+D1–D7 da avaliação são da pessoa mantenedora e estão pendentes.
 
 **Input**: pedido da pessoa mantenedora no [ÉPICO #802](https://github.com/The-Band-Solution/theband/issues/802):
 *"quero saber quem deu erro ao fazer login ou logout"* (2026-09-04), e a direção de 2026-09-27:
@@ -83,8 +84,9 @@ mostrou a **mesma** frase nas três recusas.
 **Acceptance Scenarios**:
 
 1. **Given** uma conta com senha definida, **When** a pessoa entra com a senha certa, **Then** um
-   passo `entrar_com_senha` com desfecho `concluiu` chega ao painel, com a organização e o
-   identificador opaco da conta.
+   passo `entrar_com_senha` com desfecho `concluiu` chega ao painel, com a organização e **sem**
+   identificador de conta — salvo se o sucesso apagou tentativas falhas, quando o identificador
+   vai junto, porque é o sinal de uma campanha que deu certo (FR-004).
 2. **Given** uma conta com senha definida, **When** a pessoa digita a senha errada, **Then** o
    passo chega com `falhou` e `senha_errada`, **e** a tela mostra a frase única de sempre.
 3. **Given** um identificador que não identifica conta, **When** alguém tenta entrar, **Then** o
@@ -139,10 +141,15 @@ não chega ao exportador.
 controle de acesso diferente do banco (ADR 0005, S1). Sem esta história, a US1 e a US2 criam um
 caminho novo para segredo sair, e não podem ir para produção. É P1 junto com elas, e não depois.
 
-**Independent Test**: um teste com o exportador em memória faz uma tentativa de entrada cuja
-senha, identificador e cookie são valores-sentinela, e varre **todo** atributo, evento e nome de
-todo span exportado: nenhuma sentinela aparece. Com o filtro removido de propósito, o mesmo teste
-reprova.
+**Independent Test**: um teste troca **só o exportador interno** por um que entrega os spans ao
+processo do teste, e mantém o filtro de produção no caminho (seguranca.md, S15). Ele faz os quatro
+passos com valores-sentinela em todo campo de credencial (senha tentada, identificador, e-mail,
+`password_hash`, senha temporária, atual e nova, o cookie inteiro, o token de CSRF), afirma
+**primeiro** que chegaram spans dos quatro passos, e então varre nome, atributo, evento, status,
+link e recurso, em claro, em Base64 e em `inspect`: nenhuma sentinela. Reprova com cada um dos
+cinco defeitos injetados: sem o filtro; `inspect(changeset)` em `failure.reason`;
+`set_attribute` direto no span corrente; `OTEL_RESOURCE_ATTRIBUTES` com sentinela;
+`record_exception` com a sentinela na mensagem.
 
 **Acceptance Scenarios**:
 
@@ -157,9 +164,12 @@ reprova.
    sem o conteúdo), em vez de a telemetria sumir em silêncio.
 5. **Given** o backend de telemetria fora do ar, **When** a pessoa entra e sai, **Then** entrar e
    sair funcionam igual, e o que o exportador descartar é contado.
-6. **[seg]** **Given** um span de consulta ao banco, se um dia existir, **When** a consulta toca
-   tabela com campo cifrado, **Then** os parâmetros saem redigidos pela **mesma** regra do log das
-   consultas (`TheBand.Rotacao.campos_cifrados/0`, PR #1227).
+6. **Given** um passo cujo código tenta pôr no span uma mensagem de erro, uma exceção, um atributo
+   fora da lista ou um valor fora da forma (por exemplo, o `inspect` de um changeset em
+   `failure.reason`), **When** o span é exportado, **Then** nada disso sai, e o descarte é contado
+   (FR-006, FR-017).
+7. **Given** um pedido de entrada que traz um correlator nos parâmetros, **When** o passo é
+   exportado, **Then** o correlator é o da sessão, e não o do pedido (FR-011).
 
 ---
 
@@ -224,7 +234,7 @@ três perguntas respondidas sem escrever consulta.
   por ele (US3, cenário 5).
 - **O tempo de resposta não pode passar a distinguir motivos.** A emissão do passo não pode
   custar mais num motivo do que em outro, ou a telemetria criaria o oráculo de tempo que a 045 e
-  a #1047 fecharam. **[seg]**
+  a #1047 fecharam (FR-009).
 - **Conta de outra organização.** O painel é de quem opera a plataforma, e não de quem administra
   uma organização; nenhuma conta de organização cliente o vê (ADR 0005, E5).
 - **A 064/US3 ou a #1222 não chegaram.** A implementação não começa: são pré-requisitos.
@@ -238,37 +248,62 @@ três perguntas respondidas sem escrever consulta.
 - **FR-002**: Todo passo com `falhou` MUST trazer um motivo da **lista fechada declarada** na base
   de conhecimento, e o motivo MUST ser o mesmo valor que a decisão de acesso já produz hoje.
 - **FR-003**: A tela e a resposta HTTP MUST continuar idênticas entre os motivos de recusa de
-  entrada (FR-002 da 045). A distinção existe **só** na telemetria.
-- **FR-004**: Todo passo MUST carregar a organização (`tenant`) quando ela é conhecida, e MUST
-  carregar o identificador opaco da conta quando a conta é conhecida. Quando o identificador
-  digitado não resolve, o passo MUST NOT carregar nada que dependa do que foi digitado.
-- **FR-005**: Nenhum passo, evento, atributo, nome ou recurso exportado MUST conter senha
-  (tentada, temporária, nova ou atual), token de sessão, cookie, cabeçalho de autorização, segredo
-  de ferramenta ou de provedor, chave, código de segundo fator, código de recuperação, e-mail, ou
-  o identificador digitado — em claro, truncado ou com hash.
-- **FR-006**: O que sai MUST passar por uma **lista do que pode sair** (atributos permitidos por
-  nome), aplicada num ponto único antes do exportador; atributo fora da lista MUST ser descartado
-  e o descarte MUST ser contado. **[seg]**
+  entrada (FR-002 da 045). A distinção existe **só** na telemetria. O passo de entrada MUST ser
+  emitido **pelo domínio, depois da transação**, a partir de um relator interno; o controller
+  MUST continuar recebendo só a recusa colapsada (`:invalid_credentials` ou `{:throttled, _}`);
+  e **nenhuma escrita na sessão MUST depender do motivo**. *(seguranca.md, S4)*
+- **FR-004**: Todo passo MUST carregar a organização (`tenant`) quando ela é conhecida. O
+  identificador opaco da conta MUST ir só nos desfechos que pedem ação — as recusas com conta
+  conhecida, a espera, a queda de sessão, a saída que falhou — e, no `concluiu` da entrada, **só
+  quando o sucesso apagou tentativas falhas** (o sinal de campanha que deu certo). Quando o
+  identificador digitado não resolve, o passo MUST NOT carregar nada que dependa do que foi
+  digitado. *(seguranca.md, S14; padrão até a decisão D1 da pessoa mantenedora)*
+- **FR-005**: Nenhum passo, evento, atributo, nome, status ou recurso exportado MUST conter senha
+  (tentada, temporária, nova ou atual), hash de senha, token de sessão, cookie, token de CSRF,
+  cabeçalho de autorização, segredo de ferramenta ou de provedor, chave, código de segundo fator,
+  código de recuperação, e-mail, ou o identificador digitado — em claro, truncado ou com hash.
+- **FR-006**: O que sai MUST ser **reconstruído no último ponto antes do envio**, a partir de uma
+  lista fechada: nome de span de uma enumeração; atributos permitidos **por nome e pela forma do
+  valor**, com as enumerações validadas contra a base de conhecimento; recurso reconstruído só com
+  `service.name`, `service.version` e `deployment.environment`; **nenhum evento**; status sem
+  descrição. Todo descarte MUST ser contado. O tradutor MUST montar atributos só dos campos
+  permitidos, e a função de domínio que emite o passo MUST aceitar só id, átomo de lista e
+  contagem. *(seguranca.md, S1)*
 - **FR-007**: Um gate MUST reprovar passo, jornada ou motivo que não esteja declarado na base de
   conhecimento, e MUST reprovar motivo declarado que nenhum código produz.
 - **FR-008**: Falha do tradutor de eventos ou do exportador MUST NOT afetar a jornada da pessoa e
-  MUST NOT ser silenciosa: é contada e registrada sem conteúdo.
+  MUST NOT ser silenciosa. O tradutor MUST capturar exceção, `exit` e `throw`; o log da falha MUST
+  ter só o tipo (nunca mensagem nem pilha); o contador de perda MUST viver **fora** do
+  OpenTelemetry e ser logado periodicamente, junto com a conferência de que o tradutor continua
+  anexado. *(seguranca.md, S11)*
 - **FR-009**: A emissão do passo MUST ser assíncrona em relação ao backend e MUST NOT variar de
-  custo conforme o motivo. **[seg]**
+  custo conforme o motivo: o tradutor não consulta banco e faz o mesmo trabalho em todo ramo.
+  *(seguranca.md, S4 — confirmada)*
 - **FR-010**: O abandono MUST ser derivado na consulta (abertura sem tentativa correlacionada
   dentro da janela declarada), e não por processo que espera.
-- **FR-011**: O correlator da jornada MUST ser aleatório e MUST NOT derivar do token de sessão, do
-  id da sessão ou da conta. **[seg]**
-- **FR-012**: Se existir span de consulta ao banco, os parâmetros de consultas que tocam tabela com
-  campo cifrado MUST sair redigidos pela regra de `TheBand.Repo.LogDaConsulta` (fonte única:
-  `TheBand.Rotacao.campos_cifrados/0`). Nesta fatia **não** há span de consulta. **[seg]**
-- **FR-013**: O painel e o alerta da US5 MUST ser versionados no repositório.
+- **FR-011**: O correlator da jornada MUST nascer no servidor no `GET /sign-in`, com 16 bytes
+  aleatórios; viver na sessão; ser substituído a cada abertura; ser lido **só da sessão**, nunca de
+  parâmetro; ser apagado depois da tentativa, com qualquer desfecho; e ser validado na forma. MUST
+  NOT derivar do token de sessão, do id da sessão ou da conta. `abrir_a_entrada` MUST ser emitido
+  uma vez por visita, no `mount` conectado (o robô que não roda JavaScript não conta como
+  abertura). `journey.id` MUST NOT ser dimensão de métrica. *(seguranca.md, S5)*
+- **FR-012**: Nesta fatia **não** há span de consulta ao banco. Um span de consulta MUST exigir
+  avaliação de segurança própria; a regra de `TheBand.Repo.LogDaConsulta` (fonte:
+  `TheBand.Rotacao.campos_cifrados/0`, PR #1227) é **necessária e não suficiente**: `users`,
+  `user_sessions` e as credenciais do operador também têm os parâmetros redigidos. *(seguranca.md, S3)*
+- **FR-013**: O painel e o alerta da US5 MUST ser versionados no repositório. O alerta MUST ser
+  sobre **métrica** (contagem), sem atributo de traço no corpo. *(seguranca.md, S8, S12)*
 - **FR-014**: O ambiente de desenvolvimento MUST poder subir o backend de telemetria localmente,
   sem tocar no Postgres de desenvolvimento, para medir.
-- **FR-015**: A configuração de produção MUST vir de variáveis de ambiente cujos **nomes** estão
-  na lista fechada do runbook; nenhum valor no repositório. Sem as variáveis, a aplicação MUST
-  subir e MUST dizer no log que a telemetria está desligada. **[seg]**
+- **FR-015**: A aplicação MUST configurar o SDK **explicitamente**, a partir de variáveis cujos
+  **nomes** estão na lista fechada do runbook; nenhum valor no repositório. O destino MUST ser
+  validado contra os hosts permitidos; destino fora da lista desliga a telemetria e loga o
+  **nome** da variável, nunca o valor. Sem variável, nenhum exportador é configurado, a aplicação
+  MUST subir e MUST dizer no log que a telemetria está desligada. *(seguranca.md, S10)*
 - **FR-016**: Os passos MUST ser exportados sem amostragem nesta fatia.
+- **FR-017**: Nenhum passo MUST registrar exceção, pilha ou mensagem de erro no span. O passo MUST
+  ser emitido com `:telemetry.execute/3` **depois** da decisão, e nunca com `:telemetry.span/3` em
+  volta de função que recebe credencial. *(seguranca.md, S1, S11)*
 
 ### Key Entities
 
@@ -290,7 +325,8 @@ três perguntas respondidas sem escrever consulta.
 - **SC-002**: O teste das sentinelas (US3) varre 100% dos spans exportados numa sessão de testes da
   J1 e encontra **zero** ocorrências; com o filtro removido, encontra pelo menos uma.
 - **SC-003**: As respostas de recusa de entrada continuam byte-idênticas entre os seis motivos
-  (o teste da 045 que usa `Enum.uniq` continua passando).
+  (o teste da 045 que usa `Enum.uniq` continua passando), **e o conjunto de chaves da sessão no
+  `Set-Cookie` é o mesmo nos seis**.
 - **SC-004**: Com o backend de telemetria parado, entrar e sair funcionam em 10 de 10 tentativas.
 - **SC-005**: Quem opera responde *"quem não conseguiu entrar ontem, e por quê"* em menos de um
   minuto, abrindo o painel, sem escrever consulta.
@@ -306,9 +342,13 @@ três perguntas respondidas sem escrever consulta.
   mantenedora, com recomendação na ADR.
 - A ADR 0005 e as dependências novas são **aceitas** pela pessoa mantenedora antes de qualquer
   código. Até lá, esta spec não autoriza mudança em `lib/` nem em `mix.exs`.
-- A 064/US3 (#887) e a #1222 (PR #1227) chegam a `development` antes da implementação.
-- O identificador opaco da conta é o `id` da conta, salvo se a pessoa mantenedora escolher
-  pseudonimizá-lo (decisão pendente, opções em [seguranca.md](seguranca.md)).
+- A 064/US3 (#887) e a #1222 (PR #1227) chegam a `development` antes da implementação (§14.0,
+  item 2: mesma superfície), e a #1162 (distribuição Erlang em `0.0.0.0`) antes do deploy do
+  SigNoz no mesmo VPS (seguranca.md, *A ordem*; decisão D6 da pessoa mantenedora).
+- O identificador opaco da conta é o `id` da conta, com a minimização da FR-004, salvo se a
+  pessoa mantenedora escolher pseudonimizá-lo (decisão D1, opções em [seguranca.md](seguranca.md)).
+- A implantação do SigNoz fica **bloqueada** até os seis itens de S6 da avaliação terem evidência
+  lida (ADR 0005, E7). O código da aplicação não fica: com a telemetria desligada, nada muda.
 - A janela de abandono é de 30 minutos, o tempo em que uma tela de entrada aberta ainda é a mesma
   intenção. Ajustável sem mudar código (é parâmetro da consulta).
 - Retenção: traços 7 dias, métricas 30 dias, sem log (ADR 0005, E4) — decisão pendente.
