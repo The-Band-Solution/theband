@@ -90,7 +90,7 @@ tentativa e nunca é reaproveitado entre jornadas.
 | `outcome` | o desfecho | `concluiu` ou `falhou` | 2 |
 | `failure.reason` | o motivo | um dos declarados **para aquele passo** | 17 valores distintos |
 | `tenant.id` | a conta | UUID | uma por organização — atributo, nunca rótulo |
-| `user.ref` | a conta | UUID (ou pseudônimo, **[PM]**) | uma por conta — atributo, nunca rótulo |
+| `user.ref` | a conta | UUID (D1; HMAC só quando outra pessoa ganhar acesso ao SigNoz) | uma por conta — atributo, nunca rótulo |
 
 As métricas derivadas (US5) usam como rótulo **só** as linhas de cardinalidade fechada
 (`journey.step`, `outcome`, `failure.reason`) — backlog, decisão 3.

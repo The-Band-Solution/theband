@@ -6,7 +6,8 @@
 
 **Status**: Draft — emendada em 2026-10-03 com as decisões da [avaliação de segurança](seguranca.md)
 que não são da pessoa mantenedora (anotadas *(seguranca.md, Sn)* em cada requisito). As decisões
-D1–D7 da avaliação são da pessoa mantenedora e estão pendentes.
+D1–D7 da avaliação foram **decididas pela pessoa mantenedora em 2026-10-03**, todas pela
+recomendação (ver *Decisões de 2026-10-03*, abaixo); a ADR 0005 foi **aceita** na mesma data.
 
 **Input**: pedido da pessoa mantenedora no [ÉPICO #802](https://github.com/The-Band-Solution/theband/issues/802):
 *"quero saber quem deu erro ao fazer login ou logout"* (2026-09-04), e a direção de 2026-09-27:
@@ -29,7 +30,7 @@ em [ADR 0005](../../docs/adr/0005-telemetria-da-jornada.md), com a emenda de 202
 | **não existe "vínculo expirado"** na definição de senha: o fluxo é por senha temporária, sem link | `session_controller.ex:78-125` |
 | `TheBandWeb.Telemetry` declara métricas e **não tem exportador**; não há dependência OpenTelemetry | `lib/the_band_web/telemetry.ex`; `mix.exs` |
 | a redação dos parâmetros de consulta das tabelas cifradas está no PR #1227 (#1222), **não mergeado**, com a fonte `TheBand.Rotacao.campos_cifrados/0` | `lib/the_band/rotacao.ex:41`; branch `fix/1222-segredo-no-log-debug` |
-| a 064/US3 (*segredo nunca chega a log, erro ou campo de diagnóstico*, #887) está **aberta**, e o comentário de 2026-09-27 do #802 põe este épico **depois** dela | `gh issue view 887` |
+| a 064/US3 (*segredo nunca chega a log, erro ou campo de diagnóstico*, #887) está aberta só à espera da aceitação do Product Owner: as três tarefas, #871, #872 e #873, estão **fechadas** (conferido em 2026-10-03). O comentário de 2026-09-27 do #802 põe este épico depois dela | `gh issue view 871`, `872`, `873` |
 
 As linhas "não existe" mudam o desenho do backlog: a J1 do backlog lista *entrar pelo GitHub*,
 *tenant errado* e *vínculo expirado*, e os três **não são passos nem desfechos possíveis hoje**.
@@ -237,7 +238,7 @@ três perguntas respondidas sem escrever consulta.
   a #1047 fecharam (FR-009).
 - **Conta de outra organização.** O painel é de quem opera a plataforma, e não de quem administra
   uma organização; nenhuma conta de organização cliente o vê (ADR 0005, E5).
-- **A 064/US3 ou a #1222 não chegaram.** A implementação não começa: são pré-requisitos.
+- **O PR #1227 (#1222) não foi mergeado.** A implementação não começa (D6). A #887 não bloqueia: as tarefas estão entregues.
 
 ## Requirements *(mandatory)*
 
@@ -338,20 +339,32 @@ três perguntas respondidas sem escrever consulta.
 ## Assumptions
 
 - O backend é o **SigNoz**, auto-hospedado (decisão da pessoa mantenedora em 2026-09-27; ADR 0005,
-  emenda de 2026-10-03). A hospedagem (mesmo VPS ou outro) é decisão pendente da pessoa
-  mantenedora, com recomendação na ADR.
-- A ADR 0005 e as dependências novas são **aceitas** pela pessoa mantenedora antes de qualquer
-  código. Até lá, esta spec não autoriza mudança em `lib/` nem em `mix.exs`.
-- A 064/US3 (#887) e a #1222 (PR #1227) chegam a `development` antes da implementação (§14.0,
-  item 2: mesma superfície), e a #1162 (distribuição Erlang em `0.0.0.0`) antes do deploy do
-  SigNoz no mesmo VPS (seguranca.md, *A ordem*; decisão D6 da pessoa mantenedora).
-- O identificador opaco da conta é o `id` da conta, com a minimização da FR-004, salvo se a
-  pessoa mantenedora escolher pseudonimizá-lo (decisão D1, opções em [seguranca.md](seguranca.md)).
+  emenda de 2026-10-03, aceita em 2026-10-03), no mesmo VPS (D3).
+- A ADR 0005 e as dependências novas foram **aceitas** em 2026-10-03 (D5). O código continua
+  esperando a ordem de D6.
+- D6: o código espera a #1227 mergeada; a #887 tem as tarefas entregues (#871, #872, #873 fechadas) e espera aceitação. A #1162 (distribuição Erlang em `0.0.0.0`) vem antes do deploy do SigNoz no
+  mesmo VPS.
+- O identificador opaco da conta é o `id` da conta, com a minimização da FR-004 (D1).
 - A implantação do SigNoz fica **bloqueada** até os seis itens de S6 da avaliação terem evidência
   lida (ADR 0005, E7). O código da aplicação não fica: com a telemetria desligada, nada muda.
 - A janela de abandono é de 30 minutos, o tempo em que uma tela de entrada aberta ainda é a mesma
   intenção. Ajustável sem mudar código (é parâmetro da consulta).
-- Retenção: traços 7 dias, métricas 30 dias, sem log (ADR 0005, E4) — decisão pendente.
+- Retenção: traços 7 dias, métricas 30 dias, sem log (ADR 0005, E4; D4).
+
+## Decisões de 2026-10-03
+
+Decididas pela pessoa mantenedora; opções em [seguranca.md](seguranca.md).
+
+| | decisão |
+|---|---|
+| ADR 0005 | **aceita**, com o SigNoz |
+| D1 | `users.id` cru com minimização (FR-004); HMAC quando outra pessoa ganhar acesso ao SigNoz |
+| D2 | painel só por túnel SSH |
+| D3 | mesmo VPS via Dokploy, teto de 3 GB, rede dedicada aplicação↔coletor, nenhuma porta publicada; cai se o VPS tiver menos de 4 GB livres (T024) |
+| D4 | traços 7 dias, métricas 30 dias, nenhum log; volume do ClickHouse fora do backup |
+| D5 | as dependências aceitas, com versão exata e teto no `grpcbox` |
+| D6 | o código espera a #1227 mergeada; a #887 tem as tarefas entregues (#871, #872, #873 fechadas) e espera aceitação; a #1162 antes do deploy |
+| D7 | limite por IP fora da 074: [#1229](https://github.com/The-Band-Solution/theband/issues/1229) |
 
 ## Fora de escopo
 

@@ -3,7 +3,7 @@
 Cada decisão: **Decisão**, **Razão**, **Alternativas**. As decisões de arquitetura estão na
 [ADR 0005](../../docs/adr/0005-telemetria-da-jornada.md) (e na emenda de 2026-10-03); aqui ficam
 as de implementação que a ADR deixou abertas. As que dependem da pessoa mantenedora estão
-marcadas **[PM]**, com o padrão que o plano assume até ela decidir.
+marcadas **[PM]**; todas foram decididas em 2026-10-03 (ver a spec, *Decisões de 2026-10-03*).
 
 ## R1. De onde vem o passo: `AccessEvents` emite, um handler traduz
 
@@ -168,8 +168,8 @@ telemetria não pode desfazê-lo.
 Ver ADR 0005, E6. Entram `opentelemetry_api` 1.5.0, `opentelemetry` 1.7.0 e
 `opentelemetry_exporter` 1.11.0, fixadas com `==`, como a casa já faz com `nimble_totp` e
 `ex_mcp` (`mix.exs:152`, `:188`), e `grpcbox ~> 0.18.0` declarada direto só para pôr o teto que o
-exportador não põe (seguranca.md, S9). **Nenhum instrumentador.** **[PM]** aceitar os onze
-pacotes (D5).
+exportador não põe (seguranca.md, S9). **Nenhum instrumentador.** Aceitos em 2026-10-03
+(D5).
 
 ## R11. Configuração
 

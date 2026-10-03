@@ -9,8 +9,8 @@ ler o arquivo (AGENTS §4).
 
 ## 0. Pré-requisitos
 
-- a ADR 0005 e as três dependências aceitas pela pessoa mantenedora;
-- `development` com a 064/US3 (#887) e a #1222 (PR #1227);
+- a ADR 0005 e as dependências aceitas (2026-10-03);
+- `development` com o PR #1227 (#1222) mergeado (D6);
 - Docker de pé. **Não tocar** no `the_band_postgres` nem na porta 5432.
 
 ## 1. Subir o SigNoz local (profile `telemetria`)

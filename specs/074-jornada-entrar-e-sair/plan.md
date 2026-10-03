@@ -5,8 +5,8 @@
 **Input**: [spec.md](spec.md), [seguranca.md](seguranca.md), [ADR 0005](../../docs/adr/0005-telemetria-da-jornada.md)
 com a emenda de 2026-10-03
 
-> **Este plano não autoriza código.** A ADR 0005 está **Proposta**, e as dependências novas
-> precisam de aceite da pessoa mantenedora. As tarefas que tocam `lib/` e `mix.exs` têm esse aceite
+> **A ADR 0005 e as dependências foram aceitas em 2026-10-03** (D5), com D1–D7 decididas. **O
+> código ainda espera**: o código espera a #1227 mergeada; a #887 tem as tarefas entregues (#871, #872, #873 fechadas) e espera aceitação (D6). As tarefas que tocam `lib/` e `mix.exs` têm a T003
 > no `Pronta quando`.
 
 ## Summary
@@ -25,7 +25,7 @@ opera lê no SigNoz, por túnel SSH, num painel versionado.
 
 **Language/Version**: Elixir 1.20.2 / OTP 29 (Dockerfile:17); `mix.exs` exige `~> 1.17`
 
-**Primary Dependencies** (novas, **[PM]** D5): `opentelemetry_api == 1.5.0`, `opentelemetry == 1.7.0`,
+**Primary Dependencies** (novas, aceitas em 2026-10-03, D5): `opentelemetry_api == 1.5.0`, `opentelemetry == 1.7.0`,
 `opentelemetry_exporter == 1.11.0`, e `grpcbox ~> 0.18.0` declarada só pelo teto; transitivas
 `ts_chatterbox 0.16.0`, `hpack_erl 0.3.0`, `ctx 0.6.0`, `gproc 1.2.0`, `acceptor_pool 1.0.1`,
 `tls_certificate_check 1.35.0`, `ssl_verify_fun 1.1.7` — onze pacotes (ADR 0005, E6; seguranca.md, S9).
@@ -36,7 +36,7 @@ Já presentes: `telemetry 1.4.2`, `telemetry_metrics`, `telemetry_poller`.
 **Testing**: ExUnit; o exportador real (filtro) com destino `:otel_exporter_pid` (research R4).
 Nenhum Mox novo.
 
-**Target Platform**: Phoenix Release no VPS Contabo via Dokploy; SigNoz no mesmo VPS **[PM]**.
+**Target Platform**: Phoenix Release no VPS Contabo via Dokploy; SigNoz no mesmo VPS (D3).
 
 **Project Type**: web-service (monólito Phoenix).
 
@@ -64,9 +64,9 @@ SigNoz com teto de 3 GB (ADR E3); a aplicação sobe sem a telemetria (FR-015).
 | IX. Ontologias modulares | não toca | ✅ n/a |
 | X. Responsabilidade única | emissor (`AccessEvents`), tradutor (`Telemetria.Jornada`), filtro (`Telemetria.Exportador`): três razões para mudar, três módulos | ✅ |
 | XI. Estado conferido, sinal nunca silenciado | handler com `rescue` que **conta**; descarte do filtro e da fila **contado**; coletor conferido por recepção, e não por *healthy* | ✅ |
-| Restrições: dependência nova | três diretas + seis transitivas, com versão, data, licença e manutenção na ADR E6; `hex.audit` e `deps.audit` antes do merge | ⏳ **[PM]** |
-| Restrições: ADR | ADR 0005 emendada, **Proposta** | ⏳ **[PM]** |
-| §14.0 segurança primeiro | [seguranca.md](seguranca.md) feita antes deste plano, por quem não escreveu o desenho: 3 altos (S1, S2, S6), 12 médios, 1 baixo; as emendas que não são da pessoa mantenedora já estão na spec e na ADR. #887 e #1222 antes do código; #1162 antes do deploy | ⏳ dependências abertas; D1–D7 pendentes |
+| Restrições: dependência nova | onze pacotes (três diretas, `grpcbox` pelo teto, sete transitivas), com versão, data, licença e manutenção na ADR E6; `hex.audit` e `deps.audit` antes do merge | ✅ D5, 2026-10-03 |
+| Restrições: ADR | ADR 0005 emendada e **aceita** em 2026-10-03 | ✅ |
+| §14.0 segurança primeiro | [seguranca.md](seguranca.md) feita antes deste plano, por quem não escreveu o desenho: 3 altos (S1, S2, S6), 12 médios, 1 baixo; as emendas que não são da pessoa mantenedora já estão na spec e na ADR. #887 e #1222 antes do código; #1162 antes do deploy | ⏳ o PR #1227; D1–D7 decididas em 2026-10-03 |
 
 **Gate**: passa **condicionado** aos três ⏳. Nenhuma violação a justificar em *Complexity Tracking*.
 
@@ -165,7 +165,7 @@ lib/the_band_web/plugs/jornada_de_entrada.ex # NOVO — gera e substitui o corre
 lib/the_band_web/controllers/session_controller.ex  # sair, definir e trocar a senha emitem
 lib/the_band_web/router.ex                   # o plug só no GET /sign-in
 config/config.exs, config/test.exs, config/runtime.exs
-mix.exs, mix.lock                            # **[PM]**
+mix.exs, mix.lock                            # D5, aceitas
 priv/knowledge_base/rules/journey_entrar_e_sair.yaml
 deploy/signoz/                               # o compose gerado e fixado (ADR E2) e o painel
 compose.yaml                                 # profile telemetria
@@ -213,8 +213,9 @@ filtro de produção nunca rodaria nele, e o verde não provaria nada.
 
 | item | bloqueia |
 |---|---|
-| aceite da ADR 0005 e dos onze pacotes (D5) | toda tarefa que toca `lib/` ou `mix.exs` |
-| #887 (064/US3) e #1222 (PR #1227) em `development` (D6) | idem — §14.0, item 2 |
+| ~~aceite da ADR 0005 e dos onze pacotes (D5)~~ | **feito em 2026-10-03** |
+| PR #1227 (#1222) mergeado em `development` (D6) | toda tarefa que toca `lib/` ou `mix.exs` — §14.0, item 2 |
+| #887 (064/US3) | **não bloqueia**: as tarefas #871, #872 e #873 estão fechadas; a US espera só a aceitação do Product Owner |
 | #1162 (distribuição Erlang em `0.0.0.0`) | a implantação do SigNoz no mesmo VPS (opção A) |
 | os seis itens de S6 com evidência lida | a implantação do SigNoz |
 

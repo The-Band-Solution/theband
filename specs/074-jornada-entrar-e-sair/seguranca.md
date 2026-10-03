@@ -724,3 +724,22 @@ segredo real, só valores óbvios de teste.
 - **As seções da ADR fora das citadas**, e as mudanças que o autor fez nela durante esta
   avaliação: o arquivo mudou em disco enquanto eu lia; os números de linha citados são da versão
   de 521 linhas.
+
+---
+
+## Registro das decisões — 2026-10-03
+
+A pessoa mantenedora decidiu em 2026-10-03, todas pela recomendação desta avaliação, e aceitou a
+ADR 0005 com o SigNoz:
+
+| | decisão |
+|---|---|
+| D1 | A com D: `users.id` cru, identidade só nos desfechos que pedem ação; HMAC quando outra pessoa ganhar acesso ao SigNoz |
+| D2 | túnel SSH |
+| D3 | opção A, mesmo VPS, com teto de 3 GB, rede dedicada e nenhuma porta publicada; cai com menos de 4 GB livres (T024) |
+| D4 | 7 e 30 dias, nenhum log, volume fora do backup |
+| D5 | as dependências aceitas com as condições de S9 |
+| D6 | a regra: o código espera a #1227 mergeada; a #887 tem as tarefas entregues (#871, #872, #873 fechadas) e espera aceitação; a #1162 antes do deploy |
+| D7 | [#1229](https://github.com/The-Band-Solution/theband/issues/1229), `bug` + `security`, fora da 074 |
+
+*Registrado pelo agente que escreveu o plano, e não por quem fez esta avaliação.*

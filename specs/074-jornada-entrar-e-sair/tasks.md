@@ -14,15 +14,15 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
 
 ## Fase 0: Decisões e pré-requisitos
 
-- [ ] T001 👤 Aceitar ou recusar a ADR 0005
+- [x] T001 👤 Aceitar ou recusar a ADR 0005 — *feita: decisão de 2026-10-03, ADR aceita*
   - **Pronta quando**: a ADR emendada e [seguranca.md](seguranca.md) estão no branch
   - **Descrição**: ler a emenda de 2026-10-03 (E1–E8) e decidir. Aceita, o status vira
     **Aceita — <data>**; recusada, a 074 para aqui.
   - **Feita quando**: o status da ADR diz a decisão, com data e quem decidiu
-  - **Teste**: `grep -n "^Aceita\|^Recusada" docs/adr/0005-telemetria-da-jornada.md` devolve uma
+  - **Teste**: `grep -n "Aceita — 2026-10-03" docs/adr/0005-telemetria-da-jornada.md` devolve uma
     linha
 
-- [ ] T002 👤 Decidir D1 a D7 da avaliação de segurança
+- [x] T002 👤 Decidir D1 a D7 da avaliação de segurança — *feita: decisão de 2026-10-03, todas pela recomendação; D7 virou a #1229*
   - **Pronta quando**: T001
   - **Descrição**: as sete decisões de [seguranca.md](seguranca.md), *Decisões da pessoa
     mantenedora*: D1 identificador (recomendado: id cru com minimização), D2 acesso ao painel
@@ -35,10 +35,11 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
 
 - [ ] T003 Conferir que os pré-requisitos de segurança chegaram
   - **Pronta quando**: T002 (D6)
-  - **Descrição**: `gh issue view 887` e `gh pr view 1227` — fechada e mergeado em `development`,
-    ou exceção registrada pela pessoa mantenedora com a razão. `git log origin/development` tem
+  - **Descrição**: `gh pr view 1227` mergeado em `development` (D6). A #887 **não** bloqueia: as
+    tarefas #871, #872 e #873 estão fechadas (conferido em 2026-10-03), e a US espera só a
+    aceitação do Product Owner. `git log origin/development` tem
     `TheBand.Repo.LogDaConsulta`.
-  - **Feita quando**: os dois estados estão escritos neste arquivo, com a data da conferência
+  - **Feita quando**: o estado do PR #1227 está escrito neste arquivo, com a data da conferência
   - **Teste**: `git grep -n "defmodule TheBand.Repo.LogDaConsulta" origin/development -- lib/`
     devolve uma linha
 

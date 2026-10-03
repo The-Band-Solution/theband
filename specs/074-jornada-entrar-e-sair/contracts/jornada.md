@@ -62,7 +62,7 @@ mudam**.
 vê o motivo. O correlator vai por argumento, e **não** por `Logger.metadata` nem pelo dicionário
 do processo: estado implícito é o que §7.4 proíbe para o tenant, e vale igual aqui.
 
-**Identidade (FR-004, padrão até D1)**: `user_id` vai no passo só quando o desfecho pede ação, e
+**Identidade (FR-004, D1)**: `user_id` vai no passo só quando o desfecho pede ação, e
 no `concluiu` da entrada só com `falhas_apagadas > 0`. O mesmo trabalho é feito em todo ramo: a
 decisão de incluir ou não é uma comparação, sem consulta.
 
@@ -105,9 +105,10 @@ recurso     service.name=the_band, service.version, deployment.environment — e
 - um teste confere, depois de forçar a exceção, que o handler **continua anexado**
   (`:telemetry.list_handlers/1`).
 
-## 5. `user.ref` **[PM]**
+## 5. `user.ref` — D1, decidida em 2026-10-03
 
-Padrão até a decisão: o `user_id` (UUID). Se a pessoa mantenedora escolher o pseudônimo, passa a
+Decidido: o `user_id` (UUID), com a minimização da FR-004. Quando outra pessoa ganhar acesso ao
+SigNoz, passa a
 ser `HMAC-SHA256(chave, user_id)` truncado, com a chave em variável de ambiente, e o contrato
 muda **só** aqui — o nome do atributo fica. Opções e recomendação em [seguranca.md](../seguranca.md).
 

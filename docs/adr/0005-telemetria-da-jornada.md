@@ -2,10 +2,27 @@
 
 ## Status
 
-Proposta — 2026-09-04 · **emendada em 2026-10-03** com a escolha do backend (SigNoz), a
+**Aceita — 2026-10-03**, decidida pela pessoa mantenedora em 2026-10-03, com o SigNoz como
+backend e as decisões D1–D7 abaixo.
+
+Histórico: Proposta em 2026-09-04 · emendada em 2026-10-03 com a escolha do backend, a
 hospedagem, a retenção, a rede e as dependências Hex — ver
-[Emenda de 2026-10-03](#emenda-de-2026-10-03--o-backend-é-o-signoz). Continua **Proposta**:
-aceitá-la é decisão da pessoa mantenedora.
+[Emenda de 2026-10-03](#emenda-de-2026-10-03--o-backend-é-o-signoz) · aceita no mesmo dia.
+
+### As decisões da pessoa mantenedora (2026-10-03)
+
+Opções e razões em [seguranca.md da 074](../../specs/074-jornada-entrar-e-sair/seguranca.md),
+*Decisões da pessoa mantenedora*. Todas seguiram a recomendação.
+
+| | decisão |
+|---|---|
+| **D1** identificador de pessoa | `users.id` cru, **com minimização**: a identidade só nos desfechos que pedem ação, e no `concluiu` da entrada só quando o sucesso apagou tentativas falhas. Passa para HMAC quando outra pessoa ganhar acesso ao SigNoz |
+| **D2** acesso ao painel | **só por túnel SSH**; nenhuma rota no Traefik |
+| **D3** hospedagem | **mesmo VPS, via Dokploy** (opção A de E3), teto de 3 GB nos quatro contêineres, rede dedicada só entre a aplicação e o coletor, nenhuma porta publicada. **Cai** se o VPS tiver menos de 4 GB livres — conferido na T024 da 074 |
+| **D4** retenção | traços 7 dias, métricas 30 dias, nenhum log; o volume do ClickHouse fica **fora** do backup |
+| **D5** dependências | aceitas: `opentelemetry_api` 1.5.0, `opentelemetry` 1.7.0, `opentelemetry_exporter` 1.11.0, com versão exata, e `grpcbox ~> 0.18.0` pelo teto; `mix.lock` revisado; nenhuma porta nova escutando |
+| **D6** ordem | segue a regra do §14.0: o código da 074 espera o PR #1227 (#1222) mergeado. A #887 (064/US3) tem as tarefas entregues (#871, #872, #873 fechadas) e espera só a aceitação do Product Owner. A #1162 vem antes do deploy do SigNoz |
+| **D7** limite por IP em `POST /session` | issue própria, fora da 074: [#1229](https://github.com/The-Band-Solution/theband/issues/1229) |
 
 Origem: [ÉPICO #802](https://github.com/The-Band-Solution/theband/issues/802), pedido da
 pessoa mantenedora · Depende de: [ADR 0001](0001-monolito-modular-elixir.md),
@@ -503,14 +520,15 @@ estão aplicados acima (S1 da ADR, decisão 2, alternativas, E6, vocabulário). 
   `access.account_lifecycle`), sem schema novo — research R7 da 074. A pasta própria entra na
   terceira jornada declarada, e a decisão 5 continua valendo para o que ela exige: lista
   fechada, e gate;
-- **pseudonimização do identificador de pessoa**: fica para a pessoa mantenedora, com as
-  opções escritas na [avaliação de segurança da 074](../../specs/074-jornada-entrar-e-sair/seguranca.md);
-- **a ordem**: o comentário de 2026-09-27 coloca este épico **depois da 064/US3**
-  ([#887](https://github.com/The-Band-Solution/theband/issues/887), aberta), e a redação de
-  consulta da [#1222](https://github.com/The-Band-Solution/theband/issues/1222) está no PR
-  #1227, ainda não mergeado. A implementação da 074 tem as duas como pré-requisito (§14.0,
-  item 2: mesma superfície), e a [#1162](https://github.com/The-Band-Solution/theband/issues/1162)
-  é pré-requisito da implantação na opção A (E7, item 3).
+- **pseudonimização do identificador de pessoa**: decidida em D1 (id cru com minimização; HMAC
+  quando outra pessoa ganhar acesso ao SigNoz);
+- **a ordem** (D6): o código da 074 espera o PR #1227
+  ([#1222](https://github.com/The-Band-Solution/theband/issues/1222)) mergeado — §14.0, item 2:
+  mesma superfície. A [#887](https://github.com/The-Band-Solution/theband/issues/887) (064/US3)
+  tem as três tarefas entregues (#871, #872, #873 fechadas, conferido em 2026-10-03) e espera só a
+  aceitação do Product Owner; não bloqueia. A
+  [#1162](https://github.com/The-Band-Solution/theband/issues/1162) é pré-requisito da
+  implantação na opção A (E7, item 3).
 
 ---
 
