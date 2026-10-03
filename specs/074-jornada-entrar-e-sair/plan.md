@@ -6,8 +6,9 @@
 com a emenda de 2026-10-03
 
 > **A ADR 0005 e as dependências foram aceitas em 2026-10-03** (D5), com D1–D7 decididas. **O
-> código ainda espera**: o código espera a #1227 mergeada; a #887 tem as tarefas entregues (#871, #872, #873 fechadas) e espera aceitação (D6). As tarefas que tocam `lib/` e `mix.exs` têm a T003
-> no `Pronta quando`.
+> código espera a #1227 mergeada; a #887 tem as tarefas entregues e espera aceitação** (D6:
+> #871, #872 e #873 fechadas, conferido em 2026-10-03). As tarefas que tocam `lib/` e `mix.exs`
+> têm a T003 no `Pronta quando`.
 
 ## Summary
 
@@ -58,7 +59,7 @@ SigNoz com teto de 3 GB (ADR E3); a aplicação sobe sem a telemetria (FR-015).
 | III. Proveniência e idempotência | o span não é dado de domínio; não há ingestão | ✅ n/a |
 | IV. Semântica em YAML versionado | a taxonomia (passos, motivos, cenário de origem) em `rules/journey_entrar_e_sair.yaml`, com gate (R7, R8) | ✅ |
 | V. Monólito multitenant | `tenant.id` em todo passo com conta; o painel é de quem opera a plataforma, e nenhuma organização o vê (ADR E5) | ✅ |
-| VI. Spec Kit e sprint backlog | spec → segurança → plano → tarefas; **sem** issues e sem sprint até o aceite da ADR | ✅ em curso |
+| VI. Spec Kit e sprint backlog | spec → segurança → plano → tarefas → issues (#1230–#1265, depois do aceite da ADR) → `/speckit-analyze` → sprint backlog, antes de qualquer código | ✅ |
 | VII. Gates e revisão independente | `seguranca.md` por quem não escreveu o desenho; `mix gates` em cada tarefa de código | ✅ |
 | VIII. Desenho que o problema justifica | ver *Decisões de desenho*, abaixo, camada a camada | ✅ |
 | IX. Ontologias modulares | não toca | ✅ n/a |

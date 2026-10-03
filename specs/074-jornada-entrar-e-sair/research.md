@@ -34,9 +34,9 @@ alternativas).
 
 ## R2. O span tem início e fim, mas o passo é um instante
 
-**Decisão**: o evento carrega `medidas.duracao` (nativo) quando o chamador mediu, e o handler
-cria o span com `start_time` = agora − duração e o encerra imediatamente. Quando não há duração
-(queda de sessão, abandono), o span é instantâneo.
+**Decisão**: nesta fatia o evento **não carrega duração** (`medidas = %{}`, contrato §1), e todo
+span é instantâneo: o handler o abre e o fecha no mesmo instante. Se uma fatia futura quiser
+duração, ela entra por um passo que não envolva credencial, e com o teste de R9.
 
 **Razão**: o span existe para carregar desfecho e motivo, e não latência — o épico não é APM.
 Medir a duração da autenticação inteira (com o Bcrypt) e exportá-la **por motivo** recriaria o

@@ -120,7 +120,9 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
   - **Descrição**: `lib/the_band/telemetria/exportador.ex`, behaviour `:otel_exporter`. Reconstrói
     cada span: nome contra a enumeração dos passos; atributos da lista com o valor na forma
     (UUID, enumeração **do passo**, correlator); sem eventos nem links; status sem descrição;
-    recurso fixo. Conta cada descarte em `:counters`. FR-005, FR-006; S1.
+    recurso fixo. Conta cada descarte em `:counters`. FR-005, FR-006; S1. O nome de span fora da
+    enumeração descartado inteiro é também a guarda de FR-012: um span de consulta que alguém
+    ligar sem avaliação não sai.
   - **Feita quando**:
     - um span com atributo fora da lista sai sem ele, e o contador sobe com o **nome** do atributo;
     - `failure.reason` com valor fora da enumeração do passo não sai;
@@ -160,9 +162,9 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
   - **Descrição**: em `Auth`, `verificar_com_trava/2` passa a devolver o relator interno
     `{decisão, motivo, conta}`; `authenticate/3` emite **um** `entrar_com_senha` depois da
     transação, em todo ramo, inclusive o do identificador que não resolve e o da espera
-    (`em_espera`); devolve ao controller o mesmo que hoje. Identidade só como FR-004 (padrão até
-    D1). FR-001 a FR-004, FR-009, FR-017; S4, S14.
-  - **Feita quando**: as nove linhas de *A régua* da entrada produzem cada uma o passo com o
+    (`em_espera`); devolve ao controller o mesmo que hoje. Identidade só como FR-004 (D1).
+    FR-001 a FR-004, FR-009, FR-017, SC-001 (a parte da entrada); S4, S14.
+  - **Feita quando**: as oito linhas de *A régua* do passo `entrar_com_senha` produzem cada uma o passo com o
     desfecho e o motivo certos; `identificador_nao_resolveu` sai sem `user.ref` e sem nada do
     digitado; o `concluiu` comum sai sem `user.ref`, e com ele quando `falhas_apagadas > 0`; o
     controller só recebe `:invalid_credentials` ou `{:throttled, _}`
@@ -196,7 +198,7 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
   - **Descrição**: estender `test/the_band_web/live/login_test.exs` (o do `Enum.uniq`): para os seis
     motivos, além do corpo e do destino, o **conjunto de chaves da sessão decodificada** do
     `Set-Cookie`. E um teste de mediana: 50 emissões por motivo, a diferença entre medianas abaixo
-    de 2 ms. SC-003, FR-009; S4.
+    de 2 ms. FR-003, SC-003, FR-009; S4.
   - **Feita quando**: o conjunto de chaves é o mesmo nos seis; a diferença de medianas fica abaixo
     do limiar
   - **Teste**: `login_test.exs` e `test/the_band/telemetria/tempo_por_motivo_test.exs`.
@@ -241,7 +243,8 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
   - **Pronta quando**: T007, T012, T016, T017
   - **Descrição**: `taxonomia_test.exs` coleta o que **chegou ao exportador** nos casos da régua e
     compara com o YAML: motivo emitido e não declarado reprova; motivo declarado e nunca emitido
-    reprova; `abandonou` emitido pela aplicação reprova. Research R8; FR-007.
+    reprova; `abandonou` emitido pela aplicação reprova. Research R8; FR-002, FR-007; SC-001 (as 15
+    linhas de *A régua* cobertas entre T012, T014, T016, T017, T021 e T022).
   - **Feita quando**: as três comparações passam com o código de hoje
   - **Teste**: o próprio arquivo. **Defeitos a injetar**: declarar um motivo a mais no YAML;
     emitir um motivo novo no código sem declarar
@@ -393,3 +396,20 @@ T001 ──> T002 ──> T003 ──> T004 ──> T005 ──> T008 ──> T0
 um polimento. US4 e US5 vêm depois. A Fase 8 só começa com os seis itens de S6 verificáveis — o
 código pode ser mergeado com a telemetria **desligada** (FR-015) antes disso, e não muda nada para
 quem entra.
+
+## Issues (criadas em 2026-10-03 por `/speckit-taskstoissues`)
+
+Todas na iteração *Sprint 035* do projeto. User stories com label `us` e filhas do épico #802;
+tarefas com o tipo **Task**, filhas da US quando têm uma, e do épico quando são de fase (0, 1, 2
+e 8).
+
+| US | issue | tarefas |
+|---|---|---|
+| US1 | #1230 | T012 #1246 · T013 #1247 · T014 #1248 · T015 #1249 |
+| US2 | #1231 | T016 #1250 · T017 #1251 |
+| US3 | #1232 | T018 #1252 · T019 #1253 · T020 #1254 |
+| US4 | #1233 | T021 #1255 |
+| US5 | #1234 | T022 #1256 · T023 #1257 |
+| épico | #802 | T001 #1235 (fechada) · T002 #1236 (fechada) · T003 #1237 · T004 #1238 · T005 #1239 · T006 #1240 · T007 #1241 · T008 #1242 · T009 #1243 · T010 #1244 · T011 #1245 · T024 #1258 · T025 #1259 · T026 #1260 · T027 #1261 · T028 #1262 · T029 #1263 · T030 #1264 · T031 #1265 |
+
+Fora da 074, da decisão D7: #1229.
