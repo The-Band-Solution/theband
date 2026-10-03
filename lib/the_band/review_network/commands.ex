@@ -51,7 +51,7 @@ defmodule TheBand.ReviewNetwork.Commands do
   @doc """
   Calcula com os parâmetros da base. É o que a fachada expõe, e só o job chama.
   """
-  @spec compute(Tenant.t(), %{id: Ecto.UUID.t()}, DateTime.t()) :: {:ok, relator()}
+  @spec compute(Tenant.t(), map(), DateTime.t()) :: {:ok, relator()}
   def compute(tenant, organization, now),
     do: compute(tenant, organization, now, Parameters.fetch!())
 
@@ -64,7 +64,7 @@ defmodule TheBand.ReviewNetwork.Commands do
   Devolve o relator só com contagens, e é o que o job registra (FR-021). Erro de banco levanta e
   desfaz a transação: não há `{:error, _}` para caso de negócio.
   """
-  @spec compute(Tenant.t(), %{id: Ecto.UUID.t()}, DateTime.t(), map()) :: {:ok, relator()}
+  @spec compute(Tenant.t(), map(), DateTime.t(), map()) :: {:ok, relator()}
   def compute(%Tenant{} = tenant, %{id: organization_id}, %DateTime{} = now, parametros) do
     agora = DateTime.truncate(now, :second)
     maior = Enum.max(parametros.windows)
