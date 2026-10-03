@@ -27,10 +27,10 @@ Uma linha por `(tenant, organização observada, janela)`. Substituída, nunca e
 | `edges` | `jsonb` | não | `[{"reviewer": uuid, "author": uuid, "change_requests": int ≥ 1}]`, ordenado por `{reviewer, author}` |
 | `people` | `jsonb` | não | `[{"id": uuid, "received_change_requests": int ≥ 1 \| null}]`: toda pessoa da lista (US2), com o único número que não se deriva das arestas. `null` é *"nenhuma solicitação dela revisada"*, nunca 0 |
 | `reviews_in_network` | `integer` | não | soma dos pesos; redundante com `edges`, e existe para o `check` do invariante e para a proveniência legível sem abrir o JSON |
-| `excluded_self_reviews` | `integer` | não | auto-revisões (pares) |
+| `excluded_self_review` | `integer` | não | auto-revisões (pares) |
 | `excluded_bot_or_app` | `integer` | não | pares com bot ou aplicativo em algum lado |
 | `excluded_unlinked` | `integer` | não | pares com conta sem pessoa ligada em algum lado |
-| `knowledge_versions` | `jsonb` | não | `{"review.network.edge": 1, "review.network.thresholds": 1, "<id da medida>": 1, ...}` (FR-011) |
+| `knowledge_versions` | `jsonb` | não | `{"review.network.edge": 1, "review.network.parameters": 1, "<id de cada medida de review.concentration>": 1, ...}`: as duas regras e as nove medidas (FR-011) |
 | `inserted_at` | `utc_datetime` | não | `timestamps(updated_at: false)`: a linha não é editada |
 
 **Índices e restrições**:
@@ -39,7 +39,7 @@ Uma linha por `(tenant, organização observada, janela)`. Substituída, nunca e
 - `unique_index(:eo_organizations, [:id, :tenant_id])`, criado na mesma migração, só para a FK
   composta poder existir. Redundante com a PK, e o Postgres o exige (precedente:
   `priv/repo/migrations/20260929100000_sessoes_de_usuario.exs:13-17`, `:35`);
-- `check (reviews_in_network >= 0 and excluded_self_reviews >= 0 and excluded_bot_or_app >= 0 and
+- `check (reviews_in_network >= 0 and excluded_self_review >= 0 and excluded_bot_or_app >= 0 and
   excluded_unlinked >= 0)`;
 - `check (window_end > window_start)`.
 
@@ -76,7 +76,7 @@ e `Mapper.account_type/1`:
 
 ```text
 %{change_request_id, last_submitted_at,
-  destino: {:aresta, revisor_id, autor_id} | :auto_revisao | :bot_ou_aplicativo | :nao_ligada}
+  destino: {:aresta, revisor_id, autor_id} | :self_review | :bot_or_app | :unlinked_person}
 ```
 
 Os logins usados para classificar a conta não ligada **não saem** desta etapa: nem para a tabela,
@@ -87,7 +87,7 @@ um par está na janela W se o envio mais recente dele está em W).
 **Regras de classificação** (ordem e razão em [research.md R3](research.md#r3--quais-avaliações-contam-e-a-ordem-das-exclusões)):
 bot ou aplicativo → não ligada → auto-revisão → aresta. Cada par cai em **um** destino.
 
-**Invariante**: `pares da janela = reviews_in_network + excluded_self_reviews + excluded_bot_or_app + excluded_unlinked`.
+**Invariante**: `pares da janela = reviews_in_network + excluded_self_review + excluded_bot_or_app + excluded_unlinked`.
 
 ### 2.2 A visão recortada — o que `ReviewNetwork.read/4` devolve
 
@@ -116,54 +116,57 @@ Nenhuma função devolve 0 no lugar de ausência, nem valor de reserva quando o 
 
 ## 3. O que se declara na base
 
-**Fonte do conteúdo**: [`proposta-base/`](proposta-base/). O que o código **exige** de cada
-artefato, e que os testes de `mix knowledge.test` conferem:
+**Fonte do conteúdo**: `priv/knowledge_base/`, desde a T004 (2026-10-03), depois da revisão
+semântica ([revisao-semantica.md](revisao-semantica.md)). Este documento diz o que o código **exige**
+de cada artefato; `ReviewNetwork.Parameters` levanta na carga quando falta, e
+`test/the_band/review_network/parameters_test.exs` lê a base real.
 
 ### Necessidade de informação
 
-- id estável (o código o lê da medida, e não o conhece);
-- `required_concepts` com `qapo.artifact_evaluation`, `cmpo.change_request` e `eo.person`;
-- `required_relations` com `qapo.stakeholder_performed_artifact_evaluation` e
-  `cmpo.stakeholder_submitted_change_request`;
-- `candidate_measurements` com as quatro medidas abaixo.
+`review.concentration` (`information_needs/review_concentration.yaml`): `required_concepts` com
+`qapo.artifact_evaluation`, `cmpo.change_request` e `eo.person`; `candidate_measurements` com as
+**nove** medidas abaixo. O código lê a lista para gravar a versão de cada uma.
 
 ### Medidas
 
-Quatro, uma por item da FR-007, todas com `answers_information_need` apontando para a necessidade
-acima, `limitations` e `misinterpretations` (as quatro mínimas da FR-007 e as da R5 da segurança),
-e `version: 1` (exige a mudança de schema de [research.md R11](research.md#r11--a-base-de-conhecimento-forma-de-cada-artefato)).
+**Nove**, todas com `answers_information_need: [review.concentration]`, `limitations`,
+`misinterpretations` (as quatro mínimas da FR-007) e `version: 1` (campo opcional acrescentado ao
+schema na T004).
 
-| medida | `value_type` | unidade | fórmula, na unidade de [research.md R2](research.md#r2--a-unidade-o-que-é-uma-revisão-nesta-rede) |
+| id | `value_type` | `unit` | o que conta |
 |---|---|---|---|
-| revisões feitas por pessoa, e de quantas pessoas | `count` | pares revisor–solicitação | soma e número das arestas que saem da pessoa |
-| revisões recebidas por pessoa, e por quantas pessoas | `count` | solicitações | solicitações distintas da pessoa com ao menos uma revisão contável; número de arestas que chegam |
-| grupos que não se revisam entre si, e o tamanho de cada | `count` | pessoas | componentes fracamente conexos entre pessoas com ao menos uma aresta |
-| concentração nas k que mais revisaram | `ratio` | — | soma das k maiores revisões feitas ÷ total de revisões do mesmo recorte |
+| `review.network.reviews_given.count` | `count` | `reviews` | revisões feitas pela pessoa (soma dos pesos das arestas que saem), e de quantas pessoas |
+| `review.network.reviews_received.count` | `count` | `change_requests` | solicitações distintas da pessoa com revisão contável, e por quantas pessoas |
+| `review.network.unconnected_groups.count` | `count` | `groups` | componentes fracamente conexos do recorte; o tamanho de cada é em pessoas |
+| `review.network.concentration.top_k_share` | `percentage` | `percent` | soma das k maiores revisões feitas ÷ revisões do recorte; o contrato transporta os dois inteiros |
+| `review.network.reviews.count` | `count` | `reviews` | pares revisor–solicitação do recorte |
+| `review.network.reviewers.count` | `count` | `people` | pessoas que revisaram, no recorte |
+| `review.network.authors_reviewed.count` | `count` | `people` | pessoas revisadas, no recorte (D10) |
+| `review.network.people_without_activity.count` | `count` | `people` | pessoas `person` alcançadas da organização, sem revisão nem solicitação na janela |
+| `review.network.excluded.count` | `count` | `reviews` | pares deixados fora, por motivo |
 
-A limitação obrigatória da quarta: **uma solicitação com dois revisores conta duas revisões**.
+A limitação obrigatória da concentração: **uma solicitação com dois revisores conta duas revisões**.
 
-### Regra da aresta (FR-005)
+### Regra da aresta, `review.network.edge` (FR-005)
 
-O código lê dela, e falha na carga se faltar:
-
-- `version` (inteiro);
-- os **estados que contam**, como lista de inclusão;
-- a **ordem das exclusões**;
-- `semantics.equivalence` (`derived`), `semantics.justification` e `limitations`, que a FR-005
-  exige e o teste confere.
-
-### Regra dos limiares (FR-008, FR-013)
-
-O código lê dela, e falha na carga se faltar:
+`rules/review_network_edge.yaml`. O código lê, e levanta se faltar:
 
 - `version`;
-- `k`: lista crescente de inteiros positivos ([1, 2, 3]);
-- `minimum_sample`: inteiro positivo, com a razão escrita (10 **revisões**, na unidade par
-  revisor–solicitação; decidido em 2026-10-03);
-- `minimum_group_size`: inteiro ≥ 2, com a razão escrita (3, decidido em 2026-10-03). Declarado, e
-  **não** lido nesta fatia: com a Q4 os grupos são do recorte (contrato, *Os parâmetros*);
-- `windows_days`: lista de inteiros positivos ([30, 90, 180]) e `default_window_days` (90), que
-  pertence à lista.
+- `rules.counted_states.values.states`: os estados que contam, por lista de inclusão;
+- `rules.exclusions.values.order`: **conferida** contra a ordem que `Classification` implementa
+  (`bot_or_app`, `unlinked_person`, `self_review`); outra ordem levanta.
 
-**Se a proposta usar outros nomes de chave**, valem os da proposta, e este documento é corrigido
-no mesmo commit que a aceitar. O que não muda é a lista de **o que** tem de existir.
+`semantics.equivalence` (`derived`), a justificativa, as limitações e a categoria UFO (relação
+derivada, sem relator) estão lá, e não são lidos pelo código.
+
+### Regra dos parâmetros, `review.network.parameters` (FR-008, FR-013)
+
+`rules/review_network_parameters.yaml`. O código lê, e levanta se faltar:
+
+- `version`;
+- `rules.window_days.values.allowed` ([30, 90, 180]) e `.default` (90, pertence à lista);
+- `rules.k_values.values.k`: lista crescente de inteiros positivos ([1, 2, 3]);
+- `rules.min_reviews.values.min_reviews`: 10 **revisões**, na unidade par revisor–solicitação.
+
+`rules.min_group_size_shown` (3) está declarado e **não** é lido nesta fatia: com a Q4 os grupos são
+do recorte.

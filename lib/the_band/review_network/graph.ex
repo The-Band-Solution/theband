@@ -22,9 +22,9 @@ defmodule TheBand.ReviewNetwork.Graph do
           edges: [edge()],
           received: %{id() => pos_integer()},
           excluded: %{
-            self_reviews: non_neg_integer(),
+            self_review: non_neg_integer(),
             bot_or_app: non_neg_integer(),
-            unlinked: non_neg_integer()
+            unlinked_person: non_neg_integer()
           },
           pairs: non_neg_integer()
         }
@@ -63,13 +63,13 @@ defmodule TheBand.ReviewNetwork.Graph do
         |> Enum.uniq_by(fn {_r, a, cr} -> {a, cr} end)
         |> Enum.frequencies_by(fn {_r, a, _cr} -> a end),
       excluded: %{
-        self_reviews: Map.get(excluidos, :auto_revisao, 0),
-        bot_or_app: Map.get(excluidos, :bot_ou_aplicativo, 0),
-        unlinked: Map.get(excluidos, :nao_ligada, 0)
+        self_review: Map.get(excluidos, :self_review, 0),
+        bot_or_app: Map.get(excluidos, :bot_or_app, 0),
+        unlinked_person: Map.get(excluidos, :unlinked_person, 0)
       },
       pairs:
-        length(arestas) + Map.get(excluidos, :auto_revisao, 0) +
-          Map.get(excluidos, :bot_ou_aplicativo, 0) + Map.get(excluidos, :nao_ligada, 0)
+        length(arestas) + Map.get(excluidos, :self_review, 0) +
+          Map.get(excluidos, :bot_or_app, 0) + Map.get(excluidos, :unlinked_person, 0)
     }
   end
 
@@ -138,11 +138,11 @@ defmodule TheBand.ReviewNetwork.Graph do
   A fração das revisões feitas pelas k pessoas que mais revisaram, para cada k — **sem dizer
   quem**: só os valores, nunca a lista ordenada de pessoas.
 
-  `:sem_revisao` quando não há revisão, e nunca 0. k maior que o número de revisores é
+  `:no_review_in_window` quando não há revisão, e nunca 0. k maior que o número de revisores é
   `{:ausente, :fewer_reviewers_than_k}` naquele k, e nunca 100%.
   """
   @spec concentration([edge()], [pos_integer()]) ::
-          :sem_revisao
+          :no_review_in_window
           | [
               %{
                 k: pos_integer(),
@@ -151,7 +151,7 @@ defmodule TheBand.ReviewNetwork.Graph do
                   | {:ausente, :fewer_reviewers_than_k}
               }
             ]
-  def concentration([], _ks), do: :sem_revisao
+  def concentration([], _ks), do: :no_review_in_window
 
   def concentration(edges, ks) do
     feitas =

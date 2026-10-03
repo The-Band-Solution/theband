@@ -125,9 +125,9 @@ defmodule TheBand.ReviewNetwork.ReadTest do
       assert inexistente == de_outro_tenant
     end
 
-    test "organização sem leitura é :nao_calculada, e nunca a de outra janela", ctx do
+    test "organização sem leitura é :not_computed, e nunca a de outra janela", ctx do
       sem = organizacao_com_repositorio(ctx.tenant)
-      assert ler(ctx, ctx.admin, 90, sem.organization.id) == {:ausente, :nao_calculada}
+      assert ler(ctx, ctx.admin, 90, sem.organization.id) == {:ausente, :not_computed}
     end
   end
 
@@ -136,7 +136,7 @@ defmodule TheBand.ReviewNetwork.ReadTest do
       {:ok, v} = ler(ctx, ctx.admin)
 
       assert v.reach == :total
-      assert v.reviews == 11
+      assert v.reviews == {:ok, 11}
       assert {:ok, [%{k: 1, value: {:ok, %{reviews: 6, of: 11}}} | _]} = v.concentration
       assert Enum.map(v.people, & &1.name) == ["Abel Ciro", "Bia", "Zuleica Ana"]
     end
@@ -147,8 +147,8 @@ defmodule TheBand.ReviewNetwork.ReadTest do
       assert v.reach == :parcial
       assert Enum.map(v.people, & &1.name) == ["Abel Ciro", "Bia"]
       # Só Ciro→Bia (3) e Bia→Ciro (2): abaixo da amostra mínima.
-      assert v.reviews == 5
-      assert v.concentration == {:ausente, {:abaixo_da_amostra_minima, 10}}
+      assert v.reviews == {:ok, 5}
+      assert v.concentration == {:ausente, {:sample_below_minimum, 10}}
       assert v.exclusions == {:recortado, :regra}
 
       bia = Enum.find(v.people, &(&1.name == "Bia"))

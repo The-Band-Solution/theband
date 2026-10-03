@@ -12,7 +12,7 @@ defmodule TheBand.ReviewNetwork.Reader do
   1. a janela contra a lista fechada, nunca `String.to_atom/1` (A8);
   2. a organização por id **e** tenant, e o mesmo `{:error, :not_found}` para a de outro tenant e a
      inexistente (A3, §11.1);
-  3. a leitura vigente da janela; sem ela, `{:ausente, :nao_calculada}`, e nunca a de outra janela;
+  3. a leitura vigente da janela; sem ela, `{:ausente, :not_computed}`, e nunca a de outra janela;
   4. o alcance, **nesta chamada**: nunca recebido de fora nem guardado (R10, A13);
   5. o recorte (`Slice`) e os nomes das pessoas que sobraram, filtrados pelo tenant;
   6. a coleta de mudanças mais nova que a leitura (Q3).
@@ -33,7 +33,7 @@ defmodule TheBand.ReviewNetwork.Reader do
 
   @doc "A visão recortada da rede, com nomes, ordenada por nome e por nada mais (FR-018a)."
   @spec read(Tenant.t(), User.t(), term(), term(), map()) ::
-          {:ok, map()} | {:ausente, :nao_calculada} | {:error, :not_found | :janela_invalida}
+          {:ok, map()} | {:ausente, :not_computed} | {:error, :not_found | :janela_invalida}
   def read(%Tenant{} = tenant, %User{} = user, organization_id, window, parametros) do
     with {:ok, dias} <- janela(window, parametros.windows),
          {:ok, organizacao} <- EO.fetch_organization(tenant, organization_id),
@@ -70,7 +70,7 @@ defmodule TheBand.ReviewNetwork.Reader do
 
   defp vigente(tenant, organization_id, dias) do
     case Queries.current(tenant, organization_id, dias) do
-      nil -> {:ausente, :nao_calculada}
+      nil -> {:ausente, :not_computed}
       leitura -> {:ok, leitura}
     end
   end

@@ -34,7 +34,7 @@ defmodule TheBand.ReviewNetwork.SliceTest do
         Enum.map(pessoas, fn {id, recebidas} ->
           %{"id" => id, "received_change_requests" => recebidas}
         end),
-      excluded_self_reviews: 2,
+      excluded_self_review: 2,
       excluded_bot_or_app: 3,
       excluded_unlinked: 1,
       knowledge_versions: %{"review.network.parameters" => 1}
@@ -56,7 +56,7 @@ defmodule TheBand.ReviewNetwork.SliceTest do
       v = Slice.view(us1(), :todas, parametros(), [])
 
       assert v.reach == :total
-      assert {v.reviews, v.reviewers, v.authors} == {45, 3, 2}
+      assert {v.reviews, v.reviewers, v.authors} == {{:ok, 45}, {:ok, 3}, {:ok, 2}}
 
       assert {:ok, [%{k: 1, value: {:ok, %{reviews: 30, of: 45}}} | _]} = v.concentration
       refute inspect(v.concentration) =~ "ana"
@@ -67,7 +67,7 @@ defmodule TheBand.ReviewNetwork.SliceTest do
 
       assert v.reach == :parcial
       # Só Ciro→Bia (6) e Dani→Bia (5): 11 revisões, e a primeira é 6.
-      assert v.reviews == 11
+      assert v.reviews == {:ok, 11}
       assert {:ok, [%{k: 1, value: {:ok, %{reviews: 6, of: 11}}} | _]} = v.concentration
       refute inspect(v.concentration) =~ "ana"
     end
@@ -101,8 +101,8 @@ defmodule TheBand.ReviewNetwork.SliceTest do
       v =
         Slice.view(leitura([{"ana", "bia", 5}, {"ciro", "bia", 4}], []), :todas, parametros(), [])
 
-      assert v.reviews == 9
-      assert v.concentration == {:ausente, {:abaixo_da_amostra_minima, 10}}
+      assert v.reviews == {:ok, 9}
+      assert v.concentration == {:ausente, {:sample_below_minimum, 10}}
     end
 
     test "com dois revisores, k = 3 é ausente, e não 100%" do
@@ -116,14 +116,17 @@ defmodule TheBand.ReviewNetwork.SliceTest do
     test "recorte sem revisão é ausente, e nunca 0%" do
       v = Slice.view(us1(), algumas(["bia"]), parametros(), [])
 
-      assert v.reviews == 0
-      assert v.concentration == {:ausente, :sem_revisao_na_janela}
-      assert v.groups == {:ausente, :sem_revisao_na_janela}
+      # SC-002: ausência, e nunca 0, nas três contagens.
+      assert v.reviews == {:ausente, :no_review_in_window}
+      assert v.reviewers == {:ausente, :no_review_in_window}
+      assert v.authors == {:ausente, :no_review_in_window}
+      assert v.concentration == {:ausente, :no_review_in_window}
+      assert v.groups == {:ausente, :no_review_in_window}
     end
 
     test "Q5: exclusões, as três, só com alcance total" do
       assert Slice.view(us1(), :todas, parametros(), []).exclusions ==
-               {:ok, %{self_reviews: 2, bot_or_app: 3, unlinked: 1}}
+               {:ok, %{self_review: 2, bot_or_app: 3, unlinked_person: 1}}
 
       assert Slice.view(us1(), algumas(~w(ana bia)), parametros(), []).exclusions ==
                {:recortado, :regra}
@@ -171,8 +174,8 @@ defmodule TheBand.ReviewNetwork.SliceTest do
       v = Slice.view(bia(), :todas, parametros(), [])
       caio = Enum.find(v.people, &(&1.person_id == "caio"))
 
-      assert caio.given == {:ausente, :nao_revisou}
-      assert caio.received == {:ausente, :sem_solicitacao_revisada}
+      assert caio.given == {:ausente, :did_not_review_in_window}
+      assert caio.received == {:ausente, :no_change_request_reviewed_in_window}
       assert caio.pairs_outside_reach? == false
     end
 

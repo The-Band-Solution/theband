@@ -24,7 +24,7 @@ defmodule TheBand.ReviewNetwork.ReadingConstraintsTest do
         edges: [],
         people: [],
         reviews_in_network: 0,
-        excluded_self_reviews: 0,
+        excluded_self_review: 0,
         excluded_bot_or_app: 0,
         excluded_unlinked: 0,
         knowledge_versions: %{}

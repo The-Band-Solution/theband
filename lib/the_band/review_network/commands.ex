@@ -40,9 +40,9 @@ defmodule TheBand.ReviewNetwork.Commands do
               window_days: pos_integer(),
               reviews: non_neg_integer(),
               excluded: %{
-                self_reviews: non_neg_integer(),
+                self_review: non_neg_integer(),
                 bot_or_app: non_neg_integer(),
-                unlinked: non_neg_integer()
+                unlinked_person: non_neg_integer()
               }
             }
           ]
@@ -99,9 +99,9 @@ defmodule TheBand.ReviewNetwork.Commands do
           edges: Enum.map(rede.edges, &aresta_gravada/1),
           people: pessoas(rede, autores, tipos, inicio),
           reviews_in_network: rede.edges |> Enum.map(& &1.change_requests) |> Enum.sum(),
-          excluded_self_reviews: rede.excluded.self_reviews,
+          excluded_self_review: rede.excluded.self_review,
           excluded_bot_or_app: rede.excluded.bot_or_app,
-          excluded_unlinked: rede.excluded.unlinked,
+          excluded_unlinked: rede.excluded.unlinked_person,
           knowledge_versions: parametros.knowledge_versions
         }
       end
@@ -117,9 +117,9 @@ defmodule TheBand.ReviewNetwork.Commands do
              window_days: r.window_days,
              reviews: r.reviews_in_network,
              excluded: %{
-               self_reviews: r.excluded_self_reviews,
+               self_review: r.excluded_self_review,
                bot_or_app: r.excluded_bot_or_app,
-               unlinked: r.excluded_unlinked
+               unlinked_person: r.excluded_unlinked
              }
            }
          end)

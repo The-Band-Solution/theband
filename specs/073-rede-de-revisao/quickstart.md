@@ -49,10 +49,10 @@ Os que não vêm da segurança:
 |---|---|
 | invariante | pares da janela = revisões na rede + as três exclusões |
 | FR-012, SC-005 | `compute/3` com o mesmo `now` dez vezes: as dez leituras são iguais, campo a campo, exceto `id` e `inserted_at` |
-| US1, cenário 3 | organização sem revisão: concentração `{:ausente, :sem_revisao_na_janela}`, e o HTML não contém `0%` |
-| US2, cenário 2 | Caio: `received: {:ausente, :sem_solicitacao_revisada}` |
+| US1, cenário 3 | organização sem revisão: concentração `{:ausente, :no_review_in_window}`, e o HTML não contém `0%` |
+| US2, cenário 2 | Caio: `received: {:ausente, :no_change_request_reviewed_in_window}` |
 | US3 | dois grupos sem aresta entre eles: dois tamanhos, ordenados |
-| amostra pequena | uma revisão: as contagens aparecem, e a concentração é `{:ausente, {:abaixo_da_amostra_minima, 10}}` |
+| amostra pequena | uma revisão: as contagens aparecem, e a concentração é `{:ausente, {:sample_below_minimum, 10}}` |
 | FR-018a | a lista sai em ordem de nome com as medidas invertidas |
 | teto de consultas | `read/4` com 5 e com 50 pessoas faz o mesmo número de consultas |
 

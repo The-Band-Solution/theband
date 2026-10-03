@@ -5,7 +5,7 @@ defmodule TheBand.ReviewNetwork.GraphTest do
   ## As asserções que carregam este arquivo
 
   1. o cenário 1 da US1: 30 de 40 revisões numa pessoa → `%{k: 1, reviews: 30, of: 40}`;
-  2. rede vazia é `:sem_revisao`, **nunca 0**;
+  2. rede vazia é `:no_review_in_window`, **nunca 0**;
   3. k maior que o número de revisores é ausente, nunca 100%;
   4. o peso é solicitação distinta: rodadas não inflam;
   5. o invariante: pares = soma dos pesos + exclusões;
@@ -44,8 +44,8 @@ defmodule TheBand.ReviewNetwork.GraphTest do
     refute inspect(Graph.concentration(rede.edges, [1, 2, 3])) =~ "ana"
   end
 
-  test "rede vazia é :sem_revisao, e nunca 0" do
-    assert Graph.concentration([], [1, 2, 3]) == :sem_revisao
+  test "rede vazia é :no_review_in_window, e nunca 0" do
+    assert Graph.concentration([], [1, 2, 3]) == :no_review_in_window
     assert Graph.groups([]) == []
   end
 
@@ -87,16 +87,16 @@ defmodule TheBand.ReviewNetwork.GraphTest do
     pares =
       cenario_us1() ++
         [
-          fora(:auto_revisao, "x1"),
-          fora(:bot_ou_aplicativo, "x2"),
-          fora(:nao_ligada, "x3"),
-          fora(:nao_ligada, "x4")
+          fora(:self_review, "x1"),
+          fora(:bot_or_app, "x2"),
+          fora(:unlinked_person, "x3"),
+          fora(:unlinked_person, "x4")
         ]
 
     rede = Graph.build(pares, @inicio)
     pesos = rede.edges |> Enum.map(& &1.change_requests) |> Enum.sum()
 
-    assert rede.excluded == %{self_reviews: 1, bot_or_app: 1, unlinked: 2}
+    assert rede.excluded == %{self_review: 1, bot_or_app: 1, unlinked_person: 2}
     assert rede.pairs == length(pares)
     assert rede.pairs == pesos + 1 + 1 + 2
   end
@@ -126,7 +126,7 @@ defmodule TheBand.ReviewNetwork.GraphTest do
   end
 
   test "FR-012: a entrada embaralhada dez vezes dá a mesma saída" do
-    pares = cenario_us1() ++ [fora(:nao_ligada, "x")]
+    pares = cenario_us1() ++ [fora(:unlinked_person, "x")]
     esperado = Graph.build(pares, @inicio)
 
     for semente <- 1..10 do

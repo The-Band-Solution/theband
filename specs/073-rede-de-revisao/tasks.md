@@ -180,8 +180,8 @@ parte**: `Parameters` lê a regra da base e levanta sem ela; falta a base real (
 - [x] T011 [P] Classificar cada par num destino só
   - **Pronta quando**: data-model.md §2.1; research.md R3
   - **Descrição**: `lib/the_band/review_network/classification.ex`, puro. Recebe os pares de T008 e o
-    mapa de `EO.account_types/2`; devolve `{:aresta, revisor, autor} | :auto_revisao |
-    :bot_ou_aplicativo | :nao_ligada`, nesta ordem: bot ou aplicativo (pessoa ligada pelo
+    mapa de `EO.account_types/2`; devolve `{:aresta, revisor, autor} | :self_review |
+    :bot_or_app | :unlinked_person`, nesta ordem: bot ou aplicativo (pessoa ligada pelo
     `account_type`; conta não ligada por `Mapper.account_type/1`, **chamado e nunca reimplementado**)
     → não ligada (inclusive a conta apagada, `author` nulo) → auto-revisão → aresta. Pessoa ligada
     ausente do mapa (outro tenant) é **não ligada**. Os logins não saem do módulo. R9 da segurança
@@ -196,14 +196,14 @@ parte**: `Parameters` lê a regra da base e levanta sem ela; falta a base real (
     `build/2` (arestas por frequência de `{revisor, autor}` dos pares da janela, e as solicitações
     revisadas de cada autor), `totals_by_person/1`, `groups/1` (componentes
     fracos por busca em largura, só nós com aresta, ordenados por tamanho e menor id),
-    `concentration/2` (k recebidos como argumento, prefixos de soma, `:sem_revisao` quando o total é
+    `concentration/2` (k recebidos como argumento, prefixos de soma, `:no_review_in_window` quando o total é
     zero) e `induced/2`. Toda saída ordenada (FR-012)
   - **Feita quando**: as frações são crescentes em k e nunca passam do total; total zero é
-    `:sem_revisao`, e não 0; k maior que o número de revisores não inventa revisor; dois grupos sem
+    `:no_review_in_window`, e não 0; k maior que o número de revisores não inventa revisor; dois grupos sem
     aresta entre eles dão dois tamanhos; a mesma entrada embaralhada dá a mesma saída
   - **Teste**: `test/the_band/review_network/graph_test.exs`, com o cenário 1 da US1 (30 de 40 →
     `%{k: 1, reviews: 30, of: 40}`) e a entrada embaralhada dez vezes. **Defeito a injetar**: devolver
-    `0` no lugar de `:sem_revisao`; o caso de rede vazia reprova
+    `0` no lugar de `:no_review_in_window`; o caso de rede vazia reprova
 
 - [ ] T013 Ler os parâmetros da base, e levantar se faltar
   - **Pronta quando**: T004 (os YAMLs estão em `priv/knowledge_base/`)
@@ -249,8 +249,8 @@ concentração, e os números batem com a contagem manual (SC-001).
     (`:todas` ou `{:algumas, MapSet}`) e os parâmetros; devolve a `view()` sem nomes:
     - revisões, revisores, pessoas revisadas (`authors`, D10) e concentração sobre o **subgrafo
       induzido** pelas pessoas alcançadas (R1);
-    - `{:ausente, :sem_revisao_na_janela}` quando o recorte não tem revisão;
-      `{:ausente, {:abaixo_da_amostra_minima, m}}` abaixo de `m` **revisões** do recorte (decidido em
+    - `{:ausente, :no_review_in_window}` quando o recorte não tem revisão;
+      `{:ausente, {:sample_below_minimum, m}}` abaixo de `m` **revisões** do recorte (decidido em
       2026-10-03); `{:ausente, :fewer_reviewers_than_k}` no k maior que o número de revisores;
     - exclusões, as três, só com `:todas`; com alcance parcial, `{:recortado, :regra}` (R12, Q5);
     - **nenhum** número sobre o que ficou fora do alcance (R2).
@@ -273,7 +273,7 @@ concentração, e os números batem com a contagem manual (SC-001).
     observados da organização contra `computed_at` (Q3, research.md R14). Número fixo de consultas. FR-013, FR-015, R3, R10
   - **Feita quando**: `"36500"`, `"-1"`, `"90; drop"`, `"abc"` e `nil` devolvem
     `{:error, :janela_invalida}` sem átomo novo (A8); organização de outro tenant e inexistente
-    devolvem o mesmo `{:error, :not_found}` (A3); sem leitura, `{:ausente, :nao_calculada}`; a conta
+    devolvem o mesmo `{:error, :not_found}` (A3); sem leitura, `{:ausente, :not_computed}`; a conta
     que perde o vínculo deixa de ver os colegas na leitura seguinte (A13); com 5 e com 50 pessoas, o
     mesmo número de consultas; um repositório da organização com corte de coleta posterior ao cálculo
     dá `newer_collection: {:em, _}`, e um de outra organização não
@@ -373,13 +373,13 @@ concentração, e os números batem com a contagem manual (SC-001).
 - [x] T023 [US2] Montar a lista por pessoa, ordenada por nome, com os pares recortados
   - **Pronta quando**: T015, T016
   - **Descrição**: em `Slice` e `Reader`: `people` com `given` e `received` (o total verdadeiro da
-    pessoa, sobre a rede inteira, R2 item 1), `{:ausente, :nao_revisou}` e
-    `{:ausente, :sem_solicitacao_revisada}`; `reviews_of` e `reviewed_by` só com pares alcançados;
+    pessoa, sobre a rede inteira, R2 item 1), `{:ausente, :did_not_review_in_window}` e
+    `{:ausente, :no_change_request_reviewed_in_window}`; `reviews_of` e `reviewed_by` só com pares alcançados;
     `pairs_outside_reach?` sem número; ordenação por nome e por nada mais (FR-018a);
     `people_without_review_activity` sobre as pessoas `person` alcançadas da organização
     (`EO.organization_person_ids/2`), fora da lista
   - **Feita quando**: Bia lê `reviews: 12, people: 4` e `change_requests: 5, people: 2`; Caio tem
-    `received: {:ausente, :sem_solicitacao_revisada}`, e não 0; o par fora do alcance não vira linha
+    `received: {:ausente, :no_change_request_reviewed_in_window}`, e não 0; o par fora do alcance não vira linha
     nem número (A5); com as medidas invertidas, a ordem continua a dos nomes
   - **Teste**: `slice_test.exs` e `read_test.exs`, casos da US2. **Defeitos a injetar**: listar o par
     de fora com nome mascarado (A5 reprova); ordenar por `given` (o caso de ordem reprova)

@@ -43,32 +43,32 @@ defmodule TheBand.ReviewNetwork.ClassificationTest do
   end
 
   test "A14: conta User ligada a pessoa que EO classifica como bot é bot, e não nó" do
-    assert destino({@robo, "algo[bot]", "User"}, {@bia, "bia"}) == :bot_ou_aplicativo
+    assert destino({@robo, "algo[bot]", "User"}, {@bia, "bia"}) == :bot_or_app
   end
 
   test "conta não ligada é classificada pelo Mapper: __typename Bot e sufixo [bot]" do
-    assert destino({nil, "dependabot", "Bot"}, {@bia, "bia"}) == :bot_ou_aplicativo
-    assert destino({nil, "renovate[bot]", "User"}, {@bia, "bia"}) == :bot_ou_aplicativo
-    assert destino({@ana, "ana", "User"}, {nil, "github-actions[bot]"}) == :bot_ou_aplicativo
+    assert destino({nil, "dependabot", "Bot"}, {@bia, "bia"}) == :bot_or_app
+    assert destino({nil, "renovate[bot]", "User"}, {@bia, "bia"}) == :bot_or_app
+    assert destino({@ana, "ana", "User"}, {nil, "github-actions[bot]"}) == :bot_or_app
   end
 
   test "a conta apagada na origem é sem pessoa ligada, e não bot" do
-    assert destino({nil, nil, nil}, {@bia, "bia"}) == :nao_ligada
-    assert destino({@ana, "ana", "User"}, {nil, nil}) == :nao_ligada
+    assert destino({nil, nil, nil}, {@bia, "bia"}) == :unlinked_person
+    assert destino({@ana, "ana", "User"}, {nil, nil}) == :unlinked_person
   end
 
   test "login humano sem pessoa ligada é não ligada" do
-    assert destino({nil, "prestador", "User"}, {@bia, "bia"}) == :nao_ligada
+    assert destino({nil, "prestador", "User"}, {@bia, "bia"}) == :unlinked_person
   end
 
   test "pessoa ligada que não está no mapa (outro tenant) é não ligada" do
-    assert destino({@de_fora, "fora", "User"}, {@bia, "bia"}) == :nao_ligada
+    assert destino({@de_fora, "fora", "User"}, {@bia, "bia"}) == :unlinked_person
   end
 
   test "a ordem: bot vence não ligada, e não ligada vence auto-revisão" do
-    assert destino({@robo, "algo[bot]", "User"}, {nil, nil}) == :bot_ou_aplicativo
-    assert destino({nil, nil, nil}, {nil, "github-actions[bot]"}) == :bot_ou_aplicativo
-    assert destino({@ana, "ana", "User"}, {@ana, "ana"}) == :auto_revisao
+    assert destino({@robo, "algo[bot]", "User"}, {nil, nil}) == :bot_or_app
+    assert destino({nil, nil, nil}, {nil, "github-actions[bot]"}) == :bot_or_app
+    assert destino({@ana, "ana", "User"}, {@ana, "ana"}) == :self_review
   end
 
   test "o par classificado não carrega login" do

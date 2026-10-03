@@ -88,7 +88,7 @@ defmodule TheBand.ReviewNetwork.CommandsTest do
     #   ana×cr1, ana×cr3, robo×cr3, prestador×cr1, apagada×cr1, bia×cr3 = 6.
     #   ana→bia (cr1) e bia→ana (cr3) e ana×cr3 é auto-revisão: 2 na rede.
     assert j90.reviews == 2
-    assert j90.excluded == %{self_reviews: 1, bot_or_app: 1, unlinked: 2}
+    assert j90.excluded == %{self_review: 1, bot_or_app: 1, unlinked_person: 2}
     assert j90.reviews + 1 + 1 + 2 == 6
 
     # A de 180 dias pega também ana×cr2, de 99 dias atrás.

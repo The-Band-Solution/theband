@@ -30,7 +30,7 @@ defmodule TheBand.ReviewNetwork.Schemas.Reading do
     field :edges, {:array, :map}
     field :people, {:array, :map}
     field :reviews_in_network, :integer
-    field :excluded_self_reviews, :integer
+    field :excluded_self_review, :integer
     field :excluded_bot_or_app, :integer
     field :excluded_unlinked, :integer
     field :knowledge_versions, :map
@@ -48,7 +48,7 @@ defmodule TheBand.ReviewNetwork.Schemas.Reading do
     :edges,
     :people,
     :reviews_in_network,
-    :excluded_self_reviews,
+    :excluded_self_review,
     :excluded_bot_or_app,
     :excluded_unlinked,
     :knowledge_versions

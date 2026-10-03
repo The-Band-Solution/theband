@@ -391,9 +391,9 @@ divergência é resolvida na revisão semântica, antes do código, e o vencedor
 | o quê | forma | arquivo |
 |---|---|---|
 | necessidade de informação | `information_need:` (schema `information-need.schema.yaml`) | `information_needs/review_concentration.yaml` |
-| as quatro medidas (FR-007) | `measurement:` (schema `measurement.schema.yaml`) | `measurements/review_network_*.yaml` |
+| as nove medidas (FR-007 e as do protótipo) | `measurement:` (schema `measurement.schema.yaml`) | `measurements/review_network_*.yaml` |
 | o que vira aresta (FR-005) | `derivation_rule:` com `semantics`, `limitations` e `version` | `rules/review_network_edge.yaml` |
-| k, amostra mínima, grupo mínimo, janelas (FR-008, FR-013) | `derivation_rule:` | `rules/review_network_thresholds.yaml` |
+| k, amostra mínima, grupo mínimo, janelas (FR-008, FR-013) | `derivation_rule:` | `rules/review_network_parameters.yaml` (regra `review.network.parameters`; o nome `thresholds` deste plano não vingou, revisao-semantica.md seção 3) |
 
 **Por que a aresta é regra, e não `mapping:`**: o schema de mapeamento
 (`priv/knowledge_base/schemas/mapping.schema.yaml`) descreve **fonte externa → conceito
@@ -471,19 +471,19 @@ consulta nova.
 
 | situação | o que a função devolve | o que a tela diz (inglês, decidido no protótipo) |
 |---|---|---|
-| nenhuma leitura gravada para a organização e a janela | `{:ausente, :nao_calculada}` | a leitura ainda não foi calculada, e quando será (ao fim da próxima coleta) |
-| leitura existe, total de revisões do recorte é zero | concentração `{:ausente, :sem_revisao_na_janela}` | não houve revisão na janela, em palavras, nunca 0% (US1, cenário 3) |
-| total abaixo da amostra mínima (10 **revisões** do recorte) | concentração `{:ausente, {:abaixo_da_amostra_minima, 10}}` | as contagens aparecem; a fração não (decidido em 2026-10-03, Q2 do protótipo) |
+| nenhuma leitura gravada para a organização e a janela | `{:ausente, :not_computed}` | a leitura ainda não foi calculada, e quando será (ao fim da próxima coleta) |
+| leitura existe, total de revisões do recorte é zero | concentração `{:ausente, :no_review_in_window}` | não houve revisão na janela, em palavras, nunca 0% (US1, cenário 3) |
+| total abaixo da amostra mínima (10 **revisões** do recorte) | concentração `{:ausente, {:sample_below_minimum, 10}}` | as contagens aparecem; a fração não (decidido em 2026-10-03, Q2 do protótipo) |
 | k maior que o número de revisores | aquele k com `{:ausente, :fewer_reviewers_than_k}` | *"only 2 people reviewed"* |
 | coleta de mudanças terminou depois da leitura | `newer_collection: {:em, instante}` | uma linha dizendo que há coleta mais nova (Q3) |
-| pessoa que não revisou | `feitas: {:ausente, :nao_revisou}` | em palavras, nunca 0 |
-| pessoa sem solicitação revisada | `recebidas: {:ausente, :sem_solicitacao_revisada}` | em palavras (US2, cenário 2) |
+| pessoa que não revisou | `feitas: {:ausente, :did_not_review_in_window}` | em palavras, nunca 0 |
+| pessoa sem solicitação revisada | `recebidas: {:ausente, :no_change_request_reviewed_in_window}` | em palavras (US2, cenário 2) |
 | organização de outro tenant, ou inexistente | `{:error, :not_found}` | *not found*, nunca *permission denied* (§11.1) |
 | janela fora da lista | `{:error, :janela_invalida}` | volta à janela padrão |
 
 **Falha do cálculo**: não se grava estado de falha. Se o cálculo falha depois de um sucesso, a tela
 mostra a leitura vigente **com o instante dela**, que é o que ela é. Se nunca houve sucesso, é
-`:nao_calculada`. A tela nunca mostra a leitura de outra janela no lugar desta (edge case),
+`:not_computed`. A tela nunca mostra a leitura de outra janela no lugar desta (edge case),
 porque a busca é por janela.
 
 **Alternativa recusada**: ler `oban_jobs` para dizer *"o último cálculo falhou"*. Acopla a leitura

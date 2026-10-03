@@ -18,7 +18,7 @@ Sempre pela API pública de cada um ([fronteiras.md](fronteiras.md)).
 ```elixir
 @spec read(Tenant.t(), User.t(), organization_id :: Ecto.UUID.t(), window :: String.t() | integer()) ::
         {:ok, view()}
-        | {:ausente, :nao_calculada}
+        | {:ausente, :not_computed}
         | {:error, :not_found | :janela_invalida}
 ```
 
@@ -34,7 +34,7 @@ Ordem, e cada passo é o que impede um cenário de ataque:
 2. a organização é buscada por id **e** tenant (`EO.fetch_organization/2`). Outra organização,
    inexistente ou de outro tenant, devolve `{:error, :not_found}`, o mesmo para os dois casos (A3,
    §11.1);
-3. a leitura vigente de `(tenant, organização, janela)`. Sem linha: `{:ausente, :nao_calculada}`;
+3. a leitura vigente de `(tenant, organização, janela)`. Sem linha: `{:ausente, :not_computed}`;
 4. `Tenants.pessoas_alcancadas(tenant, user)`, **nesta chamada**, nunca recebida de fora nem
    guardada (R10, A13);
 5. o recorte, puro, e os nomes pelas pessoas que sobraram (`EO.people_names/2`);
@@ -62,35 +62,38 @@ Custo: **cinco consultas** (organização, leitura, pessoas da organização, no
   newer_collection: :nenhuma | {:em, DateTime.t()},
 
   # Sobre o subgrafo das pessoas alcançadas (com :total, a rede inteira)
-  reviews: non_neg_integer(),                 # pares revisor–solicitação
-  reviewers: non_neg_integer(),               # pessoas com ao menos uma revisão feita no recorte
-  authors: non_neg_integer(),                 # pessoas revisadas no recorte (D10)
+  # As três são AUSENTES, e nunca 0, quando o recorte não tem revisão (FR-009, SC-002;
+  # revisao-semantica.md, seção 3: "zero no lugar de ausência é o que a plataforma existe para
+  # não fazer")
+  reviews: {:ok, pos_integer()} | {:ausente, :no_review_in_window},    # pares revisor–solicitação
+  reviewers: {:ok, pos_integer()} | {:ausente, :no_review_in_window},  # quem revisou, no recorte
+  authors: {:ok, pos_integer()} | {:ausente, :no_review_in_window},    # pessoas revisadas (D10)
   concentration:
     {:ok, [%{k: pos_integer(),
              value: {:ok, %{reviews: pos_integer(), of: pos_integer()}}
                     | {:ausente, :fewer_reviewers_than_k}}]}
-    | {:ausente, :sem_revisao_na_janela}
-    | {:ausente, {:abaixo_da_amostra_minima, minimo :: pos_integer()}},
+    | {:ausente, :no_review_in_window}
+    | {:ausente, {:sample_below_minimum, minimo :: pos_integer()}},
 
   # Ordenada por nome, e por nada mais (FR-018a)
   people: [%{
     person_id: Ecto.UUID.t(),
     name: String.t(),
-    given: {:ok, %{reviews: pos_integer(), people: pos_integer()}} | {:ausente, :nao_revisou},
+    given: {:ok, %{reviews: pos_integer(), people: pos_integer()}} | {:ausente, :did_not_review_in_window},
     received: {:ok, %{change_requests: pos_integer(), people: pos_integer()}}
-              | {:ausente, :sem_solicitacao_revisada},
+              | {:ausente, :no_change_request_reviewed_in_window},
     reviews_of: [%{person_id: Ecto.UUID.t(), name: String.t(), reviews: pos_integer()}],
     reviewed_by: [%{person_id: Ecto.UUID.t(), name: String.t(), reviews: pos_integer()}],
     pairs_outside_reach?: boolean()
   }],
 
   # Componentes fracos do MESMO recorte (Q4): com :parcial, só entre pessoas alcançadas
-  groups: {:ok, [pos_integer()]} | {:ausente, :sem_revisao_na_janela},
+  groups: {:ok, [pos_integer()]} | {:ausente, :no_review_in_window},
   people_without_review_activity: non_neg_integer(),   # pessoas `person` alcançadas da organização
 
   # Só com reach: :total; com :parcial, {:recortado, :regra}
   exclusions:
-    {:ok, %{self_reviews: non_neg_integer(), bot_or_app: non_neg_integer(), unlinked: non_neg_integer()}}
+    {:ok, %{self_review: non_neg_integer(), bot_or_app: non_neg_integer(), unlinked_person: non_neg_integer()}}
     | {:recortado, :regra},
 
   provenance: %{knowledge_versions: %{String.t() => pos_integer()}}
@@ -109,12 +112,28 @@ shows the person's whole count in the window; the pairs show only people you rea
 que a frase está lá.
 
 **Amostra mínima** (decidido em 2026-10-03): abaixo de `minimum_sample` **revisões** do recorte (a
-mesma unidade do denominador), a concentração é `{:ausente, {:abaixo_da_amostra_minima, m}}`; as
+mesma unidade do denominador), a concentração é `{:ausente, {:sample_below_minimum, m}}`; as
 contagens continuam. k maior que o número de revisores dá `{:ausente, :fewer_reviewers_than_k}`
 naquele k, e nunca 100%.
 
 **Por que `fractions` não traz quem**: é a decisão de 2026-10-03 sobre R1. Nenhum campo da
 concentração carrega `person_id` ou nome, para nenhum leitor, administração inclusive.
+
+### Os códigos de ausência e de exclusão são os da base
+
+Corrigido em 2026-10-03 pela revisão semântica (seção 3): o código usava nomes em português, a
+base os declara em inglês, e o protótipo escreve frases em inglês na tela. Os **códigos internos**
+são os da base; a frase da tela é da tela.
+
+| situação | código (base = contrato = código) | onde a base o declara |
+|---|---|---|
+| recorte sem revisão | `:no_review_in_window` | `review.network.reviews.count`, `top_k_share`, `unconnected_groups`… |
+| abaixo da amostra mínima | `{:sample_below_minimum, minimo}` | `top_k_share`; `review.network.parameters.min_reviews` |
+| k maior que os revisores | `:fewer_reviewers_than_k` | `top_k_share` |
+| a pessoa não revisou | `:did_not_review_in_window` | `review.network.reviews_given.count` |
+| nenhuma solicitação dela revisada | `:no_change_request_reviewed_in_window` | `review.network.reviews_received.count` |
+| leitura não calculada | `:not_computed` | (estado da plataforma, não de medida: FR-009, quarto caso) |
+| exclusões | `:bot_or_app`, `:unlinked_person`, `:self_review` | `review.network.edge.exclusions.order` |
 
 ### O que `read/4` NÃO expõe, e por quê
 
@@ -139,7 +158,7 @@ concentração carrega `person_id` ou nome, para nenhum leitor, administração 
 ```elixir
 @spec compute(Tenant.t(), organization :: map(), now :: DateTime.t()) ::
         {:ok, %{readings: [%{id: Ecto.UUID.t(), window_days: pos_integer(), reviews: non_neg_integer(),
-                             excluded: %{self_reviews: n, bot_or_app: n, unlinked: n}}]}}
+                             excluded: %{self_review: n, bot_or_app: n, unlinked_person: n}}]}}
 ```
 
 Chamada **só pelo job** ([job.md](job.md)), com tenant ativo e organização já conferida. Lê os pares
@@ -214,17 +233,13 @@ em memória, e `Parameters` traduz uma na outra. O grupo mínimo (3, decidido em
 declarado na base e **não** entra aqui: com a Q4, os grupos são do recorte, e não sobra caso em que
 um tamanho de grupo fale de quem o leitor não alcança. Ele volta na fatia 2.
 
-## Estado da implementação — 2026-10-03
+## De onde vêm os parâmetros
 
-| função | estado |
-|---|---|
-| `Commands.compute/4`, `Reader.read/5`, `Slice.view/4`, `Graph`, `Classification` | escritas e provadas com os parâmetros como argumento |
-| `Parameters.fetch!/0` | lê `review.network.parameters` com as chaves da proposta (`window_days.values.allowed`/`default`, `k_values.values.k`, `min_reviews.values.min_reviews`, `counted_states.values.states`, `version`); **levanta** enquanto a regra não está na base (T004) |
-| `compute/3` (fachada) | ligada; levanta pelo mesmo motivo, e ninguém a chama enquanto o gatilho (T020) não existe |
-| `read/4`, `windows/0`, `subscribe/1` (fachada) | **não** escritas: T017, quando a base existir |
-
-`knowledge_versions` guarda hoje só a versão da regra de parâmetros. As versões das medidas e da
-aresta entram quando o schema de medida ganhar `version` (T003, T004).
+`Parameters.fetch!/0` lê duas regras e as medidas da necessidade `review.concentration`
+(data-model.md §3): de `review.network.parameters`, janelas, padrão, k e `min_reviews`; de
+`review.network.edge`, `counted_states` e a ordem das exclusões (conferida, e não usada para
+decidir). `knowledge_versions` grava a versão das duas regras e das nove medidas (FR-011). Falta
+qualquer uma: levanta.
 
 ## `Graph` — módulo interno, puro
 
@@ -235,7 +250,7 @@ Sem `Repo`, sem relógio, sem `Logger`.
 @spec build([par_classificado()], window_start :: DateTime.t()) :: grafo()
 @spec totals_by_person(grafo()) :: %{person_id => %{given: ..., received_people: ...}}
 @spec groups(edges) :: [[person_id]]                       # componentes fracos, ordenados
-@spec concentration(edges, ks :: [pos_integer()]) :: [%{k, reviews, of}] | :sem_revisao
+@spec concentration(edges, ks :: [pos_integer()]) :: [%{k, reviews, of}] | :no_review_in_window
 @spec induced(edges, MapSet.t()) :: edges                 # o subgrafo das pessoas alcançadas
 ```
 

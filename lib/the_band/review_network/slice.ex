@@ -48,9 +48,9 @@ defmodule TheBand.ReviewNetwork.Slice do
       window_end: leitura.window_end,
       computed_at: leitura.computed_at,
       reach: if(alcance == :todas, do: :total, else: :parcial),
-      reviews: revisoes,
-      reviewers: recorte |> Enum.map(& &1.reviewer) |> Enum.uniq() |> length(),
-      authors: recorte |> Enum.map(& &1.author) |> Enum.uniq() |> length(),
+      reviews: contagem(revisoes),
+      reviewers: recorte |> Enum.map(& &1.reviewer) |> Enum.uniq() |> length() |> contagem(),
+      authors: recorte |> Enum.map(& &1.author) |> Enum.uniq() |> length() |> contagem(),
       concentration: concentracao(recorte, revisoes, parametros),
       people: Enum.map(pessoas, &linha(&1, arestas, alcancada?)),
       groups: grupos(recorte),
@@ -64,6 +64,11 @@ defmodule TheBand.ReviewNetwork.Slice do
     }
   end
 
+  # Recorte sem revisão: as contagens são AUSENTES, e nunca 0 (FR-009, SC-002). Zero aqui seria
+  # a plataforma afirmar que contou e não achou, quando o que houve foi nada a contar.
+  defp contagem(0), do: {:ausente, :no_review_in_window}
+  defp contagem(n), do: {:ok, n}
+
   defp aresta(%{"reviewer" => r, "author" => a, "change_requests" => n}),
     do: %{reviewer: r, author: a, change_requests: n}
 
@@ -73,25 +78,25 @@ defmodule TheBand.ReviewNetwork.Slice do
   defp recortar(arestas, :todas), do: arestas
   defp recortar(arestas, {:algumas, pessoas}), do: Graph.induced(arestas, pessoas)
 
-  defp concentracao([], _revisoes, _parametros), do: {:ausente, :sem_revisao_na_janela}
+  defp concentracao([], _revisoes, _parametros), do: {:ausente, :no_review_in_window}
 
   # Abaixo da amostra mínima, a fração é AUSENTE, e não mostrada com aviso (decidido em
   # 2026-10-03): "75% de 4 revisões" convida a leitura que o aviso tenta desfazer. A amostra é
   # contada em revisões, a unidade do denominador.
   defp concentracao(_recorte, revisoes, %{minimum_sample: minimo}) when revisoes < minimo,
-    do: {:ausente, {:abaixo_da_amostra_minima, minimo}}
+    do: {:ausente, {:sample_below_minimum, minimo}}
 
   defp concentracao(recorte, _revisoes, %{ks: ks}), do: {:ok, Graph.concentration(recorte, ks)}
 
-  defp grupos([]), do: {:ausente, :sem_revisao_na_janela}
+  defp grupos([]), do: {:ausente, :no_review_in_window}
   defp grupos(recorte), do: {:ok, recorte |> Graph.groups() |> Enum.map(&length/1)}
 
   defp exclusoes(leitura, :todas) do
     {:ok,
      %{
-       self_reviews: leitura.excluded_self_reviews,
+       self_review: leitura.excluded_self_review,
        bot_or_app: leitura.excluded_bot_or_app,
-       unlinked: leitura.excluded_unlinked
+       unlinked_person: leitura.excluded_unlinked
      }}
   end
 
@@ -103,10 +108,10 @@ defmodule TheBand.ReviewNetwork.Slice do
 
     %{
       person_id: id,
-      given: total(feitas, :nao_revisou, &%{reviews: &1, people: &2}),
+      given: total(feitas, :did_not_review_in_window, &%{reviews: &1, people: &2}),
       received:
         case recebidas do
-          nil -> {:ausente, :sem_solicitacao_revisada}
+          nil -> {:ausente, :no_change_request_reviewed_in_window}
           n -> {:ok, %{change_requests: n, people: length(recebidas_de)}}
         end,
       reviews_of: pares(feitas, & &1.author, alcancada?),

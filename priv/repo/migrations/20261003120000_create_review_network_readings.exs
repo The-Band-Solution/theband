@@ -51,7 +51,7 @@ defmodule TheBand.Repo.Migrations.CreateReviewNetworkReadings do
       add :edges, :map, null: false
       add :people, :map, null: false
       add :reviews_in_network, :integer, null: false
-      add :excluded_self_reviews, :integer, null: false
+      add :excluded_self_review, :integer, null: false
       add :excluded_bot_or_app, :integer, null: false
       add :excluded_unlinked, :integer, null: false
       add :knowledge_versions, :map, null: false
@@ -75,7 +75,7 @@ defmodule TheBand.Repo.Migrations.CreateReviewNetworkReadings do
 
     create constraint(:review_network_readings, :review_network_readings_counts_non_negative,
              check:
-               "reviews_in_network >= 0 and excluded_self_reviews >= 0 and " <>
+               "reviews_in_network >= 0 and excluded_self_review >= 0 and " <>
                  "excluded_bot_or_app >= 0 and excluded_unlinked >= 0"
            )
 
