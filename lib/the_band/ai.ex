@@ -133,7 +133,10 @@ defmodule TheBand.AI do
 
   defp data_da_troca(%ProviderCredential{secret: gravado} = anterior, secret, agora) do
     if mesma_chave?(gravado, secret) do
-      %{}
+      # Não é troca, mas `validated_at` vai ser reescrito com `agora`. Numa linha anterior à
+      # migração (`secret_set_at` nulo) a idade cai em `validated_at`, e voltaria a zero sem
+      # troca nenhuma. Fixar aqui o início que valia antes da gravação o impede.
+      %{secret_set_at: Idade.em_uso_desde(anterior)}
     else
       %{secret_set_at: agora, previous_secret_set_at: Idade.em_uso_desde(anterior)}
     end
