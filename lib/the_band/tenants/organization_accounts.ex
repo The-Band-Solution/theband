@@ -93,9 +93,17 @@ defmodule TheBand.Tenants.OrganizationAccounts do
         vigente |> Declaracao.revoke_changeset(actor.id) |> Repo.update()
       end
 
-    pessoa = with {:ok, d} <- resultado, do: d.person_id, else: (_ -> nil)
-    registrar(:conta_da_organizacao_revogada, tenant, actor, pessoa, resultado)
+    registrar(
+      :conta_da_organizacao_revogada,
+      tenant,
+      actor,
+      pessoa_revogada(resultado),
+      resultado
+    )
   end
+
+  defp pessoa_revogada({:ok, declaracao}), do: declaracao.person_id
+  defp pessoa_revogada(_recusa), do: nil
 
   @doc """
   As pessoas declaradas como conta da organização, vigentes, deste tenant. Para o cálculo das
