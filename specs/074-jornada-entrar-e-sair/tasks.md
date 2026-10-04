@@ -304,7 +304,15 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
     `inspect(changeset)` em `failure.reason`; `set_attribute` direto no span corrente;
     `OTEL_RESOURCE_ATTRIBUTES` com sentinela; `record_exception` com a sentinela na mensagem
 
-- [ ] T019 [US3] O gate da taxonomia
+- [x] T019 [US3] O gate da taxonomia — *feita em 2026-10-03: `TaxonomiaGateTest` (em
+  `taxonomia_test.exs`) percorre pela web e pelo domínio todos os caminhos dos seis passos e
+  coleta o que chegou **depois do filtro**: um `falhou` sem `failure.reason` é motivo não
+  declarado (o filtro o apagou e contou), um span sem `outcome` é desfecho fora da lista
+  (`abandonou`), e a diferença com o YAML é motivo nunca emitido. Defeitos vistos reprovando:
+  motivo a mais no YAML ("declarado e nunca emitido: sair/motivo_inventado"); motivo novo no
+  código, `:sessao_sumiu` ("motivo emitido e não declarado"). `abandonou` emitido não é
+  injetável: a guarda de `passo/1` o recusa antes (T011). Os caminhos de US4 (definir e trocar
+  a senha) entram no gate porque o código já os emite; o teste próprio de T021 continua aberto*
   - **Pronta quando**: T007, T012, T016, T017
   - **Descrição**: `taxonomia_test.exs` coleta o que **chegou ao exportador** nos casos da régua e
     compara com o YAML: motivo emitido e não declarado reprova; motivo declarado e nunca emitido
