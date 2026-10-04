@@ -39,29 +39,29 @@ a publicação.
 
 ## Tarefas
 
-| # | tarefa | atende | tipo | issue | escopo |
+| # | tarefa | atende | tipo | issue | escopo e estado (2026-10-03) |
 |---|---|---|---|---|---|
-| T001 | O build estrito volta a passar | US4 | Task | [#1273](https://github.com/The-Band-Solution/theband/issues/1273) | base |
-| T002 | Página fora da navegação reprova | US4 | Task | [#1274](https://github.com/The-Band-Solution/theband/issues/1274) | base |
-| T003 | O site é construído e varrido em todo PR | US4 | Task | [#1275](https://github.com/The-Band-Solution/theband/issues/1275) | base |
-| T004 | Os dois idiomas, com o seletor | US2 | Task | [#1276](https://github.com/The-Band-Solution/theband/issues/1276) | base |
-| T005 | A página sem tradução diz que não tem | US2 | Task | [#1277](https://github.com/The-Band-Solution/theband/issues/1277) | base |
-| T006 | O Mermaid servido pelo site, com o hash conferido | US1 | Task | [#1278](https://github.com/The-Band-Solution/theband/issues/1278) | base |
-| T007 | Os tokens de theband.dev, com a data da cópia | US1 | Task | [#1279](https://github.com/The-Band-Solution/theband/issues/1279) | base |
-| T008 | O topo e a faixa do build | US1 | Task | [#1280](https://github.com/The-Band-Solution/theband/issues/1280) | base |
-| T009 | O rodapé, editar no GitHub, anterior e próxima | US1 | Task | [#1281](https://github.com/The-Band-Solution/theband/issues/1281) | base |
-| T010 | Larguras e tabelas | US1 | Task | [#1282](https://github.com/The-Band-Solution/theband/issues/1282) | base |
-| T011 | A home | US1 | Task | [#1283](https://github.com/The-Band-Solution/theband/issues/1283) | base |
-| T012 | Sem JavaScript e sem o script do Mermaid | US1 | Task | [#1284](https://github.com/The-Band-Solution/theband/issues/1284) | base |
-| T013 | A 404, na raiz e em /developers/ | US3 | Task | [#1285](https://github.com/The-Band-Solution/theband/issues/1285) | base |
-| T014 | A página da 064 | US3 | Task | [#1286](https://github.com/The-Band-Solution/theband/issues/1286) | base |
-| T015 | A página da 070 | US3 | Task | [#1287](https://github.com/The-Band-Solution/theband/issues/1287) | base |
-| T016 | A página da 071 | US3 | Task | [#1288](https://github.com/The-Band-Solution/theband/issues/1288) | base |
-| T017 | A página da 072 | US3 | Task | [#1289](https://github.com/The-Band-Solution/theband/issues/1289) | base |
+| T001 | O build estrito volta a passar | US4 | Task | [#1273](https://github.com/The-Band-Solution/theband/issues/1273) | base · feita, evidência na issue |
+| T002 | Página fora da navegação reprova | US4 | Task | [#1274](https://github.com/The-Band-Solution/theband/issues/1274) | base · feita, evidência na issue |
+| T003 | O site é construído e varrido em todo PR | US4 | Task | [#1275](https://github.com/The-Band-Solution/theband/issues/1275) | base · feita local; o job roda no PR |
+| T004 | Os dois idiomas, com o seletor | US2 | Task | [#1276](https://github.com/The-Band-Solution/theband/issues/1276) | base · feita, evidência na issue |
+| T005 | A página sem tradução diz que não tem | US2 | Task | [#1277](https://github.com/The-Band-Solution/theband/issues/1277) | base · feita, evidência na issue |
+| T006 | O Mermaid servido pelo site, com o hash conferido | US1 | Task | [#1278](https://github.com/The-Band-Solution/theband/issues/1278) | base · feita, evidência na issue |
+| T007 | Os tokens de theband.dev, com a data da cópia | US1 | Task | [#1279](https://github.com/The-Band-Solution/theband/issues/1279) | base · feita, evidência na issue |
+| T008 | O topo e a faixa do build | US1 | Task | [#1280](https://github.com/The-Band-Solution/theband/issues/1280) | base · feita, evidência na issue |
+| T009 | O rodapé, editar no GitHub, anterior e próxima | US1 | Task | [#1281](https://github.com/The-Band-Solution/theband/issues/1281) | base · feita, evidência na issue |
+| T010 | Larguras e tabelas | US1 | Task | [#1282](https://github.com/The-Band-Solution/theband/issues/1282) | base · feita; falta a captura a 360 px (QA) |
+| T011 | A home | US1 | Task | [#1283](https://github.com/The-Band-Solution/theband/issues/1283) | base · feita, evidência na issue |
+| T012 | Sem JavaScript e sem o script do Mermaid | US1 | Task | [#1284](https://github.com/The-Band-Solution/theband/issues/1284) | base · feita, evidência na issue |
+| T013 | A 404, na raiz e em /developers/ | US3 | Task | [#1285](https://github.com/The-Band-Solution/theband/issues/1285) | base · feita, evidência na issue |
+| T014 | A página da 064 | US3 | Task | [#1286](https://github.com/The-Band-Solution/theband/issues/1286) | base · escrita; falta a revisão do security (E5) |
+| T015 | A página da 070 | US3 | Task | [#1287](https://github.com/The-Band-Solution/theband/issues/1287) | base · escrita; falta a revisão do security (E5) |
+| T016 | A página da 071 | US3 | Task | [#1288](https://github.com/The-Band-Solution/theband/issues/1288) | base · escrita; falta a revisão do security (E5) |
+| T017 | A página da 072 | US3 | Task | [#1289](https://github.com/The-Band-Solution/theband/issues/1289) | base · escrita; falta a revisão do security (E5) |
 | T018 | A página da 073, depois do merge do PR #1228 | US3 | Task | [#1290](https://github.com/The-Band-Solution/theband/issues/1290) | fora: espera o merge (E5) |
 | T019 | A página da 074, depois do merge do PR #1266 | US3 | Task | [#1291](https://github.com/The-Band-Solution/theband/issues/1291) | fora: espera o merge (E5) |
-| T020 | A seção Segurança e as evidências fora do site | US4 | Task | [#1292](https://github.com/The-Band-Solution/theband/issues/1292) | base |
-| T021 | O build da documentação endurecido | US4 | Task | [#1293](https://github.com/The-Band-Solution/theband/issues/1293) | base |
+| T020 | A seção Segurança e as evidências fora do site | US4 | Task | [#1292](https://github.com/The-Band-Solution/theband/issues/1292) | base · feita, evidência na issue |
+| T021 | O build da documentação endurecido | US4 | Task | [#1293](https://github.com/The-Band-Solution/theband/issues/1293) | base · feita, evidência na issue |
 | T022 | O recibo das ADRs | US1 | Task | [#1294](https://github.com/The-Band-Solution/theband/issues/1294) | próximo sprint |
 | T023 | O recibo dos modelos | US1 | Task | [#1295](https://github.com/The-Band-Solution/theband/issues/1295) | próximo sprint |
 | T024 | Ver como tabela em toda figura | US1 | Task | [#1296](https://github.com/The-Band-Solution/theband/issues/1296) | próximo sprint |

@@ -14,14 +14,14 @@ lotes de tradução.
 
 ## Fase 1: Fundação
 
-- [ ] T001 O build estrito volta a passar
+- [x] T001 O build estrito volta a passar
   - **Pronta quando**: R5
   - **Descrição**: os quatro links `../../specs/` de `docs/sprints/036-papeis-do-banco/sprint-backlog.md`
     e `037-papel-de-administrador/sprint-backlog.md` ganham o `../` que falta.
   - **Feita quando**: `mkdocs build --strict` sai 0 com o `mkdocs.yml` de hoje
   - **Teste**: o próprio build. **Defeito a injetar**: voltar um dos links; o build sai 1.
 
-- [ ] T002 Página fora da navegação reprova
+- [x] T002 Página fora da navegação reprova
   - **Pronta quando**: T001; FR-008; Q7
   - **Descrição**: `validation.nav.omitted_files: warn` e `not_in_nav` para `site-developers/prototipo/`
     e para o que [seguranca.md](seguranca.md) mandar tirar da navegação. As 51 páginas omitidas entram
@@ -40,7 +40,7 @@ lotes de tradução.
   - **Teste**: `test/site/test_verificar_links.py`. **Defeito a injetar**: um `href` para página
     inexistente num HTML de fixture; o script sai 1.
 
-- [ ] T004 Os dois idiomas, com o seletor
+- [x] T004 Os dois idiomas, com o seletor
   - **Pronta quando**: plan.md, a dependência nova; [seguranca.md](seguranca.md)
   - **Descrição**: `mkdocs-static-i18n==1.3.1` em `requirements-docs.txt`; o plugin com
     `docs_structure: suffix`, PT padrão, EN com `nav_translations` dos títulos de seção; o seletor de
@@ -48,7 +48,7 @@ lotes de tradução.
   - **Feita quando**: `site/en/` existe; o seletor de uma página PT aponta para a mesma página em EN
   - **Teste**: `test/site/test_idiomas.py`. **Defeito a injetar**: tirar o idioma `en`; o teste reprova.
 
-- [ ] T005 A página sem tradução diz que não tem
+- [x] T005 A página sem tradução diz que não tem
   - **Pronta quando**: T004; contrato, `on_page_markdown` e `on_post_build`
   - **Descrição**: no build `en`, a página servida do PT ganha a marca de ausente "translation pending" e
     a frase; o build escreve a contagem e `traducao-pendente.txt`; com `extra.traducao.exigir: true`,
@@ -56,7 +56,7 @@ lotes de tradução.
   - **Feita quando**: uma página sem `.en.md` mostra a marca em `/en/`; a página com `.en.md` não mostra
   - **Teste**: `test/site/test_idiomas.py`. **Defeito a injetar**: o hook sem a marca; o teste reprova.
 
-- [ ] T006 O Mermaid servido pelo site, com o hash conferido
+- [x] T006 O Mermaid servido pelo site, com o hash conferido
   - **Pronta quando**: R2; [seguranca.md](seguranca.md)
   - **Descrição**: `docs/assets/javascripts/vendor/mermaid-11.17.2.min.js`, a licença ao lado; o hook
     confere o sha256 em `on_config`; o `<head>` o carrega antes do bundle do Material.
@@ -67,7 +67,7 @@ lotes de tradução.
 
 ## Fase 2: US1 — a identidade e o caminho de volta (P1)
 
-- [ ] T007 [US1] Os tokens de theband.dev, uma vez, com a data da cópia
+- [x] T007 [US1] Os tokens de theband.dev, uma vez, com a data da cópia
   - **Pronta quando**: T004; M1, M2, M6
   - **Descrição**: `docs/assets/stylesheets/theband.css`: os nove tokens e `info`, nos dois temas, com o
     comentário de origem e data; as variáveis `--md-*` e `--md-mermaid-*` apontadas para eles;
@@ -76,7 +76,7 @@ lotes de tradução.
   - **Teste**: `test/site/test_tokens.py`, contra `test/site/fixtures/tokens-da-landing.css` (a cópia
     datada). **Defeito a injetar**: trocar um hexadecimal; o teste reprova.
 
-- [ ] T008 [US1] O topo e a faixa do build
+- [x] T008 [US1] O topo e a faixa do build
   - **Pronta quando**: T007; M3, M4; contrato, `on_config`
   - **Descrição**: `overrides/partials/header.html` na ordem de M3, com os botões de 44 px abaixo de
     46 rem; a faixa no bloco `announce`: commit e data observados, versão em produção ausente.
@@ -84,7 +84,7 @@ lotes de tradução.
   - **Teste**: `test/site/test_moldura.py`. **Defeito a injetar**: o hook devolvendo commit `None`; a
     faixa precisa dizer "não informado", e nunca ficar vazia.
 
-- [ ] T009 [US1] O rodapé, editar no GitHub, anterior e próxima
+- [x] T009 [US1] O rodapé, editar no GitHub, anterior e próxima
   - **Pronta quando**: T007; M5, M9
   - **Descrição**: `overrides/partials/footer.html`.
   - **Feita quando**: o rodapé tem os quatro links, a base científica e a linha de como a página é feita
@@ -99,7 +99,7 @@ lotes de tradução.
   - **Teste**: `test_moldura.py` confere as regras no CSS e o script; a captura a 360 px é do QA.
     **Defeito a injetar**: tirar o `overflow-x` do quadro da tabela.
 
-- [ ] T011 [US1] A home
+- [x] T011 [US1] A home
   - **Pronta quando**: T008; 1.1–1.5; contrato, `on_nav` e `on_page_context`
   - **Descrição**: `overrides/home.html` e `mkdocs-dados/funcionalidades.yml`; as contagens vêm do
     `nav` no build.
@@ -108,14 +108,14 @@ lotes de tradução.
   - **Teste**: `test/site/test_home.py`. **Defeito a injetar**: a contagem fixa no template; o teste,
     que conta o `nav`, reprova.
 
-- [ ] T012 [US1] Sem JavaScript e sem o script do Mermaid
+- [x] T012 [US1] Sem JavaScript e sem o script do Mermaid
   - **Pronta quando**: T006; 5.3, 5.4; FR-010
   - **Descrição**: `<noscript>` no topo com "A busca precisa de JavaScript" e a marca; o `theband.js` põe
     o aviso "diagrama não desenhado" e mostra o código quando o Mermaid não está definido; o atalho `/`.
   - **Feita quando**: o HTML tem o `<noscript>`; o fonte do diagrama continua no HTML como texto
   - **Teste**: `test_moldura.py`. **Defeito a injetar**: tirar o `<noscript>`.
 
-- [ ] T013 [US3] A 404, na raiz e em /developers/
+- [x] T013 [US3] A 404, na raiz e em /developers/
   - **Pronta quando**: T008; 5.1; FR-007; [seguranca.md](seguranca.md)
   - **Descrição**: `overrides/404.html`; o caminho pedido só por `textContent`, de `pathname`, com
     `decodeURIComponent` em `try` e limite de 200; links fixos; meta CSP com o hash do script; texto
@@ -151,7 +151,7 @@ em inglês, texto em português; nenhum número inventado; o link para a spec va
 
 ## Fase 4: as exigências da avaliação de segurança
 
-- [ ] T020 A seção Segurança e os arquivos de evidência fora do site (E1, E3, E4)
+- [x] T020 A seção Segurança e os arquivos de evidência fora do site (E1, E3, E4)
   - **Pronta quando**: [seguranca.md](seguranca.md)
   - **Descrição**: `exclude_docs` com `seguranca/`, `producao/prototipo-fila-parada/seguranca.md` e as
     extensões `*.txt`, `*.log`, `*.sql`, `*.dump`, `*.env*`; a seção sai do `nav`; o hook leva ao GitHub
@@ -160,7 +160,7 @@ em inglês, texto em português; nenhum número inventado; o link para a spec va
   - **Teste**: `test/site/test_exposicao.py`, que antes confere que o índice tem entradas.
     **Defeito a injetar**: tirar `seguranca/` do `exclude_docs`; o teste reprova.
 
-- [ ] T021 O build da documentação endurecido (D1, E8)
+- [x] T021 O build da documentação endurecido (D1, E8)
   - **Pronta quando**: [seguranca.md](seguranca.md)
   - **Descrição**: `requirements-docs.txt` com todas as dependências e `--hash`, gerado para Python
     3.13; `pip install --require-hashes`; `persist-credentials: false` e `timeout-minutes` nos dois
