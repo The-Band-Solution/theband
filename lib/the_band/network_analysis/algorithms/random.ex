@@ -20,6 +20,10 @@ defmodule TheBand.NetworkAnalysis.Algorithms.Random do
   @spec new(integer()) :: state()
   def new(seed) when is_integer(seed), do: :rand.seed_s(:exsss, seed)
 
+  @doc "Um real uniforme em [0, 1), e o estado novo (as posições iniciais do layout, R9)."
+  @spec uniform(state()) :: {float(), state()}
+  def uniform(state), do: :rand.uniform_real_s(state)
+
   @doc """
   Um grafo G(n, m): `m` pares `{u, v}` distintos, `1 <= u < v <= n`, sem laço, sorteados por
   **rejeição** (u e v uniformes em 1..n; recusa u = v e par já sorteado). Os pares saem na ordem

@@ -189,10 +189,19 @@ defmodule TheBand.NetworkAnalysis.View do
       degree: no["degree"],
       out_people: no["out_people"],
       in_people: no["in_people"],
+      out_weight: no["out_weight"],
+      in_weight: no["in_weight"],
+      betweenness: medida(no["betweenness"]),
       community: no["community"],
       links_outside_reach?: ligado_fora?
     }
   end
+
+  # A medida gravada (data-model §1.2), com o motivo da ausência como átomo conhecido — nunca
+  # criado a partir do dado. Leitura gravada antes da medida existir: não calculada, e não 0.
+  defp medida(%{"value" => v}) when is_number(v), do: {:ok, v}
+  defp medida(%{"absent" => "network_too_small"}), do: {:ausente, :network_too_small}
+  defp medida(nil), do: {:ausente, :not_computed}
 
   defp aresta(a), do: %{from: a["source"], to: a["target"], weight: a["weight"]}
 
@@ -209,9 +218,13 @@ defmodule TheBand.NetworkAnalysis.View do
 
     resto = Enum.flat_map(pequenas, &elem(&1, 1)) ++ Map.get(por_comunidade, nil, [])
 
+    # Sem comunidade calculada (antes da T035), o resto não é "outras comunidades": é só gente
+    # de fora, e o agregado diz isso (`community: nil`).
+    chave_do_resto = if pequenas == [], do: nil, else: :other
+
     grupos =
       Enum.map(grandes, fn {c, membros} -> {c, membros} end) ++
-        if(length(resto) >= k, do: [{:other, resto}], else: [])
+        if(length(resto) >= k, do: [{chave_do_resto, resto}], else: [])
 
     grupos
     |> Enum.with_index(1)

@@ -494,7 +494,32 @@ tarefas, e por quê:
 de 5 pessoas — maior grau, maior círculo; cor pela intermediação com legenda; aresta mais pesada,
 mais grossa.
 
-- [ ] T030 [P] [US3] Calcular a intermediação por Brandes
+**Feita em 2026-10-04**, na branch `feature/1309-us3` (empilhada sobre `feature/1309-us2`), com a
+evidência de cada defeito injetado comentada na issue de cada tarefa. O que divergiu do texto das
+tarefas, e por quê:
+
+- **T030**: `brandes/2` recebe o mínimo da base (`betweenness.values.min_people`), e não o tem no
+  código; abaixo de 3 a ausência vale qualquer que seja a base (emenda em `contracts/algoritmos.md`);
+- **T031**: `Random` ganhou `uniform/1`, com o estado explícito, para as posições iniciais; o passo,
+  o piso numérico e a reescala que preserva a proporção estão na emenda do contrato. O defeito
+  injetado foi semear pelo relógio (`Random.new(System.os_time() + seed)`): o efeito é o mesmo de
+  `:rand.seed/1` com o tempo, sem o dicionário do processo que o módulo não usa;
+- **T032**: o LiveView 1.2.9 não tem `phx-mouseenter`. O destaque está em `phx-focus`/`phx-blur` do
+  nó, e o hook `.NetworkGraph` executa no `pointerover`/`pointerout` o mesmo comando que o nó já
+  carrega, sem dado próprio. A aresta é `<path>` curvo, como no protótipo, e não `<line>`. O cartão
+  da pessoa (3.2.5) é renderizado escondido, um por nó; proximidade, autovetor e posição aparecem
+  como ausência da plataforma até T038, T039 e T045 (emenda em `contracts/tela.md`);
+- **T033**: o `Reader` decide posições, faixa de cor e nomes escritos (emenda em
+  `contracts/network-analysis.md`); a `View` passa a carregar `betweenness`, `out_weight` e
+  `in_weight`, e o agregado sem comunidade calculada tem `community: nil`, e não `:other`. O teste
+  escreve as comunidades na leitura, porque a detecção é a T035. A vista de comunidades alternável
+  espera a T035 (FR-026);
+- **T034**: 50 nós, 13 ms; 300 nós, 463 ms (Apple M4). Passa dos 200 ms, e a decisão de guardar o
+  layout por `(leitura, alcance)` está aberta na
+  [#1384](https://github.com/The-Band-Solution/theband/issues/1384), com recomendação de manter o
+  recálculo. O teto do teste é cerca de 6× a medida.
+
+- [x] T030 [P] [US3] Calcular a intermediação por Brandes
   - **Pronta quando**: T012; `contracts/algoritmos.md` `Algorithms.Betweenness`
   - **Descrição**: `lib/the_band/network_analysis/algorithms/betweenness.ex` (R6), ligado em
     `Commands` como `nodes[].betweenness`
@@ -503,7 +528,7 @@ mais grossa.
   - **Teste**: `test/the_band/network_analysis/algorithms/betweenness_test.exs`, tolerância 1e-9.
     **Defeito a injetar**: não dividir por 2 (pares ordenados); a estrela reprova
 
-- [ ] T031 [P] [US3] Posicionar os nós no servidor, com semente
+- [x] T031 [P] [US3] Posicionar os nós no servidor, com semente
   - **Pronta quando**: T011; `contracts/algoritmos.md` `Algorithms.Layout`; R9
   - **Descrição**: `lib/the_band/network_analysis/algorithms/layout.ex` (Fruchterman–Reingold, R9),
     ligado em `Commands` (`nodes[].x/y`) e chamado pelo `Reader` com alcance parcial sobre o grafo da
@@ -513,7 +538,7 @@ mais grossa.
   - **Teste**: `test/the_band/network_analysis/algorithms/layout_test.exs`. **Defeito a injetar**:
     semear por `:rand.seed/1` com o tempo; a igualdade reprova
 
-- [ ] T032 [US3] [security] Desenhar o grafo em SVG, sem dado no navegador
+- [x] T032 [US3] [security] Desenhar o grafo em SVG, sem dado no navegador
   - **Pronta quando**: T030, T031; [contracts/tela.md](contracts/tela.md) *O grafo*; R16
   - **Descrição**: `lib/the_band_web/live/network_analysis_live/graph_components.ex`: `graph/1` (SVG
     inline, setas por `marker-end`, tamanho pelo grau, cor por classe da faixa de intermediação,
@@ -528,7 +553,7 @@ mais grossa.
   - **Teste**: `test/the_band_web/live/network_analysis_live/graph_component_test.exs`. **Defeitos a
     injetar**: `raw/1` no rótulo; passar a leitura num `data-graph`. Cada um reprova
 
-- [ ] T033 [US3] [security] Mostrar o grafo ponderado com o recorte
+- [x] T033 [US3] [security] Mostrar o grafo ponderado com o recorte
   - **Pronta quando**: T016, T029, T032
   - **Descrição**: a página Graph ganha o desenho da visão (alcançados e agregados), a marca *"has
     links outside your reach"*, o destaque com *"N links out, M in"*, a lista do telefone com a mesma
@@ -541,7 +566,7 @@ mais grossa.
     organização com 1, 2 e 3 de fora na mesma comunidade. **Defeito a injetar**: renderizar a lista
     da rede inteira no telefone; o caso parcial reprova
 
-- [ ] T034 [US3] Medir o layout da visão parcial na leitura
+- [x] T034 [US3] Medir o layout da visão parcial na leitura
   - **Pronta quando**: T031, T033
   - **Descrição**: medir o tempo do layout recalculado na leitura para 50 e para 300 nós de visão, e
     escrever em `research.md` R9 (R7 da segurança: *"o plano mede e escreve o número"*)

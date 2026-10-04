@@ -33,11 +33,17 @@ de par inalcançável é **definição** (1/∞), e está dito na medida.
 ## `Algorithms.Betweenness`
 
 ```elixir
-@spec brandes(adjacency) :: %{id => measure}
+@spec brandes(adjacency, %{min_people: pos_integer}) :: %{id => {:ok, float} | {:ausente, :network_too_small}}
 ```
 
 Sem peso, sem direção, normalizada por (n−1)(n−2)/2 sobre pares não ordenados; n < 3 →
 `{:ausente, :network_too_small}` para todos (D4).
+
+**Emenda de 2026-10-04 (T030)**, no mesmo commit da implementação: o mínimo vem da base
+(`betweenness.values.min_people`, por `Parameters`), e não do código — a regra *"nenhum valor da
+base no código"* vale também para ele. Abaixo de 3 a normalização não existe, e a ausência vale
+qualquer que seja o valor da base. Gravado no nó como `"betweenness" => %{"value" => v}` ou
+`%{"absent" => "network_too_small"}` ([data-model.md §1.2](../data-model.md)).
 
 ## `Algorithms.Eigenvector`
 
@@ -102,6 +108,19 @@ divide pelo número de grafos em que a medida está definida, que é devolvido.
 
 Usado no cálculo (rede inteira) e na leitura (grafo da visão com alcance parcial). Mesma entrada,
 mesma saída.
+
+**Emenda de 2026-10-04 (T031)**, no mesmo commit da implementação:
+
+- `ids` é reordenado por id dentro da função: a ordem de quem chama não muda o desenho;
+- 0 nós → `%{}`; 1 nó → o centro, `{500.0, 500.0}`; todos no mesmo ponto → o centro;
+- as posições iniciais vêm de `Algorithms.Random.uniform/1` (acrescentada: `@spec uniform(state)
+  :: {float, state}`, `:rand.uniform_real_s/1` com o estado explícito), x e depois y, em ordem
+  crescente de id; o estado nasce de `Random.new(seed)`, à parte de `small_world`;
+- passo como `networkx`: temperatura inicial 0,1, decrescida de 0,1/(iterações + 1) a cada
+  iteração; deslocamento de cada nó calculado com as posições da iteração anterior (síncrono);
+  distância mínima 0,01 (é piso numérico da força, como no `networkx`, e não valor de medida);
+- reescala que preserva a proporção: centra na média e divide pelo maior |coordenada| dos dois
+  eixos, para [40, 960]², uma casa.
 
 ## `Algorithms.Position`
 

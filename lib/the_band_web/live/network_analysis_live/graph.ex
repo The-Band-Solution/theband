@@ -3,7 +3,9 @@ defmodule TheBandWeb.NetworkAnalysisLive.Graph do
   `/network-analysis/:organization_id/graph` — a página **Graph** da área, feature 076, T029 (US2;
   FR-005 a FR-009; `contracts/tela.md`; protótipo aprovado, §3, Tela 2, itens 3.2.6 a 3.2.8).
 
-  Nesta fatia, as contagens da rede, sem o desenho (o grafo é a US3): pessoas, arestas dirigidas,
+  O grafo ponderado da visão (US3, T033; FR-020 a FR-025), desenhado por
+  `GraphComponents.graph/1` com o que `read/4` já recortou, posicionou e anotou: nenhuma decisão
+  de acesso, de posição nem de cor mora aqui. Abaixo dele, as contagens da rede (US2, T029): pessoas, arestas dirigidas,
   issues ou revisões da janela; a conectividade dita certa (*"1 group"*); as exclusões por motivo,
   só para quem alcança todos; as pessoas da organização sem aresta; o número de contas declaradas
   da organização; e, na designação, a frase do que a aresta liga e do que **não** diz.
@@ -23,6 +25,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.Graph do
 
   alias TheBand.NetworkAnalysis
   alias TheBand.Ontology.SEON.EO
+  alias TheBandWeb.NetworkAnalysisLive.GraphComponents
   alias TheBandWeb.NetworkAnalysisLive.Shared
 
   @impl true
@@ -117,6 +120,24 @@ defmodule TheBandWeb.NetworkAnalysisLive.Graph do
     assigns = assign(assigns, c: assigns.v.counts, rede: assigns.selecao.network)
 
     ~H"""
+    <%!-- US3: o grafo ponderado da visão (3.2.1 a 3.2.5; 3.7.2, 3.7.3; 3.8.1) --%>
+    <section id="grafo" class="flex flex-col gap-2">
+      <h2 class="font-semibold">
+        Weighted graph <Shared.marca tipo={:derivado} />
+      </h2>
+      <%= case @v.graph do %>
+        <% {:ok, grafo} -> %>
+          <GraphComponents.graph id="grafo-ponderado" graph={grafo} network={@rede} />
+        <% {:recortado, :no_reach} -> %>
+          <p class="text-sm">
+            You reach no one else in this network, so the graph is not drawn here. The measures of
+            the network, and your own, are on the other pages.
+          </p>
+        <% {:ausente, :no_edge_in_window} -> %>
+          <.absent reason={"not drawn: " <> sem_aresta(@rede)} />
+      <% end %>
+    </section>
+
     <%!-- 3.2.8 e a contagem da rede --%>
     <section id="contagens" class="card bg-base-100 border border-base-300 p-4 flex flex-col gap-2">
       <h2 class="font-semibold">

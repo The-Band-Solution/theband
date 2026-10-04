@@ -96,6 +96,12 @@ defmodule TheBand.NetworkAnalysis.CommandsTest do
     no_b = Enum.find(l.nodes, &(&1["id"] == b))
     assert no_b["degree"] == 2
     assert no_b["out_people"] == 2 and no_b["in_people"] == 1
+    # T031: as posições estão no nó, na caixa do desenho.
+    assert Enum.all?(l.nodes, &(&1["x"] >= 40 and &1["x"] <= 960 and is_float(&1["y"])))
+
+    # T030: a–b–c, b no único caminho entre a e c: 1/((3 − 1)(3 − 2)/2) = 1,0.
+    assert no_b["betweenness"] == %{"value" => 1.0}
+    assert Enum.find(l.nodes, &(&1["id"] != b))["betweenness"] == %{"value" => 0.0}
     assert l.people_without_edges == 2
   end
 
@@ -140,6 +146,9 @@ defmodule TheBand.NetworkAnalysis.CommandsTest do
     for l <- leituras(ctx.tenant), chave <- ["random", "sigma", "layout"] do
       assert l.measures[chave] == %{"absent" => "network_too_large_for_platform"}
     end
+
+    # T031: acima do teto, nenhum nó tem posição.
+    for l <- leituras(ctx.tenant), no <- l.nodes, do: refute(Map.has_key?(no, "x"))
 
     # Controle: abaixo do teto, nada é marcado ausente por ele.
     {:ok, abaixo, _} =

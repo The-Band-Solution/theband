@@ -25,8 +25,9 @@ sprint seguinte.
 `feature/1309-fundacao`, num PR próprio para `development` (#1381). T003 (medida de produção)
 continua com a pessoa mantenedora. A US1 (T018–T020) está feita na branch `feature/1309-us1`,
 empilhada sobre a fundação, num PR com merge commit (#1382). A US2 (T021–T029) está feita na
-branch `feature/1309-us2`, empilhada sobre a US1, num PR com merge commit. A US3 (T030–T034) segue,
-empilhada.
+branch `feature/1309-us2`, empilhada sobre a US1, num PR com merge commit (#1383). A US3
+(T030–T034) está feita na branch `feature/1309-us3`, empilhada sobre a US2, num PR com merge commit;
+a T034 mediu 463 ms para 300 nós e abriu a decisão #1384 (guardar o layout por alcance ou não).
 
 ## Escopo proposto, e o que espera confirmação
 
@@ -118,11 +119,11 @@ P3 ficam sem prioridade, como na 073.
 | T027 | Excluir a conta da organização também na revisão (A7) | US2 | [#1352](https://github.com/The-Band-Solution/theband/issues/1352) | sim | feito (US2, 2026-10-04) |
 | T028 | Calcular as duas redes nas três janelas | US2 | [#1353](https://github.com/The-Band-Solution/theband/issues/1353) |  | feito (US2, 2026-10-04) |
 | T029 | Mostrar as contagens da rede de designação | US2 | [#1354](https://github.com/The-Band-Solution/theband/issues/1354) |  | feito (US2, 2026-10-04) |
-| T030 | Calcular a intermediação por Brandes | US3 | [#1355](https://github.com/The-Band-Solution/theband/issues/1355) |  | a fazer |
-| T031 | Posicionar os nós no servidor, com semente | US3 | [#1356](https://github.com/The-Band-Solution/theband/issues/1356) |  | a fazer |
-| T032 | Desenhar o grafo em SVG, sem dado no navegador | US3 | [#1357](https://github.com/The-Band-Solution/theband/issues/1357) | sim | a fazer |
-| T033 | Mostrar o grafo ponderado com o recorte | US3 | [#1358](https://github.com/The-Band-Solution/theband/issues/1358) | sim | a fazer |
-| T034 | Medir o layout da visão parcial na leitura | US3 | [#1359](https://github.com/The-Band-Solution/theband/issues/1359) |  | a fazer |
+| T030 | Calcular a intermediação por Brandes | US3 | [#1355](https://github.com/The-Band-Solution/theband/issues/1355) |  | feito (US3, 2026-10-04) |
+| T031 | Posicionar os nós no servidor, com semente | US3 | [#1356](https://github.com/The-Band-Solution/theband/issues/1356) |  | feito (US3, 2026-10-04) |
+| T032 | Desenhar o grafo em SVG, sem dado no navegador | US3 | [#1357](https://github.com/The-Band-Solution/theband/issues/1357) | sim | feito (US3, 2026-10-04) |
+| T033 | Mostrar o grafo ponderado com o recorte | US3 | [#1358](https://github.com/The-Band-Solution/theband/issues/1358) | sim | feito (US3, 2026-10-04) |
+| T034 | Medir o layout da visão parcial na leitura | US3 | [#1359](https://github.com/The-Band-Solution/theband/issues/1359) |  | feito (US3, 2026-10-04) |
 | T035 | Detectar comunidades pelo guloso com peso | US4 | [#1360](https://github.com/The-Band-Solution/theband/issues/1360) |  | não iniciado (escopo a confirmar) |
 | T036 | Comparar a modularidade com a dos aleatórios, com peso (A5) | US4 | [#1361](https://github.com/The-Band-Solution/theband/issues/1361) |  | não iniciado (escopo a confirmar) |
 | T037 | Mostrar as comunidades com o recorte | US4 | [#1362](https://github.com/The-Band-Solution/theband/issues/1362) | sim | não iniciado (escopo a confirmar) |

@@ -184,6 +184,25 @@ deslocamento limitado pela temperatura. Ao fim, reescala para a caixa [40, 960] 
 **Razão**: o mesmo dado dá o mesmo desenho; o navegador não calcula posição; com alcance parcial, as
 coordenadas da rede inteira entregariam onde estão as pessoas de fora.
 
+**Medida (T034, 2026-10-04)**: `Algorithms.Layout.fruchterman_reingold/3` com os parâmetros da base
+(semente 42, 50 iterações), grafo G(n, 3n) sorteado com semente 76, mediana de 5 corridas, em
+`test/the_band/network_analysis/layout_custo_test.exs`. Máquina: Apple M4, 10 núcleos, 16 GB,
+Elixir 1.20.2 / OTP 29, `MIX_ENV=test`.
+
+| nós da visão | mediana |
+|---|---|
+| 50 | **13 ms** |
+| 300 (o teto de pessoas, R5) | **463 ms** |
+
+O custo é O(iterações · n²), e 300 nós **passa dos 200 ms** que a tarefa pôs como limite. A
+decisão de **guardar o layout por `(leitura, alcance)`** em vez de recalcular a cada leitura fica
+aberta para a pessoa mantenedora na [#1384](https://github.com/The-Band-Solution/theband/issues/1384). O que pesa nela: a visão parcial
+típica tem dezenas de nós (os alcançados mais um agregado por comunidade), e 50 nós custam 13 ms;
+os 463 ms só aparecem numa visão perto do teto, que exigiria alcançar quase 300 pessoas sem
+alcançar todas. Guardar por alcance é guardar um desenho por conjunto de pessoas alcançadas — mais
+uma tabela, com invalidação a cada mudança de alcance (A22), para um caso que o volume medido
+(R20) ainda não mostrou.
+
 ## R10 — A visão recortada (FR-011 a FR-016; R1–R6 da segurança)
 
 **Decisão**: `NetworkAnalysis.View` (puro) recebe a leitura, o alcance, o alcance **concedido**
