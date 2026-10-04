@@ -773,6 +773,61 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   end
 
   @doc """
+  A organização daquele id **neste tenant**, ou `{:error, :not_found}` — feature 073, R4.
+
+  A versão sem `!` de `fetch_organization!/2`, para quem precisa **cancelar** em vez de levantar:
+  o job da rede de revisão confere a organização antes de ler qualquer dado (FR-010), e a
+  organização de outro tenant tem de cair aqui, porque a busca é por id **e** tenant juntos.
+
+  Id malformado também é `{:error, :not_found}`: ele vem da URL ou dos argumentos de um job, e
+  "não existe" é a resposta certa para os dois, sem dizer que o formato estava errado.
+  """
+  @spec fetch_organization(Tenant.t(), term()) :: {:ok, Organization.t()} | {:error, :not_found}
+  def fetch_organization(%Tenant{id: tenant_id}, organization_id) do
+    with {:ok, id} <- Ecto.UUID.cast(organization_id),
+         %Organization{} = organization <-
+           Repo.one(from o in Organization, where: o.tenant_id == ^tenant_id and o.id == ^id) do
+      {:ok, organization}
+    else
+      _ -> {:error, :not_found}
+    end
+  end
+
+  @doc """
+  O tipo de conta de cada pessoa — `"person"`, `"bot"` ou `"app"` — feature 073, R3.
+
+  É EO quem decide o que é pessoa (`Mapper.account_type/1`, pelo `__typename` **e** pelo sufixo
+  `[bot]` do login), e não o `author_type` cru que a avaliação guarda. Id de outro tenant não
+  aparece no mapa, e quem chama o trata como conta não ligada: falha fechada.
+  """
+  @spec account_types(Tenant.t(), [Ecto.UUID.t()]) :: %{Ecto.UUID.t() => String.t()}
+  def account_types(_tenant, []), do: %{}
+
+  def account_types(%Tenant{id: tenant_id}, ids) do
+    Repo.all(
+      from p in Person,
+        where: p.tenant_id == ^tenant_id and p.id in ^ids,
+        select: {p.id, p.account_type}
+    )
+    |> Map.new()
+  end
+
+  @doc """
+  As pessoas de uma organização observada que são **pessoas** (e não bots nem aplicativos) —
+  feature 073, US2, cenário 3.
+
+  O caminho é o que EO já define para "pessoa de uma organização" (`filter_organization/2`):
+  a evidência de vínculo com uma equipe da organização. Não expõe nome, login nem equipe.
+  """
+  @spec organization_person_ids(Tenant.t(), Ecto.UUID.t()) :: [Ecto.UUID.t()]
+  def organization_person_ids(%Tenant{} = tenant, organization_id) do
+    Person
+    |> scope(tenant, account_type: "person", organization_id: organization_id)
+    |> select([p], p.id)
+    |> Repo.all()
+  end
+
+  @doc """
   As pessoas de uma organização que **não** estão em nenhuma equipe observada dela.
 
   É a entrada da regra `github.default_team`: exatamente quem a equipe derivada

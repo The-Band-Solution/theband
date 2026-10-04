@@ -426,30 +426,74 @@ defmodule TheBand.Quality do
     }
   end
 
-  @doc """
-  Quem revisou o quê — a participação `qapo.stakeholder_performed_artifact_evaluation`.
+  @typedoc "Um par (conta revisora, solicitação) com avaliação contável — feature 073."
+  @type review_pair :: %{
+          change_request_id: Ecto.UUID.t(),
+          reviewer_person_id: Ecto.UUID.t() | nil,
+          reviewer_login: String.t() | nil,
+          reviewer_type: String.t() | nil,
+          author_person_id: Ecto.UUID.t() | nil,
+          author_login: String.t() | nil,
+          last_submitted_at: DateTime.t()
+        }
 
-  Bot aparece com `person_id` nulo e não é somado a pessoa: forçar uma pessoa para o robô
-  inventaria participação que não existe.
+  @doc """
+  Os pares (conta revisora, solicitação) com avaliação **enviada** desde `since`, nos repositórios
+  observados dados — a entrada da rede de revisão (feature 073, `contracts/fronteiras.md`).
+
+  Uma linha por par, com o envio mais recente: três rodadas de comentário da mesma conta na
+  mesma solicitação são **um** par, porque o peso da rede é solicitação distinta, e não evento.
+
+  ## O tenant nas duas pontas, e no join
+
+  A FK de avaliação para solicitação é simples, e nada no banco impede uma avaliação de um tenant
+  apontar para a solicitação de outro. Por isso `a.tenant_id` **e** `c.tenant_id` estão no
+  `where`, e o join exige os dois iguais (R12 da segurança; cenários A1 e A2).
+
+  ## Os estados são lista de inclusão
+
+  `states` vem de quem chama, e vem da base. Estado novo da origem **não** entra por omissão: a
+  consulta nunca é *"diferente de PENDING"*.
+
+  **Não classifica**: bot, pessoa não ligada e auto-revisão são decisão da rede, com a regra da
+  base. Os logins existem no retorno só porque a classificação da conta não ligada precisa deles.
   """
-  @spec by_reviewer(Tenant.t(), keyword()) :: [map()]
-  def by_reviewer(%Tenant{id: tenant_id}, opts \\ []) do
+  @spec review_pairs(Tenant.t(), [Ecto.UUID.t()], since: DateTime.t(), states: [String.t()]) ::
+          [review_pair()]
+  def review_pairs(_tenant, [], _opts), do: []
+
+  def review_pairs(%Tenant{id: tenant_id}, observed_repository_ids, opts) do
+    since = Keyword.fetch!(opts, :since)
+    states = Keyword.fetch!(opts, :states)
+
     Repo.all(
       from a in "collected_artifact_evaluations",
+        join: c in "collected_change_requests",
+        on: a.collected_change_request_id == c.id and a.tenant_id == c.tenant_id,
         where:
-          a.tenant_id == type(^tenant_id, :binary_id) and is_nil(a.no_longer_observed_at) and
-            not is_nil(a.external_submitted_at),
-        group_by: [a.author_login, a.author_type, a.author_person_id],
-        order_by: [desc: count(a.id)],
-        limit: ^Keyword.get(opts, :limit, 50),
+          a.tenant_id == type(^tenant_id, :binary_id) and
+            c.tenant_id == type(^tenant_id, :binary_id) and
+            c.observed_repository_id in type(^observed_repository_ids, {:array, :binary_id}) and
+            a.state in ^states and not is_nil(a.external_submitted_at) and
+            a.external_submitted_at >= type(^since, :utc_datetime) and
+            is_nil(a.no_longer_observed_at) and is_nil(c.no_longer_observed_at),
+        group_by: [
+          c.id,
+          a.author_person_id,
+          a.author_login,
+          a.author_type,
+          c.author_person_id,
+          c.author_login
+        ],
+        order_by: [asc: c.id, asc: a.author_login, asc: a.author_person_id],
         select: %{
-          login: a.author_login,
-          author_type: a.author_type,
-          person_id: type(a.author_person_id, :binary_id),
-          evaluations: count(a.id),
-          approved: fragment("count(?) filter (where ? = 'APPROVED')", a.id, a.state),
-          changes_requested:
-            fragment("count(?) filter (where ? = 'CHANGES_REQUESTED')", a.id, a.state)
+          change_request_id: type(c.id, :binary_id),
+          reviewer_person_id: type(a.author_person_id, :binary_id),
+          reviewer_login: a.author_login,
+          reviewer_type: a.author_type,
+          author_person_id: type(c.author_person_id, :binary_id),
+          author_login: c.author_login,
+          last_submitted_at: type(max(a.external_submitted_at), :utc_datetime)
         }
     )
   end

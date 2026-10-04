@@ -314,6 +314,9 @@ defmodule TheBandWeb.Router do
       live "/teams", TeamsLive.Index, :index
       live "/teams/:id", TeamsLive.Show, :show
       live "/organizations", OrganizationLive.Index, :index
+      # A rede de revisão (073): qualquer conta do tenant; o recorte é a função de domínio
+      # (`ReviewNetwork.read/4`), e não um `require_*` (research.md R15).
+      live "/organizations/:id/review-network", ReviewNetworkLive.Show, :show
       live "/profile", ProfileLive.Index, :index
       live "/process", ProcessLive.Index, :index
       live "/projects", ProjectsLive.Index, :index

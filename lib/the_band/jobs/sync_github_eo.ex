@@ -39,6 +39,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   alias TheBand.Ingestion.GithubWorkItems
   alias TheBand.Ingestion.Janela
   alias TheBand.Integrations.GitHub.Client
+  alias TheBand.Jobs.ComputeReviewNetwork
   alias TheBand.Ontology.SEON.EO
   alias TheBand.RawData
   alias TheBand.SemanticIntegration.Mapper
@@ -170,7 +171,10 @@ defmodule TheBand.Jobs.SyncGitHubEO do
         #
         # A ordem importa: a organização precisa existir para o repositório apontar para
         # ela, e é a primeira fase que a grava.
-        trabalho = coletar_trabalho(ctx)
+        #
+        # `organization_id` segue no `ctx` para a etapa de mudanças disparar a rede de revisão
+        # da organização que acabou de ser observada (073, D6).
+        trabalho = coletar_trabalho(Map.put(ctx, :organization_id, organization_id))
 
         # A janela fechou numa etapa do trabalho (ADR 0006, item 5). O sync NÃO fecha —
         # ele não terminou, está esperando. Marcá-lo `completed` diria que a coleta
@@ -361,6 +365,13 @@ defmodule TheBand.Jobs.SyncGitHubEO do
 
   defp coletar_mudancas(ctx) do
     with {:ok, resumo} <- GithubChangeRequests.collect(ctx) do
+      # ACOPLAMENTO ESCRITO (073, D6, research.md R8): a coleta conhece a rede de revisão. As
+      # avaliações acabaram de ser gravadas, e as etapas seguintes podem hibernar por horas pela
+      # cota REST; esperar o fim da sincronização atrasaria a rede por algo que não a muda. A
+      # unicidade do job segura duas coletas seguidas. `{:ok, _} =`: falhar ao enfileirar é
+      # infraestrutura, e a etapa refeita é idempotente.
+      {:ok, _} = ComputeReviewNetwork.enqueue(ctx.tenant.id, ctx.organization_id)
+
       {:ok,
        %{
          change_requests: resumo.change_requests,

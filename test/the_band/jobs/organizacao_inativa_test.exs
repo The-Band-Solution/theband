@@ -24,7 +24,7 @@ defmodule TheBand.Jobs.OrganizacaoInativaTest do
 
   alias TheBand.Ingestion
   alias TheBand.Ingestion.Sync
-  alias TheBand.Jobs.{RecomputePromotions, ReprocessMappings, SyncGitHubEO}
+  alias TheBand.Jobs.{ComputeReviewNetwork, RecomputePromotions, ReprocessMappings, SyncGitHubEO}
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Profiles.{Automation, GenerateWorker, RunEntry, Runs, RunWorker}
   alias TheBand.Sources.{ConnectedTool, ToolCredential}
@@ -35,6 +35,7 @@ defmodule TheBand.Jobs.OrganizacaoInativaTest do
 
   # Cada um tem, abaixo, o teste de que a organização suspensa não produz efeito.
   @por_tenant [
+    ComputeReviewNetwork,
     GenerateWorker,
     RecomputePromotions,
     ReprocessMappings,
@@ -221,6 +222,15 @@ defmodule TheBand.Jobs.OrganizacaoInativaTest do
     test "o remapeamento é cancelado", %{tenant: tenant} do
       assert {:cancel, :tenant_inactive} =
                ReprocessMappings.perform(%Oban.Job{args: %{"tenant_id" => tenant.id}})
+    end
+
+    test "o cálculo da rede de revisão é cancelado, sem gravar leitura (073)", %{tenant: tenant} do
+      assert {:cancel, :tenant_inactive} =
+               ComputeReviewNetwork.perform(%Oban.Job{
+                 args: %{"tenant_id" => tenant.id, "organization_id" => Ecto.UUID.generate()}
+               })
+
+      assert Repo.aggregate("review_network_readings", :count) == 0
     end
 
     test "o recálculo das promoções é cancelado", %{tenant: tenant} do
