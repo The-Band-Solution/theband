@@ -119,6 +119,18 @@ Continuum) têm nome em inglês; a tradução EN usa esse nome, e não uma tradu
 | kind, subkind, role, phase, relator, qua-entity | iguais | OntoUML: não se traduzem (L02) |
 | Proposta, Aceita, Emenda (ADR) | Proposed, Accepted, Amendment | (L02) |
 | tese | thesis | (L02) |
+| ensaio (de migração, de restauração) | rehearsal / restore rehearsal | `producao/ensaio-*` (L04) |
+| chave mestra | master key | runbook (L04) |
+| dispensa (da regra) | waiver | v0.9.1 (L04) |
+| plano de correções | corrections plan | `backlog/plano-de-correcoes-da-api.md` (L04) |
+| carga (da release) | load | v0.9.1 (L04) |
+| grau (semver) | degree | (L04) |
+| conferência (do CD, da tela) | check | (L04) |
+| painel de uso | usage panel | (L04) |
+| não conforme / conforme | non-conforming / conforming | (L04) |
+| revisão não ocorreu / não pedida | review did not occur / not requested | (L04) |
+| fila | queue | `producao/saude-da-fila.md` (L04) |
+| `[redigido]` | `[redigido]` (fica em português: é a marca usada no site) | hotfix do gh-pages, 2026-10-04 (L04) |
 
 Regras que acompanham o glossário:
 
