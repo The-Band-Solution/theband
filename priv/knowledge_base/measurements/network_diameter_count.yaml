@@ -1,0 +1,35 @@
+measurement:
+  id: network.diameter.count
+  version: 1
+  name:
+    pt-BR: "Diâmetro: a maior distância entre pessoas que se alcançam"
+    en: "Diameter: the longest distance between people who reach each other"
+  answers_information_need: [network.structure]
+  value_type: count
+  unit: steps
+
+  formula:
+    expression: >
+      Na projeção sem direção, em passos, com A os pares que se alcançam:
+        diameter = max de d(s, t) sobre A                                        [passos]
+      Sem aresta: AUSENTE com motivo `no_edge_in_window`. A tela diz "between people who
+      reach each other" e, com mais de um componente, que há pares sem caminho.
+    inputs: [network_edges]
+
+  scope:
+    levels: [observed_organization]
+    filters:
+      - "calculada sobre a rede inteira (FR-011)"
+    period: "a janela da leitura"
+
+  limitations:
+    - "Um único par distante decide o valor: é medida de extremo, e não de típico."
+    - "Em rede desconexa, é o maior diâmetro entre os componentes, e não uma distância entre todos."
+
+  misinterpretations:
+    - "Ler como 'no máximo N passos para ir de qualquer pessoa a qualquer outra' em rede desconexa — a frase da referência (`dashboard_team_graph.py:351`), falsa quando há componentes."
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: "spec 076, FR-038; network.analysis.parameters.distances"

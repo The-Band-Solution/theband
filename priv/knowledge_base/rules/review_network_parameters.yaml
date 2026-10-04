@@ -136,6 +136,12 @@ derivation_rule:
       values:
         min_group_size_shown: 3
 
+  # A segunda recusa desta lista — "classificar pessoas em papéis por percentil" — foi
+  # RETIRADA em 2026-10-03 pela pessoa mantenedora (spec 076, *Decisões revertidas*). O papel
+  # passou a ser a regra `network.position_role`, com o método do percentil, a razão de cada
+  # corte e o mínimo de pessoas que a referência não tinha. A recusa do valor de reserva
+  # (0,01) continua: é defeito, e não escolha. A `version` NÃO sobe: nenhum valor desta
+  # regra mudou, e as leituras da 073 que gravaram a versão 1 continuam verdadeiras.
   refuses:
     - proposal: "valor de reserva quando o cálculo falha (o 0,01 da referência, `dashboard_team_graph.py:117`)"
       by:
@@ -145,13 +151,6 @@ derivation_rule:
           Medida sem valor é ausente com motivo (FR-009). Um valor de reserva é o fallback
           silencioso que o AGENTS.md §7.7 lista entre os antipadrões: transforma falha em
           número, e número em decisão.
-    - proposal: "classificar pessoas em papéis por percentil (\"Coordenador central\", \"Hub\", \"Ponte\", \"Colaborador especializado\")"
-      by:
-        pt-BR: "repositório de referência, `dashboard_team_graph.py:497-507`"
-      reason:
-        pt-BR: >
-          É julgamento sobre pessoa, e não medida (FR-018). Os cortes de 80, 50 e 30 não têm
-          razão escrita, e o percentil de uma pessoa muda quando outra entra na rede.
     - proposal: "janela livre escolhida na tela"
       by:
         pt-BR: "spec 073, versão anterior à avaliação de segurança"

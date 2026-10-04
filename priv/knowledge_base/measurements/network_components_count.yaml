@@ -1,0 +1,39 @@
+measurement:
+  id: network.components.count
+  version: 1
+  name:
+    pt-BR: "Componentes da rede inteira, e o tamanho de cada um"
+    en: "Components of the whole network, and the size of each"
+  answers_information_need: [network.structure]
+  value_type: count
+  unit: groups
+
+  formula:
+    expression: >
+      Seja G a projeção sem direção da rede N (review ou assignment) em O e W, sobre a rede
+      INTEIRA (spec 076, FR-011), com nós = pessoas com ao menos uma aresta:
+        components = número de componentes fracamente conexos de G           [grupos]
+        size(c)    = pessoas no componente c                                  [pessoas]
+      Com components = 1, a frase é "all people in this network are linked, directly or
+      indirectly". Sem aresta: AUSENTE com motivo `no_edge_in_window`.
+    inputs: [network_edges, network_kind]
+
+  scope:
+    levels: [observed_organization, component]
+    filters:
+      - "calculada sobre a rede inteira; o que quem tem alcance parcial vê dos componentes é o de seguranca.md da 076"
+    period: "a janela da leitura"
+
+  limitations:
+    - "Critério FRACO: A → B sem B → A já liga os dois."
+    - "Difere de review.network.unconnected_groups.count (073), que é sobre o recorte do alcance. As duas respondem perguntas diferentes, e a tela não as põe lado a lado sem dizer qual é qual."
+
+  misinterpretations:
+    - "Ler componente isolado como silo ou problema: pode ser um produto separado de propósito."
+    - "Ler componente como equipe."
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: "spec 076, FR-019; network.analysis.parameters (connectivity)"
+    note: "Corrige `dashboard_team_graph.py:277-282`, que testa conectividade forte e reporta componentes fracos ('desconexo, contendo 1 componentes')."

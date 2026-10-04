@@ -1,0 +1,41 @@
+measurement:
+  id: assignment.network.excluded.count
+  version: 1
+  name:
+    pt-BR: "Designações que não viraram aresta, por motivo"
+    en: "Assignments left out of the network, by reason"
+  answers_information_need: [network.structure]
+  value_type: count
+  unit: assignments
+
+  formula:
+    expression: >
+      Para cada motivo r em (bot_or_app, organization_account, unlinked_person,
+      self_assignment), na ordem de assignment.network.edge.exclusions:
+        excluded(r) = número de pares (issue, conta responsável) de issues de O abertas em W
+                      cujo primeiro motivo aplicável é r                        [designações]
+      Invariante: soma dos pesos das arestas + soma de excluded(r) = pares (issue, conta
+      responsável) da janela, com os de aresta deduplicados por pessoa.
+      Sem issue com responsável em W: AUSENTE com motivo `no_assignment_in_window`.
+    inputs: [issue_author_person_id, issue_author_login, assignee_person_id, assignee_login, person_account_type, organization_account_declaration, issue_opened_at, observed_organization_id]
+
+  scope:
+    levels: [observed_organization]
+    filters:
+      - "só no agregado: nunca por login, nunca por pessoa"
+      - "quem vê as exclusões segue a mesma regra das exclusões da rede de revisão (review.network.excluded.count, Q5 da 073) — ver seguranca.md da 076"
+    period: "a janela da leitura"
+
+  limitations:
+    - "A conta da organização só é contada como tal se estiver declarada; enquanto não estiver, ela é pessoa e é nó."
+    - "Conta apagada na origem entra em 'sem pessoa ligada', e não em bot: não saber quem é não é saber que é máquina."
+    - "Uma conta pode ser bot E da organização; conta no primeiro motivo da ordem, e os totais fecham."
+
+  misinterpretations:
+    - "Ler a contagem de auto-designação como quem 'pega o próprio trabalho'. É agregada, sem pessoa, e se designar na própria issue é o fluxo normal de muitas equipes."
+    - "Ler 'sem pessoa ligada' como gente de fora. Pode ser coleta de pessoas mais antiga que a de issues."
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: "spec 076, FR-007; assignment.network.edge (exclusions)"
