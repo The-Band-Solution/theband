@@ -1,6 +1,9 @@
 measurement:
   id: review.network.excluded.count
-  version: 1
+  # Versão 2 (2026-10-04, feature 076, E1 da revisão semântica do PR #1383): o motivo
+  # `organization_account`, que a `review.network.edge` ganhou na versão 2. Com a medida na v1, a
+  # soma declarada não fechava quando havia conta declarada, e o invariante passava a mentir.
+  version: 2
   name:
     pt-BR: "Revisões deixadas fora da rede, por motivo"
     en: "Reviews left out of the network, by reason"
@@ -11,24 +14,30 @@ measurement:
   formula:
     expression: >
       Para cada motivo m em review.network.edge.exclusions.order
-      (bot_or_app, unlinked_person, self_review):
+      (bot_or_app, organization_account, unlinked_person, self_review):
         excluded(m) = número de pares (conta revisora, solicitação) da janela W, na organização O,
                       cujo primeiro motivo aplicável é m.
-      Invariante: soma dos pesos das arestas + excluded(bot_or_app) + excluded(unlinked_person)
-      + excluded(self_review) = pares contáveis da janela (estado em
+      Invariante: soma dos pesos das arestas + excluded(bot_or_app)
+      + excluded(organization_account) + excluded(unlinked_person) + excluded(self_review)
+      = pares contáveis da janela (estado em
       review.network.edge.counted_states, enviados em W), com os pares de aresta deduplicados
       por pessoa: duas contas ligadas à mesma pessoa sobre a mesma solicitação são um par
       (review.network.edge, `unit`).
-    inputs: [review_pair, eo_person_account_type, account_type_classification, window_start, window_end, observed_organization_id]
+      Na leitura gravada pela versão 1 da regra, excluded(organization_account) é NULO (não
+      avaliado), e não entra na soma.
+    inputs: [review_pair, eo_person_account_type, account_type_classification, organization_account_declaration, window_start, window_end, observed_organization_id]
 
   scope:
     levels: [observed_organization]
     filters:
-      - "só para quem alcança todas as pessoas; para alcance parcial as três contagens não aparecem, inclusive a de bot ou aplicativo (R12; Q5, decidido em 2026-10-03)"
+      - "só para quem alcança todas as pessoas; para alcance parcial as quatro contagens não aparecem, inclusive a de bot ou aplicativo (R12; Q5, decidido em 2026-10-03)"
       - "nunca com login e nunca por pessoa (FR-004, R5, R9)"
     period: "janela móvel de 30, 90 ou 180 dias, padrão 90 (review.network.parameters.window_days)"
 
   limitations:
+    - "Na leitura gravada pela versão 1 da review.network.edge, a contagem organization_account é nula (não avaliada), e não entra na soma: não é zero, e a tela diz que não foi avaliada."
+    - "A conta da organização só é contada como tal se a administração a declarou. A declaração afirma que o registro eo.person resolvido daquela conta não representa um indivíduo, e sim uma conta usada pela organização; não muda o tipo coletado (Pessoa ≠ Conta)."
+    - "A leitura usa as declarações vigentes quando foi calculada, para a janela inteira: uma conta declarada hoje sai também das revisões de 180 dias atrás, e a revogação a devolve do mesmo modo."
     - "A conta apagada na origem entra em 'sem pessoa ligada', e não em bot (decidido em 2026-10-03); a coleta foi alinhada na T030 da 073."
     - "Contas apagadas sobre a mesma solicitação são indistinguíveis entre si e contam UM par: o número de 'sem pessoa ligada' pode ficar abaixo do número de revisões de contas apagadas na origem."
     - "Autor ligado a uma pessoa depois da coleta continua 'sem pessoa ligada' até a solicitação ser coletada de novo."
@@ -43,4 +52,4 @@ measurement:
   provenance:
     source_type: project_decision
     year: 2026
-    reference: "spec 073, FR-007 (contagens ao lado da concentração), decidido em 2026-10-03 com a aprovação do protótipo (D10, prototipo/README.md, 'Medidas e nomes que a tela pede')"
+    reference: "spec 073, FR-007 (contagens ao lado da concentração), decidido em 2026-10-03 com a aprovação do protótipo (D10, prototipo/README.md, 'Medidas e nomes que a tela pede'); versão 2: spec 076, A7 da revisão semântica 2 (T002, #1326), T027, e E1 da revisão semântica do PR #1383"

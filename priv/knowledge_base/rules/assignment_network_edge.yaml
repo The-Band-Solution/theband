@@ -90,6 +90,8 @@ derivation_rule:
     - "autor: conta e pessoa que abriu a issue (author.login → author_login; author.id → author_person_id)"
     - "responsáveis: conta e pessoa de cada designação vigente (assignees.nodes → issue_assignees.login, person_id; no_longer_observed_at nulo)"
     - "pessoa: `eo.person.account_type` das duas pontas, e a marca de conta da organização (ver `exclusions`)"
+    - "tipo da conta gravado na coleta (T021/T022): `collected_issues.author_account_type` e `issue_assignees.account_type`, de `Mapper.account_type/1` sobre o nó; nulo quando não se sabe"
+    - "declaração de conta da organização: `organization_account_declarations` vigentes do tenant (relator com autoria e revogação)"
 
   unit:
     pt-BR: >
@@ -143,13 +145,16 @@ derivation_rule:
           destino: contribui para uma aresta, ou entra em UM motivo, avaliados nesta ordem:
 
             1. `bot_or_app` — autor ou responsável é conta de máquina (`account_type` em
-               `bot`, `app`; ou, para conta não ligada, `Mapper.account_type/1`);
+               `bot`, `app`; ou, para conta não ligada, o tipo GRAVADO NA COLETA, que é o de
+               `Mapper.account_type/1` sobre o nó — T021/T022);
             2. `organization_account` — autor ou responsável é conta declarada como da
                organização (o caso `LEDS` da referência). A origem a apresenta como `User`,
                e por isso o reconhecimento é por DECLARAÇÃO, e não por inferência: a forma
                da declaração é a decisão D3 da revisão semântica;
             3. `unlinked_person` — autor ou responsável sem `eo.person` (login não
-               resolvido, ou conta apagada, autor nulo);
+               resolvido, ou conta apagada, autor nulo). A conta não ligada com tipo gravado
+               NULO também cai aqui, e é contada à parte em `account_type_unknown`: não se
+               saber o tipo nunca é "pessoa" nem "máquina";
             4. `self_assignment` — autor e responsável são a mesma `eo.person`.
 
           Invariante: (soma dos pesos das arestas) + bot_or_app + organization_account +
@@ -213,15 +218,20 @@ derivation_rule:
     - >
       SEM PESSOA LIGADA em qualquer das pontas não vira aresta, e é contado separado de bot.
     - >
-      O TIPO DA CONTA NÃO LIGADA não está gravado hoje: a consulta traz `author.__typename`
-      e `assignees.nodes.__typename` (`issues.graphql:44-45`), mas `collected_issues` e
-      `issue_assignees` guardam só o login, e a coleta não cria pessoa para conta `Bot`
-      (`github_work_items.ex:532-570`; o `id` do autor só vem `on User`). Sem o tipo, `Mapper.account_type/1` decide só pelo
-      sufixo `[bot]`, e uma conta de máquina cujo login venha sem ele cai em `unlinked_person`
-      em vez de `bot_or_app`. Nenhuma aresta errada nasce disso (as duas exclusões tiram a
-      conta da rede), mas a contagem por motivo fica errada. O plano persiste o tipo, como a
-      rede de revisão já faz com `author_type`, ou declara a subcontagem (revisão semântica
-      2, A3).
+      O TIPO DA CONTA NÃO LIGADA é o gravado na coleta (`Mapper.account_type/1` sobre o nó,
+      em `collected_issues.author_account_type` e `issue_assignees.account_type`; T021), e as
+      linhas anteriores foram preenchidas pelo payload bruto (T022). A linha anterior sem
+      payload, e o autor apagado na origem, ficam com tipo NULO: caem em `unlinked_person` e
+      são contados em `account_type_unknown`, na proveniência da leitura (revisão semântica 2,
+      A3).
+    - >
+      O QUE A DECLARAÇÃO AFIRMA: que o registro `eo.person` resolvido daquela conta não
+      representa um indivíduo, e sim uma conta usada pela organização. Ela não muda o tipo
+      coletado, e fica num relator à parte, com autoria e revogação: Pessoa ≠ Conta.
+    - >
+      A DECLARAÇÃO VALE PARA A JANELA INTEIRA: a leitura usa as declarações vigentes quando foi
+      calculada, e não as da data de cada issue. Uma conta declarada hoje sai também das issues
+      de 180 dias atrás; a revogação a devolve do mesmo modo.
     - >
       Issue de outra organização observada ou de outro tenant nunca entra: a leitura filtra
       issue, responsável e pessoa pelo tenant, nos dois lados de cada junção, e pela
@@ -234,7 +244,7 @@ derivation_rule:
       spec 076, FR-005 a FR-009; revisão semântica 076
       (`specs/076-analise-de-rede/revisao-semantica.md`); decisão da pessoa mantenedora de
       2026-10-03 (*"os dois, IGUAL à referência"*); `review.network.edge` como precedente de
-      forma
+      forma; T021/T022 (o tipo gravado na coleta) e E3 da revisão semântica do PR #1383
     note: >
       Nasce da aresta do repositório `leds-conectafapes-management-dashboard`
       (`dashboard_team_graph.py:53-80`), que o relatório chama de "colaboração". A 073

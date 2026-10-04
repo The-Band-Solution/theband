@@ -184,9 +184,19 @@ derivation_rule:
 
   limitations:
     - >
-      A conta da organização só é reconhecida se a administração a declarou (versão 2). Antes
-      da declaração ela é pessoa e é nó, como na rede de designação. Leitura gravada pela
-      versão 1 não avaliou o motivo: a contagem dela é nula, e a tela diz que não foi avaliado.
+      A conta da organização só é reconhecida se a administração a declarou (versão 2). Enquanto
+      não estiver declarada, ela é pessoa e é nó, como na rede de designação. Leitura gravada
+      pela versão 1 não avaliou o motivo: a contagem dela é nula, e a tela diz que não foi
+      avaliado.
+    - >
+      O QUE A DECLARAÇÃO AFIRMA: que o registro `eo.person` resolvido daquela conta não
+      representa um indivíduo, e sim uma conta usada pela organização. Ela não muda o tipo
+      coletado (`eo.person.account_type` continua o da origem), e por isso fica num relator à
+      parte, com autoria e revogação: Pessoa ≠ Conta.
+    - >
+      A DECLARAÇÃO VALE PARA A JANELA INTEIRA: a leitura usa as declarações vigentes quando foi
+      calculada, e não as da data de cada revisão. Uma conta declarada hoje sai também das
+      revisões de 180 dias atrás; a revogação a devolve do mesmo modo.
     - >
       A aresta é derivada, e nada nela foi dito pela origem como "A revisou B". Erro de
       resolução de conta em pessoa vira aresta errada, e é por isso que conta não resolvida é
@@ -202,10 +212,10 @@ derivation_rule:
       AUTO-REVISÃO (revisor e autor resolvidos na mesma eo.person) não vira aresta, e é
       contada no agregado da leitura — nunca por pessoa (FR-004, R5).
     - >
-      BOT OU APLICATIVO em qualquer das pontas não vira aresta, e é contado. Conta de
-      organização usada como pessoa (o caso `LEDS` na referência) só é excluída se a coleta a
-      classificar como não-pessoa; enquanto `account_type` for `person`, ela é nó — ver a
-      pergunta aberta no README desta proposta.
+      BOT OU APLICATIVO em qualquer das pontas não vira aresta, e é contado. A conta da
+      organização usada como pessoa (o caso `LEDS` na referência) não é reconhecida pelo tipo
+      coletado, que a mostra como `person`: ela é a exclusão 2 (`organization_account`), por
+      declaração, desde a versão 2.
     - >
       SEM PESSOA LIGADA em qualquer das pontas (login que não se resolveu em eo.person, ou
       autor nulo por conta apagada na origem) não vira aresta, e é contado separado de bot.
@@ -232,7 +242,11 @@ derivation_rule:
     reference: >
       spec 073, FR-002 a FR-005; research.md R2, R3 e R11; seguranca.md R9 e R12; decisões
       da pessoa mantenedora de 2026-10-03; revisão semântica 073/T003
-      (`specs/073-rede-de-revisao/revisao-semantica.md`)
+      (`specs/073-rede-de-revisao/revisao-semantica.md`). Versão 2: spec 076, FR-007 e
+      research.md R14; a A7 da revisão semântica 2 da 076
+      (`specs/076-analise-de-rede/revisao-semantica-2.md`), decidida pela pessoa mantenedora na
+      T002 (#1326) — a conta declarada da organização sai das DUAS redes —; implementada na
+      T027
     note: >
       Substitui, antes de entrar na base, o mapeamento proposto
       `github.pull_request_review.to.qapo.artifact_evaluation.as_review_edge`. O conteúdo
