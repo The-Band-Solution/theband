@@ -375,20 +375,20 @@ Quem coordena abre uma pessoa e vê o perfil dela na rede, como na referência: 
 - #1185 (alcance: a frase e o recorte) decidida antes da tarefa que aplica o alcance (DS4).
 - O conserto de `Repo.insert!` em `ReviewNetwork.Commands` (`lib/the_band/review_network/commands.ex:172`, seguranca.md R10: a exceção leva os pares de `person_id` para `oban_jobs.errors`) antes ou junto da primeira tarefa que toca o cálculo. É defeito de segurança conhecido na mesma superfície (AGENTS.md §14.0).
 
-## Decisões pendentes da pessoa mantenedora
+## Decisões da pessoa mantenedora
 
-Bloqueiam o plano. As opções e a recomendação de cada uma estão no documento de origem.
+Bloqueavam o plano. As opções e a recomendação de cada uma estão no documento de origem. **Decididas em 2026-10-04 pela pessoa mantenedora: todas as recomendações aceitas.**
 
-| # | Pergunta | Recomendação | Onde |
-|---|---|---|---|
-| D1 | Qual aresta é a "da referência": autor → responsável vigente (igual à referência) ou quem designou → designado (`AssignedEvent`, com data) | autor → responsável, com o nome "designação" | [revisao-semantica.md](revisao-semantica.md) |
-| D2 | Rótulos do papel e corte baixo: posicionais e 20, ou os da referência e 30 | posicionais e 20 | revisao-semantica.md |
-| D3 | Como a conta da organização é reconhecida (e se vale para a rede de revisão da 073) | a administração marca, com as guardas de seguranca.md R8 | revisao-semantica.md; seguranca.md R8 |
-| D4 | Intermediação sem direção ou dirigida | sem direção | revisao-semantica.md |
-| D5 | Clustering exclui quem tem menos de 2 vizinhos, ou conta 0 | excluir e dizer quantos | revisao-semantica.md |
-| D6 | Segundo revisor do papel semântico antes do plano | sim | revisao-semantica.md |
-| DS1 | Quem lê papel e hubs com o nome de outra pessoa | quem tem escopo concedido e a administração | [seguranca.md](seguranca.md) |
-| DS2 | O mínimo do agrupado: 3 ou 5 | 3 (já na FR-015) | seguranca.md |
-| DS3 | O total de uma pessoa alcançada: verdadeiro, ou separado em "with people you reach" / "in total" | total verdadeiro, com o risco residual escrito | seguranca.md |
-| DS4 | A #1185: corrigir a frase ou incluir a liderança declarada | corrigir a frase | seguranca.md |
-| DS5 | Conta sem alcance: vê tudo agregado, ou só as medidas da rede e o próprio perfil | só medidas e o próprio perfil | seguranca.md |
+| # | Pergunta | Recomendação | Onde | Decisão (2026-10-04) |
+|---|---|---|---|---|
+| D1 | Qual aresta é a "da referência": autor → responsável vigente (igual à referência) ou quem designou → designado (`AssignedEvent`, com data) | autor → responsável, com o nome "designação" | [revisao-semantica.md](revisao-semantica.md) | **(a)** autor da issue → responsável vigente, com o nome "designação" |
+| D2 | Rótulos do papel e corte baixo: posicionais e 20, ou os da referência e 30 | posicionais e 20 | revisao-semantica.md | **(a)** rótulos posicionais, corte baixo 20 |
+| D3 | Como a conta da organização é reconhecida (e se vale para a rede de revisão da 073) | a administração marca, com as guardas de seguranca.md R8 | revisao-semantica.md; seguranca.md R8 | **(a)** a administração marca a conta da organização, com as guardas da R8. Se a marca vale também para a rede de revisão da 073 não foi decidido (revisao-semantica-2.md, A7) |
+| D4 | Intermediação sem direção ou dirigida | sem direção | revisao-semantica.md | **(a)** intermediação sem direção |
+| D5 | Clustering exclui quem tem menos de 2 vizinhos, ou conta 0 | excluir e dizer quantos | revisao-semantica.md | **(a)** quem tem menos de 2 vizinhos fica fora do clustering, e a tela diz quantos |
+| D6 | Segundo revisor do papel semântico antes do plano | sim | revisao-semantica.md | **(a)** segundo revisor independente: [revisao-semantica-2.md](revisao-semantica-2.md) |
+| DS1 | Quem lê papel e hubs com o nome de outra pessoa | quem tem escopo concedido e a administração | [seguranca.md](seguranca.md) | **(b)** papel e hubs com nome só para quem tem escopo concedido e para a administração |
+| DS2 | O mínimo do agrupado: 3 ou 5 | 3 (já na FR-015) | seguranca.md | **3** |
+| DS3 | O total de uma pessoa alcançada: verdadeiro, ou separado em "with people you reach" / "in total" | total verdadeiro, com o risco residual escrito | seguranca.md | **(a)** total verdadeiro, com o risco residual escrito |
+| DS4 | A #1185: corrigir a frase ou incluir a liderança declarada | corrigir a frase | seguranca.md | **(a)** a #1185 se resolve corrigindo a frase |
+| DS5 | Conta sem alcance: vê tudo agregado, ou só as medidas da rede e o próprio perfil | só medidas e o próprio perfil | seguranca.md | **(b)** só as medidas da rede e o próprio perfil |
