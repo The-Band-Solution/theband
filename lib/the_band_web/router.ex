@@ -51,6 +51,10 @@ defmodule TheBandWeb.Router do
     plug TheBandWeb.Plugs.CurrentScope
   end
 
+  pipeline :jornada_de_entrada do
+    plug TheBandWeb.Plugs.JornadaDeEntrada
+  end
+
   # A área do operador da plataforma — spec 070, T036 (FR-009, FR-011). Contrato em
   # `specs/070-operador-da-plataforma/contracts/rotas-da-plataforma.md`.
   #
@@ -280,7 +284,6 @@ defmodule TheBandWeb.Router do
     # o que guarda. Sem autenticação e sem detalhe, como `/version`.
     get "/health", SaudeController, :show
 
-    live "/sign-in", SessionLive.New, :new
     post "/session", SessionController, :create
     delete "/session", SessionController, :delete
 
@@ -289,6 +292,16 @@ defmodule TheBandWeb.Router do
     # conta nesse estado é recusada em toda OUTRA tela, não nesta.
     live "/set-password", SessionLive.SetPassword, :new
     post "/set-password", SessionController, :set_password
+  end
+
+  # A TELA DE ENTRADA, com o correlator da jornada — spec 074, T013 (FR-011; seguranca.md, S5).
+  #
+  # Num escopo próprio para que o plug rode **só** no `GET /sign-in`: o `POST /session` lê o
+  # correlator e o apaga, e não pode ganhar um novo no caminho.
+  scope "/", TheBandWeb do
+    pipe_through [:browser, :jornada_de_entrada]
+
+    live "/sign-in", SessionLive.New, :new
   end
 
   # Consulta — qualquer pessoa autenticada, sempre restrita ao próprio tenant.
