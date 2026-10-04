@@ -314,6 +314,12 @@ defmodule TheBandWeb.Router do
       live "/teams", TeamsLive.Index, :index
       live "/teams/:id", TeamsLive.Show, :show
       live "/organizations", OrganizationLive.Index, :index
+      # A área Network analysis (076, FR-001): qualquer conta do tenant; o recorte é a função
+      # de domínio (`NetworkAnalysis.read/4`, `ReviewNetwork.read/4`), e não um `require_*`
+      # (research.md R15). Só rotas `live`: nenhuma exportação nem API (FR-053).
+      live "/network-analysis", NetworkAnalysisLive.Index, :index
+      # A rede de revisão da 073 é a primeira página da área (FR-003).
+      live "/network-analysis/:organization_id", ReviewNetworkLive.Show, :show
       # A rede de revisão (073): qualquer conta do tenant; o recorte é a função de domínio
       # (`ReviewNetwork.read/4`), e não um `require_*` (research.md R15).
       live "/organizations/:id/review-network", ReviewNetworkLive.Show, :show

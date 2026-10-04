@@ -41,6 +41,21 @@ de rede e janela acompanha a navegação (3.0.3): os links entre as páginas lev
 - a rede de designação diz em uma frase o que a aresta liga e que **não** diz quem designou nem quem
   executou (US2, cen. 5). Nenhum texto usa *collaboration* nem *delegation*.
 
+**Emenda de 2026-10-04 (T019, T020)**, feita no mesmo commit da implementação:
+
+- `NetworkAnalysisLive.Shared` expõe, além de `header/1`: `area_nav/1` (as seis páginas, na ordem
+  de 3.0.1, com a rede e a janela em todo link, 3.0.3), `marca/1` (a mesma marca da 073),
+  `page_path/3` (o caminho de uma página com a seleção), `link_label/1` (as frases das duas
+  arestas) e `pages/0`. `page_path`, e não `path`: o nome colide com `Phoenix.VerifiedRoutes.path/3`;
+- **página que ainda não existe** aparece na ordem, sem link, e nunca como link quebrado: as fatias
+  são PRs empilhados (US1 só tem a rede de revisão; US2 traz *Graph*);
+- os seis cartões de `/network-analysis` (3.1.3) descrevem as páginas e não têm link: a área não
+  tem organização escolhida, e o link de cada página é por organização. A escolha da organização,
+  logo acima, é o que leva à área dela;
+- `{:error, :not_found}`, nos dois endereços da rede de revisão, volta a `/network-analysis` com
+  *"Not found."*, igual para outro tenant, inexistente e id malformado (FR-014). A breadcrumb da
+  página da 073 continua a dela (Q4 (a)).
+
 ## O grafo (FR-020 a FR-026)
 
 Componente `GraphComponents.graph/1`, SVG inline. Restrições, todas testáveis no HTML entregue:
