@@ -1,0 +1,13 @@
+# O override de DESENVOLVIMENTO do SigNoz — spec 074, T006; ADR 0005, E2, item 2; S6.
+#
+# É o ÚNICO arquivo de `deploy/signoz/` com `ports:`, e tudo nele escuta só em `127.0.0.1`: a
+# aplicação de desenvolvimento roda no host, fora da rede `telemetria`, e o painel abre no
+# navegador local. Em produção este arquivo não é usado — o Dokploy implanta só `compose.yaml`,
+# e o painel é alcançado por túnel SSH (D2).
+services:
+  otel-collector:
+    ports:
+      - "127.0.0.1:4318:4318" # OTLP/HTTP
+  signoz:
+    ports:
+      - "127.0.0.1:3301:8080" # painel; 8080 do host costuma estar ocupado

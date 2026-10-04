@@ -89,7 +89,22 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
     função que monta a configuração. **Defeito a injetar**: ler a variável sem validar o host; o
     caso do host de fora precisa reprovar
 
-- [ ] T006 Subir o SigNoz local num profile próprio
+- [x] T006 Subir o SigNoz local num profile próprio — *feita em 2026-10-03, com uma diferença:
+  `foundryctl` não está instalado; o compose foi escrito a partir do de referência da v0.125.0,
+  com cada diferença comentada em `deploy/signoz/compose.yaml`. Medido num projeto isolado
+  (`-p the_band_signoz_teste`), derrubado com `down -v` no fim: os seis serviços subiram, o
+  migrador saiu com 0; `POST` OTLP vazio a `127.0.0.1:4318` → 200; um span de teste **e** um passo
+  `sair` emitido pela aplicação através do filtro chegaram ao ClickHouse
+  (`signoz_traces.distributed_signoz_index_v3`, recurso só com as três chaves, mesmo com
+  `OTEL_RESOURCE_ATTRIBUTES` sentinela no ambiente); `docker port` só em `127.0.0.1` (4318 e
+  3301), nada no ClickHouse e no ZooKeeper; cliente sem senha de outro contêiner →
+  `AUTHENTICATION_FAILED`; sem `SIGNOZ_JWT_SECRET` o painel sai com 1, e sem
+  `SIGNOZ_CLICKHOUSE_PASSWORD` o ClickHouse sai com 1; `the_band_postgres` com o mesmo `CREATED`
+  (2026-09-01 00:19:05). Defeito injetado: coletor com `--manager-config` (OpAMP) contra o
+  servidor v0.125.0 — 12 sondagens em 2 min, contêiner `running`, OTLP recusando conexão (000);
+  restaurado, 200 de novo. **Achado**: o painel e o coletor têm saída para a internet (as redes
+  `painel` e `telemetria` não são `internal`, e precisam publicar porta); o desligamento do envio
+  de uso do SigNoz depende só das variáveis, e a conferência pelo tráfego fica na T028*
   - **Pronta quando**: T001
   - **Descrição**: `foundryctl forge` gera o compose; o resultado vai para `deploy/signoz/` com
     as imagens fixadas por resumo (`@sha256:`), servidor e coletor fixados juntos, o coletor com

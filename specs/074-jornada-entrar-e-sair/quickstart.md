@@ -15,10 +15,20 @@ ler o arquivo (AGENTS §4).
 
 ## 1. Subir o SigNoz local (profile `telemetria`)
 
+`SIGNOZ_JWT_SECRET` e `SIGNOZ_CLICKHOUSE_PASSWORD` vêm do `.env` local (gere com
+`openssl rand -hex 32` e `openssl rand -hex 24`; nunca no repositório). Sem elas, o painel e o
+ClickHouse **recusam subir**, de propósito. Os serviços vão **nomeados**, para que o `postgres`
+(sem profile) não seja recriado:
+
 ```bash
-docker compose --profile telemetria up -d > /tmp/signoz-up.log 2>&1; echo "EXIT=$?"
+docker compose --profile telemetria up -d zookeeper-1 clickhouse signoz-telemetrystore-migrator \
+  signoz otel-collector > /tmp/signoz-up.log 2>&1; echo "EXIT=$?"
 docker compose ps > /tmp/signoz-ps.log 2>&1; echo "EXIT=$?"
 ```
+
+Para derrubar, com os volumes: `docker compose --profile telemetria down -v` **não** — derrubaria
+também o `postgres`. Use `docker compose --profile telemetria rm -sfv zookeeper-1 clickhouse
+signoz-telemetrystore-migrator signoz otel-collector`, e apague os volumes do SigNoz pelo nome.
 
 Esperado: os serviços do profile de pé, com portas **só** em `127.0.0.1` (painel 3301, OTLP 4318).
 O `the_band_postgres` continua com o mesmo `CREATED` de antes.
