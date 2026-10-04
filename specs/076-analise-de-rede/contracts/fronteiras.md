@@ -113,6 +113,11 @@ com tenant, conta que agiu, pessoa e resultado — inclusive a recusa.
   de espaço volta como changeset;
 - `declaration_view` é `%{id, person_id, person_name, reason, declared_by, declared_at}`, com
   `declared_by` o nome ou o e-mail da conta que declarou;
+- `organization_accounts_changed_at/1` (E4 da revisão semântica do PR #1383):
+  `@spec organization_accounts_changed_at(Tenant.t()) :: DateTime.t() | nil`, o instante da
+  declaração ou revogação mais recente do tenant, vigente ou não; `nil` quando nunca houve. Para o
+  cálculo e a leitura da análise, que não usam a leitura da 073 anterior a ele. Não confere quem
+  pede, como `organization_account_ids/1`: não chega a tela nenhuma;
 - o evento é `AccessEvents.conta_da_organizacao/5` (`ato`, tenant, conta que agiu, pessoa,
   resultado), em `:warning`, com a conta que agiu **explícita**. A pessoa só entra no log como
   UUID válido: o id malformado vem de fora, e vira `nil`.

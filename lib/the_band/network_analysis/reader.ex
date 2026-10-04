@@ -21,7 +21,10 @@ defmodule TheBand.NetworkAnalysis.Reader do
      malformado dão o mesmo `{:error, :not_found}`;
   2. a leitura vigente de `(tenant, organização, rede, janela)`; sem ela, `{:ausente,
      :not_computed}`; mais velha que a maior janela, `{:ausente, :stale}` (R18) — nunca a de
-     outra rede ou janela no lugar;
+     outra rede ou janela no lugar. Na rede de revisão, a leitura feita de uma leitura da 073 que
+     não sabe das contas declaradas vigentes (versão 1, ou calculada até a última declaração ou
+     revogação) é `{:ausente, :review_reading_outdated}` (E4 da revisão semântica do PR #1383;
+     `Inputs.review_reading_current?/3`): a conta declarada seria nó numa rede e não na outra;
   3. os nomes das pessoas da leitura, numa consulta (`EO.people_names/2`); quem não está mais em
      EO sai do alcance e é tratado como pessoa de fora (R18);
   4. os dois alcances, nesta chamada;
@@ -42,6 +45,7 @@ defmodule TheBand.NetworkAnalysis.Reader do
 
   alias TheBand.NetworkAnalysis.Algorithms.Layout
   alias TheBand.NetworkAnalysis.Algorithms.Projection
+  alias TheBand.NetworkAnalysis.Inputs
   alias TheBand.NetworkAnalysis.Parameters
   alias TheBand.NetworkAnalysis.Queries
   alias TheBand.NetworkAnalysis.View
@@ -112,13 +116,17 @@ defmodule TheBand.NetworkAnalysis.Reader do
   que a fachada expõe como `read/4`.
   """
   @spec read(Tenant.t(), User.t(), term(), selection()) ::
-          {:ok, map()} | {:ausente, :not_computed | :stale} | {:error, :not_found}
+          {:ok, map()}
+          | {:ausente, :not_computed | :stale | :review_reading_outdated}
+          | {:error, :not_found}
   def read(tenant, user, organization_id, selecao),
     do: read(tenant, user, organization_id, selecao, Parameters.fetch!())
 
   @doc false
   @spec read(Tenant.t(), User.t(), term(), selection(), Parameters.t()) ::
-          {:ok, map()} | {:ausente, :not_computed | :stale} | {:error, :not_found}
+          {:ok, map()}
+          | {:ausente, :not_computed | :stale | :review_reading_outdated}
+          | {:error, :not_found}
   def read(%Tenant{} = tenant, %User{} = user, organization_id, selecao, parametros) do
     %{network: rede, window: dias} = selecao
 
@@ -165,11 +173,23 @@ defmodule TheBand.NetworkAnalysis.Reader do
         # e não ao da leitura: é a idade dela que importa.
         limite = DateTime.add(DateTime.utc_now(), -Enum.max(parametros.windows) * @dia, :second)
 
-        if DateTime.compare(leitura.computed_at, limite) == :lt,
-          do: {:ausente, :stale},
-          else: {:ok, leitura}
+        cond do
+          DateTime.compare(leitura.computed_at, limite) == :lt -> {:ausente, :stale}
+          desatualizada?(tenant, leitura) -> {:ausente, :review_reading_outdated}
+          true -> {:ok, leitura}
+        end
     end
   end
+
+  defp desatualizada?(tenant, %{network: "review"} = leitura) do
+    not Inputs.review_reading_current?(
+      leitura.exclusions["organization_account"],
+      leitura.source_computed_at,
+      Tenants.organization_accounts_changed_at(tenant)
+    )
+  end
+
+  defp desatualizada?(_tenant, _leitura), do: false
 
   # Quem saiu de EO sai do alcance (R18): com alcance parcial, é de fora.
   defp sem(:todas, _gone), do: :todas

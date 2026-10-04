@@ -229,6 +229,24 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphRecorteTest do
     assert svg.(parcial) == svg.(abrir(ctx, ctx.conta, org))
   end
 
+  test "E4 do #1383: a leitura de revisão desatualizada não vira desenho", ctx do
+    %{org: org} = organizacao(ctx, 4)
+
+    # Mediu: a designação, da mesma entrada, desenha.
+    assert Enum.count(q(abrir(ctx, ctx.admin, org), "svg circle.nd")) == 7
+
+    # A revisão gravada sem a contagem da conta da organização é desatualizada (E4).
+    {:ok, _view, html} =
+      live(
+        log_in(ctx.conn, ctx.admin),
+        "/network-analysis/#{org.id}/graph?network=review&window=90"
+      )
+
+    assert textos(html, "#sem-leitura") |> hd() =~ "calculated before the latest change"
+    assert Enum.empty?(q(html, "svg"))
+    assert Enum.empty?(q(html, "#grafo"))
+  end
+
   test "no telefone, o desenho some e a lista é a mesma visão, empilhada", ctx do
     %{org: org} = organizacao(ctx, 4)
     html = abrir(ctx, ctx.conta, org)

@@ -7,10 +7,12 @@ defmodule TheBand.NetworkAnalysis.ParametersTest do
   falta partem da mesma base e apagam uma chave por vez: um caso por chave lida.
 
   **Defeito a injetar**: `Map.get(..., 100)` como reserva para `random_graphs`; o caso da chave
-  apagada reprova.
+  apagada reprova. E, para a versão da `review.network.edge` (O1 da revisão semântica do PR
+  #1383): tirar `@revisao` da lista de `knowledge_versions`; o caso da impressão digital reprova.
   """
   use ExUnit.Case, async: false
 
+  alias TheBand.NetworkAnalysis.Commands
   alias TheBand.NetworkAnalysis.Parameters
   alias TheBand.Ontology.KnowledgeBase
 
@@ -18,6 +20,7 @@ defmodule TheBand.NetworkAnalysis.ParametersTest do
   @papel "network.position_role"
   @aresta "assignment.network.edge"
   @janelas "review.network.parameters"
+  @revisao "review.network.edge"
 
   @chaves [
     {@analise, ~w(networks values allowed)},
@@ -58,7 +61,7 @@ defmodule TheBand.NetworkAnalysis.ParametersTest do
     {:ok, _} = KnowledgeBase.load()
 
     regras =
-      Map.new([@analise, @papel, @aresta, @janelas], fn id ->
+      Map.new([@analise, @papel, @aresta, @janelas, @revisao], fn id ->
         {:ok, r} = KnowledgeBase.rule(id)
         {id, r}
       end)
@@ -96,7 +99,33 @@ defmodule TheBand.NetworkAnalysis.ParametersTest do
              ~w(bot_or_app organization_account unlinked_person self_assignment)
 
     assert p.knowledge_versions[@analise] == 1
-    assert map_size(p.knowledge_versions) == 4 + map_size(ctx.medidas)
+    assert p.knowledge_versions[@revisao] == 2
+    assert map_size(p.knowledge_versions) == 5 + map_size(ctx.medidas)
+  end
+
+  test "a versão da regra de revisão entra na impressão digital: v1 e v2 não são a mesma", ctx do
+    v1 = put_in(ctx.regras, [@revisao, "version"], 1)
+
+    entrada = %{
+      edges: [%{source: "a", target: "b", weight: 1}],
+      exclusions: %{"pairs" => 1},
+      people_without_edges: 0
+    }
+
+    com = fn regras ->
+      Commands.impressao_digital(
+        entrada,
+        Parameters.from_rules!(regras, ctx.medidas).knowledge_versions
+      )
+    end
+
+    refute com.(v1) == com.(ctx.regras)
+  end
+
+  test "levanta sem a regra review.network.edge", ctx do
+    assert_raise RuntimeError, ~r/#{@revisao}/, fn ->
+      Parameters.from_rules!(Map.delete(ctx.regras, @revisao), ctx.medidas)
+    end
   end
 
   for {regra, caminho} <- @chaves do

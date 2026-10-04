@@ -46,6 +46,14 @@ derivation_rule:
           `review.network.edge`) e `assignment` (aresta `assignment.network.edge`). Valor fora
           da lista é recusado no domínio. As janelas são as de
           `review.network.parameters.window_days` (30, 90, 180; padrão 90), para as duas.
+      note:
+        pt-BR: >
+          A rede `review` é a leitura que a 073 gravou, e a `assignment` é calculada aqui, com
+          as contas da organização declaradas AGORA. Para a conta declarada sair das duas (A7),
+          a leitura da 073 da versão 1 da `review.network.edge`, ou calculada até a última
+          declaração ou revogação do tenant, NÃO é usada: a rede de revisão fica ausente, com o
+          motivo `review_reading_outdated`, e a tela diz que ela é recalculada na sincronização
+          seguinte. Nunca é usada como se tivesse medido (E4 da revisão semântica do PR #1383).
       values:
         allowed: [review, assignment]
         windows_from: review.network.parameters.window_days

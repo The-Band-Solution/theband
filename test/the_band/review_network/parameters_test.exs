@@ -56,6 +56,8 @@ defmodule TheBand.ReviewNetwork.ParametersTest do
     assert p.knowledge_versions["review.network.parameters"] == 1
     # 076, T027: a versão 2, com a conta da organização entre as exclusões.
     assert p.knowledge_versions["review.network.edge"] == 2
+    # E1 da revisão semântica do PR #1383: a medida das exclusões acompanha o quarto motivo.
+    assert p.knowledge_versions["review.network.excluded.count"] == 2
     assert map_size(p.knowledge_versions) == 11
     assert p.knowledge_versions["review.network.concentration.top_k_share"] == 1
   end

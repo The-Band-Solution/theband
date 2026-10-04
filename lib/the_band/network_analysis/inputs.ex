@@ -10,10 +10,25 @@ defmodule TheBand.NetworkAnalysis.Inputs do
 
   - **revisão**: as leituras vigentes da 073 (`ReviewNetwork.current_edges/2`), da mesma janela,
     com o instante delas em `source_computed_at` (R2). Sem leitura da 073 naquela janela,
-    `{:ausente, :not_computed}`: nada é gravado, e nunca a de outra janela no lugar;
+    `{:ausente, :not_computed}`: nada é gravado, e nunca a de outra janela no lugar. Leitura da
+    073 que **não sabe** das contas declaradas vigentes é `{:ausente, :review_reading_outdated}`
+    (ver abaixo);
   - **designação**: os pares de `WorkItems.assignment_pairs/3` desde o início da **maior** janela,
     classificados por `AssignmentClassification` com os tipos de EO e as contas declaradas da
     organização, e resumidos por janela pelo instante de **abertura** da issue.
+
+  ## A leitura da 073 desatualizada (E4 da revisão semântica do PR #1383)
+
+  A conta declarada da organização sai das **duas** redes (A7). A rede de designação usa as
+  declarações de agora; a de revisão usa as arestas que a 073 gravou. Quando a leitura da 073 foi
+  gravada pela versão 1 da `review.network.edge` (o motivo `organization_account` é nulo), ou foi
+  calculada **até** a última declaração ou revogação do tenant, as arestas dela podem ter a conta
+  declarada como nó, ou deixar fora quem voltou a ser pessoa. Essa leitura não é usada como se
+  tivesse medido: a revisão fica `{:ausente, :review_reading_outdated}`, e a sincronização
+  seguinte recalcula a 073, que agenda a análise.
+
+  O instante igual conta como desatualizado: os dois são gravados em segundos, e no mesmo segundo
+  não se sabe qual veio antes.
 
   ## O número fixo de consultas
 
@@ -54,18 +69,43 @@ defmodule TheBand.NetworkAnalysis.Inputs do
       |> MapSet.difference(contas)
 
     revisao = ReviewNetwork.current_edges(tenant, organization_id)
+    mudanca = Tenants.organization_accounts_changed_at(tenant)
     designacao = designacao(tenant, organization_id, now, parametros, contas)
 
     fn
-      "review", dias, _inicio -> revisao(Map.fetch(revisao, dias), pessoas)
+      "review", dias, _inicio -> revisao(Map.fetch(revisao, dias), pessoas, mudanca)
       "assignment", _dias, inicio -> designacao(designacao, inicio, pessoas)
     end
   end
 
-  # A leitura da 073 da mesma janela, em arestas da análise.
-  defp revisao(:error, _pessoas), do: {:ausente, :not_computed}
+  @doc """
+  Se a leitura da rede de revisão sabe das contas declaradas vigentes: avaliou o motivo
+  `organization_account` (não é da versão 1) e foi calculada **depois** da última mudança nas
+  declarações (`nil` quando nunca houve). Usada aqui, sobre a leitura da 073, e pelo `Reader`,
+  sobre a leitura da análise feita dela.
+  """
+  @spec review_reading_current?(non_neg_integer() | nil, DateTime.t(), DateTime.t() | nil) ::
+          boolean()
+  def review_reading_current?(nil, _calculada_em, _mudanca), do: false
+  def review_reading_current?(_contagem, _calculada_em, nil), do: true
 
-  defp revisao({:ok, leitura}, pessoas) do
+  def review_reading_current?(_contagem, %DateTime{} = calculada_em, %DateTime{} = mudanca),
+    do: DateTime.compare(calculada_em, mudanca) == :gt
+
+  # A leitura da 073 da mesma janela, em arestas da análise.
+  defp revisao(:error, _pessoas, _mudanca), do: {:ausente, :not_computed}
+
+  defp revisao({:ok, leitura}, pessoas, mudanca) do
+    if review_reading_current?(
+         leitura.excluded.organization_account,
+         leitura.computed_at,
+         mudanca
+       ),
+       do: revisao_vigente(leitura, pessoas),
+       else: {:ausente, :review_reading_outdated}
+  end
+
+  defp revisao_vigente(leitura, pessoas) do
     e = leitura.excluded
 
     {:ok,
@@ -75,7 +115,6 @@ defmodule TheBand.NetworkAnalysis.Inputs do
          "pairs" => leitura.reviews + soma(e),
          "self_review" => e.self_review,
          "bot_or_app" => e.bot_or_app,
-         # Nulo na leitura da versão 1 da regra (073): não avaliado, e nunca zero.
          "organization_account" => e.organization_account,
          "unlinked_person" => e.unlinked_person
        },

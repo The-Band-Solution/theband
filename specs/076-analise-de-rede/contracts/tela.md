@@ -34,6 +34,10 @@ de rede e janela acompanha a navegação (3.0.3): os links entre as páginas lev
 - `assigns` guardam só a visão recortada (R6, item 4);
 - `{:error, :not_found}` → a página *"not found"*, igual para os quatro casos (FR-014);
 - `{:ausente, motivo}` → `<.absent reason=...>` com a frase do motivo; nunca 0, `—`, célula vazia;
+  o motivo `:review_reading_outdated` (E4 da revisão semântica do PR #1383) diz *"not shown: the
+  review network reading was calculated before the latest change to the accounts declared as the
+  organisation's, so it does not know about it; it is recalculated at the next synchronization of
+  this organisation"*;
 - todo número com a marca `<.marca tipo={:derivado} />`, como a 073 (`review_network_live/show.ex`);
   ausência com `<.absent reason=...>` (§11.1, regras 1 e 2; FR-051);
 - a frase *"Position in this network and window. It does not measure performance, importance or

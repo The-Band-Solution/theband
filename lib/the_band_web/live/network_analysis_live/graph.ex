@@ -297,6 +297,14 @@ defmodule TheBandWeb.NetworkAnalysisLive.Graph do
   defp motivo_da_ausencia(:not_computed, _rede),
     do: "not calculated: the platform has not computed this reading yet"
 
+  # E4 da revisão semântica do PR #1383: a leitura da 073 não sabe das contas declaradas
+  # vigentes, e a conta declarada seria nó aqui e não na rede de designação.
+  defp motivo_da_ausencia(:review_reading_outdated, _rede),
+    do:
+      "not shown: the review network reading was calculated before the latest change to the " <>
+        "accounts declared as the organisation's, so it does not know about it; it is " <>
+        "recalculated at the next synchronization of this organisation"
+
   defp motivo_da_ausencia(:stale, _rede),
     do: "not shown: this reading is older than the longest window, and was not recalculated"
 
