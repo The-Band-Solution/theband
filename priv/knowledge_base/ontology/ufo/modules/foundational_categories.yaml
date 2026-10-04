@@ -8,6 +8,10 @@ module:
       Categorias fundacionais usadas no campo classification.ufo_category dos
       conceitos de SEON e Continuum. Existem para impedir que o modelo trate um
       evento como objeto, ou um papel como tipo.
+    en: >
+      Foundational categories used in the classification.ufo_category field of the SEON and
+      Continuum concepts. They exist to prevent the model from treating an event as an
+      object, or a role as a type.
   provenance:
     source_type: reference_ontology
     reference: "Tese, Seção 2.2.1 — UFO"
@@ -18,6 +22,7 @@ concepts:
     label: { pt-BR: "Objeto", en: "Object" }
     definition:
       pt-BR: Indivíduo que existe no tempo, mantendo sua identidade ao longo dele (endurante).
+      en: "Individual that exists in time, keeping its identity throughout it (endurant)."
     classification: { ufo_category: kind }
     examples: ["um repositório de código", "uma máquina"]
 
@@ -28,6 +33,9 @@ concepts:
       pt-BR: >
         Indivíduo que ocorre no tempo (perdurante). Acontece, não persiste.
         Falhas, execuções de teste e atividades executadas são eventos.
+      en: >
+        Individual that occurs in time (perdurant). It happens, it does not persist.
+        Failures, test executions, and performed activities are events.
     classification: { ufo_category: event }
     examples: ["uma falha em produção", "a execução de um build"]
 
@@ -38,6 +46,9 @@ concepts:
       pt-BR: >
         Porção da realidade que pode ser compreendida como um todo em um instante.
         Eventos são disparados por situações e trazem à tona novas situações.
+      en: >
+        Portion of reality that can be comprehended as a whole at an instant. Events are
+        triggered by situations and bring about new situations.
     classification: { ufo_category: situation }
 
   - id: ufo.disposition
@@ -47,6 +58,9 @@ concepts:
       pt-BR: >
         Propriedade que só se manifesta em circunstâncias específicas. Um defeito
         é uma disposição: existe no programa mesmo quando nunca se manifesta.
+      en: >
+        Property that manifests itself only in specific circumstances. A defect is a
+        disposition: it exists in the program even when it never manifests itself.
     classification: { ufo_category: disposition }
 
   - id: ufo.agent
@@ -54,6 +68,9 @@ concepts:
     label: { pt-BR: "Agente", en: "Agent" }
     definition:
       pt-BR: Objeto capaz de ter intenções e realizar ações. Pessoas e organizações são agentes.
+      en: >
+        Object capable of having intentions and performing actions. People and organizations
+        are agents.
     classification: { ufo_category: agent }
 
   - id: ufo.role
@@ -64,6 +81,10 @@ concepts:
         Tipo antirrígido e relacionalmente dependente: um indivíduo assume o papel
         em um contexto e pode deixá-lo sem perder identidade. Uma pessoa não é
         desenvolvedor por natureza; ela desempenha esse papel em um time.
+      en: >
+        Anti-rigid and relationally dependent type: an individual assumes the role in a
+        context and can leave it without losing identity. A person is not a developer by
+        nature; they perform that role in a team.
     classification: { ufo_category: role }
 
   - id: ufo.social_role
@@ -71,6 +92,7 @@ concepts:
     label: { pt-BR: "Papel Social", en: "Social Role" }
     definition:
       pt-BR: Papel reconhecido por uma entidade social, como uma organização.
+      en: "Role recognized by a social entity, such as an organization."
     classification: { ufo_category: social_role }
     examples: ["Product Owner Role", "Scrum Master Role"]
 
@@ -81,6 +103,9 @@ concepts:
       pt-BR: >
         Objeto cuja existência depende de convenção social. Documentos, requisitos
         e user stories são objetos sociais.
+      en: >
+        Object whose existence depends on social convention. Documents, requirements, and
+        user stories are social objects.
     classification: { ufo_category: social_object }
 
   - id: ufo.relator
@@ -90,6 +115,9 @@ concepts:
       pt-BR: >
         Indivíduo que fundamenta uma relação material entre outros indivíduos.
         Team Membership é o relator que conecta pessoa, papel e equipe.
+      en: >
+        Individual that grounds a material relation between other individuals. Team
+        Membership is the relator that connects person, role, and team.
     classification: { ufo_category: relator }
 
   - id: ufo.collective
@@ -97,6 +125,7 @@ concepts:
     label: { pt-BR: "Coletivo", en: "Collective" }
     definition:
       pt-BR: Todo cujos membros desempenham o mesmo papel em relação ao todo.
+      en: "Whole whose members play the same role with respect to the whole."
     classification: { ufo_category: collective }
     examples: ["uma branch, entendida como coleção de artefatos de um repositório"]
 
@@ -107,6 +136,9 @@ concepts:
       pt-BR: >
         Evento intencional composto de outras ações. Um processo executado é uma
         ação complexa; o processo planejado é uma intenção, não uma ação.
+      en: >
+        Intentional event composed of other actions. A performed process is a complex
+        action; the planned process is an intention, not an action.
     classification: { ufo_category: complex_action }
 
   - id: ufo.intention
@@ -116,6 +148,9 @@ concepts:
       pt-BR: >
         Estado mental de comprometimento com um propósito. Fundamenta a distinção
         entre processo planejado (intended) e processo executado (performed).
+      en: >
+        Mental state of commitment to a purpose. It grounds the distinction between planned
+        process (intended) and performed process (performed).
     classification: { ufo_category: intention }
 
 relations:
