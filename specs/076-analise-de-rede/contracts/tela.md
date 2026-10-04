@@ -69,6 +69,28 @@ Componente `GraphComponents.graph/1`, SVG inline. Restrições, todas testáveis
 - `<title>` de agregado diz só quantas pessoas contém (3.7.3);
 - `hidden sm:block` no SVG, lista empilhada `sm:hidden` com `data-label` (FR-025).
 
+**Emenda de 2026-10-04 (T032)**, feita no mesmo commit da implementação:
+
+- assinatura: `GraphComponents.graph/1` com `id` (texto), `graph` (o `graph` de `read/4` em
+  `{:ok, _}`) e `network` (`"review"` ou `"assignment"`). O componente não recebe leitura, alcance
+  nem parâmetro: só a visão já recortada e já anotada pelo `Reader` (`band`, `labelled?`, `layout`,
+  `bands`; [network-analysis.md](network-analysis.md), emenda da T033);
+- a aresta é um `<path>` com curva leve (a do protótipo aprovado, 3.2.1), e não `<line>`: o par
+  recíproco não se sobrepõe. Continua com `marker-end` e espessura 0,6 + 0,9·log2(1 + peso);
+- tamanho: 5 + 3·√grau na pessoa; 8 + 4·√tamanho no agregado (os do protótipo);
+- **o LiveView 1.2.9 não tem `phx-mouseenter`.** O destaque fica em `phx-focus`/`phx-blur` do nó
+  (teclado e clique, que focaliza o nó com `tabindex="0"`), e o hook `.NetworkGraph`, no
+  `pointerover`/`pointerout`, executa **o mesmo comando** que o nó já carrega
+  (`liveSocket.execJS`). O hook continua sem dado, sem `pushEvent` e sem `handleEvent`;
+- o cartão da pessoa (3.2.5) é renderizado escondido, um por nó da visão, e mostrado pelo mesmo
+  comando JS. Proximidade, autovetor e posição aparecem como ausência da plataforma (*"not
+  calculated by the platform yet"*) até as tarefas que os calculam (T038, T039, T045);
+- o agregado se escreve *"People outside your reach — community N (k)"*; sem comunidade calculada
+  (antes da T035), *"People outside your reach (k)"*; o `<title>` diz só quantas pessoas contém
+  (3.7.3);
+- `data-zoom` (`in`, `out`, `fit`) e `data-viewport` são os únicos `data-*` do desenho, e são
+  nomes, não dado.
+
 ## O que estas telas não oferecem
 
 Botão de exportar, `download`, `Content-Disposition`, *"copy as image"*, folha de impressão do
