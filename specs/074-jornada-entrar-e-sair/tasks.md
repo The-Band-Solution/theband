@@ -107,7 +107,10 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
 
 ## Fase 2: Fundação
 
-- [ ] T007 Declarar a taxonomia da jornada
+- [x] T007 Declarar a taxonomia da jornada — *feita em 2026-10-03: `mix knowledge.validate`
+  EXIT=0; `taxonomia_test.exs` lê os seis passos e os 20 motivos da régua (a descrição dizia 17:
+  são 6 + 1 + 8 + 3 + 2). Defeitos vistos reprovando: sem `provenance`, o validador sai com 1
+  ("proveniência ausente ou sem source_type"); um motivo a mais no YAML reprova 1/5*
   - **Pronta quando**: `data-model.md` §1; T001
   - **Descrição**: `priv/knowledge_base/rules/journey_entrar_e_sair.yaml`, `derivation_rule`
     `journey.entrar_e_sair`, com os seis passos, os desfechos, os 17 motivos por passo, o cenário
