@@ -189,6 +189,31 @@ plugins:
             "A API pública": The public API
             "O servidor MCP, para quem liga um agente": The MCP server, for connecting an agent
             "Fluxo de uma feature": Feature workflow
+            # L02 (075/T028): ontologias e decisões.
+            EO — organização e pessoas: EO — organization and people
+            SPO — projetos: SPO — projects
+            SRO — processo e trabalho: SRO — process and work
+            CMPO — mudanças: CMPO — changes
+            CMO — configuração: CMO — configuration
+            CDRO — dependências: CDRO — dependencies
+            CIRO — integração contínua: CIRO — continuous integration
+            RSRO — release: RSRO — release
+            QAPO — qualidade: QAPO — quality
+            SMPO — medição: SMPO — measurement
+            ROoST — testes: ROoST — testing
+            OSDeF — código: OSDeF — code
+            UFO — fundamentação: UFO — foundations
+            SysSwO — sistema e software: SysSwO — system and software
+            0001 monolito modular elixir: 0001 modular monolith in Elixir
+            0002 yaml como base de conhecimento: 0002 YAML as the knowledge base
+            0003 organizacao por ontologias: 0003 organization by ontologies
+            0004 modelo de informacao one table per kind: 0004 information model, one table per kind
+            0005 telemetria da jornada: 0005 journey telemetry
+            0006 coleta paralela: 0006 parallel collection
+            0007 gestor de cotas: 0007 quota manager
+            0008 vinculo observado: 0008 observed team membership
+            0009 API pública com token: 0009 public API with a token
+            0010 hash do token de API: 0010 API token hash
 
 # Os links que saem de `docs/` viram URL do GitHub no momento do build — o fonte
 # continua relativo e navegável no repositório. Ver o moduledoc do arquivo.
