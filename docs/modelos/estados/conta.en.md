@@ -113,7 +113,7 @@ it was"*. The column pair in `users` goes back to null; the history stays in the
 ### The mistake, and why it does not delete
 
 `disabled_by_mistake` is a reactivation reason that marks the episode as a mistake: it *"**stops counting**
-as a dismissal and remains visible, in the manner of `TeamMembership.invalidated_at`. A mistake is stated,
+as an offboarding and remains visible, in the manner of `TeamMembership.invalidated_at`. A mistake is stated,
 not removed."* (`tenants.ex:320-322`).
 
 It is the same gesture as the [team membership](vinculo-de-equipe.md) — and recognizing it in two

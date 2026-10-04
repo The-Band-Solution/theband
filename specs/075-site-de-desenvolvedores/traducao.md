@@ -51,7 +51,7 @@ Continuum) têm nome em inglês; a tradução EN usa esse nome, e não uma tradu
 | medida | measure | SMPO |
 | observado / declarado / derivado / ausente | observed / declared / derived / absent | `docs/design-system.md` |
 | proveniência | provenance | — |
-| vigente / revogado(a) | in force / revoked | `revoked_at IS NULL` (L03) |
+| vigente, em vigor / revogado(a) | in force / revoked | `revoked_at IS NULL` (L03; o L01 usou *in effect*, unificado na integração) |
 | declaração revogável | revocable declaration | `estados/declaracao-revogavel.md` (L03) |
 | equívoco (do vínculo) | mistake | `invalidated_at`, como no L02 (L03) |
 | saída (declarada) | (declared) departure | `ended_at`, como no L02 (L03) |
@@ -86,7 +86,7 @@ Continuum) têm nome em inglês; a tradução EN usa esse nome, e não uma tradu
 | coleta | collection | (L01) |
 | encerrar / retomar observação | end / resume observation | `/tools` (L01) |
 | tela | screen | (L01) |
-| a régua (de uma página de funcionalidade) | the yardstick | `funcionalidades/` (L01) |
+| a régua (de uma página de funcionalidade; o que mede) | the yardstick | `funcionalidades/` (L01; o L02 usou *ruler* na ADR 0004, unificado na integração) |
 | recusa (nomeada) | (named) refusal | (L01) |
 | limiar | threshold | `team.dashboard.thresholds` (L01) |
 | trabalho parado | stopped work | `stale_open_work` (L01) |
@@ -105,11 +105,11 @@ Continuum) têm nome em inglês; a tradução EN usa esse nome, e não uma tradu
 | evidência de vínculo | team membership evidence | `github.team_membership_evidence` (L02) |
 | declarar papel / papel não declarado | declare role / role not declared | rótulo da tela (L02) |
 | saída declarada, equívoco | declared departure, mistake | 055/060 (L02) |
-| concessão | grant | `eo.role_*_grant` (L02) |
+| concessão (de papel) | grant | `eo.role_*_grant` (L02). No sentido de *compromisso aceito* ("concessão declarada", `modelos/arquitetura/visao-geral`) é outra palavra, e fica *concession* |
 | elo (conta ↔ pessoa) | link | AGENTS, tela de contas (L02) |
 | veredito (de acesso) | verdict | `Tenants.Access` (L02) |
 | alcance | reach | `Tenants.Access` (L02) |
-| desligamento (de alguém) | offboarding | ADR 0009 (L02) |
+| desligamento (de alguém) | offboarding | ADR 0009 (L02; o L03 usou *dismissal* em `estados/conta`, unificado na integração) |
 | coleta, etapa | collection, stage | ingestão (L02) |
 | verificações (execuções de CI) | checks | ADR 0006/0007 (L02) |
 | cota, balde, gestor de cotas | quota, bucket, quota manager | ADR 0007 (L02) |
@@ -128,6 +128,17 @@ Regras que acompanham o glossário:
 - **citação de lição, de decisão e da pessoa mantenedora**: traduzir, e manter o original em português
   numa nota quando a frase for a decisão em si;
 - **número e data** ficam como na origem; a data continua `AAAA-MM-DD`.
+
+### Unificações feitas na integração dos lotes L01–L03
+
+Quando dois lotes traduziram a mesma palavra de jeitos diferentes, ficou a tradução mais usada, e a
+página do lote que usou a outra foi corrigida:
+
+| termo PT | ficou | saiu | contagem (ficou / saiu) | página corrigida |
+|---|---|---|---|---|
+| em vigor / vigente | in force | in effect | 118 / 4 | `funcionalidades/papeis-do-banco.en.md` (L01) |
+| a régua | yardstick | ruler | 6 / 1 | `adr/0004-modelo-de-informacao-one-table-per-kind.en.md` (L02) |
+| desligamento | offboarding | dismissal | 1 / 1, empate: fica a do glossário | `modelos/estados/conta.en.md` (L03) |
 
 ## Os lotes
 

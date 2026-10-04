@@ -63,7 +63,7 @@ make it diverge from the ontology — the same error that
 
 | Layer | Treatment | Explanation |
 |---|---|---|
-| Foundational (UFO) | suppressed | It categorizes the other layers and contains no concepts of the application domain. There is no data to keep about `ufo.object` — it is the ruler, not what is measured. |
+| Foundational (UFO) | suppressed | It categorizes the other layers and contains no concepts of the application domain. There is no data to keep about `ufo.object` — it is the yardstick, not what is measured. |
 | Core (EO, SPO, SysSwO) | kept | It contains the concepts that give identity to almost everything: person, organization, project, artifact, software item. It is where most tables land. |
 | Domain | kept | It contains the specializations the user recognizes by name — sprint, pull request, pipeline. The thesis requires keeping them so that each ontology can sustain its service and its repository. |
 | Associations inherited from a suppressed category | **kept** | See D3: the relation survives the suppression of the category that defined it, otherwise the link between intended and performed is lost. |
