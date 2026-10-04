@@ -18,6 +18,10 @@
 ## Módulos
 
 - **[Organizational Structure](#organizational-structure)** — Organizações, pessoas, equipes e papéis. O ponto central é que ser membro de equipe não é uma propriedade da pessoa: é um papel alocado por uma relação contextual (Team Membership).
+- **[Role Grants](#role-grants)** — O que um papel organizacional **permite** na plataforma: ver o painel de trabalho de quem, e gerir a estrutura de qual equipe.
+Não é conceito da EO de referência. É a **declaração adjacente** — o mesmo lugar ontológico que `spo.activity_start_criterion` ocupa para o instante de início: a rede não responde quem pode o quê nesta plataforma, e inventar a resposta dentro da ontologia seria pôr decisão de produto na camada que descreve o mundo.
+A concessão é **por papel**, e nunca inferida do nome dele. `Tech Leader` parece liderança e `Coordenador` também; a mesma organização pode ter um `Tech Lead` que é senioridade técnica e não chefia ninguém. O erro por padrão de nome é caro nas duas direções, e mais caro na da gestão: excesso de visibilidade concedido ninguém reclama; excesso de gestão concedido reescreve a estrutura de quem não deveria.
+Toda concessão tem autor, data e revogação **por marca** — revogar nunca apaga a linha, porque quem concedeu, quando, e até quando, é a pergunta que mais se faz depois.
 
 ---
 
@@ -159,6 +163,65 @@ O período é da RELAÇÃO, não das equipes: uma equipe que deixou de ser parte
 - **`eo.organizational_team_belongs_to_organization`** — Uma equipe organizacional pertence a exatamente uma organização, e uma organização tem várias. A definição de eo.organizational_team já afirmava esse vínculo em prosa; declará-lo não inventa semântica, torna explícito o que o conceito diz de si.
 Parte do subkind e não do kind: eo.project_team liga-se a um projeto — um conceito de SPO —, não a uma organização. Pôr a relação em eo.team obrigaria toda equipe de projeto a ter organização, o que é falso em projeto entre organizações.
 É association e não part_whole. Uma equipe é coletivo de pessoas; a organização é agente social. "Pertence a" não é "é parte de", e a distinção entre eo.organizational_unit — que é parte — e eo.organizational_team é justamente essa. Declará-la como parthood faria o derivador gerar a chave estrangeira sem esforço, ao custo de apagar a distinção.
+
+
+---
+
+## Role Grants
+
+<a id="role-grants"></a>
+
+O que um papel organizacional **permite** na plataforma: ver o painel de trabalho de quem, e gerir a estrutura de qual equipe.
+Não é conceito da EO de referência. É a **declaração adjacente** — o mesmo lugar ontológico que `spo.activity_start_criterion` ocupa para o instante de início: a rede não responde quem pode o quê nesta plataforma, e inventar a resposta dentro da ontologia seria pôr decisão de produto na camada que descreve o mundo.
+A concessão é **por papel**, e nunca inferida do nome dele. `Tech Leader` parece liderança e `Coordenador` também; a mesma organização pode ter um `Tech Lead` que é senioridade técnica e não chefia ninguém. O erro por padrão de nome é caro nas duas direções, e mais caro na da gestão: excesso de visibilidade concedido ninguém reclama; excesso de gestão concedido reescreve a estrutura de quem não deveria.
+Toda concessão tem autor, data e revogação **por marca** — revogar nunca apaga a linha, porque quem concedeu, quando, e até quando, é a pergunta que mais se faz depois.
+
+*Fonte: Issue #369 (concessão de visibilidade, 2026-08-26); spec 045 FR-022 (ver e mexer são decisões separadas); spec 060 FR-080 a FR-082 (concessão de gestão, decisão da pessoa mantenedora em 2026-09-07)
+*
+
+### Conceitos
+
+#### `eo.role_visibility_grant` — Role Visibility Grant
+
+*Concessão de visibilidade por papel*
+
+Declaração de que quem desempenha um papel organizacional, **com vínculo vigente**, alcança o painel de trabalho das pessoas da sua equipe (alcance `team`) ou da sua organização (alcance `organization`).
+O alcance é o que a declaração diz, e não um booleano: `is_leader` perderia quem concedeu, quando, e até onde — e numa decisão de visibilidade essas três são as perguntas seguintes.
+
+<sub>categoria UFO: `normative_description`</sub>
+
+| Atributo | Tipo | Obrigatório |
+|---|---|---|
+| `scope` | enum | sim |
+| `declared_at` | datetime | sim |
+| `revoked_at` | datetime | não |
+
+Exemplos: *quem é Scrum Master vê o painel de quem está nas equipes em que ele é Scrum Master*; *quem é Diretor de Tecnologia vê o painel de toda a organização*
+
+#### `eo.role_structure_management_grant` — Role Structure Management Grant
+
+*Concessão de gestão da estrutura por papel*
+
+Declaração de que quem desempenha um papel organizacional, **com vínculo vigente**, pode declarar a estrutura de uma equipe — o papel de cada pessoa, a saída, o equívoco, a composição de subequipes, os papéis da organização e a ligação a projeto — nas equipes em que tem o papel (alcance `team`) ou em todas as da organização (alcance `organization`).
+**Ver e mexer são decisões separadas** (spec 045, FR-022): a concessão de visibilidade não confere gestão, e a de gestão não confere visibilidade. Quem precisa das duas recebe as duas, e o registro diz qual é qual.
+
+<sub>categoria UFO: `normative_description`</sub>
+
+| Atributo | Tipo | Obrigatório |
+|---|---|---|
+| `scope` | enum | sim |
+| `declared_at` | datetime | sim |
+| `revoked_at` | datetime | não |
+
+Exemplos: *quem é Scrum Master declara o papel e a saída de quem está na sua equipe*; *quem é Gerente de Engenharia gere a estrutura de todas as equipes da organização*
+
+### Relações
+
+| Relação | Origem | Destino | Cardinalidade | Tipo |
+|---|---|---|---|---|
+| `granted to` | `eo.role_visibility_grant` | `eo.organizational_role` | many → one | association |
+| `granted to` | `eo.role_structure_management_grant` | `eo.organizational_role` | many → one | association |
+
 
 
 ---

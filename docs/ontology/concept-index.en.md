@@ -1,11 +1,14 @@
-<!-- GERADO POR scripts/generate_docs.py A PARTIR DE priv/knowledge_base/. NÃO EDITE À MÃO. -->
+<!-- GERADO POR scripts/generate_docs.py (--lang en) A PARTIR DE priv/knowledge_base/. NÃO EDITE À MÃO: o texto inglês de um conceito se escreve na base, no campo `en`. -->
 
 
-# Índice de conceitos
+# Concept index
 
-240 conceitos na rede, em ordem alfabética de identificador.
+!!! note "Generated from the knowledge base"
+    Every text on this page comes from the English fields of `priv/knowledge_base/`.
 
-| Id | Conceito | pt-BR | Ontologia | Categoria UFO |
+240 concepts in the network, in alphabetical order of identifier.
+
+| Id | Concept | pt-BR | Ontology | UFO category |
 |---|---|---|---|---|
 | `cdro.cd_stakeholder` | CD Stakeholder | Parte Interessada de CD | [cdro](cdro.md) | `role` |
 | `cdro.continuous_delivery_server` | Continuous Delivery Server | Servidor de Entrega Contínua | [cdro](cdro.md) | `disposition` |
@@ -248,5 +251,5 @@
 | `ufo.social_object` | Social Object | Objeto Social | [ufo](ufo.md) | `social_object` |
 | `ufo.social_role` | Social Role | Papel Social | [ufo](ufo.md) | `social_role` |
 
-[← Rede de ontologias](README.md)
+[← Ontology network](README.md)
 
