@@ -59,7 +59,7 @@ defmodule TheBand.ReviewNetwork.Slice do
           organization_person_ids,
           &(alcancada?.(&1) and not MapSet.member?(na_lista, &1))
         ),
-      exclusions: exclusoes(leitura, alcance),
+      exclusions: exclusoes(leitura, alcance, revisoes),
       provenance: %{knowledge_versions: leitura.knowledge_versions}
     }
   end
@@ -91,7 +91,17 @@ defmodule TheBand.ReviewNetwork.Slice do
   defp grupos([]), do: {:ausente, :no_review_in_window}
   defp grupos(recorte), do: {:ok, recorte |> Graph.groups() |> Enum.map(&length/1)}
 
-  defp exclusoes(leitura, :todas) do
+  # Janela sem revisão nenhuma, nem na rede nem fora dela: as três contagens são AUSENTES, e não
+  # 0, 0, 0 (FR-009, SC-002; issue #1308). Com alguma revisão na janela, a contagem de um motivo
+  # que não ocorreu é zero de verdade: houve o que contar, e aquele motivo não apareceu.
+  defp exclusoes(
+         %{excluded_self_review: 0, excluded_bot_or_app: 0, excluded_unlinked: 0},
+         :todas,
+         0
+       ),
+       do: {:ausente, :no_review_in_window}
+
+  defp exclusoes(leitura, :todas, _revisoes) do
     {:ok,
      %{
        self_review: leitura.excluded_self_review,
@@ -100,11 +110,15 @@ defmodule TheBand.ReviewNetwork.Slice do
      }}
   end
 
-  defp exclusoes(_leitura, {:algumas, _}), do: {:recortado, :regra}
+  defp exclusoes(_leitura, {:algumas, _}, _revisoes), do: {:recortado, :regra}
 
   defp linha(%{"id" => id, "received_change_requests" => recebidas}, arestas, alcancada?) do
     feitas = Enum.filter(arestas, &(&1.reviewer == id))
     recebidas_de = Enum.filter(arestas, &(&1.author == id))
+    # Por lado, porque a tela diz "some pairs are outside your reach" DENTRO da coluna que tem
+    # par de fora (régua 3.8, issue #1308). Um booleano por lado, e nenhum número.
+    feitas_fora? = Enum.any?(feitas, &(not alcancada?.(&1.author)))
+    recebidas_fora? = Enum.any?(recebidas_de, &(not alcancada?.(&1.reviewer)))
 
     %{
       person_id: id,
@@ -116,9 +130,9 @@ defmodule TheBand.ReviewNetwork.Slice do
         end,
       reviews_of: pares(feitas, & &1.author, alcancada?),
       reviewed_by: pares(recebidas_de, & &1.reviewer, alcancada?),
-      pairs_outside_reach?:
-        Enum.any?(feitas, &(not alcancada?.(&1.author))) or
-          Enum.any?(recebidas_de, &(not alcancada?.(&1.reviewer)))
+      pairs_outside_reach?: feitas_fora? or recebidas_fora?,
+      reviews_of_outside_reach?: feitas_fora?,
+      reviewed_by_outside_reach?: recebidas_fora?
     }
   end
 

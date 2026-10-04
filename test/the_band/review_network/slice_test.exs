@@ -131,6 +131,24 @@ defmodule TheBand.ReviewNetwork.SliceTest do
       assert Slice.view(us1(), algumas(~w(ana bia)), parametros(), []).exclusions ==
                {:recortado, :regra}
     end
+
+    test "#1308 (a): janela sem revisão nenhuma, nem excluída — exclusões ausentes, e não 0, 0, 0" do
+      vazia =
+        Map.merge(leitura([], []), %{
+          excluded_self_review: 0,
+          excluded_bot_or_app: 0,
+          excluded_unlinked: 0
+        })
+
+      assert Slice.view(vazia, :todas, parametros(), []).exclusions ==
+               {:ausente, :no_review_in_window}
+
+      # Com revisão na janela, só que toda excluída, o zero de um motivo é contagem de verdade.
+      so_bot = %{vazia | excluded_bot_or_app: 2}
+
+      assert Slice.view(so_bot, :todas, parametros(), []).exclusions ==
+               {:ok, %{self_review: 0, bot_or_app: 2, unlinked_person: 0}}
+    end
   end
 
   describe "US2 — a linha da pessoa" do
@@ -166,6 +184,9 @@ defmodule TheBand.ReviewNetwork.SliceTest do
       assert linha.received == {:ok, %{change_requests: 5, people: 2}}
       assert Enum.map(linha.reviews_of, & &1.person_id) == ~w(p1 p2 p3)
       assert linha.pairs_outside_reach? == true
+      # #1308 (3.8): o par de fora é do lado de quem Bia revisou, e só dele.
+      assert linha.reviews_of_outside_reach? == true
+      assert linha.reviewed_by_outside_reach? == false
       refute inspect(linha) =~ "pedro"
       refute Enum.any?(v.people, &(&1.person_id == "pedro"))
     end

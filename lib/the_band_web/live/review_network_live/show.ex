@@ -178,10 +178,24 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
 
     ~H"""
     <%!-- 3.1: o recorte, antes da leitura, sem a cláusula da liderança declarada (D5) --%>
-    <div :if={@parcial?} id="aviso-de-recorte" class="alert alert-info block text-sm" role="note">
+    <%!-- Borda azul sobre o fundo da página, e não `alert-info`: no fundo azul do alerta a marca
+          "your reach" (contorno azul) sumia (issue #1308). O ícone "i" e a palavra vão juntos. --%>
+    <div
+      :if={@parcial?}
+      id="aviso-de-recorte"
+      class="flex items-start gap-3 rounded border-2 border-info bg-base-100 p-3 text-sm"
+      role="note"
+    >
+      <span
+        class="inline-flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-info font-mono font-bold text-info"
+        aria-hidden="true"
+      >
+        i
+      </span>
       <p>
         <.marca tipo={:alcance} />
-        This page shows only the people you reach. You reach your own record and the people on
+        <strong>This page shows only the people you reach.</strong>
+        You reach your own record and the people on
         the teams you belong to or that an access scope grants you, including the teams of an
         organisation in your scope. Administrators of this tenant reach everyone. What you see
         is a slice, not the whole; the page does not say how much is outside it.
@@ -378,6 +392,11 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
           <p class="text-xs opacity-70">
             Counted, never listed by account. A self-review is counted only here, never against a person.
           </p>
+          <%!-- Janela sem revisão nenhuma: as três contagens são ausentes, e nunca 0, 0, 0
+              (FR-009, SC-002; issue #1308). A frase é a mesma ausência dos blocos vizinhos em
+              4a; o protótipo não desenha este bloco nesse estado, e nenhuma frase nova entra. --%>
+        <% {:ausente, :no_review_in_window} -> %>
+          <.absent reason="no review in this window" />
         <% {:recortado, :regra} -> %>
           <p class="text-sm">
             Self-reviews, reviews by bots or apps, and reviews by accounts not linked to a person
@@ -409,23 +428,43 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
         <thead>
           <tr>
             <th>person</th>
-            <th>reviewed</th>
-            <th>was reviewed</th>
+            <%!-- 1.16: a linha de explicação sob cada coluna, o texto exato do protótipo --%>
+            <th>
+              reviewed
+              <span class="block text-xs font-normal opacity-70" data-explicacao>
+                change requests, and how many authors
+              </span>
+            </th>
+            <th>
+              was reviewed
+              <span class="block text-xs font-normal opacity-70" data-explicacao>
+                their change requests, and by how many
+              </span>
+            </th>
           </tr>
         </thead>
         <tbody>
           <%= for p <- @v.people do %>
-            <tr id={"pessoa-#{p.person_id}"}>
+            <tr
+              id={"pessoa-#{p.person_id}"}
+              class={MapSet.member?(@abertos, p.person_id) && "linha-aberta bg-base-200"}
+            >
               <td data-label="person">
+                <%!-- 2.1: botão sublinhado em verdete, com "+" fechado e "–" aberto; o estado
+                      também vai em `aria-expanded` --%>
                 <button
                   type="button"
-                  class="link link-hover text-left"
+                  class="text-left font-semibold text-primary underline underline-offset-2"
                   phx-click="toggle"
                   phx-value-id={p.person_id}
                   aria-expanded={to_string(MapSet.member?(@abertos, p.person_id))}
                   aria-controls={"pares-#{p.person_id}"}
                 >
-                  {p.name}
+                  <span
+                    class="inline-block w-4 font-mono text-base-content/60 no-underline"
+                    aria-hidden="true"
+                    data-estado
+                  >{if MapSet.member?(@abertos, p.person_id), do: "–", else: "+"}</span><span data-nome>{p.name}</span>
                 </button>
               </td>
               <td data-label="reviewed">
@@ -445,8 +484,15 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
                 <% end %>
               </td>
             </tr>
-            <tr :if={MapSet.member?(@abertos, p.person_id)} id={"pares-#{p.person_id}"}>
-              <td colspan="3" data-label="pairs">
+            <%!-- 5.2: no telefone os pares abrem DENTRO do cartão da pessoa, numa coluna só:
+                  `painel` e rótulo vazio tiram o par rótulo-valor, e `pares-da-linha` cola esta
+                  linha à de cima (app.css) --%>
+            <tr
+              :if={MapSet.member?(@abertos, p.person_id)}
+              id={"pares-#{p.person_id}"}
+              class="pares-da-linha bg-base-200"
+            >
+              <td colspan="3" data-label="" class="painel">
                 {render_pares(Map.put(assigns, :p, p))}
               </td>
             </tr>
@@ -476,31 +522,24 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
   # nem número (3.8).
   defp render_pares(assigns) do
     ~H"""
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div>
+    <div class="grid grid-cols-1 gap-4 border-l-2 border-warning pl-4 sm:grid-cols-2">
+      <div class="min-w-0" data-coluna="reviews_of">
         <p class="font-semibold">{@p.name} reviewed the change requests of</p>
-        <ul :if={@p.reviews_of != []}>
-          <li :for={par <- @p.reviews_of}>{par.name} on {par.reviews}</li>
-        </ul>
+        <.lista_de_pares pares={@p.reviews_of} fora?={@p.reviews_of_outside_reach?} />
         <.absent
           :if={@p.reviews_of == [] and match?({:ausente, _}, @p.given)}
           reason="reviewed nobody in this window"
         />
       </div>
-      <div>
+      <div class="min-w-0" data-coluna="reviewed_by">
         <p class="font-semibold">The change requests of {@p.name} were reviewed by</p>
-        <ul :if={@p.reviewed_by != []}>
-          <li :for={par <- @p.reviewed_by}>{par.name} on {par.reviews}</li>
-        </ul>
+        <.lista_de_pares pares={@p.reviewed_by} fora?={@p.reviewed_by_outside_reach?} />
         <.absent
           :if={@p.reviewed_by == [] and match?({:ausente, _}, @p.received)}
           reason="nobody reviewed them in this window"
         />
       </div>
     </div>
-    <p :if={@p.pairs_outside_reach?} class="text-sm mt-2">
-      <.marca tipo={:alcance} /> some pairs are outside your reach
-    </p>
     <p class="text-xs opacity-70 mt-2">
       Ordered by name. The number is change requests in this window.
       <.link navigate={~p"/people/#{@p.person_id}"} class="link">Open {@p.name}'s panel</.link>
@@ -511,6 +550,31 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
     """
   end
 
+  attr :pares, :list, required: true
+  attr :fora?, :boolean, required: true
+
+  # Os pares de uma coluna, com o nome à esquerda e "on <n>" à direita, sem quebrar entre "on" e
+  # o número (5.2). Par fora do alcance não vira linha nem número: só a frase, dentro da coluna
+  # que o tem (3.8).
+  defp lista_de_pares(assigns) do
+    ~H"""
+    <ul :if={@pares != [] or @fora?} class="flex flex-col">
+      <li
+        :for={par <- @pares}
+        class="flex justify-between gap-4 border-b border-dotted border-base-300 py-0.5 text-sm"
+      >
+        <%!-- O espaço DENTRO do nome mantém "Ciro on 2" legível como texto (leitor de tela,
+              cópia); entre os dois `span` ele seria só espaço em branco, e cairia. --%>
+        <span class="min-w-0">{par.name}{" "}</span>
+        <span class="whitespace-nowrap font-mono tabular-nums opacity-70">on {par.reviews}</span>
+      </li>
+      <li :if={@fora?} class="flex items-center gap-2 py-0.5 text-sm" data-fora-do-alcance>
+        <.marca tipo={:alcance} /> some pairs are outside your reach
+      </li>
+    </ul>
+    """
+  end
+
   # A marca de proveniência, com a palavra sempre ao lado: a distinção nunca é só cor (WCAG
   # 1.4.1; design system). `<.evidence>` desenha a marca de CONCEITO; esta é de bloco, com o
   # mesmo preenchimento: sólido observado, hachurado derivado, contorno para o alcance.
@@ -518,7 +582,13 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
 
   defp marca(assigns) do
     ~H"""
-    <span class="inline-flex items-center gap-1 text-xs font-normal align-middle" data-marca={@tipo}>
+    <span
+      class={[
+        "inline-flex items-center gap-1 text-xs font-normal align-middle",
+        @tipo == :alcance && "rounded-sm border border-info px-1.5 text-info"
+      ]}
+      data-marca={@tipo}
+    >
       <span
         class={[
           "size-2.5 shrink-0 rounded-[1px]",
@@ -579,13 +649,20 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
   defp instante(dt), do: Calendar.strftime(dt, "%Y-%m-%d %H:%M UTC")
   defp dia(dt), do: Calendar.strftime(dt, "%Y-%m-%d")
 
+  # O plural é do gettext, e não de concatenação: "(1 minutes ago)" foi o defeito da issue #1308
+  # (régua 1.6).
   defp idade(dt) do
     segundos = DateTime.diff(DateTime.utc_now(), dt)
 
     cond do
-      segundos < 3600 -> "#{max(div(segundos, 60), 0)} minutes ago"
-      segundos < 86_400 -> "#{div(segundos, 3600)} hours ago"
-      true -> "#{div(segundos, 86_400)} days ago"
+      segundos < 3600 ->
+        ngettext("%{count} minute ago", "%{count} minutes ago", max(div(segundos, 60), 0))
+
+      segundos < 86_400 ->
+        ngettext("%{count} hour ago", "%{count} hours ago", div(segundos, 3600))
+
+      true ->
+        ngettext("%{count} day ago", "%{count} days ago", div(segundos, 86_400))
     end
   end
 
