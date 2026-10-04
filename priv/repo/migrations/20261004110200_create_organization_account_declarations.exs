@@ -55,7 +55,9 @@ defmodule TheBand.Repo.Migrations.CreateOrganizationAccountDeclarations do
 
     create constraint(
              :organization_account_declarations,
-             :organization_account_declarations_reason_present, check: "length(trim(reason)) > 0")
+             :organization_account_declarations_reason_present,
+             check: "length(trim(reason)) > 0"
+           )
 
     create constraint(
              :organization_account_declarations,
