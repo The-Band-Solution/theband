@@ -10,7 +10,7 @@ use Oban.Worker,
            states: :incomplete, period: :infinity]
 
 @impl Oban.Worker
-def timeout(_job), do: :timer.seconds(120)   # provisório, R5; confirmado por T021
+def timeout(_job), do: :timer.seconds(120)   # provisório, R5; confirmado por T050
 
 @spec enqueue(Ecto.UUID.t(), Ecto.UUID.t()) :: {:ok, Oban.Job.t()} | {:error, term()}
 ```

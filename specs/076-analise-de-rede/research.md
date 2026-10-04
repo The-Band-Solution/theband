@@ -65,7 +65,7 @@ segundo enfileiramento se perde enquanto o primeiro roda, e a análise sai com a
 - unicidade `keys: [:tenant_id, :organization_id]`, `states: :incomplete`, `period: :infinity`, como
   a 073 (o Oban 2.23 recusa a lista sem os estados incompletos);
 - as duas redes e as três janelas no mesmo job;
-- `timeout/1` de **120 s** (provisório, confirmado por T021 e pela #1190);
+- `timeout/1` de **120 s** (provisório, confirmado por T050 e pela #1190);
 - **impressão digital** por rede e janela: SHA-256 (`:crypto.hash/2`, OTP) da lista canônica das
   arestas — `source|target|weight`, ordenada — mais as versões da base. Igual à vigente: a leitura
   não é regravada; só `checked_at` avança, e o relator diz `:unchanged`.
@@ -81,7 +81,7 @@ impressão fora da leitura (uma tabela a mais para um campo).
 
 **Decisão**: chave nova `size_limit` em `network.analysis.parameters`, com `max_people` e
 `max_undirected_edges`. Valor **provisório 300 / 3 000**, com a razão: o maior volume medido é 54
-pessoas e 155 arestas (R20), e o teto deixa folga de mais de cinco vezes. T021 mede o pipeline
+pessoas e 155 arestas (R20), e o teto deixa folga de mais de cinco vezes. T050 mede o pipeline
 inteiro sobre G(n, m) do tamanho do teto e confirma que as 6 combinações cabem em 120 s; a #1190
 traz o número de produção. Acima do teto: σ, Q_rand e layout **ausentes** com
 `network_too_large_for_platform`, e não rodam.
@@ -178,7 +178,7 @@ deslocamento limitado pela temperatura. Ao fim, reescala para a caixa [40, 960] 
 - **alcance total**: as posições gravadas na leitura;
 - **alcance parcial**: recalculadas **na leitura** sobre o grafo da visão (alcançados e agregados),
   com a mesma semente e a mesma ordem (R2 da segurança; FR-022). Dezenas de nós: 50 × 2 500 pares,
-  medido em T040;
+  medido em T034;
 - acima do teto (R5), ausente: a página mostra só a lista (a mesma do telefone).
 
 **Razão**: o mesmo dado dá o mesmo desenho; o navegador não calcula posição; com alcance parcial, as
@@ -300,7 +300,7 @@ se confirma: pela regra de hoje, essas contas cairiam em `unlinked_person`, e n�
   `unlinked_person`; `ReviewNetwork.Classification` ganha o degrau; `review_network_readings` ganha
   `excluded_organization_account`, **anulável**: nulo nas leituras da versão 1, que não o avaliaram
   (ausência nunca é zero). A página da 073 mostra o motivo novo junto dos três. Se a pessoa
-  mantenedora decidir que não vale, T017 e T018 saem do backlog e a área diz, na rede de revisão,
+  mantenedora decidir que não vale, T027 sai do backlog e a área diz, na rede de revisão,
   que a marca não se aplica.
 
 **Razão**: com a marca só na designação, a mesma conta é nó numa rede e excluída na outra, e as

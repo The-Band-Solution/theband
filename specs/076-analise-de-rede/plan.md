@@ -51,7 +51,7 @@ O desenho:
 | **Testes** | ExUnit; dois tenants e duas organizações povoados; A1–A22; cinco redes de resposta conhecida (SC-002) |
 | **O que verifica** | `mix gates`; o veredito é o código de saída |
 | **Escala medida** | desenvolvimento, 2026-10-04: designação 54 pessoas, 155 arestas, 2 906 issues em 180 dias, consulta de 46,8 ms; revisão 40 pessoas, 233 arestas (073). **Produção não medida**: #1190, ampliada por T003 |
-| **Desempenho** | cálculo em segundo plano, 120 s de teto por job (provisório, T021); leitura com número fixo de consultas; layout da visão parcial medido em T040 |
+| **Desempenho** | cálculo em segundo plano, 120 s de teto por job (provisório, T050); leitura com número fixo de consultas; layout da visão parcial medido em T034 |
 
 **NEEDS CLARIFICATION: nenhum bloqueante.** As decisões a confirmar estão no fim, e nenhuma bloqueia
 o início.
@@ -118,7 +118,7 @@ discriminador) e usados no problema deles não são rejustificados.
 **D8. `View` puro, separado do cálculo; papel e percentil derivados na leitura** ([R10](research.md#r10--a-visão-recortada-fr-011-a-fr-016-r1r6-da-segurança), [R17](research.md#r17--o-cálculo-grava-a-leitura-deriva-fr-018))
 - *Problema*: o recorte muda com a regra de acesso; o papel não pode ser atributo gravado (R4).
 - *Existe agora?* Sim.
-- *O que piora*: ordenação e layout da visão parcial a cada leitura (dezenas de nós; medido em T040).
+- *O que piora*: ordenação e layout da visão parcial a cada leitura (dezenas de nós; medido em T034).
 
 **D9. Uma função de alcance com a opção `origem: :concedida`** ([R11](research.md#r11--o-alcance-uma-função-com-uma-opção-fr-013-r5-da-segurança-ds1-ds4))
 - *Problema*: DS1 (b) separa quem tem escopo concedido de quem só tem vínculo derivado.
@@ -229,7 +229,7 @@ test/the_band/network_analysis/exposicao_test.exs      A17
 6. **US2** (designação: tipo da conta, consulta, classificação, conta da organização) — a tela das
    contagens; a parte da A7 espera T002;
 7. **US3 → US9**, cada uma com o algoritmo, a visão e a página juntos;
-8. **acabamento**: exposição (A17), retenção (R18), o teto medido (T021 vale antes do merge),
+8. **acabamento**: exposição (A17), retenção (R18), o teto medido (T050 vale antes do merge),
    aceitação contra a origem e contra o protótipo, gates.
 
 ## Complexity Tracking
@@ -240,10 +240,10 @@ Nenhuma violação de princípio a justificar. Os custos estão em D1–D12.
 
 | # | Pergunta | Opção padrão deste plano | O que espera por ela |
 |---|---|---|---|
-| **A7** | A marca de conta da organização (D3) vale também para a rede de revisão da 073? | **sim**: `review.network.edge` versão 2 com `organization_account`; coluna anulável na leitura da 073 | T017, T018 |
-| **R10, item 8** | Os *"três mais centrais"* de cada comunidade seguem a DS1 (só com escopo concedido)? | **sim**, por serem ordenação por medida | o recorte de T051 |
-| **R21** | Comunidade rotulada por letra (protótipo) ou por número (exemplo da spec)? | **letra**, como aprovado | o texto de T052 |
-| **R5** | O teto provisório de 300 pessoas / 3 000 arestas | confirmar com T021 e a #1190 | nada antes do merge |
+| **A7** | A marca de conta da organização (D3) vale também para a rede de revisão da 073? | **sim**: `review.network.edge` versão 2 com `organization_account`; coluna anulável na leitura da 073 | T027 |
+| **R10, item 8** | Os *"três mais centrais"* de cada comunidade seguem a DS1 (só com escopo concedido)? | **sim**, por serem ordenação por medida | o recorte de T037 |
+| **R21** | Comunidade rotulada por letra (protótipo) ou por número (exemplo da spec)? | **letra**, como aprovado | o texto de T037 |
+| **R5** | O teto provisório de 300 pessoas / 3 000 arestas | confirmar com T050 e a #1190 | nada antes do merge |
 
 ## O que este plano NÃO resolve
 
