@@ -96,6 +96,9 @@ defmodule TheBand.NetworkAnalysis.CommandsTest do
     no_b = Enum.find(l.nodes, &(&1["id"] == b))
     assert no_b["degree"] == 2
     assert no_b["out_people"] == 2 and no_b["in_people"] == 1
+    # T030: a–b–c, b no único caminho entre a e c: 1/((3 − 1)(3 − 2)/2) = 1,0.
+    assert no_b["betweenness"] == %{"value" => 1.0}
+    assert Enum.find(l.nodes, &(&1["id"] != b))["betweenness"] == %{"value" => 0.0}
     assert l.people_without_edges == 2
   end
 

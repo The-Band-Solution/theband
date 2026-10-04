@@ -22,12 +22,13 @@ defmodule TheBand.NetworkAnalysis.Commands do
   Não lê relógio (`now` vem de quem chama), não registra log (o job registra a partir do relator,
   que só tem contagens: A19), e não grava percentil nem papel (R17).
 
-  Depende de: `TheBand.NetworkAnalysis.Algorithms.Projection`, `Parameters`, `Notices`; nenhuma
+  Depende de: `Algorithms.Projection`, `Algorithms.Betweenness`, `Parameters`, `Notices`; nenhuma
   tabela de ontologia.
   """
 
   import Ecto.Query
 
+  alias TheBand.NetworkAnalysis.Algorithms.Betweenness
   alias TheBand.NetworkAnalysis.Algorithms.Projection
   alias TheBand.NetworkAnalysis.Inputs
   alias TheBand.NetworkAnalysis.Notices
@@ -147,13 +148,16 @@ defmodule TheBand.NetworkAnalysis.Commands do
     end
   end
 
-  # A leitura com o que já existe nesta fatia: graus e componentes (T014). As medidas dos
+  # A leitura com o que já existe nesta fatia: graus, componentes (T014) e intermediação (T030). As medidas dos
   # algoritmos entram com as tarefas deles; acima do teto, as que o teto desliga ficam ausentes
   # com o motivo da base, e nunca com valor.
   defp leitura(tenant, organization_id, contexto, entrada, projecao, acima?, parametros) do
     %{rede: rede, dias: dias, inicio: inicio, agora: agora, impressao: impressao} = contexto
     componentes = Projection.components(projecao.adjacency)
     graus = Projection.degrees(entrada.edges)
+
+    intermediacao =
+      Betweenness.brandes(projecao.adjacency, %{min_people: parametros.betweenness_min_people})
 
     componente_de =
       for {membros, i} <- Enum.with_index(componentes, 1), id <- membros, into: %{}, do: {id, i}
@@ -169,7 +173,8 @@ defmodule TheBand.NetworkAnalysis.Commands do
           "degree" => g.degree,
           "out_weight" => g.out_weight,
           "in_weight" => g.in_weight,
-          "component" => Map.fetch!(componente_de, id)
+          "component" => Map.fetch!(componente_de, id),
+          "betweenness" => medida_gravada(Map.fetch!(intermediacao, id))
         }
       end
 
@@ -210,6 +215,10 @@ defmodule TheBand.NetworkAnalysis.Commands do
         })
     }
   end
+
+  # Ausência gravada com o motivo, e nunca 0 (data-model §1.2).
+  defp medida_gravada({:ok, v}), do: %{"value" => v}
+  defp medida_gravada({:ausente, motivo}), do: %{"absent" => Atom.to_string(motivo)}
 
   defp acima_do_teto?(%{nodes: nos, edges: arestas}, %{max_people: p, max_undirected_edges: e}),
     do: length(nos) > p or arestas > e
