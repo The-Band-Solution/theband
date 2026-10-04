@@ -195,3 +195,20 @@ de uma pergunta, nem a coerência entre `size_limit` e as medidas.
 - `mix knowledge.test`, que roda na T007 sobre a base já copiada;
 - a forma das regras: `derivation_rule` não tem schema, e essa lacuna da 073 continua;
 - nenhum número contra o banco, nem as fórmulas por execução.
+
+## 5. Conferência das emendas (2026-10-04)
+
+Conferido contra o commit `4dff5e8` (`git show 4dff5e8 -- specs/076-analise-de-rede/proposta-base`):
+
+| emenda | conferido |
+|---|---|
+| E1 | a `provenance.note` traz o texto pedido; cq01 a cq03 citam `spo.intended_project_activity` e têm a frase na `rationale`; cq04 a cq20 não têm mais `relations: [spo.participates_in]` |
+| E2 | cq02 e cq04 perguntam *"Quantos"* e *"Quantas"*, em `pt-BR` e em `en` |
+| E3 | `size_limit.absent_above` é `[sigma, q_rand, efficiency_rand, layout]`, com o `name` e o `statement` ajustados; σ, modularidade e eficiência declaram `network_too_large_for_platform` |
+| E4 | `sampling.weights_input: undirected_pair_ascending` e `weights_assigned_to: sampled_pair_order`, com a frase no `note` |
+
+Medido de novo pelo revisor, com a mesma cópia (`076f-kbcopia.sh limpo`): `mix knowledge.validate`
+**0** e `mix knowledge.graph` **0**.
+
+**Veredito final: aprova.** A T007 pode levar a base a `priv/knowledge_base/`. As observações O1 a O3
+continuam não obrigatórias.
