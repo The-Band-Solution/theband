@@ -75,8 +75,8 @@ concepts:
         concedeu, quando, e até onde — e numa decisão de visibilidade essas três são as
         perguntas seguintes.
       en: >
-        Declaration that whoever performs an organizational role, **with a team membership
-        in force**, reaches the work dashboard of the people on their team (reach `team`) or
+        Declaration that whoever performs an organizational role, **with a link in force**,
+        reaches the work dashboard of the people on their team (reach `team`) or
         in their organization (reach `organization`).
 
         The reach is what the declaration says, and not a boolean: `is_leader` would lose
@@ -113,8 +113,8 @@ concepts:
         visibilidade não confere gestão, e a de gestão não confere visibilidade. Quem
         precisa das duas recebe as duas, e o registro diz qual é qual.
       en: >
-        Declaration that whoever performs an organizational role, **with a team membership
-        in force**, can declare the structure of a team — each person's role, the departure,
+        Declaration that whoever performs an organizational role, **with a link in force**,
+        can declare the structure of a team — each person's role, the departure,
         the mistake, the composition of sub-teams, the organization's roles, and the link to
         a project — in the teams in which they hold the role (reach `team`) or in all those
         of the organization (reach `organization`).

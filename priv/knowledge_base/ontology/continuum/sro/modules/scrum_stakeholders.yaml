@@ -148,7 +148,7 @@ concepts:
     label: { pt-BR: "Alocação de Product Owner" }
     definition:
       pt-BR: Alocação que faz um membro do time desempenhar o Papel de Product Owner em um time Scrum.
-      en: "Membership that makes a team member play the Product Owner Role in a Scrum team."
+      en: "Allocation that makes a team member play the Product Owner Role in a Scrum team."
     classification: { ufo_category: relator, ontouml_stereotype: relator, parent: eo.team_membership }
 
   - id: sro.scrum_master_membership
@@ -156,7 +156,7 @@ concepts:
     label: { pt-BR: "Alocação de Scrum Master" }
     definition:
       pt-BR: Alocação que faz um membro do time desempenhar o Papel de Scrum Master em um time de desenvolvimento.
-      en: "Membership that makes a team member play the Scrum Master Role in a development team."
+      en: "Allocation that makes a team member play the Scrum Master Role in a development team."
     classification: { ufo_category: relator, ontouml_stereotype: relator, parent: eo.team_membership }
 
   - id: sro.developer_membership
@@ -164,7 +164,7 @@ concepts:
     label: { pt-BR: "Alocação de Desenvolvedor" }
     definition:
       pt-BR: Alocação que faz um membro do time desempenhar o Papel de Desenvolvedor em um time de desenvolvimento.
-      en: "Membership that makes a team member play the Developer Role in a development team."
+      en: "Allocation that makes a team member play the Developer Role in a development team."
     classification: { ufo_category: relator, ontouml_stereotype: relator, parent: eo.team_membership }
 
 relations:
