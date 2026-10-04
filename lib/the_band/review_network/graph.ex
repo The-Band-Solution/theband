@@ -24,13 +24,14 @@ defmodule TheBand.ReviewNetwork.Graph do
           excluded: %{
             self_review: non_neg_integer(),
             bot_or_app: non_neg_integer(),
+            organization_account: non_neg_integer(),
             unlinked_person: non_neg_integer()
           },
           pairs: non_neg_integer()
         }
 
   @doc """
-  Monta a rede de uma janela a partir dos pares classificados (`Classification.classify/2`).
+  Monta a rede de uma janela a partir dos pares classificados (`Classification.classify/3`).
 
   Só entram os pares cujo envio mais recente é `>= window_start`: as janelas são aninhadas e
   terminam no mesmo instante, então um par está na janela se o envio mais recente dele está nela.
@@ -65,11 +66,13 @@ defmodule TheBand.ReviewNetwork.Graph do
       excluded: %{
         self_review: Map.get(excluidos, :self_review, 0),
         bot_or_app: Map.get(excluidos, :bot_or_app, 0),
+        organization_account: Map.get(excluidos, :organization_account, 0),
         unlinked_person: Map.get(excluidos, :unlinked_person, 0)
       },
       pairs:
         length(arestas) + Map.get(excluidos, :self_review, 0) +
-          Map.get(excluidos, :bot_or_app, 0) + Map.get(excluidos, :unlinked_person, 0)
+          Map.get(excluidos, :bot_or_app, 0) + Map.get(excluidos, :organization_account, 0) +
+          Map.get(excluidos, :unlinked_person, 0)
     }
   end
 

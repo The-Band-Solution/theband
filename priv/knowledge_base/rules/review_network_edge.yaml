@@ -1,6 +1,11 @@
 derivation_rule:
   id: review.network.edge
-  version: 1
+  # Versão 2 (2026-10-04, feature 076, T027): o motivo `organization_account`, entre
+  # `bot_or_app` e `unlinked_person`. Decisão da pessoa mantenedora sobre a A7 da revisão
+  # semântica 2 da 076 (T002, #1326): a conta declarada como da organização sai das DUAS redes,
+  # e não só da de designação. As leituras gravadas pela versão 1 não avaliaram o motivo, e a
+  # contagem delas é NULA, nunca zero.
+  version: 2
   provider: platform
   status: proposed
   confidence: high
@@ -86,7 +91,7 @@ derivation_rule:
     # rastreabilidade até o GitHub fique escrita.
     - "avaliação: estado (state), instante de envio (submittedAt), conta e pessoa revisora (author.id, author.__typename), solicitação avaliada (pullRequest.id)"
     - "solicitação: pessoa e conta que a submeteram (pullRequest.author.id), resolvidas na coleta da solicitação (`author_person_id`)"
-    - "pessoa: `eo.person.account_type` das duas pontas"
+    - "pessoa: `eo.person.account_type` das duas pontas, e a declaração de conta da organização (`organization_account_declarations`, versão 2)"
 
   unit:
     pt-BR: >
@@ -121,7 +126,7 @@ derivation_rule:
 
     exclusions:
       name:
-        pt-BR: "As três exclusões, em ordem, e o que cada uma conta"
+        pt-BR: "As quatro exclusões, em ordem, e o que cada uma conta"
       statement:
         pt-BR: >
           Todo par (conta revisora, solicitação) com avaliação contável enviada na janela,
@@ -133,12 +138,16 @@ derivation_rule:
                `eo.person.account_type` em (`bot`, `app`); conta não ligada que
                `Mapper.account_type/1` classifica como `bot` ou `app` (pelo `__typename` e
                pelo sufixo `[bot]`). Autor nulo NÃO é máquina;
-            2. `unlinked_person` — revisor ou autor não está ligado a uma `eo.person`
+            2. `organization_account` — revisor ou autor é pessoa declarada pela
+               administração como conta da organização (versão 2; a mesma declaração da
+               `assignment.network.edge`). Depois de máquina, porque uma conta pode ser as
+               duas, e a contagem não pode dobrar;
+            3. `unlinked_person` — revisor ou autor não está ligado a uma `eo.person`
                (login não resolvido, ou conta apagada na origem, que chega com autor nulo);
-            3. `self_review` — revisor e autor são a mesma `eo.person`.
+            4. `self_review` — revisor e autor são a mesma `eo.person`.
 
-          Invariante: (soma dos pesos das arestas) + bot_or_app + unlinked_person +
-          self_review = pares contáveis da janela, com os pares de aresta deduplicados por
+          Invariante: (soma dos pesos das arestas) + bot_or_app + organization_account +
+          unlinked_person + self_review = pares contáveis da janela, com os pares de aresta deduplicados por
           pessoa (ver `unit`). As contagens aparecem só no agregado da leitura, nunca com
           login e nunca por pessoa (FR-004, R5, R9).
       note:
@@ -153,7 +162,7 @@ derivation_rule:
           corrigido na T030). Apagar a conta não é evidência de máquina; classificá-la como
           bot cairia para o lado plausível, que é o "padrão largo inventa mais".
       values:
-        order: [bot_or_app, unlinked_person, self_review]
+        order: [bot_or_app, organization_account, unlinked_person, self_review]
         counted_by_reason: true
         listed_by_login: false
         per_person: false
@@ -174,6 +183,10 @@ derivation_rule:
       source: "pullRequest.id → cmpo.change_request"
 
   limitations:
+    - >
+      A conta da organização só é reconhecida se a administração a declarou (versão 2). Antes
+      da declaração ela é pessoa e é nó, como na rede de designação. Leitura gravada pela
+      versão 1 não avaliou o motivo: a contagem dela é nula, e a tela diz que não foi avaliado.
     - >
       A aresta é derivada, e nada nela foi dito pela origem como "A revisou B". Erro de
       resolução de conta em pessoa vira aresta errada, e é por isso que conta não resolvida é

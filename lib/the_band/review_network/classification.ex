@@ -11,11 +11,14 @@ defmodule TheBand.ReviewNetwork.Classification do
      não ligada: `Mapper.account_type/1`, **chamado e nunca reimplementado** (o `__typename` e o
      sufixo `[bot]`). Nunca o `author_type == "User"` de `Quality`, que deixa passar `algo[bot]`
      com `__typename` `User` (A14);
-  2. `:unlinked_person` — qualquer lado sem pessoa ligada. **A conta apagada na origem** (login nulo)
+  2. `:organization_account` — qualquer lado é pessoa declarada como conta da organização
+     (`review.network.edge` versão 2; 076, T027). Depois de máquina: a conta que é as duas conta
+     uma vez, como máquina;
+  3. `:unlinked_person` — qualquer lado sem pessoa ligada. **A conta apagada na origem** (login nulo)
      cai aqui, e não em bot: *"não sei quem é"* não é *"é máquina"* (decidido em 2026-10-03). Pessoa
      ligada que não está no mapa de tipos (de outro tenant) também: falha fechada;
-  3. `:self_review` — revisor e autor são a mesma pessoa;
-  4. `{:aresta, revisor, autor}`.
+  4. `:self_review` — revisor e autor são a mesma pessoa;
+  5. `{:aresta, revisor, autor}`.
 
   **Os logins não saem daqui.** O par classificado leva só ids de pessoa, a solicitação e o
   instante (data-model.md §2.1).
@@ -30,6 +33,7 @@ defmodule TheBand.ReviewNetwork.Classification do
           {:aresta, Ecto.UUID.t(), Ecto.UUID.t()}
           | :self_review
           | :bot_or_app
+          | :organization_account
           | :unlinked_person
 
   @type par_classificado :: %{
@@ -41,20 +45,21 @@ defmodule TheBand.ReviewNetwork.Classification do
   @maquina ~w(bot app)
 
   @doc """
-  Classifica os pares de `Quality.review_pairs/3` com o mapa de `EO.account_types/2`.
+  Classifica os pares de `Quality.review_pairs/3` com o mapa de `EO.account_types/2` e as contas
+  declaradas da organização (`Tenants.organization_account_ids/1`).
   """
-  @spec classify([map()], %{Ecto.UUID.t() => String.t()}) :: [par_classificado()]
-  def classify(pares, tipos) do
+  @spec classify([map()], %{Ecto.UUID.t() => String.t()}, MapSet.t()) :: [par_classificado()]
+  def classify(pares, tipos, contas_da_organizacao) do
     Enum.map(pares, fn par ->
       %{
         change_request_id: par.change_request_id,
         last_submitted_at: par.last_submitted_at,
-        destino: destino(par, tipos)
+        destino: destino(par, tipos, contas_da_organizacao)
       }
     end)
   end
 
-  defp destino(par, tipos) do
+  defp destino(par, tipos, contas) do
     revisor = lado(par.reviewer_person_id, par.reviewer_login, par.reviewer_type, tipos)
 
     # O lado do autor da solicitação não tem `__typename` gravado (`collected_change_requests` só
@@ -62,15 +67,22 @@ defmodule TheBand.ReviewNetwork.Classification do
     # declarada na regra, e não lacuna escondida (research.md R3).
     autor = lado(par.author_person_id, par.author_login, nil, tipos)
 
+    # Versão 2 (076, T027): só pessoa ligada pode ser declarada, e a máquina sai antes.
+    declarada? = Enum.any?([revisor, autor], &declarada?(&1, contas))
+
     case {revisor, autor} do
       {:maquina, _} -> :bot_or_app
       {_, :maquina} -> :bot_or_app
+      _ when declarada? -> :organization_account
       {:unlinked_person, _} -> :unlinked_person
       {_, :unlinked_person} -> :unlinked_person
       {{:pessoa, mesma}, {:pessoa, mesma}} -> :self_review
       {{:pessoa, r}, {:pessoa, a}} -> {:aresta, r, a}
     end
   end
+
+  defp declarada?({:pessoa, id}, contas), do: MapSet.member?(contas, id)
+  defp declarada?(_lado, _contas), do: false
 
   defp lado(person_id, _login, _tipo, tipos) when is_binary(person_id) do
     case Map.fetch(tipos, person_id) do

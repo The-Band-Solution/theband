@@ -96,7 +96,13 @@ defmodule TheBand.ReviewNetwork.GraphTest do
     rede = Graph.build(pares, @inicio)
     pesos = rede.edges |> Enum.map(& &1.change_requests) |> Enum.sum()
 
-    assert rede.excluded == %{self_review: 1, bot_or_app: 1, unlinked_person: 2}
+    assert rede.excluded == %{
+             self_review: 1,
+             bot_or_app: 1,
+             organization_account: 0,
+             unlinked_person: 2
+           }
+
     assert rede.pairs == length(pares)
     assert rede.pairs == pesos + 1 + 1 + 2
   end

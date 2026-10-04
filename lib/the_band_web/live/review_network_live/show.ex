@@ -427,6 +427,20 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
               bot or app <span class="font-mono tabular-nums">{e.bot_or_app}</span>
               <span class="opacity-70">— the account on either side is a bot or an app</span>
             </li>
+            <%!-- 076, T027 (A7): a conta declarada da organização. Na leitura gravada antes da
+                  versão 2 da regra o motivo não foi avaliado, e a tela diz isso, sem 0. --%>
+            <li id="exclusao-conta-da-organizacao">
+              organisation account
+              <%= if is_integer(e.organization_account) do %>
+                <span class="font-mono tabular-nums">{e.organization_account}</span>
+              <% else %>
+                <.absent reason="not evaluated: this reading predates the organisation account rule" />
+              <% end %>
+              <span class="opacity-70">
+                — the account on either side was declared by an administrator as the
+                organisation's account
+              </span>
+            </li>
             <li>
               not linked to a person <span class="font-mono tabular-nums">{e.unlinked_person}</span>
               <span class="opacity-70">

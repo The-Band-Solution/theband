@@ -8,7 +8,9 @@ defmodule TheBand.ReviewNetwork.ClassificationTest do
   2. a conta apagada na origem é **sem pessoa ligada**, e não bot (decidido em 2026-10-03);
   3. a ordem: bot vence não ligada, que vence auto-revisão;
   4. pessoa ligada fora do mapa de tipos (de outro tenant) é não ligada: falha fechada;
-  5. o par classificado não carrega login.
+  5. o par classificado não carrega login;
+  6. **A7 (076, T027)**: a pessoa declarada como conta da organização é `:organization_account`
+     — depois de máquina, antes de não ligada e de auto-revisão.
   """
   use ExUnit.Case, async: true
 
@@ -35,8 +37,12 @@ defmodule TheBand.ReviewNetwork.ClassificationTest do
     }
   end
 
-  defp destino(revisor, autor),
-    do: [par(revisor, autor)] |> Classification.classify(@tipos) |> hd() |> Map.fetch!(:destino)
+  defp destino(revisor, autor, contas \\ MapSet.new()),
+    do:
+      [par(revisor, autor)]
+      |> Classification.classify(@tipos, contas)
+      |> hd()
+      |> Map.fetch!(:destino)
 
   test "duas pessoas distintas viram aresta, do revisor para o autor" do
     assert destino({@ana, "ana", "User"}, {@bia, "bia"}) == {:aresta, @ana, @bia}
@@ -72,9 +78,29 @@ defmodule TheBand.ReviewNetwork.ClassificationTest do
   end
 
   test "o par classificado não carrega login" do
-    [classificado] = Classification.classify([par({@ana, "ana", "User"}, {@bia, "bia"})], @tipos)
+    [classificado] =
+      Classification.classify([par({@ana, "ana", "User"}, {@bia, "bia"})], @tipos, MapSet.new())
 
     assert Map.keys(classificado) |> Enum.sort() ==
              [:change_request_id, :destino, :last_submitted_at]
+  end
+
+  describe "A7 (076, T027): a conta declarada da organização" do
+    test "de qualquer lado, é organization_account e não aresta" do
+      contas = MapSet.new([@bia])
+      assert destino({@ana, "ana", "User"}, {@bia, "bia"}, contas) == :organization_account
+      assert destino({@bia, "bia", "User"}, {@ana, "ana"}, contas) == :organization_account
+    end
+
+    test "a ordem: máquina vence a declaração, e a declaração vence não ligada e auto-revisão" do
+      contas = MapSet.new([@robo, @bia])
+      assert destino({@robo, "algo[bot]", "User"}, {@bia, "bia"}, contas) == :bot_or_app
+      assert destino({@bia, "bia", "User"}, {nil, nil}, contas) == :organization_account
+      assert destino({@bia, "bia", "User"}, {@bia, "bia"}, contas) == :organization_account
+    end
+
+    test "sem declaração, a mesma conta é pessoa e é aresta" do
+      assert destino({@ana, "ana", "User"}, {@bia, "bia"}) == {:aresta, @ana, @bia}
+    end
   end
 end

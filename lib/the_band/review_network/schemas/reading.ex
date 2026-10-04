@@ -33,6 +33,9 @@ defmodule TheBand.ReviewNetwork.Schemas.Reading do
     field :excluded_self_review, :integer
     field :excluded_bot_or_app, :integer
     field :excluded_unlinked, :integer
+    # Versão 2 de `review.network.edge` (076, T027). Nula nas leituras da versão 1, que não
+    # avaliaram o motivo: ausência, e nunca zero.
+    field :excluded_organization_account, :integer
     field :knowledge_versions, :map
 
     timestamps(type: :utc_datetime, updated_at: false)
@@ -60,8 +63,11 @@ defmodule TheBand.ReviewNetwork.Schemas.Reading do
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(leitura, attrs) do
     leitura
-    |> cast(attrs, @campos)
+    |> cast(attrs, [:excluded_organization_account | @campos])
     |> validate_required(@campos)
+    |> check_constraint(:excluded_organization_account,
+      name: :review_network_readings_organization_account_non_negative
+    )
     |> validate_number(:window_days, greater_than: 0)
     |> foreign_key_constraint(:organization_id,
       name: :review_network_readings_organization_id_fkey

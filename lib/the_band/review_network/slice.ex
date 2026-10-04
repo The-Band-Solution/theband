@@ -95,10 +95,16 @@ defmodule TheBand.ReviewNetwork.Slice do
   # 0, 0, 0 (FR-009, SC-002; issue #1308). Com alguma revisão na janela, a contagem de um motivo
   # que não ocorreu é zero de verdade: houve o que contar, e aquele motivo não apareceu.
   defp exclusoes(
-         %{excluded_self_review: 0, excluded_bot_or_app: 0, excluded_unlinked: 0},
+         %{
+           excluded_self_review: 0,
+           excluded_bot_or_app: 0,
+           excluded_unlinked: 0,
+           excluded_organization_account: conta
+         },
          :todas,
          0
-       ),
+       )
+       when conta in [0, nil],
        do: {:ausente, :no_review_in_window}
 
   defp exclusoes(leitura, :todas, _revisoes) do
@@ -106,6 +112,9 @@ defmodule TheBand.ReviewNetwork.Slice do
      %{
        self_review: leitura.excluded_self_review,
        bot_or_app: leitura.excluded_bot_or_app,
+       # Nulo na leitura da versão 1 da regra, que não avaliou o motivo (076, T027): a tela diz
+       # que não foi avaliado, e nunca mostra 0.
+       organization_account: leitura.excluded_organization_account,
        unlinked_person: leitura.excluded_unlinked
      }}
   end
