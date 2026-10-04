@@ -158,7 +158,15 @@ da lista, e conta.
 **Decisão**: a emissão é `:telemetry.execute`, síncrona e barata (lookup em ETS mais a criação do
 span em memória); a exportação é do `BatchProcessor`, assíncrona. O custo da emissão é o mesmo
 para todos os motivos, porque o caminho é o mesmo. SC-006 mede o custo total; um teste mede a
-**diferença** entre motivos e falha se a mediana de um passar 2 ms da mediana de outro.
+**diferença** entre motivos e falha se a mediana de um passar 0,25 ms da mediana de outro.
+
+**Corrigido na implementação (2026-10-03)**: o limiar era 2 ms, e foi medido insuficiente. A
+emissão custa ~0,1 ms por motivo, e as medianas divergem ~17 µs sem defeito. Com o defeito de
+T015 injetado — uma consulta no handler só quando há conta —, os motivos com conta foram a
+0,5–2,8 ms e o sem conta ficou em 0,13 ms; a divergência ficou abaixo de 2 ms em uma de duas
+rodadas, e o defeito passaria. Com 0,25 ms, o defeito reprovou em quatro de quatro rodadas
+(menor divergência: 503 µs) e o código sem defeito passou em cinco de cinco
+(`test/the_band/telemetria/tempo_por_motivo_test.exs`).
 
 **Razão**: FR-009. A 045 e a #1047 gastaram trabalho para igualar o tempo entre motivos; a
 telemetria não pode desfazê-lo.
@@ -194,6 +202,26 @@ As variáveis de produção são **nomes**, e entram na lista fechada do runbook
 
 **Razão**: FR-015. A ausência não impede o boot — como a primeira conta (052) — e é **dita**.
 
+**Verificado na T005 (2026-10-03), lendo o código do SDK em `deps/`**: sim, `OTEL_*` **vence** a
+configuração explícita, nos dois pacotes.
+
+- `opentelemetry` 1.7.0, `otel_configuration:merge_list_with_environment/3`: `os:getenv(OSVar)`
+  é lido **antes** de `AppEnv`. `OTEL_TRACES_EXPORTER`, `OTEL_TRACES_SAMPLER`, `OTEL_SDK_DISABLED`,
+  `OTEL_BSP_*` vencem `config :opentelemetry`; e `merge_processor_config_/4` deixa
+  `traces_exporter` vindo do ambiente **substituir o exportador do processador** — os spans
+  sairiam por fora do filtro;
+- `opentelemetry_exporter` 1.11.0, `otel_exporter_otlp:merge_with_environment/8` e
+  `update_opts/6`: `OTEL_EXPORTER_OTLP_ENDPOINT`, `..._TRACES_ENDPOINT`, `..._HEADERS`,
+  `..._PROTOCOL` substituem até o `endpoints` passado direto ao `init/1`;
+- o detector de recurso padrão lê `OTEL_RESOURCE_ATTRIBUTES` e `OTEL_SERVICE_NAME`.
+
+**Decisão**: `config/runtime.exs` **apaga** do ambiente do processo toda variável `OTEL_*` antes
+de o SDK subir (`TheBand.Telemetria.Configuracao.neutralizar_ambiente_otel/0`), e o boot loga os
+**nomes** apagados. O recurso é reconstruído pelo exportador de qualquer forma (R3). Validação do
+endpoint: `http`, host em `["127.0.0.1", "localhost", "signoz-otel-collector"]`, porta 4318, sem
+caminho, credencial, consulta ou fragmento. Ambiente em `THE_BAND_AMBIENTE`, na forma
+`[a-z0-9_-]{1,32}`, ou `prod`. Amostrador `always_on`, explícito.
+
 ## R12. Ambiente de desenvolvimento
 
 **Decisão**: um profile `telemetria` no `compose.yaml`, com o SigNoz gerado por
@@ -221,6 +249,13 @@ o descarte por fila cheia. A tarefa que configura o SDK lê
 a biblioteca não disser, o exportador conta o que recebe contra o que o handler emitiu, e a
 diferença é a perda. Afirmar que o SDK expõe sem ler seria a *limitação declarada sem olhar o
 dado* que a casa já cometeu duas vezes.
+
+**Lido na T005/T020 (2026-10-03)**: `otel_batch_processor.erl` 1.7.0 **não expõe** o descarte.
+Com a fila no teto (`check_table_size`), `disable/1` desliga a inserção e `do_insert/2` devolve
+`dropped` a `on_end/2`, cujo retorno ninguém conta. Por isso a perda é a diferença entre
+`passo_emitido` (contado pelo handler) e `span_exportado` + `span_descartado` (contados pelo
+filtro), com os spans em trânsito dentro dela; e a recusa do destino (coletor fora) é
+`exportacao_falhou`, rotulada pelo retorno.
 
 **Inundação** (seguranca.md, S12): o identificador que não resolve não entra em espera
 (`auth.ex:47-50`), então uma campanha de adivinhação gera um span por tentativa e enche a fila —

@@ -13,6 +13,7 @@ defmodule TheBandWeb.LoginTest do
   """
   use TheBandWeb.ConnCase, async: false
 
+  import Ecto.Query, only: [from: 2]
   import Phoenix.LiveViewTest
 
   alias TheBand.Tenants
@@ -85,6 +86,79 @@ defmodule TheBandWeb.LoginTest do
       end
 
     assert [{"/sign-in", "Credenciais inválidas.", nil}] = Enum.uniq(respostas)
+  end
+
+  # Spec 074, T015 (FR-003, SC-003; seguranca.md, S4). A sessão é assinada e NÃO cifrada: o
+  # cliente lê as chaves dela. Se o correlator da jornada fosse apagado num motivo e mantido
+  # noutro, o cookie diria qual dos dois aconteceu — a enumeração que a frase única fechou.
+  test "os seis motivos da recusa deixam a mesma resposta E a mesma sessão", ctx do
+    conta = fn tenant ->
+      {:ok, u} =
+        Tenants.create_user(tenant, %{
+          "email" => "seis-#{System.unique_integer([:positive])}@example.test",
+          "role" => "member"
+        })
+
+      u
+    end
+
+    com_senha = fn tenant ->
+      {:ok, u} = Tenants.set_password(tenant, conta.(tenant).id, @senha)
+      u
+    end
+
+    sem_senha = conta.(ctx.tenant)
+    desativada = com_senha.(ctx.tenant)
+
+    {:ok, _} =
+      Tenants.disable_user(ctx.tenant, desativada.id, ctx.admin.id, %{
+        "reason" => "left_the_organisation"
+      })
+
+    suspenso = tenant_fixture()
+    da_suspensa = com_senha.(suspenso)
+
+    {1, _} =
+      TheBand.Repo.update_all(
+        from(t in Tenants.Tenant, where: t.id == ^suspenso.id),
+        set: [status: "suspended"]
+      )
+
+    em_espera = com_senha.(ctx.tenant)
+
+    for _ <- 1..3 do
+      {:error, :invalid_credentials} = Tenants.authenticate(em_espera.email, "errada-e-longa-1")
+    end
+
+    tentativas = [
+      senha_errada: %{"identifier" => ctx.member.email, "password" => "senha-errada-e-longa"},
+      identificador_nao_resolveu: %{
+        "identifier" => "nao-existe@example.test",
+        "password" => @senha
+      },
+      conta_sem_senha: %{"identifier" => sem_senha.email, "password" => @senha},
+      conta_desativada: %{"identifier" => desativada.email, "password" => @senha},
+      organizacao_suspensa: %{"identifier" => da_suspensa.email, "password" => @senha},
+      em_espera: %{"identifier" => em_espera.email, "password" => @senha}
+    ]
+
+    respostas =
+      for {_motivo, params} <- tentativas do
+        c =
+          build_conn()
+          |> init_test_session(%{
+            jornada_id: Base.url_encode64(:crypto.strong_rand_bytes(16), padding: false)
+          })
+          |> post(~p"/session", params)
+
+        {redirected_to(c), Phoenix.Flash.get(c.assigns.flash, :error),
+         c |> get_session() |> Map.keys() |> Enum.sort()}
+      end
+
+    assert [{"/sign-in", "Credenciais inválidas.", chaves}] = Enum.uniq(respostas),
+           "a resposta ou a sessão distingue os motivos: #{inspect(Enum.zip(Keyword.keys(tentativas), respostas))}"
+
+    refute "jornada_id" in chaves, "o correlator morre na tentativa, com qualquer desfecho"
   end
 
   test "a temporária tranca toda tela até a senha definitiva (FR-013)", %{

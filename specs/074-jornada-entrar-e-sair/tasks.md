@@ -157,7 +157,11 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
 
 ## Fase 3: US1 — sei quem não conseguiu entrar, e por quê (P1) 🎯 MVP
 
-- [ ] T012 [US1] A entrada emite o passo depois da transação
+- [x] T012 [US1] A entrada emite o passo depois da transação — *feita em 2026-10-03: 11 casos em
+  `regua_test.exs`; defeitos vistos reprovando: motivo devolvido ao controller (8/11 reprovam),
+  hash do identificador em forma de UUID como conta (2/11), conta em todo `concluiu` (2/11).
+  "Emitir dentro da transação" **não** é pegável pelo teste de tempo: a emissão custa o mesmo
+  dentro ou fora; a ordem fica garantida pela leitura do código (`authenticate/3`)*
   - **Pronta quando**: T011
   - **Descrição**: em `Auth`, `verificar_com_trava/2` passa a devolver o relator interno
     `{decisão, motivo, conta}`; `authenticate/3` emite **um** `entrar_com_senha` depois da
@@ -172,7 +176,8 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
     injetar**: emitir dentro da transação (o teste de tempo, T015, reprova); devolver o motivo ao
     controller (o caso estrutural reprova); pôr `hash(identificador)` no passo
 
-- [ ] T013 [US1] O correlator nasce no servidor e morre na tentativa
+- [x] T013 [US1] O correlator nasce no servidor e morre na tentativa — *feita em 2026-10-03: 5
+  casos; defeitos vistos reprovando: ler dos parâmetros (1/5), não apagar (2/5)*
   - **Pronta quando**: research R5; T011
   - **Descrição**: `lib/the_band_web/plugs/jornada_de_entrada.ex` só no `GET /sign-in`, que
     substitui `:jornada_id`; `SessionController.create/2` lê **só da sessão**, passa a
@@ -184,7 +189,8 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
   - **Teste**: `test/the_band_web/jornada_de_entrada_test.exs`. **Defeitos a injetar**: ler dos
     parâmetros; não apagar no sucesso
 
-- [ ] T014 [US1] A abertura da entrada conta uma vez
+- [x] T014 [US1] A abertura da entrada conta uma vez — *feita em 2026-10-03: 2 casos; defeito
+  visto reprovando: emitir em todo `mount` (2/2)*
   - **Pronta quando**: T013
   - **Descrição**: `SessionLive.New.mount/3` emite `abrir_a_entrada` só com `connected?(socket)`,
     com o correlator da sessão. Research R5.
@@ -193,12 +199,14 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
   - **Teste**: `test/the_band_web/live/abrir_a_entrada_test.exs`. **Defeito a injetar**: emitir em
     todo `mount`; a contagem vira dois
 
-- [ ] T015 [US1] O tempo e a sessão não distinguem os motivos
+- [x] T015 [US1] O tempo e a sessão não distinguem os motivos — *feita em 2026-10-03; defeitos
+  vistos reprovando: correlator mantido só na espera (`login_test.exs`), consulta no handler só
+  com conta (4/4 rodadas com o limiar de 0,25 ms; com 2 ms passava — research R9)*
   - **Pronta quando**: T012, T013
   - **Descrição**: estender `test/the_band_web/live/login_test.exs` (o do `Enum.uniq`): para os seis
     motivos, além do corpo e do destino, o **conjunto de chaves da sessão decodificada** do
     `Set-Cookie`. E um teste de mediana: 50 emissões por motivo, a diferença entre medianas abaixo
-    de 2 ms. FR-003, SC-003, FR-009; S4.
+    de 0,25 ms (eram 2 ms; medido insuficiente — research R9). FR-003, SC-003, FR-009; S4.
   - **Feita quando**: o conjunto de chaves é o mesmo nos seis; a diferença de medianas fica abaixo
     do limiar
   - **Teste**: `login_test.exs` e `test/the_band/telemetria/tempo_por_motivo_test.exs`.
