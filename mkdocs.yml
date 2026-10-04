@@ -173,6 +173,22 @@ plugins:
             Operação: Operations
             Segurança: Security
             Sprints: Sprints
+            # L01 (075/T027): os títulos das páginas de entrada e arquitetura.
+            "A tela da equipe": The team screen
+            "Promover e rebaixar administradores": Promoting and demoting administrators
+            "Suspender e reativar uma organização": Suspending and reactivating an organization
+            "Todo segredo protegido em repouso": Every secret protected at rest
+            "Os papéis do banco": The database roles
+            "Rede de ontologias": Ontology network
+            "Índice de conceitos": Concept index
+            "Mapeamentos semânticos": Semantic mappings
+            "Verificação contínua": Continuous verification
+            "Extensões ao one-table-per-kind": Extensions to one-table-per-kind
+            "Necessidades de informação e medidas": Information needs and measures
+            "RFC 0001 — derivação do modelo de informação": RFC 0001 — derivation of the information model
+            "A API pública": The public API
+            "O servidor MCP, para quem liga um agente": The MCP server, for connecting an agent
+            "Fluxo de uma feature": Feature workflow
 
 # Os links que saem de `docs/` viram URL do GitHub no momento do build — o fonte
 # continua relativo e navegável no repositório. Ver o moduledoc do arquivo.
