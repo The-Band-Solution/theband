@@ -41,6 +41,10 @@ module:
       Quem executou uma avaliação de artefato, e qual artefato foi avaliado — as duas
       relações que a QAPO publicada deixa implícitas e que o rastreio de revisão
       atravessa. Extensão do projeto The Band, não da QAPO publicada.
+    en: >
+      Who performed an artifact evaluation, and which artifact was evaluated — the two
+      relations that the published QAPO leaves implicit and that review tracing traverses.
+      An extension of The Band project, not of the published QAPO.
   provenance:
     source_type: project_decision
     reference: "Issue #440; lacuna declarada em github.pull_request_review.to.qapo.artifact_evaluation"

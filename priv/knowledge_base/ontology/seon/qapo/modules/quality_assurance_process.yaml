@@ -8,6 +8,10 @@ module:
       Uma não conformidade é o registro de desvio em relação a um requisito
       aplicável. Não é automaticamente um defeito: transformar code smell em
       defeito é decisão de engenharia, e deve ser explícita.
+    en: >
+      A noncompliance is the record of a deviation from an applicable requirement. It is not
+      automatically a defect: turning a code smell into a defect is an engineering decision,
+      and must be explicit.
   provenance:
     source_type: reference_ontology
     reference: "Tese, Seção 2.2.2.4, Figura 20"
@@ -20,6 +24,9 @@ concepts:
       pt-BR: >
         Processo executado específico que avalia e assegura a aderência dos
         processos executados e artefatos produzidos aos requisitos aplicáveis.
+      en: >
+        Specific performed process that evaluates and ensures the adherence of performed
+        processes and produced artifacts to the applicable requirements.
     classification: { ufo_category: complex_action, parent: spo.specific_performed_project_process }
 
   - id: qapo.adherence_evaluation
@@ -29,6 +36,9 @@ concepts:
       pt-BR: >
         Atividade que avalia objetivamente a aderência de processos e produtos aos
         requisitos aplicáveis, registrando as questões identificadas.
+      en: >
+        Activity that objectively evaluates the adherence of processes and products to the
+        applicable requirements, recording the issues identified.
     classification: { ufo_category: complex_action, parent: spo.performed_composite_activity }
 
   - id: qapo.artifact_evaluation
@@ -36,6 +46,9 @@ concepts:
     label: { pt-BR: "Avaliação de Artefato" }
     definition:
       pt-BR: Atividade que avalia objetivamente a aderência de produtos e entregáveis aos requisitos aplicáveis.
+      en: >
+        Activity that objectively evaluates the adherence of products and deliverables to
+        the applicable requirements.
     classification: { ufo_category: action, parent: spo.performed_project_activity }
 
   - id: qapo.evaluated_artifact
@@ -43,6 +56,7 @@ concepts:
     label: { pt-BR: "Artefato Avaliado" }
     definition:
       pt-BR: Papel assumido por um artefato quando é alvo de uma avaliação de artefato.
+      en: "Role played by an artifact when it is the target of an artifact evaluation."
     classification: { ufo_category: role, is_role_of: spo.artifact }
 
   - id: qapo.quality_criterion
@@ -50,6 +64,7 @@ concepts:
     label: { pt-BR: "Critério de Qualidade" }
     definition:
       pt-BR: Critério aplicável usado para avaliar a aderência de um artefato ou processo.
+      en: "Applicable criterion used to evaluate the adherence of an artifact or process."
     classification: { ufo_category: normative_description }
     examples: ["uma função não pode ter mais de 100 linhas de código"]
 
@@ -58,6 +73,7 @@ concepts:
     label: { pt-BR: "Identificação de Não Conformidade" }
     definition:
       pt-BR: Atividade que registra as não conformidades identificadas em processos e artefatos.
+      en: "Activity that records the noncompliances identified in processes and artifacts."
     classification: { ufo_category: action, parent: spo.performed_project_activity }
 
   - id: qapo.noncompliance_register
@@ -68,6 +84,10 @@ concepts:
         Item de informação que descreve uma não conformidade — falha ou recusa em
         atender a um requisito aplicável — em um processo ou artefato, com as
         informações necessárias para resolvê-la.
+      en: >
+        Information item that describes a noncompliance — a failure or refusal to meet an
+        applicable requirement — in a process or artifact, with the information needed to
+        resolve it.
     classification: { ufo_category: social_object, parent: spo.information_item }
     examples: ["uma atividade negligenciada em um processo", "um documento especificado incorretamente"]
 
@@ -76,6 +96,7 @@ concepts:
     label: { pt-BR: "Relatório de Avaliação" }
     definition:
       pt-BR: Documento que descreve os resultados da avaliação e as questões identificadas.
+      en: "Document that describes the results of the evaluation and the issues identified."
     classification: { ufo_category: social_object, parent: spo.document }
 
 relations:
