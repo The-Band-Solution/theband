@@ -241,6 +241,54 @@ plugins:
             0008 vinculo observado: 0008 observed team membership
             0009 API pública com token: 0009 public API with a token
             0010 hash do token de API: 0010 API token hash
+            # L07–L09 (075/T033–T035): a seção Sprints.
+            Retomar — onde vive o estado: Resuming — where the state lives
+            Lições aprendidas: Lessons learned
+            Por sprint: By sprint
+            Aceitação: Acceptance
+            Aceitacao 005: Acceptance 005
+            Backlog do sprint: Sprint backlog
+            Review: Review
+            GitHub: GitHub
+            001 — Fundacao e coleta eo: 001 — Foundation and EO collection
+            002 — Escopo por organizacao: 002 — Scope by organization
+            003 — Corrigir e encerrar observacao: 003 — Correct and end observation
+            004 — Issues e projetos: 004 — Issues and projects
+            005 — Mapeamento e detalhe: 005 — Mapping and detail
+            006 — Marca de issues: 006 — Issue marker
+            007 — Destravar sync presa: 007 — Unblocking a stuck sync
+            008 — Marca que se cura: 008 — The marker that heals itself
+            009 — Detalhe da pessoa: 009 — Person detail
+            010 — De quem a issue e parte: 010 — What the issue is part of
+            011 — Vinculo que sumiu na origem: 011 — The team membership that vanished at the source
+            012 — Pagina da pessoa mais rapida: 012 — A faster person page
+            013 — Clicar e quem escreveu: 013 — Click through, and who wrote it
+            014 — Design system: 014 — Design system
+            016 — Geracao mensal de perfis: 016 — Monthly profile generation
+            017 — Quadros campos e backlogs: 017 — Boards, fields and backlogs
+            018 — Competencias da equipe: 018 — Team competencies
+            019 — Comentarios das issues: 019 — Issue comments
+            020 — Coleta de mudancas: 020 — Change collection
+            021 — Coleta do ci: 021 — CI collection
+            022 — Menu por entidades: 022 — Menu by entities
+            023 — Autenticacao e acesso: 023 — Authentication and access
+            024 — Mensagens e o botao da chave: 024 — Messages and the key button
+            025 — Contas e o elo do github: 025 — Accounts and the GitHub link
+            026 — Heranca e a producao: 026 — Inheritance and production
+            027 — Equipes declaradas: 027 — Declared teams
+            028 — A tela da equipe: 028 — The team screen
+            029 — Medidas da equipe: 029 — Team measures
+            030 — A tela da equipe por vínculo: 030 — The team screen by team membership
+            031 — Segredo em repouso: 031 — Secret at rest
+            032 — Rótulos no item: 032 — Labels on the item
+            033 — A API pública: 033 — The public API
+            034 — O servidor MCP: 034 — The MCP server
+            035 — O operador da plataforma: 035 — The platform operator
+            036 — Os papéis do banco: 036 — The database roles
+            037 — A marca de administrador: 037 — The administrator mark
+            038 — Entrar e sair, em traço: 038 — Signing in and out, traced
+            039 — A rede de revisão: 039 — The review network
+            040 — O site de desenvolvedores: 040 — The developer site
 
 # Os links que saem de `docs/` viram URL do GitHub no momento do build — o fonte
 # continua relativo e navegável no repositório. Ver o moduledoc do arquivo.
