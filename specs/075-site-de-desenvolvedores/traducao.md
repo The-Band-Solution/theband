@@ -51,6 +51,33 @@ Continuum) têm nome em inglês; a tradução EN usa esse nome, e não uma tradu
 | medida | measure | SMPO |
 | observado / declarado / derivado / ausente | observed / declared / derived / absent | `docs/design-system.md` |
 | proveniência | provenance | — |
+| vigente / revogado(a) | in force / revoked | `revoked_at IS NULL` (L03) |
+| declaração revogável | revocable declaration | `estados/declaracao-revogavel.md` (L03) |
+| equívoco (do vínculo) | mistake | `invalidated_at`, como no L02 (L03) |
+| saída (declarada) | (declared) departure | `ended_at`, como no L02 (L03) |
+| elo (projeto ↔ equipe, quadro, repositório, organização) | link | `spo_project_*` (L03) |
+| quadro | board | `observed_projects`; o *project* do GitHub (L03) |
+| projeto declarado | declared project | `spo_projects` (L03) |
+| execução (da coleta) / rodada (de perfis) | run / round | `syncs`, `profile_runs` (L03) |
+| ferramenta (conectada) | (connected) tool | `connected_tools` (L03) |
+| cota / balde | quota / bucket | `Ingestion.Cota` (L03) |
+| etapa (da coleta) | stage | `sync_github_eo.ex` (L03) |
+| payload cru / coluna crua | raw payload / raw column | `raw_payloads`; `:binary_id` sem FK (L03) |
+| índice parcial | partial index | (L03) |
+| censo | census | `mapa-*.md` (L03) |
+| recorte (de um ERD) | slice | `banco/mapa-das-tabelas.md` (L03) |
+| contexto de escrita | write context | `banco/mapa-das-tabelas.md` (L03) |
+| o nulo que significa | the null that means something | (L03) |
+| sucesso silencioso | silent success | (L03) |
+| desfecho (`outcome`) | outcome | campo virtual (L03) |
+| promoção / complementação | promotion / complementation | `:promoted` / `:completed` (L03) |
+| episódio (de suspensão, de desativação) | episode | `tenant_suspensions`, `account_disablements` (L03) |
+| código de definição / de cadastro / de guarda | setup / enrollment / safekeeping code | `setup_code_*`, `enrollment_code_*`, `ack_code_*` (L03) |
+| travado (segundo fator) | locked | `second_factor_failures` (L03) |
+| reinício (da credencial) | reset | `reiniciar_credencial/2` (L03) |
+| aresta de realimentação | feedback edge | DSM (L03) |
+| chamada de fronteira / alias de schema | boundary call / schema alias | DSM, marcas `F` / `S` (L03) |
+| achado | finding | (L03) |
 | organização (tenant) | tenant, quando o texto fala da plataforma | AGENTS §7.4 |
 | pessoa mantenedora | maintainer | — |
 | lições aprendidas | lessons learned | — |
