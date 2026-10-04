@@ -22,8 +22,9 @@ decisões A7, R10 item 8 e R21 com a opção padrão do plano. US4–US9 e o aca
 sprint seguinte.
 
 **Andamento em 2026-10-04**: a Fundação (T002, T004–T017) está feita na branch
-`feature/1309-fundacao`, num PR próprio para `development`. T003 (medida de produção) continua com
-a pessoa mantenedora. US1–US3 (T018–T034) não começaram.
+`feature/1309-fundacao`, num PR próprio para `development` (#1381). T003 (medida de produção)
+continua com a pessoa mantenedora. A US1 (T018–T020) está feita na branch `feature/1309-us1`,
+empilhada sobre a fundação, num PR com merge commit. US2 e US3 (T021–T034) seguem, empilhadas.
 
 ## Escopo proposto, e o que espera confirmação
 
@@ -103,9 +104,9 @@ P3 ficam sem prioridade, como na 073.
 | T015 | Alcançar por concessão (DS1) | épico | [#1339](https://github.com/The-Band-Solution/theband/issues/1339) | sim | feito (fundação, 2026-10-04) |
 | T016 | Recortar a leitura pelo alcance (FR-015) | épico | [#1340](https://github.com/The-Band-Solution/theband/issues/1340) | sim | feito (fundação, 2026-10-04) |
 | T017 | Ler pelo alcance, a cada chamada | épico | [#1341](https://github.com/The-Band-Solution/theband/issues/1341) | sim | feito (fundação, 2026-10-04) |
-| T018 | Pôr Network analysis no menu principal | US1 | [#1342](https://github.com/The-Band-Solution/theband/issues/1342) |  | a fazer |
-| T019 | Abrir a área e escolher a organização | US1 | [#1343](https://github.com/The-Band-Solution/theband/issues/1343) |  | a fazer |
-| T020 | Montar a rede de revisão na área, e o endereço antigo | US1 | [#1344](https://github.com/The-Band-Solution/theband/issues/1344) | sim | a fazer |
+| T018 | Pôr Network analysis no menu principal | US1 | [#1342](https://github.com/The-Band-Solution/theband/issues/1342) |  | feito (US1, 2026-10-04) |
+| T019 | Abrir a área e escolher a organização | US1 | [#1343](https://github.com/The-Band-Solution/theband/issues/1343) |  | feito (US1, 2026-10-04) |
+| T020 | Montar a rede de revisão na área, e o endereço antigo | US1 | [#1344](https://github.com/The-Band-Solution/theband/issues/1344) | sim | feito (US1, 2026-10-04) |
 | T021 | Gravar o tipo da conta na coleta de issues (A3) | US2 | [#1345](https://github.com/The-Band-Solution/theband/issues/1345) | sim | a fazer |
 | T022 | Preencher o tipo da conta das issues já coletadas | US2 | [#1346](https://github.com/The-Band-Solution/theband/issues/1346) |  | a fazer |
 | T023 | Ler os pares de designação com seis filtros de tenant | US2 | [#1347](https://github.com/The-Band-Solution/theband/issues/1347) | sim | a fazer |
