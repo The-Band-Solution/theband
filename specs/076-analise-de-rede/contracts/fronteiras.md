@@ -24,6 +24,15 @@ Ordenado por `(opened_at, collected_issue_id, assignee_person_id)`.
 
 **Não expõe**: login, título, corpo, estado da issue. Repositório fora da lista nunca entra.
 
+**Emenda de 2026-10-04 (T023)**, feita no mesmo commit da implementação: cada elemento ganha
+`assigned: boolean()`. Sem ele, a issue sem responsável (`assignee_* = nil`) e o responsável não
+ligado de linha antiga (pessoa nula **e** tipo gravado nulo) teriam a mesma forma, e a
+classificação contaria um como o outro. As pessoas são lidas pela tabela `eo_people`, sem o
+schema de EO, como `Quality.review_pairs/3` lê as avaliações: só o id, para o filtro de tenant. A
+ordem desempata também pelo id da linha de `issue_assignees`, para a saída ser estável quando
+dois responsáveis não ligados dão `assignee_person_id` nulo. Lista de repositórios vazia devolve
+`[]` sem consultar.
+
 ### Coleta — `replace_assignees/3` e `record_collected_issue/2` (mudam)
 
 Passam a aceitar `account_type` por responsável e `author_account_type` na issue (R13). O
