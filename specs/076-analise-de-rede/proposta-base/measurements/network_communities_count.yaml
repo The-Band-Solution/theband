@@ -1,0 +1,44 @@
+measurement:
+  id: network.communities.count
+  version: 1
+  name:
+    pt-BR: "Comunidades detectadas, e o tamanho e as arestas internas de cada uma"
+    en: "Detected communities, and the size and internal edges of each"
+  answers_information_need: [network.structure]
+  value_type: count
+  unit: communities
+
+  formula:
+    expression: >
+      Seja P a partição da rede inteira dada pelo algoritmo guloso de modularidade COM peso,
+      com o desempate e a numeração de network.analysis.parameters.communities:
+        communities      = número de partes de P                              [comunidades]
+        size(k)          = pessoas na comunidade k                            [pessoas]
+        internal_edges(k)= pares {u, v} da projeção sem direção com u, v em k   [arestas]
+      Sem aresta na janela: AUSENTE com motivo `no_edge_in_window`. Cada componente fica em
+      comunidades próprias: o algoritmo nunca junta pessoas sem aresta entre si. É a COR do
+      círculo no grafo de comunidades.
+    inputs: [network_edges, network_edge_weights]
+
+  scope:
+    levels: [observed_organization, community]
+    filters:
+      - "calculada sobre a rede inteira (FR-011); membros nomeados só sob o alcance, os de fora agrupados (FR-015, FR-028)"
+    period: "a janela da leitura"
+
+  limitations:
+    - "O algoritmo guloso encontra UMA partição de modularidade alta, e não a máxima; outra, de modularidade quase igual, pode separar as pessoas de outro jeito."
+    - "Reprodutível pelo desempate declarado, e não por ser a 'verdadeira'."
+    - "Pessoas sem aresta não estão em comunidade nenhuma."
+
+  misinterpretations:
+    - "Ler comunidade como equipe, ou dar a ela nome de equipe. Comunidade é quem se liga mais entre si do que com o resto, numa janela, numa ferramenta (FR-030)."
+    - "Ler o número de comunidades como fragmentação a corrigir: produtos separados de propósito formam comunidades separadas."
+    - "Comparar o número de comunidades entre janelas de tamanhos diferentes como tendência."
+
+  provenance:
+    source_type: literature
+    authors: ["Aaron Clauset", "M. E. J. Newman", "Cristopher Moore"]
+    year: 2004
+    reference: "Clauset, A.; Newman, M. E. J.; Moore, C. Finding community structure in very large networks. Physical Review E 70, 066111, 2004; spec 076, FR-027, FR-028"
+    note: "Corrige `dashboard_team_graph.py:238-241`, que maximiza sem peso e sobre `to_undirected()`, que guarda o peso de um só sentido."

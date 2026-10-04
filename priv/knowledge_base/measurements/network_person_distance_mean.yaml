@@ -1,0 +1,38 @@
+measurement:
+  id: network.person_distance.mean
+  version: 1
+  name:
+    pt-BR: "Distância média da pessoa até quem ela alcança, e quantas alcança"
+    en: "A person's average distance to the people they reach, and how many they reach"
+  answers_information_need: [network.structure]
+  value_type: score
+  unit: steps
+
+  formula:
+    expression: >
+      Na projeção sem direção, em passos:
+        reached(u)       = r(u) − 1, as pessoas que u alcança, sem contar u        [pessoas]
+        person_distance(u) = D(u) / reached(u)                                     [passos]
+      Sempre definida para nó (reached(u) ≥ 1). É a frase correta que a referência tentou
+      dizer com 1/closeness: "on average N steps from the M people they reach".
+    inputs: [network_edges]
+
+  scope:
+    levels: [person]
+    filters:
+      - "a mesma de network.closeness.ratio"
+    period: "a janela da leitura"
+
+  limitations:
+    - "É sobre quem a pessoa alcança, e não sobre a rede inteira: em componente de 2 pessoas, a distância média é 1, a menor possível."
+    - "Sem peso: distância em passos."
+
+  misinterpretations:
+    - "Comparar a distância média de pessoas de componentes de tamanhos diferentes sem olhar quantas cada uma alcança."
+    - "A medida não avalia a pessoa."
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: "spec 076, FR-035; network.analysis.parameters.closeness"
+    note: "Corrige `dashboard_team_graph.py:318`."

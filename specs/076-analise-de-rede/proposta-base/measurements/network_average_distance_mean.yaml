@@ -1,0 +1,39 @@
+measurement:
+  id: network.average_distance.mean
+  version: 1
+  name:
+    pt-BR: "Distância média entre as pessoas que se alcançam, e a fração de pares que se alcançam"
+    en: "Average distance between people who reach each other, and the share of pairs that do"
+  answers_information_need: [network.structure]
+  value_type: score
+  unit: steps
+
+  formula:
+    expression: >
+      Na projeção sem direção, em passos, P os pares não ordenados de pessoas distintas da
+      rede e A ⊆ P os que se alcançam (network.analysis.parameters.distances):
+        average_distance = soma de d(s, t) sobre A / |A|                         [passos]
+        reachable_share  = |A| / |P|                                             [razão]
+      Sem aresta: AUSENTE com motivo `no_edge_in_window`. É o L do σ.
+    inputs: [network_edges]
+
+  scope:
+    levels: [observed_organization]
+    filters:
+      - "calculada sobre a rede inteira (FR-011); aparece ao lado de L_rand de network.small_world_sigma.score"
+    period: "a janela da leitura"
+
+  limitations:
+    - "Em rede desconexa, é a distância entre quem se alcança; pares sem caminho estão em reachable_share, e não na média."
+    - "Sem peso: uma aresta de 1 issue e uma de 40 são um passo cada."
+
+  misinterpretations:
+    - "Ler como velocidade de comunicação ou 'quantos intermediários uma informação precisa'. Designação e revisão não transmitem informação a terceiros."
+    - "Converter o valor em adjetivo por faixa: a referência usa 2, 3 e 4 sem razão (`dashboard_team_graph.py:341-348`)."
+
+  provenance:
+    source_type: literature
+    authors: ["Duncan J. Watts", "Steven H. Strogatz"]
+    year: 1998
+    reference: "Watts, D. J.; Strogatz, S. H. Collective dynamics of 'small-world' networks. Nature 393, 1998 — comprimento característico de caminho; spec 076, FR-037"
+    note: "Corrige `dashboard_team_graph.py:139-149`, que faz a média simples das médias por componente e devolve `inf` sem componente."

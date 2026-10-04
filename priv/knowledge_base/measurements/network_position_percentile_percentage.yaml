@@ -1,0 +1,40 @@
+measurement:
+  id: network.position_percentile.percentage
+  version: 1
+  name:
+    pt-BR: "Percentil da pessoa na rede, em grau e em intermediação"
+    en: "A person's percentile in the network, in degree and in betweenness"
+  answers_information_need: [network.structure]
+  value_type: percentage
+  unit: percentile
+
+  formula:
+    expression: >
+      Para M em (network.degree.count, network.betweenness.ratio), sobre as n pessoas da rede
+      inteira, pelo posto médio (network.position_role.percentile_method):
+        percentile_M(u) = 100 × (#{v : M(v) < M(u)} + #{v : M(v) = M(u)} / 2) / n   [percentil]
+      Com n abaixo de network.position_role.min_people: AUSENTE com motivo
+      `network_too_small_for_roles`. Intermediação ausente (n < 3) deixa o percentil dela
+      ausente com o mesmo motivo da intermediação.
+    inputs: [network.degree.count, network.betweenness.ratio, network_size]
+
+  scope:
+    levels: [person]
+    filters:
+      - "calculada sobre a rede inteira (FR-011, FR-045); o nome só sob o alcance"
+    period: "a janela da leitura"
+
+  limitations:
+    - "Relativo: muda quando outra pessoa entra ou sai da rede, sem que nada da pessoa tenha mudado."
+    - "Empates recebem o mesmo percentil; em rede com muita intermediação zero, um grupo grande divide o mesmo valor."
+
+  misinterpretations:
+    - "Ler percentil alto como desempenho alto."
+    - "Comparar percentis entre organizações, janelas ou as duas redes."
+    - "A medida não avalia a pessoa."
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: "spec 076, FR-044, FR-045, FR-048; network.position_role"
+    note: "Corrige `dashboard_team_graph.py:486-487`, que conta 'menor ou igual' e empurra grupos empatados para cima."

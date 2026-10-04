@@ -53,13 +53,15 @@ defmodule TheBand.ReviewNetwork.Commands do
   Calcula com os parâmetros da base e avisa, só com ids, que há leituras novas. É o que a fachada
   expõe, e só o job chama.
   """
-  @spec compute(Tenant.t(), map(), DateTime.t()) :: {:ok, relator()}
+  @spec compute(Tenant.t(), map(), DateTime.t()) ::
+          {:ok, relator()} | {:error, {:reading_rejected, [atom()]}}
   def compute(tenant, organization, now) do
-    {:ok, relator} = compute(tenant, organization, now, Parameters.fetch!())
-
-    # Depois do commit (a transação já fechou dentro de compute/4), e só com ids: A11.
-    Notices.broadcast(tenant.id, organization.id, Enum.map(relator.readings, & &1.id))
-    {:ok, relator}
+    # `with`, e não `{:ok, relator} =`: o `MatchError` imprime o termo que não casou (076, R10).
+    with {:ok, relator} <- compute(tenant, organization, now, Parameters.fetch!()) do
+      # Depois do commit (a transação já fechou dentro de compute/4), e só com ids: A11.
+      Notices.broadcast(tenant.id, organization.id, Enum.map(relator.readings, & &1.id))
+      {:ok, relator}
+    end
   end
 
   @doc """
@@ -68,10 +70,16 @@ defmodule TheBand.ReviewNetwork.Commands do
   `now` vem de quem chama: a função não lê relógio, e é isso que torna a FR-012 testável. A
   organização já foi conferida (id e tenant) por quem chama.
 
-  Devolve o relator só com contagens, e é o que o job registra (FR-021). Erro de banco levanta e
-  desfaz a transação: não há `{:error, _}` para caso de negócio.
+  Devolve o relator só com contagens, e é o que o job registra (FR-021).
+
+  **Leitura recusada pelo banco** (a organização apagada entre a busca do job e a inserção, por
+  exemplo) desfaz a transação e devolve `{:error, {:reading_rejected, campos}}`, só com os **nomes**
+  dos campos recusados — feature 076, T004 (R10 da segurança, A18). `Repo.insert!` levantaria
+  `Ecto.InvalidChangesetError`, cuja mensagem traz os parâmetros inteiros, isto é, cada par de
+  `person_id` da rede; o Oban gravaria essa mensagem em `oban_jobs.errors`.
   """
-  @spec compute(Tenant.t(), map(), DateTime.t(), map()) :: {:ok, relator()}
+  @spec compute(Tenant.t(), map(), DateTime.t(), map()) ::
+          {:ok, relator()} | {:error, {:reading_rejected, [atom()]}}
   def compute(%Tenant{} = tenant, %{id: organization_id}, %DateTime{} = now, parametros) do
     agora = DateTime.truncate(now, :second)
     maior = Enum.max(parametros.windows)
@@ -113,24 +121,27 @@ defmodule TheBand.ReviewNetwork.Commands do
         }
       end
 
-    {:ok, gravadas} = substituir(tenant, organization_id, linhas)
+    with {:ok, gravadas} <- substituir(tenant, organization_id, linhas) do
+      {:ok, relator(gravadas)}
+    end
+  end
 
-    {:ok,
-     %{
-       readings:
-         Enum.map(gravadas, fn r ->
-           %{
-             id: r.id,
-             window_days: r.window_days,
-             reviews: r.reviews_in_network,
-             excluded: %{
-               self_review: r.excluded_self_review,
-               bot_or_app: r.excluded_bot_or_app,
-               unlinked_person: r.excluded_unlinked
-             }
-           }
-         end)
-     }}
+  defp relator(gravadas) do
+    %{
+      readings:
+        Enum.map(gravadas, fn r ->
+          %{
+            id: r.id,
+            window_days: r.window_days,
+            reviews: r.reviews_in_network,
+            excluded: %{
+              self_review: r.excluded_self_review,
+              bot_or_app: r.excluded_bot_or_app,
+              unlinked_person: r.excluded_unlinked
+            }
+          }
+        end)
+    }
   end
 
   defp ids_de_pessoa(pares, autores) do
@@ -168,9 +179,20 @@ defmodule TheBand.ReviewNetwork.Commands do
           where: r.tenant_id == ^tenant_id and r.organization_id == ^organization_id
       )
 
-      Enum.map(linhas, fn attrs ->
-        %Reading{} |> Reading.changeset(attrs) |> Repo.insert!()
-      end)
+      Enum.map(linhas, &inserir/1)
     end)
   end
+
+  # Dentro da transação: a recusa desfaz tudo, e o motivo leva só nomes de campo.
+  defp inserir(attrs) do
+    case %Reading{} |> Reading.changeset(attrs) |> Repo.insert() do
+      {:ok, gravada} -> gravada
+      {:error, changeset} -> Repo.rollback({:reading_rejected, campos_recusados(changeset)})
+    end
+  end
+
+  # Só os nomes: o changeset carrega `params` e `changes` com as arestas, e nenhum dos dois pode
+  # chegar ao termo que o job devolve ao Oban (076, R10; A18).
+  defp campos_recusados(%Ecto.Changeset{errors: errors}),
+    do: errors |> Keyword.keys() |> Enum.uniq() |> Enum.sort()
 end

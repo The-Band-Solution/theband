@@ -43,7 +43,7 @@ defmodule TheBand.Repo.LogDaConsulta do
 
   @evento [:the_band, :repo, :query]
   @id "the_band-repo-log-da-consulta"
-  @redigido "[parâmetros redigidos: a consulta toca tabela com campo cifrado]"
+  @redigido "[parâmetros redigidos: a consulta toca tabela com campo cifrado ou leitura de rede]"
 
   @doc "Anexa o handler. Chamado por `TheBand.Application` antes de o Repo subir."
   @spec anexar() :: :ok | {:error, :already_exists}
@@ -58,11 +58,25 @@ defmodule TheBand.Repo.LogDaConsulta do
   def tabelas_cifradas,
     do: Rotacao.campos_cifrados() |> Enum.map(&elem(&1, 0)) |> Enum.uniq()
 
-  @doc "A consulta toca tabela com campo cifrado?"
+  # As leituras das redes de pessoas — feature 076, T014 (A19; FR-054; R10 da segurança). Não têm
+  # campo cifrado, mas cada linha É a rede inteira: pares de `person_id`, graus e, nas tarefas
+  # seguintes, medidas por pessoa. Em `:debug`, o INSERT de uma leitura escreveria tudo isso no
+  # log, fora de qualquer alcance. A 073 tem o mesmo defeito na mesma superfície (§14.0, item 2).
+  @tabelas_de_rede ~w(network_analysis_readings review_network_readings)
+
+  @doc "As tabelas de leitura de rede cujas consultas têm os parâmetros redigidos (076, A19)."
+  @spec tabelas_de_rede() :: [String.t()]
+  def tabelas_de_rede, do: @tabelas_de_rede
+
+  @doc "A consulta toca tabela com campo cifrado, ou tabela de leitura de rede de pessoas?"
   @spec redigir?(String.t() | nil, String.t()) :: boolean()
   def redigir?(source, sql) do
     sql = String.downcase(sql)
-    Enum.any?(tabelas_cifradas(), &(&1 == source or String.contains?(sql, &1)))
+
+    Enum.any?(
+      tabelas_cifradas() ++ @tabelas_de_rede,
+      &(&1 == source or String.contains?(sql, &1))
+    )
   end
 
   @doc false

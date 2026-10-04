@@ -1,0 +1,42 @@
+measurement:
+  id: network.global_efficiency.ratio
+  version: 1
+  name:
+    pt-BR: "Eficiência global, ao lado da dos grafos aleatórios"
+    en: "Global efficiency, next to that of random graphs"
+  answers_information_need: [network.structure]
+  value_type: ratio
+  unit: ratio
+
+  formula:
+    expression: >
+      Na projeção sem direção, em passos, com P os pares não ordenados de pessoas distintas:
+        efficiency = (soma sobre P de 1 / d(s, t)) / |P|                         [razão]
+      com 1/d = 0 para par sem caminho, POR DEFINIÇÃO (Latora e Marchiori, 2001): é o que
+      torna a medida definida em rede desconexa, e não valor de reserva.
+      efficiency_rand = média da mesma medida sobre os grafos aleatórios de
+      network.analysis.parameters.small_world.
+      Acima de network.analysis.parameters.size_limit: efficiency_rand AUSENTE com motivo
+      `network_too_large_for_platform`; efficiency é calculada.
+      Sem aresta: AUSENTE com motivo `no_edge_in_window`.
+    inputs: [network_edges]
+
+  scope:
+    levels: [observed_organization]
+    filters:
+      - "calculada sobre a rede inteira (FR-011)"
+    period: "a janela da leitura"
+
+  limitations:
+    - "Mistura distância e desconexão num número só: duas redes com a mesma eficiência podem ter uma muito conexa e longa, a outra curta e partida. A distância média e a fração de pares que se alcançam aparecem ao lado."
+    - "Sem peso."
+
+  misinterpretations:
+    - "Ler como eficiência do TIME. É uma propriedade de caminhos num grafo de designação ou revisão."
+    - "Converter em 'altamente eficiente' ou 'baixa eficiência' por faixa: a referência usa 0,4 e 0,7 sem razão (`dashboard_team_graph.py:354`); aqui o número é lido contra efficiency_rand."
+
+  provenance:
+    source_type: literature
+    authors: ["Vito Latora", "Massimo Marchiori"]
+    year: 2001
+    reference: "Latora, V.; Marchiori, M. Efficient behavior of small-world networks. Physical Review Letters 87, 198701, 2001; spec 076, FR-038"

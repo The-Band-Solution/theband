@@ -116,7 +116,20 @@ config :the_band, Oban,
   # O healthcheck marcava o contêiner `unhealthy`, e reiniciá-lo mataria as cinco coletas. Numa
   # fila só deles, o `Cron` completa a cada 5 minutos enquanto o Oban estiver vivo, que é
   # exatamente o que o verificador mede.
-  queues: [ingestion: 5, transformation: 5, perfis: 1, rodadas: 1, manutencao: 2],
+  #
+  # `network_analysis` é fila **própria**, com concorrência 1 — feature 076, T010 (R4; R7 da
+  # segurança). Cada cálculo roda 100 grafos aleatórios por rede e janela, seis combinações por
+  # organização; na `transformation`, que a coleta usa, ele disputaria vaga com a sincronização.
+  # Fila declarada no worker e não configurada aqui fica `available` para sempre
+  # (`recompute_promotions.ex:7-9`); `fila_network_analysis_test.exs` guarda a linha.
+  queues: [
+    ingestion: 5,
+    transformation: 5,
+    perfis: 1,
+    rodadas: 1,
+    manutencao: 2,
+    network_analysis: 1
+  ],
   plugins: [
     {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7},
     # Reconcilia execuções presas a cada cinco minutos. É o atraso máximo aceitável entre a

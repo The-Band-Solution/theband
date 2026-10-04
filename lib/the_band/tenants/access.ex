@@ -324,13 +324,35 @@ defmodule TheBand.Tenants.Access do
   lado, e este documento prefere repetir a razão a deixá-la implícita.
   """
   @spec pessoas_alcancadas(Tenant.t(), User.t()) :: :todas | {:algumas, MapSet.t()}
-  def pessoas_alcancadas(%Tenant{} = tenant, %User{} = user) do
+  def pessoas_alcancadas(%Tenant{} = tenant, %User{} = user),
+    do: alcancadas(tenant, user, &scopes(tenant, &1))
+
+  @doc """
+  As pessoas que esta conta alcança **por concessão** — feature 076, DS1 (b), R11
+  (`contracts/fronteiras.md`, `Tenants`).
+
+  A mesma regra de `pessoas_alcancadas/2`, mas só com os escopos `origin: :granted`: o vínculo
+  de equipe (`:derived_team`) e o de projeto **não** contam. A própria pessoa entra sempre, e a
+  administração **deste** tenant é `:todas`.
+
+  Existe porque a DS1 separa quem tem escopo **concedido** — e por isso lê papel e hubs com o
+  nome de outra pessoa na análise de rede — de quem só é colega de equipe. Uma opção, e não uma
+  função nova: duas portas com nomes parecidos é como a R5 da segurança nasceu.
+
+  A `/2` não muda.
+  """
+  @spec pessoas_alcancadas(Tenant.t(), User.t(), origem: :concedida) ::
+          :todas | {:algumas, MapSet.t()}
+  def pessoas_alcancadas(%Tenant{} = tenant, %User{} = user, origem: :concedida),
+    do: alcancadas(tenant, user, &granted_scopes(tenant, &1))
+
+  defp alcancadas(tenant, user, escopos) do
     # Administrador DESTE tenant, como nas cláusulas vizinhas (#1181): sem a comparação, um admin
     # de outra organização receberia `:todas` aqui, se um chamador passasse o tenant errado.
     if User.admin?(user) and user.tenant_id == tenant.id do
       :todas
     else
-      meus = scopes(tenant, user)
+      meus = escopos.(user)
       agora = DateTime.utc_now()
 
       equipes_diretas = for s <- meus, s.level == :team, s.target_id, do: s.target_id

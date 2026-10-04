@@ -39,6 +39,7 @@ argumento**.
 | `Tenants.ensure_active/1` | suspenso | `{:cancel, :tenant_inactive}` | não |
 | `EO.fetch_organization/2` (id **e** tenant) | não existe, ou é de outro tenant | `{:cancel, :organization_not_found}` | não |
 | `ReviewNetwork.compute/3` com `DateTime.utc_now(:second)` | exceção de banco | levanta; a transação desfaz; o Oban tenta de novo | não |
+| `ReviewNetwork.compute/3` | leitura recusada pelo banco (076, T004) | `{:cancel, {:reading_rejected, campos}}`, só nomes de campo | não |
 | sucesso | — | `:ok`, depois de `broadcast` e `Logger.info` | as três janelas, juntas |
 
 Cancelar **nunca** grava leitura vazia (A10): leitura com *"nenhuma revisão"* porque a organização
