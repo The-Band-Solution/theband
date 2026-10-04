@@ -190,5 +190,24 @@ O avaliador participou da avaliação e não tomou posição. É diferente de n�
 
 ---
 
+## Perguntas de competência
+
+Perguntas que esta ontologia precisa saber responder. São os requisitos funcionais do modelo, verificados por `mix knowledge.test`.
+
+| # | Pergunta | Conceitos envolvidos |
+|---|---|---|
+| `CQ01` | Quais pessoas avaliaram um artefato criado em atividade de que participou outra pessoa, numa janela de tempo? (No The Band: quem revisou a solicitação de mudança submetida por outra pessoa.) | `spo.project_person_stakeholder`, `qapo.artifact_evaluation`, `qapo.evaluated_artifact`, `spo.artifact`, … |
+| `CQ02` | Quantos artefatos distintos criados em atividade de uma pessoa foram avaliados por outra, numa janela de tempo? | `spo.project_person_stakeholder`, `qapo.artifact_evaluation`, `spo.artifact` |
+| `CQ03` | Quais avaliações de artefato não ligam duas pessoas distintas — a que avaliou e a que participou da criação do artefato —, e por qual motivo? | `spo.project_person_stakeholder`, `qapo.artifact_evaluation`, `spo.artifact` |
+| `CQ04` | Entre as pessoas que avaliaram, ou participaram da criação de artefato avaliado, numa janela, quais conjuntos não estão ligados por avaliação em sentido nenhum? | `spo.project_person_stakeholder`, `qapo.artifact_evaluation`, `spo.artifact` |
+
+- **CQ01** — É a pergunta que define a aresta. Se a rede de ontologias não a responde, a aresta revisor → autor é invenção do código, e não leitura da base. A resposta exige os dois lados: quem participou da avaliação e quem participou da atividade que CRIOU o artefato — a submissão, e não a integração, porque Pull Request não é merge (a integração é `cmpo.checkin`, que não cria a solicitação).
+- **CQ02** — É o peso da aresta. Artefatos (solicitações) DISTINTOS, e não avaliações: várias rodadas da mesma pessoa sobre o mesmo artefato são uma contribuição só. Sem esta pergunta, o peso vira contagem de eventos e infla quem comenta muito em poucas solicitações.
+- **CQ03** — As exclusões precisam ser respondíveis pela base, e não só pelo cálculo: auto-revisão (a mesma pessoa nas duas pontas), conta de máquina, e conta sem pessoa ligada. Sem a pergunta, uma revisão excluída some — e a soma das arestas deixa de fechar com o total de revisões, que é o que permite conferir a leitura contra a origem (SC-001).
+- **CQ04** — É a pergunta dos grupos (US3). Declara a população — só pessoas com ao menos uma aresta — e o critério — sentido nenhum, isto é, componente fraco. Pessoa sem aresta não é grupo de tamanho 1, e sem essa restrição todo grupo de 1 seria uma pessoa apontada (seguranca.md R2 item 4).
+
+
+---
+
 [← Rede de ontologias](README.md)
 

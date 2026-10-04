@@ -8,7 +8,7 @@
 
 Documentation generated from `priv/knowledge_base/`. The YAML base is the source of truth; this page is derived from it.
 
-**14 ontologies · 240 concepts · 177 relations · 77 competency questions**
+**14 ontologies · 240 concepts · 177 relations · 81 competency questions**
 
 ## Architecture
 
@@ -88,7 +88,7 @@ Each arrow means *reuses concepts from*. The direction always goes from the more
 | [CMO](cmo.md) — Communication Ontology | Domain | Continuum | `ufo`, `eo`, `spo` | 4 | 8 | 4 |
 | [CMPO](cmpo.md) — Configuration Management Process Ontology | Domain | SEON | `ufo`, `spo`, `sys_swo` | 27 | 21 | 0 |
 | [OSDEF](osdef.md) — Reference Ontology of Software Defects, Errors and Failures | Domain | SEON | `ufo`, `spo`, `sys_swo`, `roost` | 6 | 5 | 0 |
-| [QAPO](qapo.md) — Quality Assurance Process Ontology | Domain | SEON | `ufo`, `spo` | 12 | 10 | 0 |
+| [QAPO](qapo.md) — Quality Assurance Process Ontology | Domain | SEON | `ufo`, `spo` | 12 | 10 | 4 |
 | [ROoST](roost.md) — Reference Ontology on Software Testing | Domain | SEON | `ufo`, `spo`, `sys_swo` | 14 | 6 | 0 |
 | [RSRO](rsro.md) — Reference Software Requirements Ontology | Domain | SEON | `ufo`, `spo` | 5 | 2 | 0 |
 | [SMPO](smpo.md) — Software Management Planning Ontology | Domain | Continuum | `ufo`, `eo`, `spo`, `sro` | 3 | 3 | 4 |

@@ -6,7 +6,7 @@
 !!! note "Generated from the knowledge base — part of the text is still in Portuguese"
     This page is generated from `priv/knowledge_base/`. The headings, labels and tables are in English. The texts of the base — definitions, descriptions, questions, justifications — are shown in English where the base has them in English; otherwise the Portuguese original appears, marked `pt-BR`.
 
-    **26 of 26** texts on this page exist in the base only in Portuguese. The English text is written in the base, in the `en` field, and not on this page: the page is regenerated and would lose it.
+    **30 of 34** texts on this page exist in the base only in Portuguese. The English text is written in the base, in the `en` field, and not on this page: the page is regenerated and would lose it.
 
 > `pt-BR` Atividades, artefatos e stakeholders do processo de garantia da qualidade, avaliando a aderência de processos e produtos aos requisitos aplicáveis.
 
@@ -191,6 +191,25 @@ Examples: `pt-BR` *endossa*; *objeta*; *abstém*
 |---|---|---|---|---|
 | `reached` | `qapo.artifact_evaluation` | `qapo.evaluation_verdict` | one → one | association |
 
+
+
+---
+
+## Competency questions
+
+Questions this ontology must be able to answer. They are the model's functional requirements, checked by `mix knowledge.test`.
+
+| # | Question | Concepts involved |
+|---|---|---|
+| `CQ01` | Which people evaluated an artifact created by an activity another person took part in, within a time window? (In The Band: who reviewed a change request submitted by another person.) | `spo.project_person_stakeholder`, `qapo.artifact_evaluation`, `qapo.evaluated_artifact`, `spo.artifact`, … |
+| `CQ02` | How many distinct artifacts created by an activity of one person were evaluated by another, within a time window? | `spo.project_person_stakeholder`, `qapo.artifact_evaluation`, `spo.artifact` |
+| `CQ03` | Which artifact evaluations do not link two distinct people — the evaluator and a participant in the artifact's creation —, and for what reason? | `spo.project_person_stakeholder`, `qapo.artifact_evaluation`, `spo.artifact` |
+| `CQ04` | Among the people who evaluated, or took part in creating an evaluated artifact, in a window, which sets are not linked by evaluation in either direction? | `spo.project_person_stakeholder`, `qapo.artifact_evaluation`, `spo.artifact` |
+
+- **CQ01** — `pt-BR` É a pergunta que define a aresta. Se a rede de ontologias não a responde, a aresta revisor → autor é invenção do código, e não leitura da base. A resposta exige os dois lados: quem participou da avaliação e quem participou da atividade que CRIOU o artefato — a submissão, e não a integração, porque Pull Request não é merge (a integração é `cmpo.checkin`, que não cria a solicitação).
+- **CQ02** — `pt-BR` É o peso da aresta. Artefatos (solicitações) DISTINTOS, e não avaliações: várias rodadas da mesma pessoa sobre o mesmo artefato são uma contribuição só. Sem esta pergunta, o peso vira contagem de eventos e infla quem comenta muito em poucas solicitações.
+- **CQ03** — `pt-BR` As exclusões precisam ser respondíveis pela base, e não só pelo cálculo: auto-revisão (a mesma pessoa nas duas pontas), conta de máquina, e conta sem pessoa ligada. Sem a pergunta, uma revisão excluída some — e a soma das arestas deixa de fechar com o total de revisões, que é o que permite conferir a leitura contra a origem (SC-001).
+- **CQ04** — `pt-BR` É a pergunta dos grupos (US3). Declara a população — só pessoas com ao menos uma aresta — e o critério — sentido nenhum, isto é, componente fraco. Pessoa sem aresta não é grupo de tamanho 1, e sem essa restrição todo grupo de 1 seria uma pessoa apontada (seguranca.md R2 item 4).
 
 
 ---

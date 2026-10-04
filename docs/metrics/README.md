@@ -82,6 +82,20 @@ Apoia também a decisão de alocação: quem já trabalhou neste projeto precisa
 
 **Medidas candidatas.** 
 
+### `review.concentration` — Concentração da revisão de código entre pessoas
+
+**Pergunta.** Numa janela de tempo, a revisão das solicitações de mudança de uma organização observada está concentrada em poucas pessoas — e há grupos de pessoas que não se revisam entre si?
+
+**Decisão apoiada.** Decidir se a revisão precisa ser redistribuída **antes** que a ausência de uma ou duas pessoas pare o fluxo de integração, e onde abrir caminho de revisão entre grupos que hoje não se revisam.
+**O que esta necessidade explicitamente não responde**, e onde quem decide precisa buscar em outro lugar: quem revisa bem, quem contribui mais, quem é mais produtivo, e se alguém está se omitindo. A carga de revisão depende de designação (CODEOWNERS, regra do repositório), papel, senioridade, férias e fuso — nada disso está na rede. Também não responde **quanto tempo** a revisão leva: isso é `review.time_to_first_review`, e as duas se leem lado a lado, não se combinam.
+A rede é de **revisão**, e não de colaboração nem de delegação. Revisar a solicitação de alguém é um ato observado sobre um artefato; "colaborar" é julgamento sobre a relação entre pessoas, e a plataforma não o afirma.
+
+**Stakeholders.** engineering_manager, team_lead, scrum_master
+
+**Conceitos necessários.** `eo.person`, `spo.project_person_stakeholder`, `qapo.artifact_evaluation`, `qapo.evaluated_artifact`, `cmpo.change_request`, `cmpo.change_request_submission`
+
+**Medidas candidatas.** `review.network.reviews_given.count`, `review.network.reviews_received.count`, `review.network.unconnected_groups.count`, `review.network.concentration.top_k_share`, `review.network.reviews.count`, `review.network.reviewers.count`, `review.network.authors_reviewed.count`, `review.network.people_without_activity.count`, `review.network.excluded.count`
+
 ### `review.time_to_first_review` — Tempo até a primeira revisão
 
 **Pergunta.** Quanto tempo uma solicitação de mudança aguarda até receber a primeira revisão?
@@ -287,6 +301,254 @@ Tipo: `count` · unidade: `tasks` · níveis: sprint, project, team, person
 - Comparar WIP entre times sem normalizar pelo tamanho do time transforma a medida em contagem de pessoas.
 - WIP não é medida de esforço nem de capacidade. Somá-lo a story points, ou convertê-lo em capacidade do sprint, mistura unidades que não se somam.
 - Reduzir o número por decreto não melhora o fluxo; fecha tarefa no board sem que o trabalho tenha terminado, e o efeito aparece depois como retrabalho.
+
+### `review.network.authors_reviewed.count` — Pessoas revisadas, no recorte de quem consulta
+
+Responde a: `review.concentration`
+
+```text
+authors = |{ a em P : existe aresta p → a com p em P }| na janela W da organização O (pessoas com ao menos uma solicitação revisada por outra pessoa do recorte; D10). Se não há aresta no recorte: AUSENTE com o motivo `no_review_in_window`.
+
+```
+
+Tipo: `count` · unidade: `people` · níveis: observed_organization
+
+**Limitações**
+
+- Não distingue quem não abriu solicitação de quem abriu e não teve revisão (D3 do protótipo); as duas pessoas ficam fora desta contagem.
+
+**Interpretações incorretas possíveis**
+
+- Ler como 'pessoas cujo trabalho foi aprovado'. Revisão não é aprovação, e Pull Request não é merge.
+- A MEDIDA NÃO AVALIA A PESSOA. Ela descreve a forma da revisão na organização; usá-la em avaliação de desempenho é o uso que a plataforma recusa (FR-018a, R5).
+- Revisar muito não é qualidade nem esforço; revisar pouco não é omissão.
+- A revisão só é visível quando passa pela ferramenta observada: revisão em par, em chamada ou em repositório não observado não existe aqui.
+
+### `review.network.concentration.top_k_share` — Fração das revisões feitas pelas k pessoas que mais revisaram, sem dizer quem
+
+Responde a: `review.concentration`
+
+```text
+Seja P o conjunto de pessoas no alcance de quem consulta (para quem administra, todas as pessoas da organização observada O). Considere só as arestas revisor → autor com revisor E autor em P, na janela W (R1).
+  r(p)   = soma de weight(p → a), a em P          (pares solicitação–revisor de p)
+  R      = soma de r(p), p em P                    (o denominador: revisões, e não solicitações)
+  s_1 >= s_2 >= ... os valores r(p) em ordem decrescente — só os VALORES
+  share_k = 100 * (s_1 + ... + s_k) / R,  para k em review.network.parameters.k_values
+Empate não muda o valor: share_k é a soma dos k maiores valores, e não depende de qual pessoa ocupa qual posição. A lista ordenada NÃO sai do cálculo — só os k números. Se R = 0: AUSENTE com o motivo `no_review_in_window`. Se R for menor que review.network.parameters.min_reviews (em REVISÕES, a mesma unidade do denominador; decidido em 2026-10-03): AUSENTE com o motivo `sample_below_minimum`, e a tela diz o mínimo. As contagens continuam. Se k for maior que o número de revisores em P: share_k é AUSENTE com o motivo `fewer_reviewers_than_k` (100% com dois revisores não diz nada sobre k = 3).
+
+```
+
+Tipo: `percentage` · unidade: `percent` · níveis: observed_organization
+
+**Limitações**
+
+- O denominador é REVISÕES (pares solicitação–revisor), e não solicitações. Com uma revisão por solicitação as duas coincidem — é o caso do exemplo da spec, 30 de 40. Com várias revisões por solicitação, '75% das revisões' não é '75% das solicitações passaram por essa pessoa'. A segunda pergunta é de dependência, e pertence à fatia 3.
+- Para quem tem alcance parcial a fração é sobre outra população que a de quem administra, e as duas NÃO se comparam: a mesma organização tem uma concentração por alcance.
+- Não diz se a concentração é desejada. Uma equipe com um revisor designado por regra terá share_1 alto por desenho.
+- Abaixo da amostra mínima a medida é ausente, e não 'baixa' nem 'alta': com poucas revisões, uma a mais muda a fração em dez pontos ou mais (ver review.network.parameters.min_reviews).
+- Herda as limitações de review.network.reviews_given.count: solicitação revisada não é esforço, só o que passa pela ferramenta observada existe, e revisão descartada conta.
+- Revisões excluídas (auto-revisão, bot/app, sem pessoa ligada) não estão no numerador nem no denominador. A contagem delas é da leitura, e para quem tem alcance parcial não é mostrada (R2).
+
+**Interpretações incorretas possíveis**
+
+- A MEDIDA NÃO AVALIA A PESSOA. 'A pessoa que mais revisou fez 75%' descreve a organização, e não elogia nem acusa ninguém.
+- Tentar descobrir quem é a primeira posição cruzando com a lista por pessoa e chamar isso de leitura da medida. A lista não é ordenada por medida justamente para que isso não seja o caminho natural (FR-018a); quem faz o cruzamento está produzindo o ranking que a plataforma recusa.
+- Revisar muito não é qualidade nem esforço; revisar pouco não é omissão.
+- Ler share_1 alto como gargalo confirmado. Gargalo é espera: a medida que a mede é review.time_to_first_review.duration, e as duas se leem lado a lado.
+- Comparar a concentração de duas organizações, ou de duas contas com alcances diferentes, como se fosse a mesma escala. Número de revisores e designação diferem.
+- Ler a ausência por amostra mínima como 'sem concentração'. É 'não se pode falar em concentração com esta amostra'.
+
+### `review.network.excluded.count` — Revisões deixadas fora da rede, por motivo
+
+Responde a: `review.concentration`
+
+```text
+Para cada motivo m em review.network.edge.exclusions.order (bot_or_app, unlinked_person, self_review):
+  excluded(m) = número de pares (conta revisora, solicitação) da janela W, na organização O,
+                cujo primeiro motivo aplicável é m.
+Invariante: soma dos pesos das arestas + excluded(bot_or_app) + excluded(unlinked_person) + excluded(self_review) = pares contáveis da janela (estado em review.network.edge.counted_states, enviados em W), com os pares de aresta deduplicados por pessoa: duas contas ligadas à mesma pessoa sobre a mesma solicitação são um par (review.network.edge, `unit`).
+
+```
+
+Tipo: `count` · unidade: `reviews` · níveis: observed_organization
+
+**Limitações**
+
+- A conta apagada na origem entra em 'sem pessoa ligada', e não em bot (decidido em 2026-10-03); a coleta foi alinhada na T030 da 073.
+- Contas apagadas sobre a mesma solicitação são indistinguíveis entre si e contam UM par: o número de 'sem pessoa ligada' pode ficar abaixo do número de revisões de contas apagadas na origem.
+- Autor ligado a uma pessoa depois da coleta continua 'sem pessoa ligada' até a solicitação ser coletada de novo.
+
+**Interpretações incorretas possíveis**
+
+- Ler 'sem pessoa ligada' como bot. É pessoa que a plataforma não reconheceu, muitas vezes real.
+- Ler a auto-revisão como falta. Ela é contada no agregado, nunca por pessoa, e pode ser regra do repositório.
+- A MEDIDA NÃO AVALIA A PESSOA. Ela descreve a forma da revisão na organização; usá-la em avaliação de desempenho é o uso que a plataforma recusa (FR-018a, R5).
+- Revisar muito não é qualidade nem esforço; revisar pouco não é omissão.
+- A revisão só é visível quando passa pela ferramenta observada: revisão em par, em chamada ou em repositório não observado não existe aqui.
+
+### `review.network.people_without_activity.count` — Pessoas sem atividade de revisão na janela
+
+Responde a: `review.concentration`
+
+```text
+without_activity = |{ q pessoa (account_type = person) da organização O, alcançada por quem consulta : q não revisou nem teve solicitação revisada na janela W, e não abriu solicitação na janela }|. Pessoa da organização é a que EO liga a ela pela evidência de vínculo com uma equipe da organização.
+
+```
+
+Tipo: `count` · unidade: `people` · níveis: observed_organization
+
+**Limitações**
+
+- Pessoa da organização é quem EO liga a ela por equipe observada; quem revisa nos repositórios da organização sem estar numa equipe dela entra na rede mas não nesta contagem.
+- 'Sem atividade' é sem atividade QUE VIROU ARESTA: quem só revisou solicitações de bot ou de conta sem pessoa ligada revisou de fato, e entra nesta contagem. O total dessas revisões está em review.network.excluded.count, por motivo.
+
+**Interpretações incorretas possíveis**
+
+- Ler como 'pessoas inativas'. Elas podem trabalhar em repositório não observado, estar de férias, ou não ter papel de revisão.
+- A MEDIDA NÃO AVALIA A PESSOA. Ela descreve a forma da revisão na organização; usá-la em avaliação de desempenho é o uso que a plataforma recusa (FR-018a, R5).
+- Revisar muito não é qualidade nem esforço; revisar pouco não é omissão.
+- A revisão só é visível quando passa pela ferramenta observada: revisão em par, em chamada ou em repositório não observado não existe aqui.
+
+### `review.network.reviewers.count` — Pessoas que revisaram, no recorte de quem consulta
+
+Responde a: `review.concentration`
+
+```text
+reviewers = |{ p em P : existe aresta p → a com a em P }| na janela W da organização O. Se não há aresta no recorte: AUSENTE com o motivo `no_review_in_window`.
+
+```
+
+Tipo: `count` · unidade: `people` · níveis: observed_organization
+
+**Limitações**
+
+- Conta pessoas com ao menos uma revisão contável; quem só revisou as próprias solicitações (auto-revisão) não entra.
+
+**Interpretações incorretas possíveis**
+
+- Ler um número baixo como 'poucos revisam': quem revisa fora da ferramenta observada não aparece.
+- A MEDIDA NÃO AVALIA A PESSOA. Ela descreve a forma da revisão na organização; usá-la em avaliação de desempenho é o uso que a plataforma recusa (FR-018a, R5).
+- Revisar muito não é qualidade nem esforço; revisar pouco não é omissão.
+- A revisão só é visível quando passa pela ferramenta observada: revisão em par, em chamada ou em repositório não observado não existe aqui.
+
+### `review.network.reviews.count` — Revisões na rede, no recorte de quem consulta
+
+Responde a: `review.concentration`
+
+```text
+R = soma de weight(p → a) sobre as arestas com p e a no alcance P de quem consulta, na janela W da organização observada O. Uma revisão é um par (revisor, solicitação): uma solicitação com dois revisores conta duas revisões. Se não há aresta no recorte: AUSENTE com o motivo `no_review_in_window`, nunca 0.
+
+```
+
+Tipo: `count` · unidade: `reviews` · níveis: observed_organization
+
+**Limitações**
+
+- É o denominador da concentração, e não o número de solicitações revisadas: as duas contagens divergem quando uma solicitação tem mais de um revisor.
+- Para alcance parcial é o total entre pessoas alcançadas, e não o da organização; a tela não diz quantas ficaram fora (R2).
+
+**Interpretações incorretas possíveis**
+
+- Ler como 'quantas solicitações foram revisadas'. É quantos pares revisor–solicitação houve.
+- Comparar o total de duas contas com alcances diferentes: são populações diferentes.
+- A MEDIDA NÃO AVALIA A PESSOA. Ela descreve a forma da revisão na organização; usá-la em avaliação de desempenho é o uso que a plataforma recusa (FR-018a, R5).
+- Revisar muito não é qualidade nem esforço; revisar pouco não é omissão.
+- A revisão só é visível quando passa pela ferramenta observada: revisão em par, em chamada ou em repositório não observado não existe aqui.
+
+### `review.network.reviews_given.count` — Revisões feitas por uma pessoa, e de quantas pessoas distintas
+
+Responde a: `review.concentration`
+
+```text
+Sobre as arestas da leitura (organização observada O, janela W), regidas por review.network.edge:
+  reviews_given(p)  = soma de weight(p → a) para todo autor a      [revisões]
+                    = |{ solicitação c : existe revisão de p sobre c, enviada em W }|
+  reviewed_people(p) = |{ a : weight(p → a) > 0 }|                  [pessoas]
+weight(p → a) = número de solicitações DISTINTAS de a que p revisou em W. Se não existe aresta saindo de p: as duas são AUSENTES com o motivo `did_not_review_in_window`, nunca 0.
+
+```
+
+Tipo: `count` · unidade: `reviews` · níveis: person
+
+**Limitações**
+
+- Conta SOLICITAÇÕES revisadas, e não eventos de revisão nem esforço. Uma aprovação sem comentário e três rodadas de revisão longa sobre a mesma solicitação contam igual: um. É deliberado — rodadas inflariam quem comenta muito em poucas solicitações —, e é por isso mesmo que o número não diz nada sobre o trabalho que a revisão deu.
+- Só existe o que passou pela ferramenta observada. Revisão em par, em chamada, ou em repositório que a organização não coleta não aparece — e quem trabalha sobretudo ali aparece como quem não revisa.
+- Revisão descartada depois de enviada (DISMISSED) CONTA: o ato de revisar aconteceu, e o descarte é decisão posterior sobre ela, frequentemente de outra pessoa ou de uma regra do repositório.
+- Comentário (COMMENTED) conta como revisão. A posição da revisão (endosso, objeção, abstenção, ver `qapo.evaluation_verdict`) NÃO entra nesta medida, e a rede não distingue quem aprova de quem pede mudança.
+- A carga de revisão depende de designação (CODEOWNERS, revisor obrigatório, regra do repositório), papel, senioridade, férias e fuso. Nenhum desses fatores está na rede, e todos movem o número.
+- Pessoa sem revisão na janela tem a medida AUSENTE com motivo, e não zero. Ausência aqui é fato da origem sobre a janela — e não omissão da pessoa.
+- O autor da solicitação é resolvido na coleta. Solicitação cujo autor só foi ligado a uma pessoa depois de integrada fica como 'sem pessoa ligada' até ser coletada de novo (seguranca.md, 'O que eu NÃO verifiquei'). O total de exclusões por esse motivo está na leitura.
+
+**Interpretações incorretas possíveis**
+
+- A MEDIDA NÃO AVALIA A PESSOA. Ela descreve a forma da revisão na organização; usá-la em avaliação de desempenho é o uso que a plataforma recusa, e a tela diz isso ao lado da lista (FR-018a, R5).
+- Revisar muito não é qualidade nem esforço. O número não distingue revisão cuidadosa de aprovação automática feita por gente.
+- Revisar pouco não é omissão. A pessoa pode não ser designada, estar em outro repositório, de férias, ou revisar fora da ferramenta.
+- Ordenar as pessoas por esta medida. As linhas não compartilham denominador — designação e repositório diferem — e o primeiro colocado de uma lista ordenada é um rótulo de 'hub' com outro nome. Nenhuma coluna de medida ordena a lista, e nenhuma se oferece para ordenar.
+- Ler 'de 4 pessoas' como alcance social ou influência. É quantas pessoas distintas abriram as solicitações que ela revisou na janela — nada sobre importância.
+- Somar as linhas e chamar de número de solicitações revisadas. Uma solicitação revisada por duas pessoas aparece nas duas linhas: a soma das linhas é o total de REVISÕES (review.network.reviews.count, para quem alcança todos), e o de solicitações revisadas é outra contagem. Para alcance parcial a soma das linhas visíveis não é nem uma nem outra, porque cada linha traz o total verdadeiro da pessoa, inclusive pares fora do recorte.
+
+### `review.network.reviews_received.count` — Solicitações de uma pessoa que foram revisadas, e por quantas pessoas distintas
+
+Responde a: `review.concentration`
+
+```text
+Sobre as arestas da leitura (organização observada O, janela W):
+  reviewed_change_requests(a) = |{ solicitação c de a : existe revisão de outra
+                                   pessoa sobre c, enviada em W }|   [solicitações]
+  reviewers(a) = |{ p : weight(p → a) > 0 }|                         [pessoas]
+Se a abriu solicitação e nenhuma foi revisada em W: as duas são AUSENTES com o motivo `no_change_request_reviewed_in_window`, nunca 0. NÃO é a soma de weight(p → a): uma solicitação revisada por três pessoas conta UMA vez aqui e três vezes na soma dos pesos.
+
+```
+
+Tipo: `count` · unidade: `change_requests` · níveis: person
+
+**Limitações**
+
+- Mede revisão RECEBIDA, e não integração. Solicitação revisada não é solicitação integrada: Pull Request não é merge, e quem integrou é outra relação (`cmpo.stakeholder_performed_checkin`).
+- Solicitação aberta e não revisada na janela não está aqui — está na ausência com motivo. A medida não diz quantas solicitações a pessoa abriu; abrir e ser revisado são duas perguntas.
+- Só existe o que passou pela ferramenta observada; revisão fora dela não existe para a plataforma.
+- Revisão descartada (DISMISSED) conta: a solicitação foi revisada, ainda que a revisão tenha sido retirada depois.
+- Revisão de bot ou aplicativo não conta. Uma solicitação revisada só por robô aparece como não revisada — o que é correto para a pergunta (ninguém a leu), e precisa ser dito, porque a página da solicitação na origem mostra uma revisão.
+- Revisão de conta sem pessoa ligada também não conta: a solicitação revisada só por uma conta que a plataforma não reconheceu aparece como não revisada, ainda que uma pessoa real a tenha lido. A contagem dessas revisões está em review.network.excluded.count.
+
+**Interpretações incorretas possíveis**
+
+- A MEDIDA NÃO AVALIA A PESSOA — nem quem abriu, nem quem revisou.
+- Ser revisado por poucas pessoas não diz nada sobre a qualidade do trabalho de quem abriu. Pode ser o único revisor designado do repositório.
+- Ter poucas solicitações revisadas não é sinal de pouco trabalho: a pessoa pode abrir poucas solicitações grandes, integrar sem revisão por regra do repositório, ou trabalhar fora da ferramenta.
+- Ordenar as pessoas por esta medida. Mesma recusa de review.network.reviews_given.count: as linhas não compartilham denominador, e nenhuma coluna de medida ordena a lista.
+- Ler a ausência ('nenhuma solicitação revisada na janela') como descaso de quem deveria revisar. A ausência é da janela e da origem; designação e disponibilidade não estão na rede.
+
+### `review.network.unconnected_groups.count` — Grupos de pessoas que não se revisam entre si, e o tamanho de cada um
+
+Responde a: `review.concentration`
+
+```text
+Seja P o conjunto de pessoas no alcance de quem consulta (para quem administra, todas as pessoas da organização observada O). Seja G o grafo dirigido da leitura (O, janela W) RECORTADO por P, como a concentração (decidido em 2026-10-03, Q4): nós = pessoas de P com AO MENOS UMA aresta para outra pessoa de P, e arestas = revisor → autor com weight > 0, as duas pontas em P. Ignora-se a direção (componentes FRACAMENTE conexos):
+  groups      = número de componentes fracamente conexos de G     [grupos]
+  size(g)     = número de pessoas no componente g                 [pessoas]
+Pessoa sem aresta NÃO é nó, e por isso não é grupo de tamanho 1 (R2 item 4). Todo componente tem ao menos 2 pessoas. Se G não tem aresta: AUSENTE com o motivo `no_review_in_window`, nunca 0. Quem está fora do alcance não entra em grupo nenhum, e por isso nenhum tamanho fala de quem quem consulta não alcança. O mínimo de grupo (review.network.parameters.min_group_size_shown) não tem caso nesta fatia.
+
+```
+
+Tipo: `count` · unidade: `groups` · níveis: observed_organization
+
+**Limitações**
+
+- Componente FRACO, e não forte: A revisou B e B nunca revisou A já os põe no mesmo grupo. A pergunta é 'há caminho de revisão entre os dois grupos, em qualquer sentido?', e não 'há reciprocidade?'.
+- A janela decide o grupo. Dois grupos separados em 30 dias podem estar ligados em 90; a leitura vale para a janela que declara, e a tela a escreve ao lado.
+- Grupo não é equipe e não é comunidade. É só o conjunto de pessoas ligadas por revisão na janela; comparar com as equipes declaradas é a fatia 2, e não esta medida (FR-019).
+- Para quem tem alcance parcial, dois colegas podem aparecer em grupos separados só porque a pessoa que os liga está fora do alcance. O grupo é da rede que quem consulta alcança, e não da organização.
+- Pessoas sem aresta na janela não estão em grupo nenhum. A contagem delas, quando aparece, é sobre as pessoas alcançáveis por quem consulta (R2 item 5).
+
+**Interpretações incorretas possíveis**
+
+- Ler grupo isolado como silo, ou como problema. Pode ser um produto separado de propósito, um repositório com equipe própria, ou um projeto que acabou.
+- Ler um grupo só como 'todos se revisam'. Um grupo de 14 pode ser uma estrela: uma pessoa revisando 13 que não se revisam entre si. A concentração diz isso; o número de grupos, não.
+- A medida não avalia nenhuma pessoa, e estar num grupo pequeno não é isolamento da pessoa.
+- Comparar o número de grupos entre janelas de tamanhos diferentes como tendência. Janela maior junta mais arestas e tende a ter menos grupos sem que nada tenha mudado.
 
 ### `review.time_to_first_review.duration` — Duração até a primeira revisão
 
