@@ -198,7 +198,8 @@ antes de tudo que toca cálculo ou alcance.
     tenant por leitura vazia; o teste reprova
 
 - [ ] T014 [security] Calcular e substituir só a mesma rede e janela
-  - **Pronta quando**: T008, T009, T011, T012, T013; `contracts/network-analysis.md` `compute/3`
+  - **Pronta quando**: T004 (o conserto da R10 vem antes da primeira tarefa que toca o cálculo,
+    spec, *Dependências*), T008, T009, T011, T012, T013; `contracts/network-analysis.md` `compute/3`
   - **Descrição**: `lib/the_band/network_analysis/commands.ex`: `compute/3,4` recebe arestas por
     rede e janela (nesta tarefa, de uma função de entrada que T028 liga às duas redes), calcula a
     impressão digital (R4), aplica o teto (R5), monta a leitura com o que já existe (graus,
@@ -240,11 +241,15 @@ antes de tudo que toca cálculo ou alcance.
     `person_id`. Cada um reprova o seu caso
 
 - [ ] T017 [security] Ler pelo alcance, a cada chamada
-  - **Pronta quando**: T016; `contracts/network-analysis.md` `read/4`, `selection/1`, `options/0`
+  - **Pronta quando**: T005 (a #1185 decidida e corrigida antes da tarefa que aplica o alcance, DS4),
+    T016; `contracts/network-analysis.md` `read/4`, `selection/1`, `options/0`
   - **Descrição**: `lib/the_band/network_analysis/reader.ex`: `selection/1` por texto exato contra as
     listas, padrão fora delas; `read/4` na ordem do contrato — organização por id e tenant, leitura
     vigente da rede e janela, `{:ausente, :stale}` além da maior janela, os dois alcances **nesta
-    chamada**, `View`, nomes por `EO.people_names/2`, coleta mais nova, número de contas declaradas
+    chamada**, `View`, nomes por `EO.people_names/2`, coleta mais nova, número de contas declaradas.
+    Pessoa da leitura sem nome em EO (apagada depois do cálculo): com `:todas`, entra num agregado
+    *"no longer in the platform"* sob a mesma regra k, nunca com id; com alcance parcial, é de fora
+    (R18)
   - **Feita quando**: `?network=assignmentx`, `?view=../../`, `?window=36500`, `?window=90;drop` e
     10 000 caracteres voltam ao padrão sem criar átomo (A12); organização de outro tenant e id
     malformado dão o mesmo `not_found`; o alcance perdido some na leitura seguinte (A22); número de
@@ -280,10 +285,11 @@ antes de tudo que toca cálculo ou alcance.
     organizações observadas do tenant; com uma só, `push_navigate` para ela. Rotas em
     `router.ex`
   - **Feita quando**: com duas organizações, quem consulta escolhe, e nenhuma pessoa só da outra
-    aparece (US1, cen. 4); nenhum texto diz *collaboration* nem *delegation*
+    aparece (US1, cen. 4); nenhum texto diz *collaboration* nem *delegation*; o cabeçalho
+    compartilhado põe a marca `<.marca tipo={:derivado} />` junto dos números (FR-051)
   - **Teste**: `test/the_band_web/live/network_analysis_live/index_test.exs`, dois tenants e duas
-    organizações. **Defeito a injetar**: listar organizações sem filtro de tenant; o caso de outro
-    tenant reprova
+    organizações, e um caso do cabeçalho que `assert` a marca *derived* em texto. **Defeito a
+    injetar**: listar organizações sem filtro de tenant; o caso de outro tenant reprova
 
 - [ ] T020 [security] [US1] Montar a rede de revisão na área, e o endereço antigo
   - **Pronta quando**: T019
@@ -398,10 +404,12 @@ independente**: as contagens batem com uma contagem manual das mesmas issues e d
     vigentes da 073) e, em `NetworkAnalysis.Commands`, as arestas das duas redes: revisão de
     `current_edges/2` com `source_computed_at`; designação de `WorkItems.assignment_pairs/3` +
     `AssignmentClassification` com as contas de `Tenants.organization_account_ids/1`, janela pelo
-    instante de abertura da issue
+    instante de abertura da issue; `people_without_edges` pelas pessoas `person` da organização
+    (`EO.organization_person_ids/2`) que não são nó, nulo quando a janela não tem aresta (FR-008)
   - **Feita quando**: o job grava 6 leituras; a de revisão tem as arestas da 073 da mesma janela;
     a de designação tem as contagens da classificação; sem leitura da 073, a revisão é
-    `{:ausente, :not_computed}` e a designação é gravada
+    `{:ausente, :not_computed}` e a designação é gravada; pessoa da organização sem aresta conta em
+    `people_without_edges` e não é nó
   - **Teste**: `test/the_band/network_analysis/commands_duas_redes_test.exs`. **Defeito a injetar**:
     janela da designação por `updated_at` da issue; o caso da issue aberta antes da janela e
     atualizada dentro dela reprova
@@ -699,9 +707,11 @@ batem com as arestas da leitura.
   - **Pronta quando**: T030, T035, T038, T039, T041, T043
   - **Descrição**: `test/the_band/network_analysis/redes_conhecidas_test.exs`: `compute/4` sobre
     estrela, caminho, dois grupos com ponte, bipartida e desconexa, cada valor com a conta à mão ao
-    lado (SC-002, tolerância de R6); e a mesma leitura calculada **10 vezes**, comparada por `==`,
-    inclusive comunidades, σ, Q_rand e posições (SC-003)
-  - **Feita quando**: os cinco casos e as dez repetições passam
+    lado (SC-002, tolerância de R6); a mesma leitura calculada **10 vezes**, comparada por `==`,
+    inclusive comunidades, σ, Q_rand e posições (SC-003); e, numa rede sem aresta, na desconexa e na
+    bipartida, nenhum `0`, `0.01` nem infinito onde o fato é ausência, na leitura e no HTML das
+    páginas (SC-005)
+  - **Feita quando**: os cinco casos, as dez repetições e as três ausências passam
   - **Teste**: o próprio arquivo. **Defeito a injetar**: somar os pesos de um mapa sem ordenar as
     chaves em `Communities`; a igualdade das dez reprova se a ordem mudar (se não reprovar, escrever
     na issue por que a ordem do mapa não muda o resultado)

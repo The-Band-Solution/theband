@@ -255,4 +255,6 @@ Nenhuma violação de princípio a justificar. Os custos estão em D1–D12.
   entre regras): lacuna da base, para issue própria;
 - **o evento de designação com data** (opção (b) da D1): não é desta feature;
 - **quem lê os papéis**: se a pessoa mantenedora quiser saber quem os leu, é FR nova (R15);
-- **backup**: a leitura substituída continua nas cópias até a retenção delas (064, #885).
+- **backup**: a leitura substituída continua nas cópias até a retenção delas (064, #885);
+- **o estado de falha do cálculo**: não se grava; a tela mostra a leitura vigente com o instante
+  dela, e o aviso de coleta mais nova ([R23](research.md#r23--o-cálculo-que-falhou-edge-case-cálculo-falhou)).

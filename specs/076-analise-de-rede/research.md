@@ -427,3 +427,17 @@ contagem da designação.
 `mix.exs`, `mix.lock` e `assets/package.json` não mudam. SHA-256 por `:crypto` (OTP). O hook é
 co-localizado e servido de `'self'`; a CSP não muda. `mix hex.audit` e `mix deps.audit` ficam como
 estão.
+
+## R23 — O cálculo que falhou (edge case *"Cálculo falhou"*)
+
+**Decisão**: a falha não se grava, como na 073 (`specs/073-rede-de-revisao/plan.md`, *O que este
+plano NÃO resolve*). A substituição é atômica: se o job cancela, estoura o `timeout/1` ou levanta,
+a leitura vigente continua a anterior, **com o instante dela** na linha da leitura, e nunca como se
+fosse de agora. A tela diz que a leitura não está disponível, e por quê, nos três casos em que não
+há leitura a mostrar: `not_computed` (nunca calculada), `stale` (mais velha que a maior janela) e a
+rede de revisão sem leitura da 073. A linha *"there is a newer collection"* (073, Q3) avisa quando a
+coleta terminou depois do último cálculo bem-sucedido, que é o sinal visível de um cálculo que
+falhou depois dela.
+
+**Alternativas**: gravar o estado de falha por organização (tabela ou coluna a mais, e um segundo
+caminho de escrita que pode discordar do primeiro); se a pessoa mantenedora pedir, é FR nova.

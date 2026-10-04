@@ -27,7 +27,7 @@ Migração `priv/repo/migrations/<ts>_create_network_analysis_readings.exs`, `ch
 | `source_computed_at` | utc_datetime | sim | só `review`: o instante da leitura da 073 de onde vieram as arestas (R2) |
 | `fingerprint` | text | não | SHA-256 hexadecimal das arestas canônicas e das versões da base |
 | `edges` | jsonb | não | `[{"source", "target", "weight"}]`, dirigidas, ordenadas por (source, target); ids de pessoa |
-| `exclusions` | jsonb | não | `{"pairs": n, "bot_or_app": n, "organization_account": n, "unlinked_person": n, "self": n, "issues": n, "issues_without_assignee": n}` — as chaves de `issues*` só em `assignment` |
+| `exclusions` | jsonb | não | `{"pairs": n, "bot_or_app": n, "organization_account": n, "unlinked_person": n, "self_assignment": n, "issues": n, "issues_without_assignee": n}` em `assignment`; em `review`, `self_review` no lugar de `self_assignment` e sem as chaves `issues*` (os códigos da base) |
 | `people_without_edges` | integer `>= 0` | sim | pessoas `person` da organização sem aresta na janela; nulo quando não há aresta nenhuma (a ausência é da janela, e não zero) |
 | `nodes` | jsonb | não | um objeto por pessoa com aresta (1.2) |
 | `communities` | jsonb | não | `[{"index", "members": [ids], "internal_edges"}]`, numeradas por tamanho decrescente |
