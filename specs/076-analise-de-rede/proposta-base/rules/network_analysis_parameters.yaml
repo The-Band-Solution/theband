@@ -370,7 +370,9 @@ derivation_rule:
           {min, max} já foi sorteado; repete até m pares. Os grafos consomem a mesma
           sequência, em ordem: o grafo i começa onde o i − 1 parou, e os pesos do Q_rand
           (`modularity_reading`) são embaralhados por Fisher–Yates logo depois dos pares de
-          cada grafo.
+          cada grafo. O multiconjunto entra no embaralhamento na ordem crescente do par {menor
+          id, maior id} da projeção sem direção, e o i-ésimo peso embaralhado vai para o i-ésimo
+          par sorteado.
       values:
         random_model: gnm
         random_graphs: 100
@@ -383,6 +385,8 @@ derivation_rule:
           nodes: person_internal_id_ascending
           pairs: rejection_of_loops_and_repeats
           weights: fisher_yates
+          weights_input: undirected_pair_ascending
+          weights_assigned_to: sampled_pair_order
 
     outside_reach:
       name:
@@ -450,11 +454,12 @@ derivation_rule:
 
     size_limit:
       name:
-        pt-BR: "O teto de tamanho: acima de 300 pessoas ou 3 000 arestas, σ, Q_rand e layout não rodam"
+        pt-BR: "O teto de tamanho: acima de 300 pessoas ou 3 000 arestas, σ, Q_rand, a eficiência dos aleatórios e layout não rodam"
       statement:
         pt-BR: >
           Rede com mais de `max_people` pessoas ou mais de `max_undirected_edges` arestas na
-          projeção sem direção não tem σ, Q_rand nem layout calculados: os três são AUSENTES
+          projeção sem direção não tem σ, Q_rand, a eficiência dos aleatórios (efficiency_rand)
+          nem layout calculados: os quatro são AUSENTES
           com motivo `network_too_large_for_platform`, e a tela mostra a lista no lugar do
           desenho. As demais medidas são calculadas.
       note:
@@ -470,7 +475,7 @@ derivation_rule:
       values:
         max_people: 300
         max_undirected_edges: 3000
-        absent_above: [sigma, q_rand, layout]
+        absent_above: [sigma, q_rand, efficiency_rand, layout]
         absent_reason: network_too_large_for_platform
 
     betweenness_color_bands:

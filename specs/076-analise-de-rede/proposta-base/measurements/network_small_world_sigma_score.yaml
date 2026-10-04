@@ -22,7 +22,8 @@ measurement:
       da rede real), a semente, o gerador e o modelo.
       AUSENTE com motivo: `network_too_small` (n abaixo do mínimo da base);
       `random_clustering_undefined` (C_rand zero ou sem grafo definido);
-      `clustering_undefined` ou `no_edge_in_window` (C ou L da rede).
+      `clustering_undefined` ou `no_edge_in_window` (C ou L da rede);
+      `network_too_large_for_platform` (acima de network.analysis.parameters.size_limit).
       Leitura: "meets the σ > 1 criterion" ou "does not meet the σ > 1 criterion".
     inputs: [network.clustering.ratio, network.average_distance.mean, network_size, network_edge_count]
 

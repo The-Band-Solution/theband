@@ -16,6 +16,8 @@ measurement:
       torna a medida definida em rede desconexa, e não valor de reserva.
       efficiency_rand = média da mesma medida sobre os grafos aleatórios de
       network.analysis.parameters.small_world.
+      Acima de network.analysis.parameters.size_limit: efficiency_rand AUSENTE com motivo
+      `network_too_large_for_platform`; efficiency é calculada.
       Sem aresta: AUSENTE com motivo `no_edge_in_window`.
     inputs: [network_edges]
 

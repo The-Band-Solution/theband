@@ -16,10 +16,16 @@ provenance:
     (`qapo_review_network`) fizeram com QAPO e SPO. As duas arestas atravessam ontologias que
     SPO não conhece — a de revisão passa por QAPO e CMPO, a de designação por SRO e OSDEF — e
     citá-las aqui faria SPO depender de ontologias mais específicas, o que a regra de
-    dependência proíbe (`AGENTS.md` §6). A pergunta é escrita no nível geral: duas pessoas
-    (`spo.project_person_stakeholder`, que é `eo.person` em papel de stakeholder) ligadas
-    pela participação (`spo.participates_in`) em atividades sobre um mesmo artefato
-    (`spo.activity_creates_artifact`). O percurso concreto de cada aresta, com os ids das
+    dependência proíbe (`AGENTS.md` §6). A pergunta é escrita no nível geral, e o nível geral alcança só parte da aresta de
+    designação. Na revisão, as duas pontas participam (`spo.participates_in`) de atividades
+    executadas: a que criou o artefato (`spo.activity_creates_artifact`) e a que o avaliou. Na
+    designação, só o autor está nesse caso. O responsável está DESIGNADO para o item planejado
+    (`spo.intended_project_activity`), e a SPO não tem relação entre stakeholder e atividade
+    pretendida: `spo.participates_in` e `spo.is_in_charge_of` ligam à atividade EXECUTADA, e
+    usá-las faria designação parecer execução (AGENTS.md §6; `assignment.network.edge`,
+    `ufo_category`). Por isso `relations` nomeia só o que a SPO sustenta. A aresta em si, de
+    revisão ou de designação, é relação derivada das regras globais e não tem id de relação na
+    rede. O percurso concreto de cada aresta, com os ids das
     ontologias específicas, está nas regras globais `review.network.edge` e
     `assignment.network.edge`, que podem atravessá-las sem que uma dependa da outra.
 
@@ -36,19 +42,23 @@ competency_questions:
     question:
       pt-BR: "Quantos artefatos foram criados na janela pela atividade de uma pessoa que é stakeholder, e quantos desses têm outra pessoa associada a eles pela aresta da rede? (Designação: quantas issues foram abertas na janela, e quantas têm responsável vigente.)"
       en: "How many artifacts were created in the window by an activity of a person stakeholder, and how many of them have another person associated through the network's edge? (Assignment: how many issues were opened in the window, and how many have a current assignee.)"
-    concepts: [spo.project_person_stakeholder, spo.artifact, spo.performed_project_activity]
+    concepts: [spo.project_person_stakeholder, spo.artifact, spo.performed_project_activity,
+               spo.intended_project_activity]
     relations: [spo.participates_in, spo.activity_creates_artifact]
     expected_query_type: count
     rationale: >
       Medida `assignment.network.issues.count`. É o denominador de tudo o que a rede de
       designação diz: sem ele, a rede não diz de quantos artefatos saiu, e a conferência contra
       a origem (SC-001) não tem o que somar.
+      Na designação, o responsável está designado para o item planejado
+      (`spo.intended_project_activity`), e não participa da atividade: `spo.participates_in`
+      cobre só o autor.
 
   - id: spo_network_analysis.cq02
     question:
-      pt-BR: "Quais pares candidatos a aresta não ligam duas pessoas distintas e, para cada um, por qual motivo, na ordem declarada da regra (conta de máquina, conta da organização, conta sem pessoa ligada, a mesma pessoa nas duas pontas)?"
-      en: "Which candidate pairs do not link two distinct people and, for each, for which reason, in the rule's declared order (machine account, organisation account, account without a linked person, the same person at both ends)?"
-    concepts: [spo.project_person_stakeholder, eo.person, spo.artifact]
+      pt-BR: "Quantos pares candidatos a aresta não ligam duas pessoas distintas, por motivo, na ordem declarada da regra (conta de máquina, conta da organização, conta sem pessoa ligada, a mesma pessoa nas duas pontas)?"
+      en: "How many candidate pairs do not link two distinct people, per reason, in the rule's declared order (machine account, organisation account, account without a linked person, the same person at both ends)?"
+    concepts: [spo.project_person_stakeholder, eo.person, spo.artifact, spo.intended_project_activity]
     relations: [spo.participates_in, spo.activity_creates_artifact]
     attributes: [account_type]
     expected_query_type: aggregate
@@ -56,25 +66,30 @@ competency_questions:
       Medida `assignment.network.excluded.count`. Cada par vai para exatamente um destino; sem a
       pergunta, uma exclusão some, e a soma dos pesos das arestas deixa de fechar com o número
       de pares — que é o invariante que faz classificação errada aparecer como diferença.
+      Na designação, o responsável está designado para o item planejado
+      (`spo.intended_project_activity`), e não participa da atividade: `spo.participates_in`
+      cobre só o autor.
 
   - id: spo_network_analysis.cq03
     question:
       pt-BR: "Para cada par ordenado de pessoas distintas ligadas pela aresta, quantos artefatos distintos sustentam a ligação na janela?"
       en: "For each ordered pair of distinct people linked by the edge, how many distinct artifacts support the link in the window?"
-    concepts: [spo.project_person_stakeholder, spo.artifact]
+    concepts: [spo.project_person_stakeholder, spo.artifact, spo.intended_project_activity]
     relations: [spo.participates_in, spo.activity_creates_artifact]
     expected_query_type: aggregate
     rationale: >
       Medida `assignment.network.edge_weight.count`, o peso da aresta. Artefatos DISTINTOS, e
       não eventos: a mesma issue com o mesmo par conta uma vez, senão o peso mede quantas vezes
       algo foi tocado, e não quantos artefatos ligam as duas pessoas.
+      Na designação, o responsável está designado para o item planejado
+      (`spo.intended_project_activity`), e não participa da atividade: `spo.participates_in`
+      cobre só o autor.
 
   - id: spo_network_analysis.cq04
     question:
-      pt-BR: "Quais pessoas da organização, que são stakeholders, não têm nenhuma aresta na janela?"
-      en: "Which people of the organisation, who are stakeholders, have no edge in the window?"
+      pt-BR: "Quantas pessoas da organização, que são stakeholders, não têm nenhuma aresta na janela?"
+      en: "How many people of the organisation, who are stakeholders, have no edge in the window?"
     concepts: [spo.project_person_stakeholder, eo.person, eo.organization]
-    relations: [spo.participates_in]
     expected_query_type: count
     rationale: >
       Medida `assignment.network.people_without_edges.count`. Pessoa sem aresta não é nó, e
@@ -86,7 +101,6 @@ competency_questions:
       pt-BR: "Em quantos conjuntos a rede se divide quando a direção da aresta é ignorada, e quantas pessoas há em cada um?"
       en: "Into how many sets does the network split when the edge's direction is ignored, and how many people are in each?"
     concepts: [spo.project_person_stakeholder]
-    relations: [spo.participates_in, spo.activity_creates_artifact]
     expected_query_type: aggregate
     rationale: >
       Medida `network.components.count`, critério fraco, um só. A referência testava
@@ -98,7 +112,6 @@ competency_questions:
       pt-BR: "A quantas pessoas distintas cada pessoa está ligada, em cada sentido e no total, contando o par recíproco uma vez?"
       en: "To how many distinct people is each person linked, in each direction and in total, counting a reciprocal pair once?"
     concepts: [spo.project_person_stakeholder]
-    relations: [spo.participates_in]
     expected_query_type: aggregate
     rationale: >
       Medida `network.degree.count`. Pessoas distintas, e não arestas: A → B e B → A são uma
@@ -109,7 +122,6 @@ competency_questions:
       pt-BR: "Que fração das outras pessoas da rede está ligada a cada pessoa?"
       en: "What fraction of the network's other people is linked to each person?"
     concepts: [spo.project_person_stakeholder]
-    relations: [spo.participates_in]
     expected_query_type: aggregate
     rationale: >
       Medida `network.degree_centrality.ratio`. É o grau dividido por n − 1, e só faz sentido
@@ -120,7 +132,6 @@ competency_questions:
       pt-BR: "Em que fração dos caminhos mais curtos entre outros pares de pessoas cada pessoa está, ignorando a direção e o peso?"
       en: "On what fraction of the shortest paths between other pairs of people does each person lie, ignoring direction and weight?"
     concepts: [spo.project_person_stakeholder]
-    relations: [spo.participates_in]
     expected_query_type: aggregate
     rationale: >
       Medida `network.betweenness.ratio`. Diz por onde passam os caminhos observados, e não que
@@ -132,7 +143,6 @@ competency_questions:
       pt-BR: "Quão perto cada pessoa está das que ela alcança, corrigido pela fração da rede que ela alcança?"
       en: "How close is each person to those she reaches, corrected by the fraction of the network she reaches?"
     concepts: [spo.project_person_stakeholder]
-    relations: [spo.participates_in]
     expected_query_type: aggregate
     rationale: >
       Medida `network.closeness.ratio` (Wasserman e Faust). Sem a correção, quem está num par
@@ -143,7 +153,6 @@ competency_questions:
       pt-BR: "Quantas pessoas cada pessoa alcança, e a quantos passos, em média, elas estão?"
       en: "How many people does each person reach, and how many steps away are they on average?"
     concepts: [spo.project_person_stakeholder]
-    relations: [spo.participates_in]
     expected_query_type: aggregate
     rationale: >
       Medida `network.person_distance.mean`. É dita à parte da proximidade porque 1/proximidade
@@ -155,7 +164,6 @@ competency_questions:
       pt-BR: "Dentro de cada conjunto ligado, quais pessoas estão ligadas, com mais peso, a pessoas que também estão bem ligadas?"
       en: "Within each linked set, which people are linked, with more weight, to people who are themselves well linked?"
     concepts: [spo.project_person_stakeholder]
-    relations: [spo.participates_in]
     expected_query_type: aggregate
     rationale: >
       Medida `network.eigenvector.score`, por componente. Entre componentes o número não é
@@ -166,7 +174,6 @@ competency_questions:
       pt-BR: "Em que percentil da rede cada pessoa está pelo número de pessoas ligadas e pela intermediação?"
       en: "In which percentile of the network is each person by number of people linked and by betweenness?"
     concepts: [spo.project_person_stakeholder]
-    relations: [spo.participates_in]
     expected_query_type: aggregate
     rationale: >
       Medida `network.position_percentile.percentage`, a entrada do papel (`network.position_role`).
@@ -178,7 +185,6 @@ competency_questions:
       pt-BR: "Em quantos grupos de pessoas mais ligadas entre si do que com o resto a rede se divide, pela partição gulosa com peso e desempate declarado?"
       en: "Into how many groups of people more linked among themselves than with the rest does the network split, by the weighted greedy partition with declared tie-break?"
     concepts: [spo.project_person_stakeholder]
-    relations: [spo.participates_in]
     expected_query_type: count
     rationale: >
       Medida `network.communities.count`. O desempate torna a partição reproduzível, e não
@@ -189,7 +195,6 @@ competency_questions:
       pt-BR: "Quanto da ligação, com peso, fica dentro dos grupos detectados, e quanto ficaria em grafos aleatórios com o mesmo número de pessoas, de arestas e os mesmos pesos?"
       en: "How much of the weighted linking stays within the detected groups, and how much would in random graphs with the same number of people, of edges and the same weights?"
     concepts: [spo.project_person_stakeholder]
-    relations: [spo.participates_in]
     expected_query_type: aggregate
     rationale: >
       Medida `network.modularity.score`, Q ao lado de Q_rand. Grafos aleatórios pequenos
@@ -201,7 +206,6 @@ competency_questions:
       pt-BR: "Dentro de cada grupo detectado, a quantas pessoas do mesmo grupo cada pessoa está ligada?"
       en: "Within each detected group, to how many people of the same group is each person linked?"
     concepts: [spo.project_person_stakeholder]
-    relations: [spo.participates_in]
     expected_query_type: aggregate
     rationale: >
       Medida `network.community_internal_degree.count`, que escolhe os três mais centrais de
@@ -213,7 +217,6 @@ competency_questions:
       pt-BR: "Entre os pares de pessoas que se alcançam, a quantos passos estão, em média, e que fração de todos os pares se alcança?"
       en: "Among the pairs of people who reach each other, how many steps apart are they on average, and what fraction of all pairs reach each other?"
     concepts: [spo.project_person_stakeholder]
-    relations: [spo.participates_in]
     expected_query_type: aggregate
     rationale: >
       Medida `network.average_distance.mean`. Cada par pesa um; a média das médias por
@@ -224,7 +227,6 @@ competency_questions:
       pt-BR: "Qual é a maior distância, em passos, entre duas pessoas que se alcançam?"
       en: "What is the largest distance, in steps, between two people who reach each other?"
     concepts: [spo.project_person_stakeholder]
-    relations: [spo.participates_in]
     expected_query_type: single
     rationale: >
       Medida `network.diameter.count`. "Entre quem se alcança", e não "de qualquer um a
@@ -235,7 +237,6 @@ competency_questions:
       pt-BR: "Quão eficiente é a rede para ligar quaisquer duas pessoas, contando como zero o par que não se alcança, e quanto seria em grafos aleatórios com a mesma densidade?"
       en: "How efficient is the network at linking any two people, counting as zero a pair that does not reach each other, and how much would it be in random graphs with the same density?"
     concepts: [spo.project_person_stakeholder]
-    relations: [spo.participates_in]
     expected_query_type: aggregate
     rationale: >
       Medida `network.global_efficiency.ratio` (Latora e Marchiori). O zero do par sem caminho
@@ -246,7 +247,6 @@ competency_questions:
       pt-BR: "Entre as pessoas com ao menos dois vizinhos, que fração dos pares de vizinhos também está ligada, em média, e quantas pessoas ficaram fora da média?"
       en: "Among people with at least two neighbours, what fraction of neighbour pairs is also linked, on average, and how many people were left out of the average?"
     concepts: [spo.project_person_stakeholder]
-    relations: [spo.participates_in]
     expected_query_type: aggregate
     rationale: >
       Medida `network.clustering.ratio`. Quem tem menos de dois vizinhos não tem clustering
@@ -257,7 +257,6 @@ competency_questions:
       pt-BR: "A rede atende ao critério σ > 1 de mundo pequeno, comparada com grafos aleatórios do mesmo tamanho e densidade sorteados pelo gerador declarado?"
       en: "Does the network meet the σ > 1 small-world criterion, compared with random graphs of the same size and density drawn by the declared generator?"
     concepts: [spo.project_person_stakeholder]
-    relations: [spo.participates_in]
     expected_query_type: boolean
     rationale: >
       Medida `network.small_world_sigma.score`. A resposta é "atende" ou "não atende" ao

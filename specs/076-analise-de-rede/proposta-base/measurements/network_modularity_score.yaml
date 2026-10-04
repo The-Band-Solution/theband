@@ -18,6 +18,8 @@ measurement:
       aleatório leva nas suas arestas o multiconjunto dos pesos reais, embaralhado
       (network.analysis.parameters.modularity_reading.random_weights); dividida pelo número
       de grafos com ao menos uma aresta, que é dito.
+      Acima de network.analysis.parameters.size_limit: Q_rand AUSENTE com motivo
+      `network_too_large_for_platform`; Q é calculada.
       Sem aresta: AUSENTE com motivo `no_edge_in_window`. A leitura segue
       network.analysis.parameters.modularity_reading.
     inputs: [network_edges, network_edge_weights, network.communities.count]
