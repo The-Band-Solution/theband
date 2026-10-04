@@ -124,6 +124,23 @@ Número de consultas fixo, independente do tamanho da rede; guardado por teste d
   leitura;
 - `provenance.account_type_unknown` só com alcance total.
 
+**Emenda de 2026-10-04 (T031, T033)**, feita no mesmo commit da implementação:
+
+- o nó de pessoa da visão ganha `out_weight`, `in_weight` (o cartão 3.2.5 diz quantas revisões ou
+  issues, e não só quantas pessoas), `betweenness` (`{:ok, v}`, `{:ausente, :network_too_small}`
+  ou, em leitura gravada antes da T030, `{:ausente, :not_computed}`), e, do `Reader`, `band` (o
+  código da faixa de `betweenness_color_bands`, `nil` quando ausente) e `labelled?`;
+- `labelled?` marca as `layout.labelled_nodes` pessoas de maior grau **da visão**, empate pelo id.
+  A visão só tem alcançados por nome, e por isso os nomes escritos saem só deles (O1 da revisão
+  semântica 3);
+- `graph` ganha `layout` e `bands` (`[%{code, label}]`, a legenda). `layout` são as posições
+  gravadas só quando a visão é a rede inteira (alcance total, nenhum agregado); com alcance
+  parcial, ou com o agregado de quem saiu de EO, `Algorithms.Layout` sobre o grafo da visão, com a
+  mesma semente (passo 5). Acima do teto, `{:ausente, :network_too_large_for_platform}`;
+- o agregado do resto, quando nenhuma pessoa de fora tem comunidade (leituras antes da T035), tem
+  `community: nil`, e não `:other`: *"outras comunidades"* afirmaria comunidades que não foram
+  calculadas.
+
 ### `view()`
 
 ```elixir
@@ -181,7 +198,7 @@ Número de consultas fixo, independente do tamanho da rede; guardado por teste d
         %{kind: :person, id: Ecto.UUID.t(), name: String.t(), degree: pos_integer(),
           out_people: non_neg_integer(), in_people: non_neg_integer(),
           betweenness: measure(), community: pos_integer(), links_outside_reach?: boolean()}
-        | %{kind: :outside, id: String.t(), community: pos_integer() | :other, size: pos_integer()}
+        | %{kind: :outside, id: String.t(), community: pos_integer() | :other | :gone | nil, size: pos_integer()}
 @type measure :: {:ok, number()} | {:ausente, atom()} | {:suprimido, atom()}
 @type hub :: %{person_id: Ecto.UUID.t(), name: String.t(), value: measure(), tied?: boolean(),
                detail: map()}     # closeness: %{distance_mean, reaches}; degree: %{out_people, in_people}

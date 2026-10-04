@@ -33,12 +33,15 @@ defmodule TheBand.NetworkAnalysis.Reader do
 
   Número fixo de consultas, independente do tamanho da rede (L38).
 
-  Papel, percentil e o layout da visão parcial entram com as tarefas que os calculam (T031, T034,
-  T045).
+  Papel e percentil entram com a tarefa que os calcula (T045). As posições, a faixa de cor e os
+  nomes escritos no desenho são decididos aqui (`desenhar/3`, T033).
 
-  Depende de: EO (organização, nomes), CMPO (coleta mais nova), Tenants (alcance).
+  Depende de: EO (organização, nomes), CMPO (coleta mais nova), Tenants (alcance),
+  `Algorithms.Layout` e `Algorithms.Projection` (o desenho da visão parcial).
   """
 
+  alias TheBand.NetworkAnalysis.Algorithms.Layout
+  alias TheBand.NetworkAnalysis.Algorithms.Projection
   alias TheBand.NetworkAnalysis.Parameters
   alias TheBand.NetworkAnalysis.Queries
   alias TheBand.NetworkAnalysis.View
@@ -136,6 +139,7 @@ defmodule TheBand.NetworkAnalysis.Reader do
        visao
        |> Map.drop([:granted, :viewer_person_id])
        |> nomear(nomes)
+       |> desenhar(leitura, parametros)
        |> Map.merge(%{
          counts: contagens(leitura, visao),
          declared_organization_accounts: contas_declaradas(tenant, organizacao.id),
@@ -189,6 +193,96 @@ defmodule TheBand.NetworkAnalysis.Reader do
   end
 
   defp nomear(visao, _nomes), do: visao
+
+  # O que o desenho precisa, decidido aqui e não na tela (T031, T033; R9, R16):
+  #
+  # - **posições**: as gravadas na leitura só quando a visão é a rede inteira (alcance total, sem
+  #   agregado). Com alcance parcial — ou com agregado de quem saiu de EO —, recalculadas sobre o
+  #   grafo DA VISÃO, com a mesma semente: as da rede inteira diriam onde estão as pessoas de fora
+  #   (R2 da segurança; FR-022). Acima do teto, ausentes, com o motivo da leitura;
+  # - **faixa de cor** da intermediação, pela regra da base; ausente, sem faixa;
+  # - **nome escrito** nos `labelled_nodes` mais ligados entre as pessoas DA VISÃO — que são só as
+  #   alcançadas (O1 da revisão semântica 3) —, empate pelo id, como `hubs_list_size`.
+  defp desenhar(%{graph: {:ok, grafo}} = visao, leitura, parametros) do
+    pessoas = for %{kind: :person} = no <- grafo.nodes, do: no
+
+    escritos =
+      pessoas
+      |> Enum.sort_by(&{-&1.degree, &1.id})
+      |> Enum.take(parametros.layout.labelled_nodes)
+      |> MapSet.new(& &1.id)
+
+    nos =
+      Enum.map(grafo.nodes, fn
+        %{kind: :person} = no ->
+          Map.merge(no, %{
+            band: faixa(no.betweenness, parametros.color_bands),
+            labelled?: MapSet.member?(escritos, no.id)
+          })
+
+        no ->
+          no
+      end)
+
+    bandas = for b <- parametros.color_bands, do: %{code: b["code"], label: b["label"]}
+
+    %{
+      visao
+      | graph:
+          {:ok,
+           Map.merge(grafo, %{
+             nodes: nos,
+             layout: posicoes(visao.reach, grafo, leitura, parametros),
+             bands: bandas
+           })}
+    }
+  end
+
+  defp desenhar(visao, _leitura, _parametros), do: visao
+
+  defp posicoes(alcance, grafo, leitura, parametros) do
+    gravadas = Map.new(leitura.nodes, &{&1["id"], &1})
+    rede_inteira? = alcance == :total and Enum.all?(grafo.nodes, &(&1.kind == :person))
+
+    cond do
+      Map.has_key?(leitura.measures["layout"] || %{}, "absent") ->
+        {:ausente, :network_too_large_for_platform}
+
+      rede_inteira? and Enum.all?(grafo.nodes, &Map.has_key?(gravadas[&1.id], "x")) ->
+        {:ok, Map.new(grafo.nodes, &{&1.id, {gravadas[&1.id]["x"], gravadas[&1.id]["y"]}})}
+
+      true ->
+        adjacencia =
+          grafo.edges
+          |> Enum.map(&%{source: &1.from, target: &1.to, weight: &1.weight})
+          |> Projection.undirected()
+          |> Map.fetch!(:adjacency)
+
+        {:ok,
+         Layout.fruchterman_reingold(
+           Enum.map(grafo.nodes, & &1.id),
+           adjacencia,
+           Map.take(parametros.layout, [:seed, :iterations])
+         )}
+    end
+  end
+
+  # A faixa da regra `betweenness_color_bands`: limites inclusivos (`from`, `to`) e exclusivos
+  # (`from_exclusive`, `to_exclusive`), como a base os declara.
+  defp faixa({:ok, v}, bandas) do
+    Enum.find_value(bandas, fn b ->
+      if dentro?(v, b), do: b["code"]
+    end) || raise "betweenness_color_bands não cobre #{v}"
+  end
+
+  defp faixa(_ausente, _bandas), do: nil
+
+  defp dentro?(v, b) do
+    (is_nil(b["from"]) or v >= b["from"]) and
+      (is_nil(b["from_exclusive"]) or v > b["from_exclusive"]) and
+      (is_nil(b["to"]) or v <= b["to"]) and
+      (is_nil(b["to_exclusive"]) or v < b["to_exclusive"])
+  end
 
   defp coleta_mais_nova(tenant, organization_id, computed_at) do
     tenant
