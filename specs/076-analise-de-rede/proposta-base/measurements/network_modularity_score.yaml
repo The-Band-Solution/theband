@@ -1,0 +1,42 @@
+measurement:
+  id: network.modularity.score
+  version: 1
+  name:
+    pt-BR: "Modularidade da partição detectada, ao lado da dos grafos aleatórios"
+    en: "Modularity of the detected partition, next to that of random graphs"
+  answers_information_need: [network.structure]
+  value_type: score
+  unit: modularity
+
+  formula:
+    expression: >
+      Sobre a projeção sem direção com peso, m_w a soma dos pesos, A_uv o peso de {u, v},
+      k_u a soma dos pesos de u, e P a partição de network.communities.count:
+        Q = (1 / 2m_w) × soma sobre u, v de [A_uv − k_u·k_v / 2m_w] × δ(c_u, c_v)   [escore]
+      Q_rand = média de Q da mesma partição gulosa (sem peso, porque os aleatórios não têm
+      peso) sobre os grafos aleatórios de network.analysis.parameters.small_world, dividida
+      pelo número de grafos com ao menos uma aresta.
+      Sem aresta: AUSENTE com motivo `no_edge_in_window`. A leitura segue
+      network.analysis.parameters.modularity_reading.
+    inputs: [network_edges, network_edge_weights, network.communities.count]
+
+  scope:
+    levels: [observed_organization]
+    filters:
+      - "calculada sobre a rede inteira (FR-011)"
+    period: "a janela da leitura"
+
+  limitations:
+    - "Grafos aleatórios pequenos e esparsos atingem Q de 0,3 ou mais por flutuação (Guimerà, Sales-Pardo e Amaral, 2004): por isso Q aparece ao lado de Q_rand."
+    - "Q_rand é calculado sem peso e Q com peso: a comparação é de ordem de grandeza, e não de igualdade."
+    - "A modularidade tem limite de resolução: comunidades pequenas dentro de redes grandes podem ser fundidas."
+
+  misinterpretations:
+    - "Ler Q acima de 0,3 como 'comunidades bem definidas' sem olhar Q_rand. A referência faz isso com faixas sem fonte (`dashboard_team_graph.py:404`)."
+    - "Ler Q alto como bom ou ruim: separação alta pode ser produtos independentes de propósito."
+
+  provenance:
+    source_type: literature
+    authors: ["M. E. J. Newman", "Michelle Girvan"]
+    year: 2004
+    reference: "Newman, M. E. J.; Girvan, M. Finding and evaluating community structure in networks. Physical Review E 69, 026113, 2004; Guimerà, R.; Sales-Pardo, M.; Amaral, L. A. N. Modularity from fluctuations in random graphs and complex networks. Physical Review E 70, 025101, 2004; spec 076, FR-029, FR-031"

@@ -1,0 +1,41 @@
+measurement:
+  id: assignment.network.edge_weight.count
+  version: 1
+  name:
+    pt-BR: "Peso de um par na rede de designação: issues distintas do autor com aquela pessoa designada"
+    en: "Weight of a pair in the assignment network: distinct issues by the author with that person assigned"
+  answers_information_need: [network.structure]
+  value_type: count
+  unit: issues
+
+  formula:
+    expression: >
+      Para pessoas distintas a (autor) e b (responsável), em O e W:
+        weight(a → b) = número de issues distintas abertas por a em W com b entre os
+                        responsáveis vigentes                                       [issues]
+      Só existe para pares com weight ≥ 1: par sem issue não é aresta, e não é aresta de
+      peso 0. No perfil individual aparecem as duas listas — para quem a pessoa abre
+      (saída) e de quem ela recebe (entrada) —, ordenadas pelo peso, com o total.
+    inputs: [issue_author_person_id, assignee_person_id, issue_opened_at, observed_organization_id]
+
+  scope:
+    levels: [person_pair, person]
+    filters:
+      - "pares com pessoa fora do alcance de quem consulta aparecem só agregados, sem nome e sem número por pessoa de fora (spec 076, FR-049)"
+    period: "a janela da leitura"
+
+  limitations:
+    - "Uma issue com três responsáveis dá peso 1 a cada uma das três arestas: a soma das saídas de uma pessoa é maior que o número de issues que ela abriu."
+    - "O peso não diz quem designou: o autor da issue não é necessariamente quem designou (assignment.network.edge)."
+    - "O peso não diz que o responsável executou o trabalho."
+
+  misinterpretations:
+    - "Ler o peso como colaboração entre as duas pessoas, ou como hierarquia (quem 'manda' em quem)."
+    - "Somar os pesos de entrada de uma pessoa e chamar de carga de trabalho. Issues têm tamanhos diferentes, e designação não é execução."
+    - "A medida não avalia nenhuma das duas pessoas."
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: "spec 076, US2, US9, FR-005, FR-048, FR-049"
+    note: "É o 'Total de Issues Atribuídas/Recebidas' da referência (`dashboard_team_graph.py:512-528`), com a mesma ordenação por peso."

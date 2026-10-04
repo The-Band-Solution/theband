@@ -1,0 +1,43 @@
+measurement:
+  id: network.betweenness.ratio
+  version: 1
+  name:
+    pt-BR: "Intermediação: fração dos caminhos mais curtos entre outras pessoas que passam pela pessoa"
+    en: "Betweenness: share of shortest paths between other people that pass through the person"
+  answers_information_need: [network.structure]
+  value_type: ratio
+  unit: ratio
+
+  formula:
+    expression: >
+      Na projeção sem direção, sem peso (network.analysis.parameters.betweenness):
+        betweenness(u) = [ soma, sobre pares {s, t} com s ≠ u ≠ t, de σ_st(u) / σ_st ]
+                         / ((n − 1)(n − 2) / 2)
+      σ_st = número de caminhos mais curtos entre s e t; σ_st(u) = os que passam por u; pares
+      sem caminho contribuem com nada (não há caminho para atravessar). Valor entre 0 e 1.
+      Zero é VALOR (ninguém passa por u), e não ausência. Com n < 3: AUSENTE com motivo
+      `network_too_small`. É a COR do círculo no grafo ponderado.
+    inputs: [network_edges, network_size]
+
+  scope:
+    levels: [person]
+    filters:
+      - "calculada sobre a rede inteira (FR-011); o nome aparece só sob o alcance (FR-012)"
+    period: "a janela da leitura"
+
+  limitations:
+    - "Sem direção: A → B ← C põe B entre A e C tanto quanto A → B → C. A referência usa o grafo dirigido (`dashboard_team_graph.py:90`); a mudança está na revisão semântica 076, S4."
+    - "Conta passos, e não peso: um caminho por uma aresta de 1 issue vale o mesmo que por uma de 40."
+    - "Depende das pessoas de FORA do alcance de quem consulta: a intermediação de quem se vê é calculada com elas."
+
+  misinterpretations:
+    - "Ler como 'ponte entre equipes': caminho na rede não é comunicação entre equipes, e comunidade não é equipe."
+    - "Ler intermediação alta como indispensabilidade comprovada. Ela diz que caminhos de designação ou revisão observados passam pela pessoa, e não que o trabalho pararia sem ela."
+    - "Converter o número em adjetivo ('papel crítico'). A referência usa 0,3 e 0,1 sem razão (`:308`); aqui só a regra network.position_role transforma percentil em rótulo."
+    - "A medida não avalia a pessoa."
+
+  provenance:
+    source_type: literature
+    authors: ["Linton C. Freeman", "Ulrik Brandes"]
+    year: 1977
+    reference: "Freeman, L. C. A set of measures of centrality based on betweenness. Sociometry 40(1), 1977; Brandes, U. A faster algorithm for betweenness centrality. Journal of Mathematical Sociology 25(2), 2001; spec 076, FR-020, FR-032"

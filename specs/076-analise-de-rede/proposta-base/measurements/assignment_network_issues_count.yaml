@@ -1,0 +1,39 @@
+measurement:
+  id: assignment.network.issues.count
+  version: 1
+  name:
+    pt-BR: "Issues abertas na janela, e quantas não têm responsável"
+    en: "Issues opened in the window, and how many have no assignee"
+  answers_information_need: [network.structure]
+  value_type: count
+  unit: issues
+
+  formula:
+    expression: >
+      Para a organização observada O e a janela W:
+        issues                  = issues de O com external_created_at em W e
+                                  no_longer_observed_at nulo                         [issues]
+        issues_without_assignee = das anteriores, as sem responsável vigente          [issues]
+      Sem issue em W: AUSENTE com motivo `no_issue_in_window`, nunca 0.
+    inputs: [issue_opened_at, issue_no_longer_observed_at, assignee_no_longer_observed_at, observed_organization_id, window_start, window_end]
+
+  scope:
+    levels: [observed_organization]
+    filters:
+      - "rede de designação apenas (assignment.network.edge)"
+      - "issue de outra organização observada ou de outro tenant nunca entra"
+    period: "janela móvel de 30, 90 ou 180 dias, pelo instante de abertura da issue"
+
+  limitations:
+    - "Conta a issue pela data de ABERTURA. Issue aberta antes da janela e designada dentro dela não entra; a origem não dá a data da designação."
+    - "Issue que sumiu da origem (transferida, apagada) não entra, mesmo que tenha sido aberta na janela."
+    - "Toda issue conta, promovida ou não a user story, tarefa, épico ou defeito."
+
+  misinterpretations:
+    - "Ler 'issues sem responsável' como trabalho abandonado. Muitos fluxos designam só quando o trabalho começa."
+    - "Ler o total como volume de trabalho da organização. Uma issue de épico e uma de tarefa contam igual."
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: "spec 076, US2, FR-005; assignment.network.edge (window, current_assignees)"

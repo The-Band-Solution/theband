@@ -1,0 +1,36 @@
+measurement:
+  id: network.degree_centrality.ratio
+  version: 1
+  name:
+    pt-BR: "Centralidade de grau normalizada: grau dividido pelo número de outras pessoas da rede"
+    en: "Normalised degree centrality: degree divided by the number of other people in the network"
+  answers_information_need: [network.structure]
+  value_type: ratio
+  unit: ratio
+
+  formula:
+    expression: >
+      degree_centrality(u) = network.degree.count(u) / (n − 1), n as pessoas da rede inteira
+      (nós com ao menos uma aresta). Valor entre 0 e 1, exclusivo de 0 porque todo nó tem ao
+      menos uma aresta. Rede com 1 aresta: n = 2, e as duas pessoas têm 1.
+    inputs: [network.degree.count, network_size]
+
+  scope:
+    levels: [person]
+    filters:
+      - "a mesma de network.degree.count"
+    period: "a janela da leitura"
+
+  limitations:
+    - "Depende de n: a mesma pessoa, com os mesmos vínculos, cai de valor quando a rede cresce. Só se compara dentro da mesma leitura."
+    - "Usa o grau sem direção (pessoas distintas), e não a soma de entrada e saída como a referência."
+
+  misinterpretations:
+    - "Comparar o valor entre organizações, janelas ou as duas redes."
+    - "Ler como a fração da organização com que a pessoa trabalha: n é quem tem aresta, e não toda a organização."
+
+  provenance:
+    source_type: literature
+    authors: ["Linton C. Freeman"]
+    year: 1979
+    reference: "Freeman (1979), grau normalizado; spec 076, FR-033"

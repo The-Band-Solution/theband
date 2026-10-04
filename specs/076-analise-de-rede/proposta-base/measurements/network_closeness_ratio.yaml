@@ -1,0 +1,40 @@
+measurement:
+  id: network.closeness.ratio
+  version: 1
+  name:
+    pt-BR: "Proximidade, com a correção para rede desconexa"
+    en: "Closeness, corrected for disconnected networks"
+  answers_information_need: [network.structure]
+  value_type: ratio
+  unit: ratio
+
+  formula:
+    expression: >
+      Na projeção sem direção, em passos, com r(u) as pessoas que u alcança contando u, n as
+      pessoas da rede e D(u) a soma das distâncias de u até as alcançáveis:
+        closeness(u) = ((r(u) − 1) / (n − 1)) × ((r(u) − 1) / D(u))
+      (Wasserman e Faust; network.analysis.parameters.closeness). Valor entre 0 e 1, sempre
+      definido para nó (todo nó alcança ao menos uma pessoa). Aparece SEMPRE com
+      network.person_distance.mean e com r(u) − 1, e NUNCA convertido em distância por 1/c.
+    inputs: [network_edges, network_size]
+
+  scope:
+    levels: [person]
+    filters:
+      - "calculada sobre a rede inteira (FR-011); o nome só sob o alcance (FR-012)"
+    period: "a janela da leitura"
+
+  limitations:
+    - "Em rede desconexa, mistura dois fatos: quão perto a pessoa está de quem alcança, e quantos ela alcança. Por isso as duas partes aparecem separadas ao lado."
+    - "Sem peso: distância em passos."
+
+  misinterpretations:
+    - "Ler 1/closeness como 'alcança os outros em N passos'. Com a correção, isso é falso em rede desconexa — é o defeito de `dashboard_team_graph.py:318`."
+    - "Ler como 'dissemina informação rapidamente' (a frase da referência, `:313`): designação e revisão não transmitem informação a terceiros."
+    - "A medida não avalia a pessoa."
+
+  provenance:
+    source_type: literature
+    authors: ["Stanley Wasserman", "Katherine Faust"]
+    year: 1994
+    reference: "Wasserman, S.; Faust, K. Social Network Analysis: Methods and Applications. Cambridge, 1994, proximidade em grafo desconexo; spec 076, FR-035"

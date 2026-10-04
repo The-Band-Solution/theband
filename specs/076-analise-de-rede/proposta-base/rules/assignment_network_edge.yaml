@@ -1,0 +1,225 @@
+derivation_rule:
+  id: assignment.network.edge
+  version: 1
+  provider: platform
+  status: proposed
+  confidence: medium
+
+  name:
+    pt-BR: "A aresta da rede de designação: de quem abriu a issue para quem está designado como responsável"
+
+  # ---------------------------------------------------------------------------
+  # Regra, e não `mapping:`, pela mesma razão da `review.network.edge` (073/T003, A1):
+  # a aresta é lida das issues e designações JÁ coletadas (`collected_issues`,
+  # `issue_assignees`), e não do payload. Mapeamento é fonte externa → conceito
+  # (AGENTS.md §8, §10); isto é derivação sobre o que já foi integrado. Os campos
+  # `equivalence`, `justification` e `limitations` que o AGENTS.md exige de mapeamento
+  # estão aqui, em `semantics` e `limitations`.
+  #
+  # O nome é DESIGNAÇÃO, e não delegação nem colaboração. A revisão semântica da 076
+  # (`specs/076-analise-de-rede/revisao-semantica.md`, achado S1) mostra por quê: o autor
+  # da issue não é necessariamente quem designou. O ato de designar existe na origem
+  # (`AssignedEvent`, com `actor`), e a plataforma o coleta, mas NÃO é o que esta aresta
+  # lê — ela reproduz a aresta da referência, por decisão da pessoa mantenedora.
+  # ---------------------------------------------------------------------------
+
+  description:
+    pt-BR: >
+      Uma aresta autor → responsável existe, numa janela W e numa organização observada O,
+      quando uma pessoa ABRIU uma issue da organização em W (instante de abertura na origem)
+      e OUTRA pessoa está designada como responsável vigente por ela. As duas pessoas são
+      `eo.person` com `account_type = 'person'`.
+
+      O peso da aresta é o número de issues DISTINTAS daquele autor que têm aquela pessoa
+      entre os responsáveis. Uma issue com três responsáveis contribui com 1 para cada uma
+      das três arestas.
+
+      É a aresta do repositório de referência (`dashboard_team_graph.py:53-80`), refeita sem
+      os defeitos dele: auto-designação contada em vez de removida em silêncio, linha que
+      falha contada em vez de engolida, bot e conta da organização fora dos nós.
+
+  semantics:
+    equivalence: partial
+    justification: >
+      A origem diz duas coisas separadas sobre a mesma issue: quem a abriu (`author`) e
+      quem está designado (`assignees`). A plataforma integra as duas — o autor como a
+      relação `author`/`reporter` dos mapeamentos de issue (`issue_user_story.yaml`,
+      `issue_bug.yaml`), o responsável como a relação `assignee` de
+      `issue_task.yaml` — e resolve as duas contas em `eo.person`. A aresta junta as duas
+      pela issue.
+
+      `partial`, e não `equivalent`, em relação ao que a referência afirma e ao que a
+      palavra "delegação" sugere: a aresta diz que A REGISTROU um item de trabalho pelo
+      qual B está DECLARADO responsável. Não diz que A designou B (a designação pode ter
+      sido feita por B, por um terceiro ou por automação), não diz QUANDO (a origem não dá
+      a data em `assignees`), e não diz que B executou (a mapeamento de tarefa já declara
+      que "assignee indica quem foi designado, não necessariamente quem executou").
+
+      NÃO é colaboração: colaborar é julgamento sobre a relação entre pessoas; esta aresta
+      é a coincidência de dois papéis declarados sobre o mesmo item.
+
+  ufo_category:
+    pt-BR: >
+      **Relação derivada, sem relator, e não conceito da rede**, como a aresta de revisão.
+      Os fundamentos são dois fatos sobre o MESMO objeto social (a issue, que na SRO é
+      `sro.user_story`, `sro.intended_scrum_development_task`, `sro.epic`, ou
+      `osdef.defect`, ou nenhum conceito quando não promovida): o ato de registrá-la
+      (evento, `action`) e a designação vigente (uma atribuição de responsabilidade, que
+      em UFO seria um compromisso social — `social relator` — entre a organização e o
+      responsável, e NÃO entre o autor e o responsável).
+
+      A distinção importa: se houver relator aqui, ele liga a ORGANIZAÇÃO (ou quem
+      designou) ao responsável, e o autor não participa dele. Por isso a aresta autor →
+      responsável não pode ser lida como relator entre as duas pessoas, e a rede não tem
+      id de conceito, módulo de ontologia nem tabela de domínio com `internal_id`. Vive
+      só na leitura derivada, substituída a cada cálculo.
+
+      Também não é `spo.is_in_charge_of` nem `sro.developer_in_charge_of_development_task`:
+      as duas ligam o stakeholder à atividade EXECUTADA, e a designação é sobre o item
+      planejado (`sro.intended_scrum_development_task` é a tarefa pretendida). Usar
+      aquelas relações faria designação parecer execução.
+
+  inputs:
+    - "issue: organização observada (pelo repositório observado), instante de abertura (createdAt → external_created_at), estado de observação (no_longer_observed_at)"
+    - "autor: conta e pessoa que abriu a issue (author.login → author_login; author.id → author_person_id)"
+    - "responsáveis: conta e pessoa de cada designação vigente (assignees.nodes → issue_assignees.login, person_id; no_longer_observed_at nulo)"
+    - "pessoa: `eo.person.account_type` das duas pontas, e a marca de conta da organização (ver `exclusions`)"
+
+  unit:
+    pt-BR: >
+      A unidade da aresta é o par (issue, PESSOA responsável), com autor resolvido em
+      pessoa. A unidade das exclusões é o par (issue, CONTA responsável), porque a exclusão
+      acontece quando a conta não é, ou não se sabe se é, uma pessoa. Issue sem responsável
+      vigente não gera par e é contada à parte (`issues_without_assignee`).
+
+  rules:
+    window:
+      name:
+        pt-BR: "A issue entra na janela pelo instante de abertura"
+      statement:
+        pt-BR: >
+          Uma issue entra em W quando `external_created_at` está em W. A designação não tem
+          data na origem (`issue_assignees` não a guarda), e por isso a janela é da issue,
+          como na decisão de 2026-08-27 para o painel da pessoa (`person_work.ex`, *"sem
+          data de designação, a issue é da pessoa"*).
+      note:
+        pt-BR: >
+          A alternativa com data é o evento de designação da linha do tempo
+          (`AssignedEvent.createdAt`, gravado como `spo.performed_project_activity`). Ela
+          mudaria a aresta de "autor → responsável" para "quem designou → designado", e por
+          isso é DECISÃO, e não ajuste: está na revisão semântica, D1.
+      values:
+        instant: issue_opened_at
+
+    current_assignees:
+      name:
+        pt-BR: "Só os responsáveis vigentes"
+      statement:
+        pt-BR: >
+          Entram os responsáveis com `no_longer_observed_at` nulo na última coleta. Issue com
+          `no_longer_observed_at` não nulo (sumiu da origem) não entra.
+      note:
+        pt-BR: >
+          É o que a referência lê (o estado atual de `assignees`). A designação retirada
+          existiu, mas sem a data em que foi feita nem a data em que foi desfeita não há como
+          pô-la numa janela; contá-la faria a rede de 30 dias mostrar quem foi responsável há
+          dois anos.
+      values:
+        assignee_state: current
+
+    exclusions:
+      name:
+        pt-BR: "As quatro exclusões, em ordem, e o que cada uma conta"
+      statement:
+        pt-BR: >
+          Todo par (issue, conta responsável) de issue em W termina em EXATAMENTE um
+          destino: contribui para uma aresta, ou entra em UM motivo, avaliados nesta ordem:
+
+            1. `bot_or_app` — autor ou responsável é conta de máquina (`account_type` em
+               `bot`, `app`; ou, para conta não ligada, `Mapper.account_type/1`);
+            2. `organization_account` — autor ou responsável é conta declarada como da
+               organização (o caso `LEDS` da referência). A origem a apresenta como `User`,
+               e por isso o reconhecimento é por DECLARAÇÃO, e não por inferência: a forma
+               da declaração é a decisão D3 da revisão semântica;
+            3. `unlinked_person` — autor ou responsável sem `eo.person` (login não
+               resolvido, ou conta apagada, autor nulo);
+            4. `self_assignment` — autor e responsável são a mesma `eo.person`.
+
+          Invariante: (soma dos pesos das arestas) + bot_or_app + organization_account +
+          unlinked_person + self_assignment = pares (issue, conta responsável) da janela,
+          com os de aresta deduplicados por pessoa. As contagens aparecem só no agregado,
+          nunca com login e nunca por pessoa.
+      note:
+        pt-BR: >
+          A ordem é a da `review.network.edge` com um degrau a mais: "não é pessoa" (máquina,
+          depois organização) → "é pessoa, mas não sabemos qual" → "é a mesma pessoa".
+          Conta da organização vem depois de máquina porque uma conta pode ser as duas
+          coisas, e a contagem não pode dobrar.
+      values:
+        order: [bot_or_app, organization_account, unlinked_person, self_assignment]
+        counted_by_reason: true
+        listed_by_login: false
+        per_person: false
+
+  relations:
+    issue_author:
+      source: "author.id da issue → eo.person (author_person_id)"
+      note: >
+        Resolvido na coleta da issue. Autor que só foi ligado a uma pessoa depois fica em
+        "sem pessoa ligada" até a issue ser coletada de novo.
+    assignee:
+      source: "assignees.nodes.id → eo.person (issue_assignees.person_id)"
+      note: >
+        É a relação `assignee` de `github.issue.task.to.sro.intended_scrum_development_task`,
+        aplicada a toda issue coletada, promovida ou não, como a referência faz.
+
+  limitations:
+    - >
+      NÃO é delegação no sentido estrito: o autor da issue não é necessariamente quem
+      designou. Quem designou está no evento de designação (`AssignedEvent.actor`), que esta
+      regra não lê. Uma pessoa que se designa para a issue de outra gera aresta do autor para
+      ela, e nenhum ato do autor aconteceu.
+    - >
+      NÃO é colaboração e NÃO é execução. Nenhuma tela, medida ou texto derivado desta regra
+      pode chamar a aresta de "colaboração", e "responsável" não é quem fez o trabalho (a
+      participação real vem de commits e revisões).
+    - >
+      SEM DATA de designação: a janela é a da abertura da issue. Uma issue aberta há 170 dias
+      e designada ontem está na janela de 180 e não na de 30.
+    - >
+      SÓ OS RESPONSÁVEIS VIGENTES: a designação retirada na origem não gera aresta, e a rede
+      de uma janela passada é lida com os responsáveis de hoje.
+    - >
+      Issue com vários responsáveis gera uma aresta para cada um, com peso 1 cada: o peso de
+      uma aresta não é fração da issue, e a soma dos pesos é maior que o número de issues.
+    - >
+      Toda issue coletada entra, promovida ou não a conceito da SRO ou da OSDEF: user story,
+      tarefa, épico e defeito pesam igual, como na referência. Um épico designado a uma
+      pessoa e uma tarefa designada a ela são, aqui, a mesma aresta.
+    - >
+      AUTO-DESIGNAÇÃO não vira aresta, e é contada no agregado, nunca por pessoa.
+    - >
+      BOT, APLICATIVO e CONTA DA ORGANIZAÇÃO em qualquer das pontas não viram aresta, e são
+      contados por motivo. A conta da organização só é reconhecida se estiver declarada como
+      tal; enquanto não estiver, ela é pessoa e é nó — a limitação que a referência tem sem
+      dizer, aqui dita.
+    - >
+      SEM PESSOA LIGADA em qualquer das pontas não vira aresta, e é contado separado de bot.
+    - >
+      Issue de outra organização observada ou de outro tenant nunca entra: a leitura filtra
+      issue, responsável e pessoa pelo tenant, nos dois lados de cada junção, e pela
+      organização buscada por id e tenant juntos.
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: >
+      spec 076, FR-005 a FR-009; revisão semântica 076
+      (`specs/076-analise-de-rede/revisao-semantica.md`); decisão da pessoa mantenedora de
+      2026-10-03 (*"os dois, IGUAL à referência"*); `review.network.edge` como precedente de
+      forma
+    note: >
+      Nasce da aresta do repositório `leds-conectafapes-management-dashboard`
+      (`dashboard_team_graph.py:53-80`), que o relatório chama de "colaboração". A 073
+      recusou adotá-la; a 076 a adota por decisão da pessoa mantenedora, com o nome que ela
+      sustenta.

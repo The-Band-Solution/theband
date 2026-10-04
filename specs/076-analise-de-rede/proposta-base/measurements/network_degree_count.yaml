@@ -1,0 +1,43 @@
+measurement:
+  id: network.degree.count
+  version: 1
+  name:
+    pt-BR: "Grau: com quantas pessoas distintas a pessoa se liga, e em que sentido"
+    en: "Degree: how many distinct people a person is linked to, and in which direction"
+  answers_information_need: [network.structure]
+  value_type: count
+  unit: people
+
+  formula:
+    expression: >
+      Para a pessoa u na rede N (review ou assignment), em O e W:
+        degree(u)     = pessoas distintas v ≠ u com aresta u → v OU v → u        [pessoas]
+        out_degree(u) = pessoas distintas v com aresta u → v                     [pessoas]
+                        (assignment: "assigns to"; review: "reviews")
+        in_degree(u)  = pessoas distintas v com aresta v → u                     [pessoas]
+                        (assignment: "receives from"; review: "is reviewed by")
+      degree(u) ≤ out_degree(u) + in_degree(u): um par recíproco conta UMA vez em degree e
+      uma vez em cada sentido. Pessoa sem aresta não é nó, e a medida não existe para ela
+      (FR-008), em vez de 0. É o TAMANHO do círculo no grafo ponderado.
+    inputs: [network_edges, network_kind]
+
+  scope:
+    levels: [person]
+    filters:
+      - "calculada sobre a rede inteira (FR-011); o nome aparece só para quem está no alcance de quem consulta (FR-012)"
+    period: "a janela da leitura"
+
+  limitations:
+    - "Conta pessoas, e não issues nem revisões: duas pessoas com 1 e com 40 issues em comum contribuem igual. A intensidade está no peso da aresta."
+    - "Na rede de designação, uma pessoa que abre issues para uma equipe inteira tem grau alto sem ter designado ninguém (assignment.network.edge)."
+
+  misinterpretations:
+    - "Ler grau alto como importância, liderança ou produtividade."
+    - "Ler o grau desta medida como o da referência: a referência soma entrada e saída, e conta o par recíproco duas vezes (`dashboard_team_graph.py:87`, `:300`)."
+    - "A medida não avalia a pessoa; ela é visível só quando o ato passa pela ferramenta observada."
+
+  provenance:
+    source_type: literature
+    authors: ["Linton C. Freeman"]
+    year: 1979
+    reference: "Freeman, L. C. Centrality in social networks: conceptual clarification. Social Networks 1(3), 1979 — centralidade de grau; spec 076, FR-033"

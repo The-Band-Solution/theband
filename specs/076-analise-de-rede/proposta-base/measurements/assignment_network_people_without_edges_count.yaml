@@ -1,0 +1,37 @@
+measurement:
+  id: assignment.network.people_without_edges.count
+  version: 1
+  name:
+    pt-BR: "Pessoas observadas sem aresta na rede de designação na janela"
+    en: "Observed people with no edge in the assignment network in the window"
+  answers_information_need: [network.structure]
+  value_type: count
+  unit: people
+
+  formula:
+    expression: >
+      Para a rede de designação, O e W:
+        without_edges = pessoas observadas de O com account_type = 'person' que não são
+                        ponta de nenhuma aresta de assignment.network.edge em W     [pessoas]
+      Na rede de revisão, a mesma contagem é review.network.people_without_activity.count
+      (073), e não se declara de novo.
+    inputs: [observed_people_of_organization, network_edges]
+
+  scope:
+    levels: [observed_organization]
+    filters:
+      - "a contagem, para quem tem alcance parcial, é sobre as pessoas que ele alcança (073, R2 item 5)"
+    period: "a janela da leitura"
+
+  limitations:
+    - "Quem só abriu issues sem responsável, ou só esteve em issues de bot ou de conta não ligada, entra aqui: houve atividade, mas não aresta."
+    - "Pessoa sem aresta não é nó: não entra em hub, comunidade, papel nem em medida de distância."
+
+  misinterpretations:
+    - "Ler como pessoas inativas. A atividade pode estar fora da ferramenta, ou na outra rede."
+    - "A medida não avalia nenhuma pessoa."
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: "spec 076, FR-008; 073, R2 item 4"
