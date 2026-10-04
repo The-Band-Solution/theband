@@ -24,7 +24,9 @@ sprint seguinte.
 **Andamento em 2026-10-04**: a Fundação (T002, T004–T017) está feita na branch
 `feature/1309-fundacao`, num PR próprio para `development` (#1381). T003 (medida de produção)
 continua com a pessoa mantenedora. A US1 (T018–T020) está feita na branch `feature/1309-us1`,
-empilhada sobre a fundação, num PR com merge commit. US2 e US3 (T021–T034) seguem, empilhadas.
+empilhada sobre a fundação, num PR com merge commit (#1382). A US2 (T021–T029) está feita na
+branch `feature/1309-us2`, empilhada sobre a US1, num PR com merge commit. A US3 (T030–T034) segue,
+empilhada.
 
 ## Escopo proposto, e o que espera confirmação
 
@@ -107,15 +109,15 @@ P3 ficam sem prioridade, como na 073.
 | T018 | Pôr Network analysis no menu principal | US1 | [#1342](https://github.com/The-Band-Solution/theband/issues/1342) |  | feito (US1, 2026-10-04) |
 | T019 | Abrir a área e escolher a organização | US1 | [#1343](https://github.com/The-Band-Solution/theband/issues/1343) |  | feito (US1, 2026-10-04) |
 | T020 | Montar a rede de revisão na área, e o endereço antigo | US1 | [#1344](https://github.com/The-Band-Solution/theband/issues/1344) | sim | feito (US1, 2026-10-04) |
-| T021 | Gravar o tipo da conta na coleta de issues (A3) | US2 | [#1345](https://github.com/The-Band-Solution/theband/issues/1345) | sim | a fazer |
-| T022 | Preencher o tipo da conta das issues já coletadas | US2 | [#1346](https://github.com/The-Band-Solution/theband/issues/1346) |  | a fazer |
-| T023 | Ler os pares de designação com seis filtros de tenant | US2 | [#1347](https://github.com/The-Band-Solution/theband/issues/1347) | sim | a fazer |
-| T024 | Classificar cada designação em exatamente um destino | US2 | [#1348](https://github.com/The-Band-Solution/theband/issues/1348) |  | a fazer |
-| T025 | Declarar e revogar a conta da organização | US2 | [#1349](https://github.com/The-Band-Solution/theband/issues/1349) | sim | a fazer |
-| T026 | Declarar a conta da organização na tela de pessoas | US2 | [#1351](https://github.com/The-Band-Solution/theband/issues/1351) | sim | a fazer |
-| T027 | Excluir a conta da organização também na revisão (A7) | US2 | [#1352](https://github.com/The-Band-Solution/theband/issues/1352) | sim | a fazer |
-| T028 | Calcular as duas redes nas três janelas | US2 | [#1353](https://github.com/The-Band-Solution/theband/issues/1353) |  | a fazer |
-| T029 | Mostrar as contagens da rede de designação | US2 | [#1354](https://github.com/The-Band-Solution/theband/issues/1354) |  | a fazer |
+| T021 | Gravar o tipo da conta na coleta de issues (A3) | US2 | [#1345](https://github.com/The-Band-Solution/theband/issues/1345) | sim | feito (US2, 2026-10-04) |
+| T022 | Preencher o tipo da conta das issues já coletadas | US2 | [#1346](https://github.com/The-Band-Solution/theband/issues/1346) |  | feito (US2, 2026-10-04) |
+| T023 | Ler os pares de designação com seis filtros de tenant | US2 | [#1347](https://github.com/The-Band-Solution/theband/issues/1347) | sim | feito (US2, 2026-10-04) |
+| T024 | Classificar cada designação em exatamente um destino | US2 | [#1348](https://github.com/The-Band-Solution/theband/issues/1348) |  | feito (US2, 2026-10-04) |
+| T025 | Declarar e revogar a conta da organização | US2 | [#1349](https://github.com/The-Band-Solution/theband/issues/1349) | sim | feito (US2, 2026-10-04) |
+| T026 | Declarar a conta da organização na tela de pessoas | US2 | [#1351](https://github.com/The-Band-Solution/theband/issues/1351) | sim | feito (US2, 2026-10-04) |
+| T027 | Excluir a conta da organização também na revisão (A7) | US2 | [#1352](https://github.com/The-Band-Solution/theband/issues/1352) | sim | feito (US2, 2026-10-04) |
+| T028 | Calcular as duas redes nas três janelas | US2 | [#1353](https://github.com/The-Band-Solution/theband/issues/1353) |  | feito (US2, 2026-10-04) |
+| T029 | Mostrar as contagens da rede de designação | US2 | [#1354](https://github.com/The-Band-Solution/theband/issues/1354) |  | feito (US2, 2026-10-04) |
 | T030 | Calcular a intermediação por Brandes | US3 | [#1355](https://github.com/The-Band-Solution/theband/issues/1355) |  | a fazer |
 | T031 | Posicionar os nós no servidor, com semente | US3 | [#1356](https://github.com/The-Band-Solution/theband/issues/1356) |  | a fazer |
 | T032 | Desenhar o grafo em SVG, sem dado no navegador | US3 | [#1357](https://github.com/The-Band-Solution/theband/issues/1357) | sim | a fazer |

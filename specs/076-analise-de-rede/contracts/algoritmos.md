@@ -113,6 +113,29 @@ mesma saída.
 Chamado só por `View`/`Reader`, nunca gravado (R17). Abaixo de `min_people`, `{:ausente,
 :network_too_small}` para todos (FR-046).
 
+## `AssignmentClassification` (T024; acrescentado em 2026-10-04, antes do código)
+
+```elixir
+@spec order() :: [String.t()]   # ~w(bot_or_app organization_account unlinked_person self_assignment)
+@spec classify([WorkItems.assignment_pair()], %{id => String.t()}, MapSet.t()) ::
+        [%{collected_issue_id: id, opened_at: DateTime.t(), destino: destino, unknown_type?: boolean()}]
+@spec summarize([classificado], inicio :: DateTime.t()) ::
+        %{edges: [%{source: id, target: id, weight: pos_integer()}],   # por (source, target)
+          exclusions: %{String.t() => non_neg_integer()},
+          account_type_unknown: non_neg_integer()}
+```
+
+`destino` é `{:aresta, autor, responsavel}`, um dos quatro motivos da base, ou `:no_assignee` (a
+issue sem responsável vigente, que não é par). A ordem é a de `assignment.network.edge`;
+`Parameters` confere a da base contra `order/0`, e levanta se divergirem. Cada lado do par diz os
+fatos que tem (máquina, declarada da organização, sem pessoa, tipo nulo, pessoa), e a ordem
+decide qual pesa: a conta que é máquina **e** declarada conta uma vez, como máquina.
+
+`summarize/2` filtra pelo instante de abertura (`opened_at >= inicio`) e devolve em `exclusions`
+os quatro motivos, `pairs`, `issues` e `issues_without_assignee`. O peso é o número de issues
+distintas do par. Invariante: soma dos pesos + os quatro motivos = `pairs`. Nenhum login entra nem
+sai (R9).
+
 ## `View.build/5`
 
 ```elixir

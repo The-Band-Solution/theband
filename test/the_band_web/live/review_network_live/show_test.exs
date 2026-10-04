@@ -225,7 +225,8 @@ defmodule TheBandWeb.ReviewNetworkLive.ShowTest do
       {:ok, _view, html} = abrir(ctx, ctx.admin)
 
       rodape = texto(html, "#proveniencia")
-      assert rodape =~ "review.network.edge v1"
+      # 076, T027: a versão 2 da regra, com a conta da organização.
+      assert rodape =~ "review.network.edge v2"
       assert rodape =~ "review.network.parameters v1"
       assert rodape =~ "review.network.concentration.top_k_share v1"
       assert rodape =~ "Not on this page: export, ordering by a count, role labels for people."
@@ -578,6 +579,32 @@ defmodule TheBandWeb.ReviewNetworkLive.ShowTest do
 
   defp atributo(html, seletor, nome) do
     html |> LazyHTML.from_fragment() |> LazyHTML.query(seletor) |> LazyHTML.attribute(nome)
+  end
+
+  describe "A7 (076, T027): a conta da organização nas exclusões" do
+    test "a leitura da versão 2 avalia o motivo e mostra a contagem", ctx do
+      {:ok, _view, html} = abrir(ctx, ctx.admin)
+      linha = texto(html, "#exclusao-conta-da-organizacao")
+
+      assert linha =~ ~r/^organisation account 0 — /
+      refute linha =~ "not evaluated"
+    end
+
+    test "a leitura antiga, sem o motivo avaliado, diz que não avaliou, e não mostra 0", ctx do
+      # A leitura gravada pela versão 1: a coluna fica com o valor padrão do banco.
+      Repo.query!(
+        "update review_network_readings set excluded_organization_account = DEFAULT where tenant_id = $1",
+        [Ecto.UUID.dump!(ctx.tenant.id)]
+      )
+
+      {:ok, _view, html} = abrir(ctx, ctx.admin)
+      linha = texto(html, "#exclusao-conta-da-organizacao")
+
+      # As outras exclusões continuam lá: a medida mediu.
+      assert texto(html, "#exclusoes") =~ "self-reviews 1"
+      assert linha =~ "not evaluated: this reading predates the organisation account rule"
+      refute linha =~ ~r/\b0\b/
+    end
   end
 
   test "o aviso de leitura pronta faz a tela reler pela função de domínio", ctx do

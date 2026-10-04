@@ -66,6 +66,10 @@ competency_questions:
       Medida `assignment.network.excluded.count`. Cada par vai para exatamente um destino; sem a
       pergunta, uma exclusão some, e a soma dos pesos das arestas deixa de fechar com o número
       de pares — que é o invariante que faz classificação errada aparecer como diferença.
+      `account_type` responde a conta de máquina; a conta da organização NÃO é atributo de
+      tipo: vem da declaração da administração (relator com autoria e revogação), que não
+      muda o tipo coletado. Ler a exclusão 2 de `account_type` a perderia, porque a origem
+      mostra essa conta como pessoa.
       Na designação, o responsável está designado para o item planejado
       (`spo.intended_project_activity`), e não participa da atividade: `spo.participates_in`
       cobre só o autor.

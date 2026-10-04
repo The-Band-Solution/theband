@@ -661,3 +661,18 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "This panel is not yours to see."
 msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex
+#, elixir-autogen, elixir-format
+msgid "Your own person cannot be declared as the organisation's account."
+msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex
+#, elixir-autogen, elixir-format
+msgid "A person linked to a platform account cannot be declared as the organisation's account."
+msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex
+#, elixir-autogen, elixir-format
+msgid "Write why this account belongs to the organisation."
+msgstr ""

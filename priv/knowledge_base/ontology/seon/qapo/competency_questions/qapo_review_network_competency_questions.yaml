@@ -75,8 +75,10 @@ competency_questions:
     attributes: [account_type, author_type, state]
     expected_query_type: aggregate
     rationale: >
-      As exclusões precisam ser respondíveis pela base, e não só pelo cálculo: auto-revisão
-      (a mesma pessoa nas duas pontas), conta de máquina, e conta sem pessoa ligada. Sem a
+      As exclusões precisam ser respondíveis pela base, e não só pelo cálculo: conta de
+      máquina, conta declarada da organização (desde a versão 2 da `review.network.edge`;
+      vem da declaração da administração, e não de `account_type`, e é nula na leitura da
+      versão 1), conta sem pessoa ligada, e auto-revisão (a mesma pessoa nas duas pontas). Sem a
       pergunta, uma revisão excluída some — e a soma das arestas deixa de fechar com o total
       de revisões, que é o que permite conferir a leitura contra a origem (SC-001).
 

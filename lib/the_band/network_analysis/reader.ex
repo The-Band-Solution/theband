@@ -21,21 +21,28 @@ defmodule TheBand.NetworkAnalysis.Reader do
      malformado dão o mesmo `{:error, :not_found}`;
   2. a leitura vigente de `(tenant, organização, rede, janela)`; sem ela, `{:ausente,
      :not_computed}`; mais velha que a maior janela, `{:ausente, :stale}` (R18) — nunca a de
-     outra rede ou janela no lugar;
+     outra rede ou janela no lugar. Na rede de revisão, a leitura feita de uma leitura da 073 que
+     não sabe das contas declaradas vigentes (versão 1, ou calculada até a última declaração ou
+     revogação) é `{:ausente, :review_reading_outdated}` (E4 da revisão semântica do PR #1383;
+     `Inputs.review_reading_current?/3`): a conta declarada seria nó numa rede e não na outra;
   3. os nomes das pessoas da leitura, numa consulta (`EO.people_names/2`); quem não está mais em
      EO sai do alcance e é tratado como pessoa de fora (R18);
   4. os dois alcances, nesta chamada;
   5. `View.build/5`;
-  6. a coleta mais nova que a leitura (073, Q3).
+  6. a coleta mais nova que a leitura (073, Q3);
+  7. as contagens da rede (T029), com as exclusões e as pessoas sem aresta **só para quem alcança
+     todos**: são sobre a organização inteira, gente de fora do alcance incluída (como a 073, Q5);
+  8. o número de contas declaradas da organização (R14), sem dizer quais.
 
   Número fixo de consultas, independente do tamanho da rede (L38).
 
-  Papel, percentil, layout da visão parcial e o número de contas declaradas da organização entram
-  com as tarefas que os calculam (T031, T034, T045, T025).
+  Papel, percentil e o layout da visão parcial entram com as tarefas que os calculam (T031, T034,
+  T045).
 
   Depende de: EO (organização, nomes), CMPO (coleta mais nova), Tenants (alcance).
   """
 
+  alias TheBand.NetworkAnalysis.Inputs
   alias TheBand.NetworkAnalysis.Parameters
   alias TheBand.NetworkAnalysis.Queries
   alias TheBand.NetworkAnalysis.View
@@ -106,13 +113,17 @@ defmodule TheBand.NetworkAnalysis.Reader do
   que a fachada expõe como `read/4`.
   """
   @spec read(Tenant.t(), User.t(), term(), selection()) ::
-          {:ok, map()} | {:ausente, :not_computed | :stale} | {:error, :not_found}
+          {:ok, map()}
+          | {:ausente, :not_computed | :stale | :review_reading_outdated}
+          | {:error, :not_found}
   def read(tenant, user, organization_id, selecao),
     do: read(tenant, user, organization_id, selecao, Parameters.fetch!())
 
   @doc false
   @spec read(Tenant.t(), User.t(), term(), selection(), Parameters.t()) ::
-          {:ok, map()} | {:ausente, :not_computed | :stale} | {:error, :not_found}
+          {:ok, map()}
+          | {:ausente, :not_computed | :stale | :review_reading_outdated}
+          | {:error, :not_found}
   def read(%Tenant{} = tenant, %User{} = user, organization_id, selecao, parametros) do
     %{network: rede, window: dias} = selecao
 
@@ -134,6 +145,9 @@ defmodule TheBand.NetworkAnalysis.Reader do
        |> Map.drop([:granted, :viewer_person_id])
        |> nomear(nomes)
        |> Map.merge(%{
+         counts: contagens(leitura, visao),
+         declared_organization_accounts: contas_declaradas(tenant, organizacao.id),
+         provenance: proveniencia(leitura, visao.reach),
          organization_id: organizacao.id,
          network: rede,
          window_days: dias,
@@ -155,11 +169,23 @@ defmodule TheBand.NetworkAnalysis.Reader do
         # e não ao da leitura: é a idade dela que importa.
         limite = DateTime.add(DateTime.utc_now(), -Enum.max(parametros.windows) * @dia, :second)
 
-        if DateTime.compare(leitura.computed_at, limite) == :lt,
-          do: {:ausente, :stale},
-          else: {:ok, leitura}
+        cond do
+          DateTime.compare(leitura.computed_at, limite) == :lt -> {:ausente, :stale}
+          desatualizada?(tenant, leitura) -> {:ausente, :review_reading_outdated}
+          true -> {:ok, leitura}
+        end
     end
   end
+
+  defp desatualizada?(tenant, %{network: "review"} = leitura) do
+    not Inputs.review_reading_current?(
+      leitura.exclusions["organization_account"],
+      leitura.source_computed_at,
+      Tenants.organization_accounts_changed_at(tenant)
+    )
+  end
+
+  defp desatualizada?(_tenant, _leitura), do: false
 
   # Quem saiu de EO sai do alcance (R18): com alcance parcial, é de fora.
   defp sem(:todas, _gone), do: :todas
@@ -197,5 +223,67 @@ defmodule TheBand.NetworkAnalysis.Reader do
       nil ->
         :nenhuma
     end
+  end
+
+  # As contagens da rede (US2; FR-007, FR-008). Ausência é dita: sem aresta, o número de arestas
+  # é ausente, e nunca 0. As exclusões e as pessoas sem aresta são da organização inteira, e só
+  # quem alcança todos as lê (073, Q5); com alcance parcial, a regra, e nenhum número.
+  defp contagens(leitura, visao) do
+    exclusoes = leitura.exclusions || %{}
+    arestas = length(leitura.edges)
+
+    %{
+      items: positivo(itens(leitura.network, exclusoes), :none_in_window),
+      edges: positivo(arestas, :no_edge_in_window),
+      exclusions: exclusoes_vistas(visao.reach, exclusoes),
+      people: visao.people,
+      people_without_edges: sem_aresta(visao.reach, leitura.people_without_edges)
+    }
+  end
+
+  # Issues da janela na designação; revisões (pares contáveis) na revisão.
+  defp itens("assignment", exclusoes), do: Map.get(exclusoes, "issues", 0)
+  defp itens("review", exclusoes), do: Map.get(exclusoes, "pairs", 0)
+
+  defp positivo(n, _motivo) when is_integer(n) and n > 0, do: {:ok, n}
+  defp positivo(_n, motivo), do: {:ausente, motivo}
+
+  defp exclusoes_vistas(:total, exclusoes) do
+    if Map.get(exclusoes, "pairs", 0) == 0 and Map.get(exclusoes, "issues", 0) == 0,
+      do: {:ausente, :none_in_window},
+      else: {:ok, Map.drop(exclusoes, ["pairs", "issues"])}
+  end
+
+  defp exclusoes_vistas(_alcance, _exclusoes), do: {:recortado, :regra}
+
+  defp sem_aresta(:total, nil), do: {:ausente, :no_edge_in_window}
+  defp sem_aresta(:total, n), do: {:ok, n}
+  defp sem_aresta(_alcance, _n), do: {:recortado, :regra}
+
+  # Só o que a tela diz da proveniência nesta fatia: quantas designações tinham conta de tipo não
+  # gravado (R13), e só para quem alcança todos — é contagem sobre a organização inteira.
+  defp proveniencia(leitura, :total) do
+    %{
+      knowledge_versions: Map.get(leitura.provenance, "knowledge_versions", %{}),
+      account_type_unknown: Map.get(leitura.provenance, "account_type_unknown"),
+      source_computed_at: leitura.source_computed_at
+    }
+  end
+
+  defp proveniencia(leitura, _alcance) do
+    %{
+      knowledge_versions: Map.get(leitura.provenance, "knowledge_versions", %{}),
+      account_type_unknown: nil,
+      source_computed_at: leitura.source_computed_at
+    }
+  end
+
+  # O número de contas declaradas que são pessoas desta organização (R14), sem dizer quais.
+  defp contas_declaradas(tenant, organization_id) do
+    tenant
+    |> EO.organization_person_ids(organization_id)
+    |> MapSet.new()
+    |> MapSet.intersection(Tenants.organization_account_ids(tenant))
+    |> MapSet.size()
   end
 end

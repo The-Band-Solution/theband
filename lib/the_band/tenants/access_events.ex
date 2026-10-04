@@ -235,6 +235,34 @@ defmodule TheBand.Tenants.AccessEvents do
     )
   end
 
+  @doc """
+  A conta da organização declarada ou revogada, ou a recusa — feature 076, T025 (R14; A20).
+
+  `ato` é o que se tentou; `resultado` é `:ok` ou o motivo da recusa (`:not_admin`, `:not_found`,
+  `:own_person`, `:linked_to_platform_account`, `:invalid`). Quem agiu vai explícito, e não só no
+  `Logger.metadata`: a declaração tira uma pessoa das duas redes, e o rastro precisa dizer quem o
+  fez mesmo fora de uma requisição. Só ids e átomos cabem na assinatura.
+  """
+  @spec conta_da_organizacao(
+          :conta_da_organizacao_declarada | :conta_da_organizacao_revogada,
+          Ecto.UUID.t(),
+          Ecto.UUID.t(),
+          Ecto.UUID.t() | nil,
+          atom()
+        ) :: :ok
+  def conta_da_organizacao(ato, tenant_id, actor_user_id, person_id, resultado)
+      when ato in [:conta_da_organizacao_declarada, :conta_da_organizacao_revogada] and
+             is_binary(tenant_id) and is_binary(actor_user_id) and
+             (is_binary(person_id) or is_nil(person_id)) and is_atom(resultado) do
+    registrar("ato administrativo",
+      ato: ato,
+      tenant_id: tenant_id,
+      actor_user_id: actor_user_id,
+      person_id: person_id,
+      resultado: resultado
+    )
+  end
+
   # ------------------------------------------------- o operador da plataforma (spec 070)
   #
   # Contrato em `specs/070-operador-da-plataforma/contracts/eventos-de-acesso.md` (FR-010, O14,

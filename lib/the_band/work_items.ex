@@ -61,6 +61,9 @@ defmodule TheBand.WorkItems do
   defdelegate repositories_of_person(tenant, person_id), to: Queries
   defdelegate issue_ids_by_external_id(tenant), to: Queries
 
+  # A entrada da rede de designação da análise de rede (076, T023): só ids e tipos, nunca login.
+  defdelegate assignment_pairs(tenant, repository_ids, opts), to: Queries
+
   # O painel da pessoa (feature 023). Módulo próprio porque responde outra pergunta: as
   # leituras acima descrevem a issue, estas descrevem o trabalho de alguém ao longo do tempo.
   defdelegate assigned_open_count(tenant, person_id), to: PersonWork

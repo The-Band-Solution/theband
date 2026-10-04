@@ -30,6 +30,7 @@ defmodule TheBand.ReviewNetwork.Commands do
   alias TheBand.ReviewNetwork.Notices
   alias TheBand.ReviewNetwork.Parameters
   alias TheBand.ReviewNetwork.Schemas.Reading
+  alias TheBand.Tenants
   alias TheBand.Tenants.Tenant
 
   @dia 86_400
@@ -43,6 +44,7 @@ defmodule TheBand.ReviewNetwork.Commands do
               excluded: %{
                 self_review: non_neg_integer(),
                 bot_or_app: non_neg_integer(),
+                organization_account: non_neg_integer() | nil,
                 unlinked_person: non_neg_integer()
               }
             }
@@ -97,7 +99,9 @@ defmodule TheBand.ReviewNetwork.Commands do
 
     autores = Changes.change_request_authors(tenant, repositorios, since: desde)
     tipos = EO.account_types(tenant, ids_de_pessoa(pares, autores))
-    classificados = Classification.classify(pares, tipos)
+    # A conta da organização declarada sai também desta rede (076, T027; A7).
+    contas = Tenants.organization_account_ids(tenant)
+    classificados = Classification.classify(pares, tipos, contas)
 
     linhas =
       for dias <- Enum.sort(parametros.windows) do
@@ -117,6 +121,7 @@ defmodule TheBand.ReviewNetwork.Commands do
           excluded_self_review: rede.excluded.self_review,
           excluded_bot_or_app: rede.excluded.bot_or_app,
           excluded_unlinked: rede.excluded.unlinked_person,
+          excluded_organization_account: rede.excluded.organization_account,
           knowledge_versions: parametros.knowledge_versions
         }
       end
@@ -137,6 +142,7 @@ defmodule TheBand.ReviewNetwork.Commands do
             excluded: %{
               self_review: r.excluded_self_review,
               bot_or_app: r.excluded_bot_or_app,
+              organization_account: r.excluded_organization_account,
               unlinked_person: r.excluded_unlinked
             }
           }

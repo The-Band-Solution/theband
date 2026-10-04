@@ -33,6 +33,12 @@ confere, sem usar para decidir, o que o código implementa: a ordem das exclusõ
 shuffled_real_multiset`. Com valor diferente, levanta. A rede padrão é a primeira da lista
 `networks.values.allowed`.
 
+**Emenda de 2026-10-04 (O1 da revisão semântica do PR #1383)**, feita no mesmo commit da
+implementação: uma **quinta** regra, `review.network.edge`, só pela versão. Ela entra em
+`knowledge_versions`, e por isso na impressão digital: as arestas de revisão são as que a 073
+gravou por essa regra, e sem a versão uma leitura da versão 1 e uma da 2 com as mesmas arestas
+dariam a mesma impressão. Sem a regra, `from_rules!/2` levanta dizendo o id.
+
 ---
 
 ## `options/0`
@@ -64,7 +70,7 @@ fora da lista, o padrão, **sem dizer que era inválido**. Nunca `String.to_atom
 ```elixir
 @spec read(Tenant.t(), User.t(), organization_id :: term(), selection()) ::
         {:ok, view()}
-        | {:ausente, :not_computed | :stale}
+        | {:ausente, :not_computed | :stale | :review_reading_outdated}
         | {:error, :not_found}
 ```
 
@@ -74,7 +80,9 @@ fora da lista, o padrão, **sem dizer que era inválido**. Nunca `String.to_atom
    tenant, inexistente e id malformado dão o mesmo `{:error, :not_found}`;
 2. a leitura vigente de `(tenant, organização, rede, janela)`; sem ela, `{:ausente, :not_computed}`;
    com `computed_at` mais velho que a maior janela, `{:ausente, :stale}` (R18) — nunca a de outra
-   rede ou janela no lugar (edge case *"Leitura de uma rede pronta e da outra não"*);
+   rede ou janela no lugar (edge case *"Leitura de uma rede pronta e da outra não"*). Na rede
+   `review`, a leitura feita de uma 073 que não sabe das contas declaradas vigentes é
+   `{:ausente, :review_reading_outdated}` (ver a emenda E4 em `compute/3`);
 3. `Tenants.pessoas_alcancadas(tenant, user)` e `Tenants.pessoas_alcancadas(tenant, user, origem:
    :concedida)`, **nesta chamada**; nunca recebidos de fora nem guardados (A22);
 4. `View.build/5` (puro, [algoritmos.md](algoritmos.md) §View): o recorte da FR-015 com k da base;
@@ -104,6 +112,25 @@ Número de consultas fixo, independente do tamanho da rede; guardado por teste d
 - `selection/1` e `options/0` têm a forma desta seção. A rede padrão é a primeira de
   `networks.values.allowed` (`review`), e as vistas (`weighted`, `communities`) são vocabulário da
   tela, sem valor da base.
+
+**Emenda de 2026-10-04 (T029)**, feita no mesmo commit da implementação:
+
+- a visão ganha `counts`, `declared_organization_accounts` e uma `provenance` parcial
+  (`knowledge_versions`, `account_type_unknown`, `source_computed_at`; o resto entra com as
+  tarefas que o calculam);
+- `counts.items` é o número de issues abertas na janela (designação) ou de revisões contáveis
+  (revisão), e é `{:ausente, :none_in_window}` quando zero: uma janela pode ter issues e nenhuma
+  aresta, e por isso o motivo não é `:no_edge_in_window`;
+- `counts.exclusions` é `{:ausente, :none_in_window}` quando a janela não tem par nem issue; com
+  algum, a contagem de um motivo que não ocorreu é zero de verdade (073, #1308). Sem `pairs` nem
+  `issues` no mapa: esses estão em `items`. Com alcance parcial, `{:recortado, :regra}`;
+- `counts.people_without_edges` também é `{:recortado, :regra}` com alcance parcial: é contagem
+  sobre a organização inteira;
+- `declared_organization_accounts` é o número de pessoas **desta organização** com declaração
+  vigente, calculado na leitura (`EO.organization_person_ids/2` ∩
+  `Tenants.organization_account_ids/1`): duas consultas fixas, e o número não envelhece com a
+  leitura;
+- `provenance.account_type_unknown` só com alcance total.
 
 ### `view()`
 
@@ -256,6 +283,38 @@ O relator **não** carrega `person_id`, nome, login, papel nem medida por pessoa
   INSERT da leitura, isto é, cada `person_id` da rede (A19, encontrado por este teste). As tabelas
   `network_analysis_readings` e `review_network_readings` passam a ter os parâmetros redigidos,
   como as que têm campo cifrado.
+
+**Emenda de 2026-10-04 (T028)**, feita no mesmo commit da implementação:
+
+- `Inputs.for_organization/4` faz todas as buscas **uma vez**, ao montar a função (as contas
+  declaradas, as pessoas da organização, as leituras da 073, os pares de designação da maior janela
+  e os tipos de EO), e a função só filtra por janela em memória: seis chamadas, as mesmas consultas;
+- **revisão**: as arestas da leitura da 073 da mesma janela, `source_computed_at` = o instante
+  dela, e as exclusões com os códigos da regra (`self_review`, `bot_or_app`,
+  `organization_account` — nulo na leitura da versão 1 —, `unlinked_person`) e `pairs`. Sem
+  leitura da 073 na janela, `{:ausente, :not_computed}`;
+- **designação**: `AssignmentClassification.summarize/2` por janela; `provenance` leva
+  `account_type_unknown`;
+- `people_without_edges` desconta as contas declaradas da organização: elas não são pessoas nesta
+  rede, e contá-las como *"pessoa sem aresta"* as poria de volta por outra porta. Nulo quando a
+  janela não tem aresta;
+- os tipos `exclusions` e `excluded` do relator aceitam `nil` (o motivo não avaliado).
+
+**Emenda de 2026-10-04 (E4 da revisão semântica do PR #1383)**, feita no mesmo commit da
+implementação. A conta declarada da organização sai das **duas** redes (A7), mas a de designação
+usa as declarações de agora e a de revisão usa as arestas que a 073 gravou, e nada recalcula a 073
+quando se declara ou revoga. Opção (b) da revisão:
+
+- `Inputs.for_organization/4` devolve `{:ausente, :review_reading_outdated}` para a revisão
+  quando a leitura da 073 foi gravada pela versão 1 (`organization_account` nulo) ou foi calculada
+  **até** a última declaração ou revogação do tenant (`Tenants.organization_accounts_changed_at/1`).
+  Instante igual conta como desatualizado: os dois são gravados em segundos. Nada é gravado, como
+  no `:not_computed`;
+- o mesmo predicado, `Inputs.review_reading_current?/3`, é aplicado por `read/4` à leitura da
+  análise já gravada (pela contagem `organization_account` e por `source_computed_at`): a leitura
+  feita antes da declaração não é mostrada, e a tela diz que a rede de revisão é recalculada na
+  sincronização seguinte (`sync_github_eo` → `ComputeReviewNetwork` → `ComputeNetworkAnalysis`);
+- a rede de designação não muda: ela não depende da 073.
 
 ## `discard_organization/2`
 

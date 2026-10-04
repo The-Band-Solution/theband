@@ -17,7 +17,8 @@ defmodule TheBand.ReviewNetwork.Parameters do
   de código e ninguém percebe que a plataforma passou a afirmar outra coisa.
 
   **A ordem das exclusões é conferida, e não lida para decidir**: `Classification` a implementa
-  (bot ou aplicativo → sem pessoa ligada → auto-revisão), e se a base declarar outra, a carga
+  (bot ou aplicativo → conta da organização → sem pessoa ligada → auto-revisão; a versão 2 da
+  regra, 076/T027), e se a base declarar outra, a carga
   levanta em vez de a rede passar a discordar da base em silêncio.
 
   O grupo mínimo (3) não é lido: com a Q4 os grupos são do recorte, e a regra não tem caso nesta
@@ -33,7 +34,7 @@ defmodule TheBand.ReviewNetwork.Parameters do
   @necessidade "review.concentration"
 
   # A ordem que `Classification` implementa, nos códigos da base.
-  @ordem_implementada ~w(bot_or_app unlinked_person self_review)
+  @ordem_implementada ~w(bot_or_app organization_account unlinked_person self_review)
 
   @type t :: %{
           windows: [pos_integer()],

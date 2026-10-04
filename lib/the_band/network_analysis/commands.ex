@@ -45,7 +45,7 @@ defmodule TheBand.NetworkAnalysis.Commands do
 
   @type entrada :: %{
           edges: [%{source: Ecto.UUID.t(), target: Ecto.UUID.t(), weight: pos_integer()}],
-          exclusions: %{String.t() => non_neg_integer()},
+          exclusions: %{String.t() => non_neg_integer() | nil},
           people_without_edges: non_neg_integer() | nil,
           source_computed_at: DateTime.t() | nil,
           provenance: map()
@@ -62,7 +62,7 @@ defmodule TheBand.NetworkAnalysis.Commands do
               outcome: :computed | :unchanged | {:ausente, atom()},
               edges: non_neg_integer(),
               people: non_neg_integer(),
-              excluded: %{String.t() => non_neg_integer()},
+              excluded: %{String.t() => non_neg_integer() | nil},
               absent: [atom()],
               duration_ms: non_neg_integer()
             }

@@ -3,13 +3,16 @@ defmodule TheBand.NetworkAnalysis.Parameters do
   Os parâmetros da análise de rede, lidos da base de conhecimento — feature 076, T008 (princípio
   IV; research.md R19; `contracts/network-analysis.md`, *Os parâmetros entram pela fachada*).
 
-  Quatro regras, que mudam por razões diferentes:
+  Cinco regras, que mudam por razões diferentes:
 
   - `network.analysis.parameters` — algoritmos, sementes, amostras, teto, tamanhos de lista;
   - `network.position_role` — percentil, mínimo e cortes do papel (o que se diz de uma pessoa);
   - `assignment.network.edge` — a ordem das exclusões da designação (o significado da aresta);
   - `review.network.parameters` — as janelas, que as duas redes usam
-    (`networks.values.windows_from`).
+    (`networks.values.windows_from`);
+  - `review.network.edge` — só a versão, em `knowledge_versions`: as arestas de revisão são as
+    que a 073 gravou por ela, e sem a versão na impressão digital uma leitura da versão 1 e uma
+    da 2 com as mesmas arestas seriam a mesma (O1 da revisão semântica do PR #1383).
 
   **Levanta, e nunca devolve valor de reserva**, quando falta regra, chave ou versão, dizendo qual
   (precedente `ReviewNetwork.Parameters`): em constante, o número muda num diff de código e
@@ -23,16 +26,19 @@ defmodule TheBand.NetworkAnalysis.Parameters do
   Depende de: `TheBand.Ontology.KnowledgeBase`.
   """
 
+  alias TheBand.NetworkAnalysis.AssignmentClassification
   alias TheBand.Ontology.KnowledgeBase
 
   @analise "network.analysis.parameters"
   @papel "network.position_role"
   @aresta "assignment.network.edge"
   @janelas "review.network.parameters"
+  @revisao "review.network.edge"
   @necessidade "network.structure"
 
   # O que o código implementa, nos códigos da base. Conferido, nunca lido para decidir.
-  @ordem_implementada ~w(bot_or_app organization_account unlinked_person self_assignment)
+  # A ordem das exclusões é a que `AssignmentClassification` implementa (T024): um lugar só.
+  @ordem_implementada AssignmentClassification.order()
   @gerador_implementado "exsss"
   @modelo_implementado "gnm"
   @pesos_implementados "shuffled_real_multiset"
@@ -86,7 +92,8 @@ defmodule TheBand.NetworkAnalysis.Parameters do
         @analise => artefato!(&KnowledgeBase.rule/1, @analise),
         @papel => artefato!(&KnowledgeBase.rule/1, @papel),
         @aresta => artefato!(&KnowledgeBase.rule/1, @aresta),
-        @janelas => artefato!(&KnowledgeBase.rule/1, @janelas)
+        @janelas => artefato!(&KnowledgeBase.rule/1, @janelas),
+        @revisao => artefato!(&KnowledgeBase.rule/1, @revisao)
       },
       medidas
     )
@@ -103,6 +110,7 @@ defmodule TheBand.NetworkAnalysis.Parameters do
     p = regra!(regras, @papel)
     e = regra!(regras, @aresta)
     j = regra!(regras, @janelas)
+    regra!(regras, @revisao)
 
     redes = valor!(a, @analise, ~w(networks values allowed))
     textos!(@analise, "networks.allowed", redes)
@@ -172,7 +180,10 @@ defmodule TheBand.NetworkAnalysis.Parameters do
         medidas
         |> Map.new(fn {id, medida} -> {id, versao!(medida, id)} end)
         |> Map.merge(
-          Map.new([@analise, @papel, @aresta, @janelas], &{&1, versao!(regras[&1], &1)})
+          Map.new(
+            [@analise, @papel, @aresta, @janelas, @revisao],
+            &{&1, versao!(regras[&1], &1)}
+          )
         )
     }
   end

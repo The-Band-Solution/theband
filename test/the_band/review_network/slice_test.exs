@@ -37,6 +37,8 @@ defmodule TheBand.ReviewNetwork.SliceTest do
       excluded_self_review: 2,
       excluded_bot_or_app: 3,
       excluded_unlinked: 1,
+      # 076, T027: a leitura da versão 2 da regra avalia a conta da organização.
+      excluded_organization_account: 4,
       knowledge_versions: %{"review.network.parameters" => 1}
     }
   end
@@ -126,7 +128,8 @@ defmodule TheBand.ReviewNetwork.SliceTest do
 
     test "Q5: exclusões, as três, só com alcance total" do
       assert Slice.view(us1(), :todas, parametros(), []).exclusions ==
-               {:ok, %{self_review: 2, bot_or_app: 3, unlinked_person: 1}}
+               {:ok,
+                %{self_review: 2, bot_or_app: 3, organization_account: 4, unlinked_person: 1}}
 
       assert Slice.view(us1(), algumas(~w(ana bia)), parametros(), []).exclusions ==
                {:recortado, :regra}
@@ -137,7 +140,8 @@ defmodule TheBand.ReviewNetwork.SliceTest do
         Map.merge(leitura([], []), %{
           excluded_self_review: 0,
           excluded_bot_or_app: 0,
-          excluded_unlinked: 0
+          excluded_unlinked: 0,
+          excluded_organization_account: 0
         })
 
       assert Slice.view(vazia, :todas, parametros(), []).exclusions ==
@@ -147,7 +151,8 @@ defmodule TheBand.ReviewNetwork.SliceTest do
       so_bot = %{vazia | excluded_bot_or_app: 2}
 
       assert Slice.view(so_bot, :todas, parametros(), []).exclusions ==
-               {:ok, %{self_review: 0, bot_or_app: 2, unlinked_person: 0}}
+               {:ok,
+                %{self_review: 0, bot_or_app: 2, organization_account: 0, unlinked_person: 0}}
     end
   end
 

@@ -30,7 +30,11 @@ defmodule TheBand.ReviewNetwork.ParametersTest do
         "counted_states" => %{
           "values" => %{"states" => ~w(APPROVED CHANGES_REQUESTED COMMENTED DISMISSED)}
         },
-        "exclusions" => %{"values" => %{"order" => ~w(bot_or_app unlinked_person self_review)}}
+        "exclusions" => %{
+          "values" => %{
+            "order" => ~w(bot_or_app organization_account unlinked_person self_review)
+          }
+        }
       }
     }
   end
@@ -50,7 +54,10 @@ defmodule TheBand.ReviewNetwork.ParametersTest do
     assert p.counted_states == ~w(APPROVED CHANGES_REQUESTED COMMENTED DISMISSED)
 
     assert p.knowledge_versions["review.network.parameters"] == 1
-    assert p.knowledge_versions["review.network.edge"] == 1
+    # 076, T027: a versão 2, com a conta da organização entre as exclusões.
+    assert p.knowledge_versions["review.network.edge"] == 2
+    # E1 da revisão semântica do PR #1383: a medida das exclusões acompanha o quarto motivo.
+    assert p.knowledge_versions["review.network.excluded.count"] == 2
     assert map_size(p.knowledge_versions) == 11
     assert p.knowledge_versions["review.network.concentration.top_k_share"] == 1
   end
@@ -110,7 +117,7 @@ defmodule TheBand.ReviewNetwork.ParametersTest do
       put_in(
         aresta(),
         ["rules", "exclusions", "values", "order"],
-        ~w(unlinked_person bot_or_app self_review)
+        ~w(bot_or_app unlinked_person self_review)
       )
 
     assert_raise RuntimeError, ~r/exclusions.order difere/, fn ->
