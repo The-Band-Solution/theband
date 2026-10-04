@@ -9,6 +9,11 @@ module:
       fases distintas do entregável, e a tarefa que produziu apenas entregáveis
       aceitos é distinguida da que produziu algum não aceito — é assim que se mede
       retrabalho sem inventar heurística.
+    en: >
+      Results produced in the Scrum project. Accepted deliverable and not accepted
+      deliverable are distinct phases of the deliverable, and the task that produced only
+      accepted deliverables is distinguished from the one that produced some not accepted
+      one — this is how rework is measured without inventing a heuristic.
   provenance:
     source_type: thesis
     reference: "Tese, Seção 3.2.5, Figura 30"
@@ -19,6 +24,7 @@ concepts:
     label: { pt-BR: "Entregável", en: "Deliverable" }
     definition:
       pt-BR: Item de software que materializa user stories tratadas em um sprint.
+      en: "Software item that materializes user stories addressed in a sprint."
     classification: { ufo_category: object, ontouml_stereotype: kind, parent: sys_swo.software_item }
     examples: ["a funcionalidade de pagar a passagem com cartão de crédito"]
 
@@ -29,6 +35,9 @@ concepts:
       pt-BR: >
         Entregável em conformidade com os critérios de aceitação das user stories
         que materializa. Significa que está "done".
+      en: >
+        Deliverable in conformance with the acceptance criteria of the user stories it
+        materializes. It means it is "done".
     classification: { ufo_category: phase, ontouml_stereotype: phase, parent: sro.deliverable }
 
   - id: sro.not_accepted_deliverable
@@ -38,6 +47,9 @@ concepts:
       pt-BR: >
         Entregável que não está em conformidade com ao menos um critério de
         aceitação. As user stories relacionadas podem retornar ao product backlog.
+      en: >
+        Deliverable that is not in conformance with at least one acceptance criterion. The
+        related user stories may return to the product backlog.
     classification: { ufo_category: phase, ontouml_stereotype: phase, parent: sro.deliverable }
 
   - id: sro.successfully_performed_scrum_development_task
@@ -45,6 +57,7 @@ concepts:
     label: { pt-BR: "Tarefa Executada com Sucesso" }
     definition:
       pt-BR: Tarefa de desenvolvimento executada que produziu apenas entregáveis aceitos.
+      en: "Performed development task that produced only accepted deliverables."
     classification: { ufo_category: phase, ontouml_stereotype: phase, parent: sro.performed_scrum_development_task }
 
   - id: sro.non_successfully_performed_scrum_development_task
@@ -52,6 +65,7 @@ concepts:
     label: { pt-BR: "Tarefa Executada sem Sucesso" }
     definition:
       pt-BR: Tarefa de desenvolvimento executada que produziu um ou mais entregáveis não aceitos.
+      en: "Performed development task that produced one or more not accepted deliverables."
     classification: { ufo_category: phase, ontouml_stereotype: phase, parent: sro.performed_scrum_development_task }
 
   - id: sro.sprint_deliverable
@@ -61,6 +75,9 @@ concepts:
       pt-BR: >
         Item de software mais completo, formado pela integração dos entregáveis
         aceitos produzidos em um sprint. É o resultado do sprint entregue ao cliente.
+      en: >
+        More complete software item, formed by integrating the accepted deliverables
+        produced in a sprint. It is the result of the sprint delivered to the client.
     classification: { ufo_category: object, ontouml_stereotype: subkind, parent: sro.deliverable }
 
   - id: sro.scrum_project_deliverable
@@ -70,6 +87,9 @@ concepts:
       pt-BR: >
         Produto de software formado pelo conjunto dos entregáveis de sprint
         produzidos no projeto. É o entregável final do processo Scrum.
+      en: >
+        Software product formed by the set of sprint deliverables produced in the project.
+        It is the final deliverable of the Scrum process.
     classification: { ufo_category: object, ontouml_stereotype: kind, parent: sys_swo.software_product }
 
 relations:

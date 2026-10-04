@@ -92,18 +92,60 @@ tail -30 /tmp/telemetria.log
 
 1. **Medir antes** (ADR 0005, E3): `free -m` e `docker stats --no-stream` no VPS, com a aplicação
    e o Postgres de pé. Registrar na tarefa. **Menos de 4 GB disponíveis = não subir aqui.**
-2. **Criar o serviço do SigNoz** no Dokploy como *Compose*, a partir do arquivo versionado no
-   repositório (gerado por `foundryctl forge`, imagens fixadas). **Sem domínio** no Traefik.
-3. **Variável do serviço do SigNoz**: `SIGNOZ_TOKENIZER_JWT_SECRET` — gerar com
-   `openssl rand -hex 32` na máquina de quem opera e colar direto no painel.
-4. **Abrir o túnel e criar a conta de administração do SigNoz antes de qualquer outra coisa**:
-   `ssh -L 3301:<host interno do painel>:8080 <vps>`, e `http://127.0.0.1:3301`. A primeira conta
-   criada é a administradora.
-5. **Retenção** (*Settings → General → Retention*): traços 7 dias, métricas 30 dias.
-6. **Variável da aplicação** (lista fechada do runbook §2, acrescida de uma):
-   `THE_BAND_OTLP_ENDPOINT` — o nome do serviço do coletor **na rede dedicada** aplicação↔coletor,
-   porta 4318. **Nenhuma `OTEL_*`** no ambiente da aplicação: o SDK as leria por conta própria
-   (seguranca.md, S10).
+2. **Criar a rede dedicada, uma vez, no VPS** (#1313, P3). No Dokploy a aplicação é **serviço
+   Swarm**, e serviço Swarm só entra em rede `overlay`; os contêineres do compose só entram numa
+   overlay se ela for `attachable`. Por isso a rede aplicação↔coletor não nasce do compose:
+
+   ```bash
+   docker network create --driver overlay --attachable the-band-telemetria > /root/rede.log 2>&1; echo "EXIT=$?"
+   docker network ls --filter name=the-band-telemetria --format '{{.Name}}\t{{.Driver}}\t{{.Scope}}'
+   ```
+
+   Esperado: `the-band-telemetria  overlay  swarm`. O `compose.yaml` a declara `external: true`
+   com esse nome; sem ela, `docker compose up` **recusa** subir (*"network the-band-telemetria
+   declared as external, but could not be found"*) — e não sobe com uma rede errada.
+   **Se a T024 (itens 7–9) mostrar que a aplicação NÃO é serviço Swarm** (não aparece em
+   `docker service ls`, e `dokploy-network` não é `overlay`/`swarm`), a variante é a mesma rede
+   criada como bridge — `docker network create the-band-telemetria` —, e o resto deste roteiro não
+   muda. O critério é o item 8 da T024: aplicação em `docker service ls` = overlay `attachable`.
+3. **Criar o serviço do SigNoz** no Dokploy: *Create Service* → **Compose**, *Compose Type*
+   **Docker Compose** (não *Stack*), a partir do repositório, *Compose Path*
+   `./deploy/signoz/compose.yaml` (imagens fixadas por resumo). **Nunca** acrescentar o
+   `compose.local.yaml`. **Sem domínio** no Traefik, *Isolated Deployment* e *Autodeploy*
+   desligados. **Sem `COMPOSE_PROFILES`**: o compose de produção não tem profile (#1313, P4) — o
+   Dokploy roda `docker compose -p <app> -f <arquivo> up -d`, sem `--profile`.
+4. **Variáveis do serviço do SigNoz**, nomes e nunca valores — `SIGNOZ_JWT_SECRET` (é este o nome
+   que o compose lê; ele o repassa ao painel como `SIGNOZ_TOKENIZER_JWT_SECRET`) e
+   `SIGNOZ_CLICKHOUSE_PASSWORD`. Os valores são gerados **no servidor** (S6, item 2), com
+   `openssl rand -hex 32` e `openssl rand -hex 24`, e colados direto no painel do Dokploy, sem
+   passar por chat, arquivo ou histórico (comando com espaço inicial e `HISTCONTROL=ignorespace`).
+   Sem qualquer das duas, o contêiner correspondente **recusa subir**, de propósito.
+5. **Deploy, e conferir que subiu — o *Done* do painel não prova nada** (#1313, P4: com o profile,
+   nada subia e o painel dizia *Done*). No VPS:
+
+   ```bash
+   docker ps -a --format '{{.Names}}\t{{.Status}}\t{{.Ports}}' > /root/t026-ps.log 2>&1; echo "EXIT=$?"
+   grep -E 'zookeeper-1|clickhouse|signoz|otel-collector' /root/t026-ps.log
+   ```
+
+   Esperado: **quatro** contêineres `Up` — `zookeeper-1`, `clickhouse`, `signoz`, `otel-collector`
+   — e o `signoz-telemetrystore-migrator` `Exited (0)`. Nenhum contêiner listado = o compose não
+   subiu; `Restarting` = ler o log daquele contêiner. A coluna de portas mostra as portas
+   **expostas** pela imagem (`4317-4318/tcp`, sem `->`), o que não é publicação; a prova é
+   `docker port <contêiner>` **vazio** para cada um, e nenhum `->` na coluna.
+6. **Abrir o túnel e criar a conta de administração do SigNoz antes de qualquer outra coisa**:
+   `ssh -L 3301:<IP do painel na rede painel>:8080 <vps>`, e `http://127.0.0.1:3301`. A primeira
+   conta criada é a administradora.
+   **Retenção** (*Settings → General → Retention*): traços 7 dias, métricas 30 dias.
+6a. **A aplicação entra na rede dedicada**: na Application → *Advanced* → *Swarm Settings* →
+   *Network*, acrescentar `the-band-telemetria` **mantendo** as que já estavam — em particular
+   `dokploy-network`, por onde o Traefik chega à aplicação e a aplicação chega ao Postgres.
+6b. **Variável da aplicação** (lista fechada do runbook §2, acrescida de uma):
+   `THE_BAND_OTLP_ENDPOINT=http://signoz-otel-collector:4318`. `signoz-otel-collector` é o alias
+   do coletor **na rede `the-band-telemetria`** (#1313, P2) e o único host de produção que
+   `TheBand.Telemetria.Configuracao` aceita. **Nenhuma `OTEL_*`** no ambiente da aplicação: o SDK
+   as leria por conta própria (seguranca.md, S10). Depois do deploy, o log de boot não diz
+   *"ausente"* nem *"fora dos hosts permitidos"*.
 7. **Conferir que nenhuma porta do SigNoz foi publicada — de dentro E de fora** (S6): o compose
    sem chave `ports:`; `ss -ltnp` no VPS sem 8080, 4317, 4318, 8123, 9000 e 2181; **e** uma tentativa
    de conexão a essas portas a partir de **outra máquina**, recusada. Conferir o `ufw` não prova

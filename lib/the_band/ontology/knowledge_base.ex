@@ -105,6 +105,20 @@ defmodule TheBand.Ontology.KnowledgeBase do
     end
   end
 
+  @doc """
+  O texto em português de um campo de linguagem natural da base — 075, #1312.
+
+  A justificativa e as limitações de um mapeamento podem estar em string (como a base
+  nasceu) ou em mapa de idioma `{pt-BR, en}` (quando o `en` do site bilíngue já foi
+  escrito). Quem lia o português continua recebendo o português, nas duas formas.
+
+  Sem `pt-BR`, não há cláusula: é YAML que o schema devia ter recusado, e devolver `""`
+  seria transformar a falha em texto vazio.
+  """
+  @spec pt_br(String.t() | %{required(String.t()) => String.t()}) :: String.t()
+  def pt_br(texto) when is_binary(texto), do: texto
+  def pt_br(%{"pt-BR" => texto}) when is_binary(texto), do: texto
+
   @doc "Lista os artefatos de um tipo — `:mapping`, `:derivation_rule`, `:measurement`..."
   @spec list(atom()) :: [map()]
   def list(kind) do

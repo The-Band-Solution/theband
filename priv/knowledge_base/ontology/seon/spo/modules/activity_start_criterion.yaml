@@ -12,6 +12,14 @@ module:
       Este módulo dá nome à declaração. Sem ele, a plataforma teria de escolher — e a
       `FR-007` da feature 022 proíbe exatamente isso, deixando `flow.throughput`,
       `flow.wip.count` e o cycle time por pessoa sem um instante de início.
+    en: >
+      Which observed event marks the start of a piece of work is a **social convention**,
+      and not a fact that any source provides. Different organizations recognize different
+      events as the start, and none of them is wrong.
+
+      This module gives the declaration a name. Without it, the platform would have to
+      choose — and `FR-007` of feature 022 forbids exactly that, leaving `flow.throughput`,
+      `flow.wip.count` and per-person cycle time without a start instant.
   provenance:
     source_type: project_decision
     reference: "Issue #370; decisão da pessoa mantenedora em 2026-08-24"
@@ -44,6 +52,17 @@ concepts:
 
         Sem critério declarado, o instante de início fica **nulo** — ausência nomeada, e
         nunca a data corrente, que afirmaria que o trabalho começou agora.
+      en: >
+        The type of event that an organization declares as the one that brings about the
+        situation of a piece of work having started.
+
+        It is a **social** object because the answer is not in the observed data: the same
+        event — moving a card, assigning someone, opening the task — means "started" in one
+        organization and does not mean it in another. The platform does not choose; it
+        records the choice, with who made it and when.
+
+        Without a declared criterion, the start instant is **null** — a named absence, and
+        never the current date, which would assert that the work started now.
     classification: { ufo_category: social_object, ontouml_stereotype: kind }
     examples:
       - "a mudança de status no quadro conta como início, neste projeto"

@@ -145,11 +145,13 @@ defmodule TheBand.SemanticIntegration.Mapper do
 
   Existem para serem lidas, não decoradas: são o que a interface e a
   documentação usam para dizer o que o dado **não** significa.
+
+  Em português, com o item em string ou em mapa de idioma (075, #1312).
   """
   @spec limitations(String.t()) :: [String.t()]
   def limitations(mapping_id) do
     case fetch(mapping_id) do
-      {:ok, mapping} -> Map.get(mapping, "limitations", [])
+      {:ok, mapping} -> mapping |> Map.get("limitations", []) |> Enum.map(&KnowledgeBase.pt_br/1)
       _ -> []
     end
   end

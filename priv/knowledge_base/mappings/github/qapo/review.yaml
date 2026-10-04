@@ -6,11 +6,17 @@ source: { provider: github, entity: pull_request_review, api: graphql, schema_ve
 target: { ontology: qapo, concept: qapo.artifact_evaluation }
 semantics:
   equivalence: partial
-  justification: >
-    Uma review de Pull Request é uma avaliação de artefato: alguém avalia
-    objetivamente a aderência das alterações a critérios aplicáveis. O estado
-    CHANGES_REQUESTED indica não conformidades identificadas; APPROVED indica
-    conformidade na avaliação daquele revisor.
+  justification:
+    pt-BR: >
+      Uma review de Pull Request é uma avaliação de artefato: alguém avalia
+      objetivamente a aderência das alterações a critérios aplicáveis. O estado
+      CHANGES_REQUESTED indica não conformidades identificadas; APPROVED indica
+      conformidade na avaliação daquele revisor.
+    en: >
+      A Pull Request review is an artifact evaluation: someone objectively evaluates the
+      adherence of the changes to applicable criteria. The CHANGES_REQUESTED state indicates
+      identified noncompliances; APPROVED indicates compliance in that reviewer's
+      evaluation.
 identity:
   external_id_path: id
   natural_key: [pullRequest.id, id]
@@ -64,36 +70,69 @@ relations:
   # lugares, e as duas ficam: a data responde "quando", e o ciclo responde "aconteceu?".
   submitted_at: { source_path: submittedAt }
 limitations:
-  - >
-    RESOLVIDA na versão 2 — "a participação de agente em avaliação ainda não é modelada":
-    o módulo de projeto `qapo.evaluation_participation` declara
-    `qapo.stakeholder_performed_artifact_evaluation` e `qapo.artifact_evaluation_evaluates`.
-    A relação aponta para `spo.project_stakeholder` e para o papel `qapo.evaluated_artifact`,
-    e não para `eo.person` nem para `cmpo.change_request` — é o que a mantém dentro das
-    dependências declaradas da QAPO (`[ufo, spo]`), sem inverter a rede.
-  - >
-    Aprovação não implica ausência de não conformidades, apenas ausência de bloqueio.
-    O `state` é preservado CRU **e** interpretado por `value_map`; nenhuma das duas colunas
-    afirma conformidade. `qapo.endorsing_verdict` é definido como "apto a seguir", e não
-    como "sem problema" — a relação `artifact_evaluation_identified_noncompliance` declara
-    `many` no destino justamente porque inclui zero e não o exige.
-  - >
-    O veredito é a posição de UM avaliador, e não o estado da solicitação. Três endossos e
-    uma objeção são quatro avaliações com quatro vereditos; se a mudança entrou ou não é
-    outra pergunta, e quem a responde é `cmpo.stakeholder_performed_checkin`.
-  - >
-    RESOLVIDA na versão 2 — "reviews automáticas devem ser classificadas separadamente":
-    `author_type` guarda o `__typename` da origem, e toda contagem separa `User` de `Bot`.
-    Sem isso a medida de tempo até a primeira revisão mediria o robô.
-  - >
-    RESOLVIDA na versão 2 — "um comentário isolado não é uma review": a coleta usa a conexão
-    `reviews`, e não `reviewThreads`. Só evento de review submetida entra.
-  - >
-    Review em rascunho (`PENDING`) vem sem `submittedAt`. É gravada com nulo — existe e não
-    foi submetida —, e a medida de tempo até a primeira revisão a exclui.
-  - >
-    `reviews.totalCount` é comparado com o que chegou, e o total fica em
-    `collected_change_requests.reviews_total`: truncamento nunca é silencioso.
+  - pt-BR: >
+      RESOLVIDA na versão 2 — "a participação de agente em avaliação ainda não é modelada":
+      o módulo de projeto `qapo.evaluation_participation` declara
+      `qapo.stakeholder_performed_artifact_evaluation` e `qapo.artifact_evaluation_evaluates`.
+      A relação aponta para `spo.project_stakeholder` e para o papel `qapo.evaluated_artifact`,
+      e não para `eo.person` nem para `cmpo.change_request` — é o que a mantém dentro das
+      dependências declaradas da QAPO (`[ufo, spo]`), sem inverter a rede.
+    en: >
+      RESOLVED in version 2 — "agent participation in an evaluation is not yet modeled": the
+      project module `qapo.evaluation_participation` declares
+      `qapo.stakeholder_performed_artifact_evaluation` and
+      `qapo.artifact_evaluation_evaluates`. The relation points to `spo.project_stakeholder`
+      and to the role `qapo.evaluated_artifact`, and not to `eo.person` nor to
+      `cmpo.change_request` — which is what keeps it within QAPO's declared dependencies
+      (`[ufo, spo]`), without inverting the network.
+  - pt-BR: >
+      Aprovação não implica ausência de não conformidades, apenas ausência de bloqueio.
+      O `state` é preservado CRU **e** interpretado por `value_map`; nenhuma das duas colunas
+      afirma conformidade. `qapo.endorsing_verdict` é definido como "apto a seguir", e não
+      como "sem problema" — a relação `artifact_evaluation_identified_noncompliance` declara
+      `many` no destino justamente porque inclui zero e não o exige.
+    en: >
+      Approval does not imply the absence of noncompliances, only the absence of blocking.
+      The `state` is preserved RAW **and** interpreted by `value_map`; neither of the two
+      columns asserts compliance. `qapo.endorsing_verdict` is defined as "fit to proceed",
+      and not as "no problem" — the relation `artifact_evaluation_identified_noncompliance`
+      declares `many` on the target precisely because it includes zero and does not require
+      it.
+  - pt-BR: >
+      O veredito é a posição de UM avaliador, e não o estado da solicitação. Três endossos e
+      uma objeção são quatro avaliações com quatro vereditos; se a mudança entrou ou não é
+      outra pergunta, e quem a responde é `cmpo.stakeholder_performed_checkin`.
+    en: >
+      The verdict is the position of ONE evaluator, and not the state of the request. Three
+      endorsements and one objection are four evaluations with four verdicts; whether the
+      change got in or not is another question, and the one that answers it is
+      `cmpo.stakeholder_performed_checkin`.
+  - pt-BR: >
+      RESOLVIDA na versão 2 — "reviews automáticas devem ser classificadas separadamente":
+      `author_type` guarda o `__typename` da origem, e toda contagem separa `User` de `Bot`.
+      Sem isso a medida de tempo até a primeira revisão mediria o robô.
+    en: >
+      RESOLVED in version 2 — "automated reviews must be classified separately":
+      `author_type` stores the source's `__typename`, and every count separates `User` from
+      `Bot`. Without this, the time-to-first-review measure would measure the bot.
+  - pt-BR: >
+      RESOLVIDA na versão 2 — "um comentário isolado não é uma review": a coleta usa a conexão
+      `reviews`, e não `reviewThreads`. Só evento de review submetida entra.
+    en: >
+      RESOLVED in version 2 — "an isolated comment is not a review": the collection uses the
+      `reviews` connection, and not `reviewThreads`. Only a submitted review event gets in.
+  - pt-BR: >
+      Review em rascunho (`PENDING`) vem sem `submittedAt`. É gravada com nulo — existe e não
+      foi submetida —, e a medida de tempo até a primeira revisão a exclui.
+    en: >
+      A draft review (`PENDING`) comes without `submittedAt`. It is stored with null — it
+      exists and was not submitted —, and the time-to-first-review measure excludes it.
+  - pt-BR: >
+      `reviews.totalCount` é comparado com o que chegou, e o total fica em
+      `collected_change_requests.reviews_total`: truncamento nunca é silencioso.
+    en: >
+      `reviews.totalCount` is compared with what arrived, and the total is kept in
+      `collected_change_requests.reviews_total`: truncation is never silent.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at]

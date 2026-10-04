@@ -22,12 +22,18 @@ target:
   concept: osdef.defect
 semantics:
   equivalence: partial
-  justification: >
-    Uma issue do tipo Bug registra um defeito percebido no software — uma
-    disposição que pode se manifestar em falha. O registro não é a falha em si:
-    a falha é evento observado, com instante próprio. Uma issue de bug costuma
-    descrever ambos misturados em texto livre, e apenas o defeito é derivável com
-    segurança.
+  justification:
+    pt-BR: >
+      Uma issue do tipo Bug registra um defeito percebido no software — uma
+      disposição que pode se manifestar em falha. O registro não é a falha em si:
+      a falha é evento observado, com instante próprio. Uma issue de bug costuma
+      descrever ambos misturados em texto livre, e apenas o defeito é derivável com
+      segurança.
+    en: >
+      An issue of type Bug records a perceived defect in the software — a disposition that
+      can manifest itself in a failure. The record is not the failure itself: the failure is
+      an observed event, with its own instant. A bug issue usually describes both mixed
+      together in free text, and only the defect is safely derivable.
 identity:
   external_id_path: id
   natural_key: [repository.node_id, number]
@@ -42,10 +48,20 @@ relations:
     target_ontology: eo
     target_concept: eo.person
 limitations:
-  - Issue de bug não é user story e nunca deve entrar no escopo do produto como tal.
-  - O defeito só vira fault quando há manifestação registrada em uma falha; a issue sozinha não estabelece isso.
-  - O instante da falha não é derivável de createdAt — a data de abertura é quando alguém reportou, não quando o software falhou.
-  - Bug fechado como "não reproduzível" ou duplicado não é defeito confirmado; requer regra de exclusão por tenant.
+  - pt-BR: Issue de bug não é user story e nunca deve entrar no escopo do produto como tal.
+    en: "A bug issue is not a user story and must never enter the product scope as one."
+  - pt-BR: O defeito só vira fault quando há manifestação registrada em uma falha; a issue sozinha não estabelece isso.
+    en: >
+      The defect only becomes a fault when there is a recorded manifestation in a failure;
+      the issue alone does not establish that.
+  - pt-BR: O instante da falha não é derivável de createdAt — a data de abertura é quando alguém reportou, não quando o software falhou.
+    en: >
+      The instant of the failure is not derivable from createdAt — the opening date is when
+      someone reported it, not when the software failed.
+  - pt-BR: Bug fechado como "não reproduzível" ou duplicado não é defeito confirmado; requer regra de exclusão por tenant.
+    en: >
+      A bug closed as "not reproducible" or duplicate is not a confirmed defect; it requires
+      an exclusion rule per tenant.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at]

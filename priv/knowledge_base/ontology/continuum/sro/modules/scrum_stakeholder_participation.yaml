@@ -9,6 +9,11 @@ module:
       projeto Scrum. Baseia-se nas relações "is in charge of" e "participates in"
       de SPO — distinguir as duas é o que permite medir responsabilidade real, e
       não apenas presença.
+    en: >
+      Who was in charge of and who participated in each process and ceremony of the Scrum
+      project. It is based on the "is in charge of" and "participates in" relations of SPO —
+      distinguishing the two is what makes it possible to measure real responsibility, and
+      not merely presence.
   provenance:
     source_type: thesis
     reference: "Tese, Seção 3.2.3, Figura 28"
