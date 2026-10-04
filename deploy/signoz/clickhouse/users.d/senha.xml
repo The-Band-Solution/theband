@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!--
+  A senha do usuário `default` vem do ambiente — ADR 0005, E7, item 1. O `users.xml` de referência
+  do SigNoz deixa o `default` sem senha, aberto a qualquer contêiner da rede. Sem a variável, a
+  senha fica vazia e o `entrypoint` do serviço recusa subir (`compose.yaml`).
+-->
+<clickhouse>
+    <users>
+        <default>
+            <password from_env="CLICKHOUSE_PASSWORD"/>
+        </default>
+    </users>
+</clickhouse>

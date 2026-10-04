@@ -202,7 +202,7 @@ defmodule TheBandWeb.ReviewNetworkLive.ShowTest do
       nomes =
         html
         |> LazyHTML.from_fragment()
-        |> LazyHTML.query("#tabela-pessoas td[data-label=person] button")
+        |> LazyHTML.query("#tabela-pessoas td[data-label=person] button [data-nome]")
         |> Enum.map(&LazyHTML.text/1)
         |> Enum.map(&String.trim/1)
 
@@ -427,6 +427,157 @@ defmodule TheBandWeb.ReviewNetworkLive.ShowTest do
       assert {:error, {:live_redirect, %{to: destino}}} = abrir(ctx, ctx.admin, "?window=36500")
       assert destino == "/organizations/#{ctx.org.organization.id}/review-network?window=90"
     end
+  end
+
+  # Issue #1308: as seis divergências entre a tela entregue e o protótipo aprovado, medidas nas
+  # capturas reais, e as duas investigações (a) e (b). Cada teste foi visto reprovando com a
+  # divergência injetada de volta.
+  describe "conferência contra o protótipo (#1308)" do
+    test "2.1: o nome é botão sublinhado em verdete, com + fechado e – aberto", ctx do
+      {:ok, view, html} = abrir(ctx, ctx.admin)
+      botao = "#pessoa-#{ctx.bia.id} td[data-label=person] button"
+
+      classes = classes(html, botao)
+      assert "underline" in classes
+      assert "text-primary" in classes
+      assert texto(html, botao <> " [data-estado]") == "+"
+
+      html = view |> element(botao) |> render_click()
+      assert texto(html, botao <> " [data-estado]") == "–"
+      assert texto(html, "#pessoa-#{ctx.caio.id} [data-estado]") == "+"
+    end
+
+    test "3.8: \"some pairs are outside your reach\" fica DENTRO da coluna que tem par de fora",
+         ctx do
+      {:ok, view, _html} = abrir(ctx, ctx.conta)
+      html = view |> element("#pessoa-#{ctx.bia.id} button") |> render_click()
+
+      # Zuleica Ana, fora do alcance de Lia, revisou Bia: o par de fora é do lado "reviewed by".
+      dentro = texto(html, "#pares-#{ctx.bia.id} [data-coluna=reviewed_by] li")
+      assert dentro =~ "your reach some pairs are outside your reach"
+      refute texto(html, "#pares-#{ctx.bia.id} [data-coluna=reviews_of]") =~ "outside your reach"
+
+      # Uma frase só, e nenhuma linha solta abaixo das colunas.
+      assert length(:binary.matches(html, "some pairs are outside your reach")) == 1
+    end
+
+    test "3.1: a marca \"your reach\" do aviso é visível — borda sobre o fundo da página", ctx do
+      {:ok, _view, html} = abrir(ctx, ctx.conta)
+
+      aviso = classes(html, "#aviso-de-recorte")
+      # No fundo azul do alerta, o contorno azul da marca sumia.
+      refute Enum.any?(aviso, &(&1 in ~w(alert alert-info bg-info)))
+      assert "border-info" in aviso
+
+      marca = "#aviso-de-recorte [data-marca=alcance]"
+      assert texto(html, marca) == "your reach"
+      assert "border" in classes(html, marca)
+      assert texto(html, "#aviso-de-recorte [aria-hidden=true]") =~ "i"
+    end
+
+    test "5.2: os pares abrem dentro do cartão da pessoa, numa coluna só, sem rótulo \"pairs\"",
+         ctx do
+      {:ok, view, _html} = abrir(ctx, ctx.admin)
+      html = view |> element("#pessoa-#{ctx.bia.id} button") |> render_click()
+
+      assert "linha-aberta" in classes(html, "#pessoa-#{ctx.bia.id}")
+      assert "pares-da-linha" in classes(html, "#pares-#{ctx.bia.id}")
+
+      celula = "#pares-#{ctx.bia.id} > td"
+      assert "painel" in classes(html, celula)
+      assert atributo(html, celula, "data-label") == [""]
+      refute html =~ ~s(data-label="pairs")
+
+      grade = classes(html, "#pares-#{ctx.bia.id} td > div")
+      assert "grid-cols-1" in grade
+
+      # "on <n>" não quebra no meio ("Bia Example on / 11", na captura).
+      assert texto(html, "#pares-#{ctx.bia.id} li span.whitespace-nowrap") =~ ~r/^on \d+/
+
+      # A regra que cola as duas linhas num cartão existe no CSS, abaixo de 40 rem.
+      css = File.read!("assets/css/app.css")
+      assert css =~ "table.stacked tr.linha-aberta"
+      assert css =~ "table.stacked tr.pares-da-linha"
+    end
+
+    test "1.6: a idade da leitura no singular é \"1 minute ago\"", ctx do
+      Repo.update_all(
+        from(r in "review_network_readings",
+          where: r.organization_id == type(^ctx.org.organization.id, :binary_id)
+        ),
+        set: [computed_at: DateTime.add(DateTime.utc_now(:second), -90, :second)]
+      )
+
+      {:ok, _view, html} = abrir(ctx, ctx.admin)
+      leitura = texto(html, "#leitura")
+
+      assert leitura =~ "(1 minute ago)"
+      refute leitura =~ "1 minutes ago"
+    end
+
+    test ~s(1.16: a linha de explicação sob "reviewed" e "was reviewed"), ctx do
+      {:ok, _view, html} = abrir(ctx, ctx.admin)
+
+      assert texto(html, "#tabela-pessoas thead") ==
+               "person reviewed change requests, and how many authors " <>
+                 "was reviewed their change requests, and by how many"
+    end
+
+    test "(a) janela sem revisão nenhuma: \"Left out of the network\" nomeia a ausência, e não 0",
+         ctx do
+      vazia = organizacao_com_repositorio(ctx.tenant)
+      solicitacao(ctx.tenant, vazia.observed_repository_id, ctx.caio, dias_atras(3))
+      {:ok, _} = ReviewNetwork.compute(ctx.tenant, vazia.organization, DateTime.utc_now(:second))
+
+      {:ok, _view, html} =
+        live(
+          log_in(ctx.conn, ctx.admin),
+          "/organizations/#{vazia.organization.id}/review-network"
+        )
+
+      exclusoes = texto(html, "#exclusoes")
+      assert exclusoes =~ "no review in this window"
+      refute exclusoes =~ ~r/\d/
+    end
+
+    test "(b) pessoa da organização sem atividade na janela é contada na linha 1.10", ctx do
+      # A organização liga a pessoa como EO liga: evidência de vínculo com uma equipe dela
+      # (`EO.organization_person_ids/2`). Bia está ativa; Dora não revisou nem abriu nada.
+      equipe = team_fixture(ctx.tenant, "T_rede", %{organization: ctx.org.organization})
+      dora = pessoa(ctx.tenant, "Dora")
+
+      for p <- [ctx.bia, dora] do
+        {:ok, _} =
+          EO.record_team_membership_evidence(ctx.tenant, %{
+            person_id: p.id,
+            team_id: equipe.id,
+            person_external_id: "U_#{p.login}",
+            team_external_id: "T_rede",
+            platform_access_level: "MEMBER",
+            source_system: "github",
+            source_instance: "https://github.com",
+            observed_at: DateTime.utc_now(:second)
+          })
+      end
+
+      {:ok, _view, html} = abrir(ctx, ctx.admin)
+
+      assert texto(html, "#contagens") =~
+               "1 observed people of this organisation had no review activity in this window"
+
+      refute html =~ "Dora"
+    end
+  end
+
+  # As classes de um seletor, para conferir a forma sem depender da ordem delas.
+  defp classes(html, seletor) do
+    html
+    |> atributo(seletor, "class")
+    |> Enum.flat_map(&String.split/1)
+  end
+
+  defp atributo(html, seletor, nome) do
+    html |> LazyHTML.from_fragment() |> LazyHTML.query(seletor) |> LazyHTML.attribute(nome)
   end
 
   test "o aviso de leitura pronta faz a tela reler pela função de domínio", ctx do

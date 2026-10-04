@@ -180,7 +180,23 @@ defmodule TheBandWeb.Live.Hooks do
   defp derrubar(socket, dona, motivo) do
     {user_id, tenant_id} = dona || {nil, nil}
     AccessEvents.sessao_derrubada(user_id, tenant_id, motivo)
+    passo_da_queda(motivo, user_id, tenant_id)
     {:halt, redirect(socket, to: "/sign-in")}
+  end
+
+  # O PASSO DA QUEDA NO SOCKET — spec 074, T017. A tela aberta que cai (a conta desativada com a
+  # aba aberta, #1042) passa por aqui, e não pelo plug. `:sem_sessao` não é queda: é o socket que
+  # chegou sem cookie, e não vira passo — a mesma regra de `CurrentScope`.
+  defp passo_da_queda(:sem_sessao, _user_id, _tenant_id), do: :ok
+
+  defp passo_da_queda(motivo, user_id, tenant_id) do
+    AccessEvents.passo(%{
+      passo: :sessao_derrubada,
+      desfecho: :falhou,
+      motivo: motivo,
+      tenant_id: tenant_id,
+      user_id: user_id
+    })
   end
 
   # `fetch_user/1` pré-carrega o tenant — nenhuma consulta a mais por mount.

@@ -1,0 +1,192 @@
+# O SigNoz da 074 — spec 074, T006; ADR 0005, E2, E3 e E7; seguranca.md, S6 a S8.
+#
+# Derivado do `deploy/docker/docker-compose.yaml` do SigNoz v0.125.0, o último com compose
+# empacotado (E2). O `foundryctl forge` que o plano previa não está instalado nesta máquina; o
+# arquivo foi escrito a partir do de referência, e cada diferença está dita onde acontece.
+#
+# O QUE ESTE ARQUIVO GARANTE, e onde se confere:
+#
+# - **nenhuma publicação de porta** (E2, item 2; S6). O coletor é alcançado pela rede `telemetria`;
+#   o painel, por túnel. Em desenvolvimento, `compose.local.yaml` publica em `127.0.0.1` — e só
+#   ele. `grep -n "ports" deploy/signoz/compose.yaml` só pode achar esta linha;
+# - **imagens fixadas por resumo** (`@sha256:`), servidor e coletor juntos: a v0.125.0 com o
+#   coletor v0.144.4, a combinação medida em E3. Trocar um sem o outro foi o que pôs o coletor
+#   em `nop`;
+# - **sem segredo com valor padrão.** `SIGNOZ_JWT_SECRET` e `SIGNOZ_CLICKHOUSE_PASSWORD` vêm do
+#   ambiente. O compose de referência traz `SIGNOZ_TOKENIZER_JWT_SECRET=secret`, público: quem o
+#   conhece forja sessão no painel. A recusa está no `entrypoint` de cada serviço, e não em
+#   `${VAR:?}`: o Compose interpola o arquivo inteiro, inclusive os serviços de profile inativo,
+#   e `:?` aqui passaria a exigir as duas variáveis de quem só quer subir o Postgres;
+# - **teto de memória** (E3, condição 1): 1792 + 512 + 256 + 448 MiB = 3008 MiB nos quatro, no
+#   limite de 3 GB; o ClickHouse com `max_server_memory_usage` de 1,5 GiB
+#   (`clickhouse/config.d/memoria.xml`) e o ZooKeeper com o heap em 256 MiB;
+# - **redes separadas** (E7, item 2; S7): `interna` (ClickHouse, ZooKeeper, painel, coletor),
+#   marcada `internal`, sem saída para a internet; `telemetria`, só a aplicação e o coletor;
+#   `painel`, só o painel, para o túnel. **O painel e o coletor TÊM saída** pelas duas últimas,
+#   que publicam porta e por isso não podem ser `internal` — medido em 2026-10-03 com `wget` de
+#   dentro do painel. O envio de uso do SigNoz (S8) fica desligado só pelas variáveis, e a
+#   conferência é pelo tráfego de saída (T028);
+# - **coletor sem OpAMP**, com `--config` versionado (`otel-collector-config.yaml`).
+#
+# O que mudou além disso, e por quê:
+#
+# - o `init-clickhouse` saiu: ele baixava um binário (`histogramQuantile`) da internet a cada
+#   subida, para consultas de histograma de métricas que esta fatia não tem;
+# - o receptor gRPC (4317) saiu do coletor: a 074 exporta OTLP/HTTP (research R11).
+#
+# Em desenvolvimento, pelo `compose.yaml` da raiz:
+#
+#   SIGNOZ_JWT_SECRET=… SIGNOZ_CLICKHOUSE_PASSWORD=… \
+#     docker compose --profile telemetria up -d clickhouse zookeeper-1 signoz otel-collector
+#
+# nomeando os serviços, para que o `postgres` (sem profile) não seja recriado. A senha do
+# ClickHouse entra numa URL de conexão: use só [A-Za-z0-9] (por exemplo, `openssl rand -hex 24`).
+
+x-comum: &comum
+  profiles: ["telemetria"]
+  restart: unless-stopped
+  logging:
+    options:
+      max-size: 50m
+      max-file: "3"
+
+x-depende-do-clickhouse: &depende-do-clickhouse
+  depends_on:
+    clickhouse:
+      condition: service_healthy
+
+services:
+  zookeeper-1:
+    <<: *comum
+    image: signoz/zookeeper@sha256:fcc4a3288154ccaa3bdb5ae6dc10180c084d29a8a6a26b62ac8e30a8940dc2e6 # 3.7.1
+    user: root
+    mem_limit: 512m
+    networks: [interna]
+    volumes:
+      - zookeeper-1:/bitnami/zookeeper
+    environment:
+      - ZOO_SERVER_ID=1
+      # Anônimo, como na referência: o ZooKeeper só é alcançável pela rede `interna`.
+      - ALLOW_ANONYMOUS_LOGIN=yes
+      - ZOO_AUTOPURGE_INTERVAL=1
+      - ZOO_HEAP_SIZE=256
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -m 2 http://localhost:8080/commands/ruok | grep error | grep null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  clickhouse:
+    <<: *comum
+    image: clickhouse/clickhouse-server@sha256:4536143e22dc9bddb217c7e610f6b7ed5e6efd8fefdbc61acdeadb5d8022213a # 25.5.6
+    tty: true
+    mem_limit: 1792m
+    networks: [interna]
+    depends_on:
+      zookeeper-1:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        [ -n "$$CLICKHOUSE_PASSWORD" ] || { echo "SIGNOZ_CLICKHOUSE_PASSWORD ausente: o ClickHouse não sobe sem senha"; exit 1; }
+        exec /entrypoint.sh
+    environment:
+      - CLICKHOUSE_SKIP_USER_SETUP=1
+      - CLICKHOUSE_PASSWORD=${SIGNOZ_CLICKHOUSE_PASSWORD:-}
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 262144
+        hard: 262144
+    volumes:
+      - ./clickhouse/config.xml:/etc/clickhouse-server/config.xml:ro
+      - ./clickhouse/users.xml:/etc/clickhouse-server/users.xml:ro
+      - ./clickhouse/config.d/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml:ro
+      - ./clickhouse/config.d/memoria.xml:/etc/clickhouse-server/config.d/memoria.xml:ro
+      - ./clickhouse/users.d/senha.xml:/etc/clickhouse-server/users.d/senha.xml:ro
+      - clickhouse:/var/lib/clickhouse/
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "0.0.0.0:8123/ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  signoz-telemetrystore-migrator:
+    <<: [*comum, *depende-do-clickhouse]
+    image: signoz/signoz-otel-collector@sha256:3a3205cf47f92249c2c2eca8ead2cdf7d1181646910d397b6c435505422d777a # v0.144.4
+    restart: on-failure
+    mem_limit: 256m
+    networks: [interna]
+    environment:
+      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN=tcp://clickhouse:9000?username=default&password=${SIGNOZ_CLICKHOUSE_PASSWORD:-}
+      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_CLUSTER=cluster
+      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION=true
+      - SIGNOZ_OTEL_COLLECTOR_TIMEOUT=10m
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        /signoz-otel-collector migrate bootstrap &&
+        /signoz-otel-collector migrate sync up &&
+        /signoz-otel-collector migrate async up
+
+  signoz:
+    <<: [*comum, *depende-do-clickhouse]
+    image: signoz/signoz@sha256:6a99926f21eb56efe96176bdf10e07390569618f7293ed883e633ff426b2520f # v0.125.0
+    mem_limit: 256m
+    networks: [interna, painel]
+    volumes:
+      - sqlite:/var/lib/signoz/
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        [ -n "$$SIGNOZ_TOKENIZER_JWT_SECRET" ] || { echo "SIGNOZ_JWT_SECRET ausente: o painel não sobe com chave de token padrão"; exit 1; }
+        exec ./signoz server
+    environment:
+      - SIGNOZ_ALERTMANAGER_PROVIDER=signoz
+      - SIGNOZ_TELEMETRYSTORE_CLICKHOUSE_DSN=tcp://clickhouse:9000?username=default&password=${SIGNOZ_CLICKHOUSE_PASSWORD:-}
+      - SIGNOZ_SQLSTORE_SQLITE_PATH=/var/lib/signoz/signoz.db
+      - SIGNOZ_TOKENIZER_JWT_SECRET=${SIGNOZ_JWT_SECRET:-}
+      # S8: o uso do produto não sai. As variáveis são a única camada aqui — o painel tem saída
+      # pela rede `painel` —, e a conferência é pelo tráfego de saída (T028).
+      - SIGNOZ_ANALYTICS_ENABLED=false
+      - SIGNOZ_STATSREPORTER_ENABLED=false
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  otel-collector:
+    <<: [*comum, *depende-do-clickhouse]
+    image: signoz/signoz-otel-collector@sha256:3a3205cf47f92249c2c2eca8ead2cdf7d1181646910d397b6c435505422d777a # v0.144.4
+    mem_limit: 448m
+    networks: [interna, telemetria]
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        [ -n "$$SIGNOZ_CLICKHOUSE_PASSWORD" ] || { echo "SIGNOZ_CLICKHOUSE_PASSWORD ausente"; exit 1; }
+        /signoz-otel-collector migrate sync check &&
+        exec /signoz-otel-collector --config=/etc/otel-collector-config.yaml
+    environment:
+      - SIGNOZ_CLICKHOUSE_PASSWORD=${SIGNOZ_CLICKHOUSE_PASSWORD:-}
+      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN=tcp://clickhouse:9000?username=default&password=${SIGNOZ_CLICKHOUSE_PASSWORD:-}
+      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_CLUSTER=cluster
+      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION=true
+      - SIGNOZ_OTEL_COLLECTOR_TIMEOUT=10m
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+
+networks:
+  interna:
+    internal: true
+  telemetria: {}
+  painel: {}
+
+volumes:
+  clickhouse: {}
+  sqlite: {}
+  zookeeper-1: {}

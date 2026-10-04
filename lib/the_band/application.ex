@@ -6,6 +6,8 @@ defmodule TheBand.Application do
   use Application
 
   alias TheBand.Repo.LogDaConsulta
+  alias TheBand.Telemetria.Contadores
+  alias TheBand.Telemetria.Jornada
   alias TheBandWeb.Plugs.ApiRateLimit
 
   require Logger
@@ -30,6 +32,12 @@ defmodule TheBand.Application do
     # O log das consultas nasce ANTES do Repo — issue #1222. O Repo tem `log: false`, e uma
     # consulta feita antes do handler simplesmente não seria logada; depois dele, sai redigida.
     :ok = LogDaConsulta.anexar()
+
+    # A telemetria da jornada nasce ANTES dos filhos — spec 074, T010, como o log das consultas:
+    # um passo emitido antes do handler não viraria span, e sumiria sem contar.
+    :ok = Contadores.preparar()
+    :ok = Jornada.anexar()
+    dizer_o_estado_da_telemetria()
 
     children = [
       TheBandWeb.Telemetry,
@@ -60,6 +68,29 @@ defmodule TheBand.Application do
     with {:ok, pid} <- Supervisor.start_link(children, opts) do
       conferir_papeis_no_boot()
       {:ok, pid}
+    end
+  end
+
+  # FR-015: a telemetria desligada é DITA, e com a razão — pelo nome da variável, nunca pelo
+  # valor. E as variáveis `OTEL_*` que `config/runtime.exs` apagou são nomeadas: quem as pôs no
+  # ambiente precisa saber que foram ignoradas.
+  defp dizer_o_estado_da_telemetria do
+    config = Application.get_env(:the_band, :telemetria, [])
+
+    case Keyword.get(config, :otel_apagadas, []) do
+      [] ->
+        :ok
+
+      nomes ->
+        Logger.warning("telemetria: variáveis ignoradas e apagadas: #{Enum.join(nomes, ", ")}")
+    end
+
+    case Keyword.get(config, :estado) do
+      :ligada -> Logger.info("telemetria ligada")
+      # No teste, os testes ligam o filtro com destino no próprio processo (research R4).
+      :teste -> :ok
+      {:desligada, motivo} -> Logger.warning("telemetria desligada: #{motivo}")
+      nil -> Logger.warning("telemetria desligada: configuração ausente")
     end
   end
 
