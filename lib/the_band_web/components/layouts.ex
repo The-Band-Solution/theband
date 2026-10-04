@@ -81,6 +81,11 @@ defmodule TheBandWeb.Layouts do
               quem (pessoas), com quem (equipes), sobre o quê (projetos). O resto vive em
               Settings, em seções nomeadas — spec 046.
 
+              A EXCEÇÃO, e é uma só: **Network analysis** (spec 076, FR-001), por decisão
+              da pessoa mantenedora de 2026-10-03 (decisão 5 do protótipo aprovado em
+              2026-10-04), que reverte a 046 para esta área. Ela não é entidade: é a leitura
+              das ligações entre pessoas, e mora na barra para ficar a um clique.
+
               SÓ as entidades vivem no contêiner rolável. `overflow-x: auto` força
               overflow-y a auto, e um dropdown absoluto lá dentro abre CORTADO pela
               altura da barra — foi o defeito do Settings "que não abria": abria, e a
@@ -102,6 +107,14 @@ defmodule TheBandWeb.Layouts do
             <li>
               <.nav_item navigate={~p"/organizations"} active={@nav_area == :organization}>
                 Organization
+              </.nav_item>
+            </li>
+            <li>
+              <.nav_item
+                navigate={~p"/network-analysis"}
+                active={@nav_area == :network_analysis}
+              >
+                Network analysis
               </.nav_item>
             </li>
           </ul>
@@ -185,6 +198,7 @@ defmodule TheBandWeb.Layouts do
     {"/teams", :teams},
     {"/projects", :projects},
     {"/organizations", :organization},
+    {"/network-analysis", :network_analysis},
     {"/work", :settings},
     {"/roles", :settings},
     {"/syncs", :settings},
