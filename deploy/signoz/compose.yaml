@@ -104,12 +104,17 @@ services:
       nofile:
         soft: 262144
         hard: 262144
+    # `SIGNOZ_CONFIG_DIR` existe por causa do Dokploy (#1260, 2026-10-04): ele resolveu
+    # `./clickhouse/config.xml` a partir da RAIZ do repositório clonado, e não da pasta deste
+    # arquivo. O caminho não existia, o Docker criou um diretório no lugar e o ClickHouse não subiu
+    # ("not a directory"). No Dokploy a variável recebe o caminho ABSOLUTO desta pasta no clone;
+    # localmente fica vazia, e `.` volta a ser a pasta deste arquivo, como o `include` resolve.
     volumes:
-      - ./clickhouse/config.xml:/etc/clickhouse-server/config.xml:ro
-      - ./clickhouse/users.xml:/etc/clickhouse-server/users.xml:ro
-      - ./clickhouse/config.d/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml:ro
-      - ./clickhouse/config.d/memoria.xml:/etc/clickhouse-server/config.d/memoria.xml:ro
-      - ./clickhouse/users.d/senha.xml:/etc/clickhouse-server/users.d/senha.xml:ro
+      - ${SIGNOZ_CONFIG_DIR:-.}/clickhouse/config.xml:/etc/clickhouse-server/config.xml:ro
+      - ${SIGNOZ_CONFIG_DIR:-.}/clickhouse/users.xml:/etc/clickhouse-server/users.xml:ro
+      - ${SIGNOZ_CONFIG_DIR:-.}/clickhouse/config.d/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml:ro
+      - ${SIGNOZ_CONFIG_DIR:-.}/clickhouse/config.d/memoria.xml:/etc/clickhouse-server/config.d/memoria.xml:ro
+      - ${SIGNOZ_CONFIG_DIR:-.}/clickhouse/users.d/senha.xml:/etc/clickhouse-server/users.d/senha.xml:ro
       - clickhouse:/var/lib/clickhouse/
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "0.0.0.0:8123/ping"]
@@ -192,7 +197,7 @@ services:
       - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION=true
       - SIGNOZ_OTEL_COLLECTOR_TIMEOUT=10m
     volumes:
-      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+      - ${SIGNOZ_CONFIG_DIR:-.}/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
 
 networks:
   interna:
