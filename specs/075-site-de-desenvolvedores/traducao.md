@@ -53,6 +53,26 @@ Continuum) têm nome em inglês; a tradução EN usa esse nome, e não uma tradu
 | organização (tenant) | tenant, quando o texto fala da plataforma | AGENTS §7.4 |
 | pessoa mantenedora | maintainer | — |
 | lições aprendidas | lessons learned | — |
+| base de conhecimento | knowledge base | `priv/knowledge_base/` (L01) |
+| pergunta de competência | competency question | (L01) |
+| coleta | collection | (L01) |
+| encerrar / retomar observação | end / resume observation | `/tools` (L01) |
+| tela | screen | (L01) |
+| a régua (de uma página de funcionalidade) | the yardstick | `funcionalidades/` (L01) |
+| recusa (nomeada) | (named) refusal | (L01) |
+| limiar | threshold | `team.dashboard.thresholds` (L01) |
+| trabalho parado | stopped work | `stale_open_work` (L01) |
+| equipe composta / subequipe | composite team / sub-team | 057 (L01) |
+| papel (organizacional) | (organizational) role | `eo.organizational_role` (L01) |
+| conta | account | `users` (L01) |
+| operador da plataforma | platform operator | 070 (L01) |
+| credencial | credential | (L01) |
+| derivador | deriver | `scripts/derive_information_model.py` (L01) |
+| relator | relator | UFO (L01) |
+| perdurante / endurante | perdurant / endurant | UFO (L01) |
+| sortalidade / rigidez | sortality / rigidity | UFO (L01) |
+| aceitação | acceptance | (L01) |
+| ponta (do ramo, no merge) | tip | (L01) |
 
 Regras que acompanham o glossário:
 
