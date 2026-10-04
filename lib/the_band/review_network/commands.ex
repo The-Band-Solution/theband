@@ -179,13 +179,16 @@ defmodule TheBand.ReviewNetwork.Commands do
           where: r.tenant_id == ^tenant_id and r.organization_id == ^organization_id
       )
 
-      Enum.map(linhas, fn attrs ->
-        case %Reading{} |> Reading.changeset(attrs) |> Repo.insert() do
-          {:ok, gravada} -> gravada
-          {:error, changeset} -> Repo.rollback({:reading_rejected, campos_recusados(changeset)})
-        end
-      end)
+      Enum.map(linhas, &inserir/1)
     end)
+  end
+
+  # Dentro da transação: a recusa desfaz tudo, e o motivo leva só nomes de campo.
+  defp inserir(attrs) do
+    case %Reading{} |> Reading.changeset(attrs) |> Repo.insert() do
+      {:ok, gravada} -> gravada
+      {:error, changeset} -> Repo.rollback({:reading_rejected, campos_recusados(changeset)})
+    end
   end
 
   # Só os nomes: o changeset carrega `params` e `changes` com as arestas, e nenhum dos dois pode

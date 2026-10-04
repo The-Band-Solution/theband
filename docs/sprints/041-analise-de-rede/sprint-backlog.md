@@ -15,6 +15,16 @@ lê a rede de **designação** de uma organização — contagens, exclusões po
 —, com quem está fora do alcance agrupado e sem nome. A fundação de cálculo (fila, gerador, recorte,
 leitura) fica provada para as outras sete análises.
 
+## Escopo confirmado (2026-10-04)
+
+A pessoa mantenedora confirmou o escopo do sprint, **Fundação + US1–US3** (T002, #1326), e as
+decisões A7, R10 item 8 e R21 com a opção padrão do plano. US4–US9 e o acabamento ficam para o
+sprint seguinte.
+
+**Andamento em 2026-10-04**: a Fundação (T002, T004–T017) está feita na branch
+`feature/1309-fundacao`, num PR próprio para `development`. T003 (medida de produção) continua com
+a pessoa mantenedora. US1–US3 (T018–T034) não começaram.
+
 ## Escopo proposto, e o que espera confirmação
 
 **Proposto para este sprint**: Fases 1 e 2 (T001–T017), US1 (T018–T020), US2 (T021–T029) e US3
@@ -77,22 +87,22 @@ P3 ficam sem prioridade, como na 073.
 | # | Tarefa | Atende | Issue | security | Estado |
 |---|---|---|---|---|---|
 | T001 | Integrar `development` na branch do plano | épico | [#1325](https://github.com/The-Band-Solution/theband/issues/1325) |  | feito |
-| T002 | 👤 Decidir se a marca de conta da organização vale para a revisão (A7) | épico | [#1326](https://github.com/The-Band-Solution/theband/issues/1326) |  | a fazer |
+| T002 | 👤 Decidir se a marca de conta da organização vale para a revisão (A7) | épico | [#1326](https://github.com/The-Band-Solution/theband/issues/1326) |  | feito (fundação, 2026-10-04) |
 | T003 | 👤 Medir a rede de designação em produção | épico | [#1327](https://github.com/The-Band-Solution/theband/issues/1327) | sim | a fazer |
-| T004 | Gravar a leitura da 073 sem exceção que carrega pares | épico | [#1328](https://github.com/The-Band-Solution/theband/issues/1328) | sim | a fazer |
-| T005 | Corrigir a frase do recorte da verificação (#1185) | épico | [#1329](https://github.com/The-Band-Solution/theband/issues/1329) | sim | a fazer |
-| T006 | Emendar a proposta da base com as decisões do plano | épico | [#1330](https://github.com/The-Band-Solution/theband/issues/1330) |  | a fazer |
-| T007 | Levar a base aceita para a base de conhecimento | épico | [#1331](https://github.com/The-Band-Solution/theband/issues/1331) |  | a fazer |
-| T008 | Ler os parâmetros da análise da base | épico | [#1332](https://github.com/The-Band-Solution/theband/issues/1332) |  | a fazer |
-| T009 | Criar a tabela das leituras da análise | épico | [#1333](https://github.com/The-Band-Solution/theband/issues/1333) |  | a fazer |
-| T010 | Configurar a fila própria da análise | épico | [#1334](https://github.com/The-Band-Solution/theband/issues/1334) |  | a fazer |
-| T011 | Sortear de forma reproduzível | épico | [#1335](https://github.com/The-Band-Solution/theband/issues/1335) |  | a fazer |
-| T012 | Projetar sem direção e contar componentes e graus | épico | [#1336](https://github.com/The-Band-Solution/theband/issues/1336) |  | a fazer |
-| T013 | Conferir antes de calcular, e encadear depois da 073 | épico | [#1337](https://github.com/The-Band-Solution/theband/issues/1337) | sim | a fazer |
-| T014 | Calcular e substituir só a mesma rede e janela | épico | [#1338](https://github.com/The-Band-Solution/theband/issues/1338) | sim | a fazer |
-| T015 | Alcançar por concessão (DS1) | épico | [#1339](https://github.com/The-Band-Solution/theband/issues/1339) | sim | a fazer |
-| T016 | Recortar a leitura pelo alcance (FR-015) | épico | [#1340](https://github.com/The-Band-Solution/theband/issues/1340) | sim | a fazer |
-| T017 | Ler pelo alcance, a cada chamada | épico | [#1341](https://github.com/The-Band-Solution/theband/issues/1341) | sim | a fazer |
+| T004 | Gravar a leitura da 073 sem exceção que carrega pares | épico | [#1328](https://github.com/The-Band-Solution/theband/issues/1328) | sim | feito (fundação, 2026-10-04) |
+| T005 | Corrigir a frase do recorte da verificação (#1185) | épico | [#1329](https://github.com/The-Band-Solution/theband/issues/1329) | sim | feito (fundação, 2026-10-04) |
+| T006 | Emendar a proposta da base com as decisões do plano | épico | [#1330](https://github.com/The-Band-Solution/theband/issues/1330) |  | feito (fundação, 2026-10-04) |
+| T007 | Levar a base aceita para a base de conhecimento | épico | [#1331](https://github.com/The-Band-Solution/theband/issues/1331) |  | feito (fundação, 2026-10-04) |
+| T008 | Ler os parâmetros da análise da base | épico | [#1332](https://github.com/The-Band-Solution/theband/issues/1332) |  | feito (fundação, 2026-10-04) |
+| T009 | Criar a tabela das leituras da análise | épico | [#1333](https://github.com/The-Band-Solution/theband/issues/1333) |  | feito (fundação, 2026-10-04) |
+| T010 | Configurar a fila própria da análise | épico | [#1334](https://github.com/The-Band-Solution/theband/issues/1334) |  | feito (fundação, 2026-10-04) |
+| T011 | Sortear de forma reproduzível | épico | [#1335](https://github.com/The-Band-Solution/theband/issues/1335) |  | feito (fundação, 2026-10-04) |
+| T012 | Projetar sem direção e contar componentes e graus | épico | [#1336](https://github.com/The-Band-Solution/theband/issues/1336) |  | feito (fundação, 2026-10-04) |
+| T013 | Conferir antes de calcular, e encadear depois da 073 | épico | [#1337](https://github.com/The-Band-Solution/theband/issues/1337) | sim | feito (fundação, 2026-10-04) |
+| T014 | Calcular e substituir só a mesma rede e janela | épico | [#1338](https://github.com/The-Band-Solution/theband/issues/1338) | sim | feito (fundação, 2026-10-04) |
+| T015 | Alcançar por concessão (DS1) | épico | [#1339](https://github.com/The-Band-Solution/theband/issues/1339) | sim | feito (fundação, 2026-10-04) |
+| T016 | Recortar a leitura pelo alcance (FR-015) | épico | [#1340](https://github.com/The-Band-Solution/theband/issues/1340) | sim | feito (fundação, 2026-10-04) |
+| T017 | Ler pelo alcance, a cada chamada | épico | [#1341](https://github.com/The-Band-Solution/theband/issues/1341) | sim | feito (fundação, 2026-10-04) |
 | T018 | Pôr Network analysis no menu principal | US1 | [#1342](https://github.com/The-Band-Solution/theband/issues/1342) |  | a fazer |
 | T019 | Abrir a área e escolher a organização | US1 | [#1343](https://github.com/The-Band-Solution/theband/issues/1343) |  | a fazer |
 | T020 | Montar a rede de revisão na área, e o endereço antigo | US1 | [#1344](https://github.com/The-Band-Solution/theband/issues/1344) | sim | a fazer |

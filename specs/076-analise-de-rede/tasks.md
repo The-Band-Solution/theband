@@ -45,7 +45,7 @@ A21 → T014; A22 → T017.
   - **Teste**: o comando acima, código de saída lido. **Defeito a injetar**: não se aplica (tarefa de
     integração); a evidência é o `merge-base`
 
-- [ ] T002 👤 Decidir se a marca de conta da organização vale para a revisão (A7)
+- [x] T002 👤 Decidir se a marca de conta da organização vale para a revisão (A7)
   - **Pronta quando**: [revisao-semantica-2.md](revisao-semantica-2.md) A7 e
     [research.md R14](research.md#r14--a-conta-da-organização-d3-a-r8-da-segurança-a7) lidos
   - **Descrição**: a pessoa mantenedora decide se a declaração de conta da organização (D3 (a)) vale
@@ -74,7 +74,30 @@ A21 → T014; A22 → T017.
 **Segurança primeiro (§14.0)**: T004 e T005 consertam defeitos conhecidos da mesma superfície e vêm
 antes de tudo que toca cálculo ou alcance.
 
-- [ ] T004 [P] [security] Gravar a leitura da 073 sem exceção que carrega pares
+**Feita em 2026-10-04**, na branch `feature/1309-fundacao`, com a evidência de cada defeito
+injetado comentada na issue de cada tarefa. O que divergiu do texto das tarefas, e por quê:
+
+- **T005**: a mesma frase (*"whoever you lead by declared role"*) estava também em `/process`
+  (`process_live/index.ex`), sobre o mesmo recorte, e foi corrigida junto;
+- **T006**: as emendas foram escritas pelo agente de implementação, e não pelo semântico. A revisão
+  independente ([revisao-semantica-3.md](revisao-semantica-3.md)) **aprovou com emendas** (E1–E4,
+  aplicadas em `4dff5e8`), e a conferência final aprovou. Cobre a verificação, e não a autoria (O3);
+- **T007**: `mix knowledge.test` não existe no repositório. A conferência das chaves das regras é
+  `test/the_band/ontology/network_analysis_base_test.exs`;
+- **T008**: são quatro regras, e não três, porque as janelas vêm de `review.network.parameters`.
+  Por isso a função é `from_rules!/2`, e não `/3`; o contrato foi emendado;
+- **T009**: as recusas voltam como `{:error, changeset}`, e não como `assert_raise`, porque o
+  changeset declara as constraints (padrão da 073);
+- **T013**: o controle positivo prova que o job passa das conferências. A gravação pelo job espera
+  a T028, que liga as fontes;
+- **T014**: a função de entrada (`Inputs`) devolve `{:ausente, :source_not_connected}` até a T028.
+  O teste de A19 achou que, em `:debug`, `Repo.LogDaConsulta` escrevia no log os parâmetros do
+  INSERT da leitura (cada `person_id`). As leituras das duas redes passaram a ter os parâmetros
+  redigidos;
+- **T017**: os nomes vêm antes do recorte, para tratar quem saiu de EO (R18). Papel, percentil,
+  layout parcial e o número de contas declaradas entram com as tarefas que os calculam.
+
+- [x] T004 [P] [security] Gravar a leitura da 073 sem exceção que carrega pares
   - **Pronta quando**: T001; [contracts/fronteiras.md](contracts/fronteiras.md), `ReviewNetwork`
   - **Descrição**: em `lib/the_band/review_network/commands.ex`, `substituir/3` troca `Repo.insert!`
     por `Repo.insert/1`; no erro, `Repo.rollback({:reading_rejected, campos})` só com os nomes dos
@@ -87,7 +110,7 @@ antes de tudo que toca cálculo ou alcance.
     e `refute` cada `person_id` da fixture no texto do erro (`Exception.format/3` do retorno e do
     job). **Defeito a injetar**: voltar o `Repo.insert!`; o teste reprova
 
-- [ ] T005 [P] [security] Corrigir a frase do recorte da verificação (#1185)
+- [x] T005 [P] [security] Corrigir a frase do recorte da verificação (#1185)
   - **Pronta quando**: a DS4 decidida (a), 2026-10-04
   - **Descrição**: `lib/the_band_web/live/verification_live/people.ex:157-161` passa a dizer a regra
     de `pessoas_alcancadas/2` (o próprio registro, as pessoas das equipes em escopo, as das equipes
@@ -99,7 +122,7 @@ antes de tudo que toca cálculo ou alcance.
     liderança declarada e sem escopo; `assert` da frase nova; `refute` `"declared role"`; `refute` o
     nome da pessoa liderada. **Defeito a injetar**: devolver a frase antiga; o teste reprova
 
-- [ ] T006 Emendar a proposta da base com as decisões do plano
+- [x] T006 Emendar a proposta da base com as decisões do plano
   - **Pronta quando**: plan.md e research.md R5, R7, R8, R16, R19 commitados
   - **Descrição**: em `specs/076-analise-de-rede/proposta-base/`, pelo agente de ontologia e
     integração semântica (que pode bloquear, §13), e não por quem escreveu o plano:
@@ -117,7 +140,7 @@ antes de tudo que toca cálculo ou alcance.
     pipe; **defeito a injetar**: trocar `answers_information_need` de uma medida por id inexistente;
     `EXIT=1`
 
-- [ ] T007 Levar a base aceita para a base de conhecimento
+- [x] T007 Levar a base aceita para a base de conhecimento
   - **Pronta quando**: T006
   - **Descrição**: copiar os 24 arquivos pelo quadro de `proposta-base/README.md` e as perguntas de
     competência para `priv/knowledge_base/`; `review_network_parameters.yaml` substituído (só a
@@ -128,7 +151,7 @@ antes de tudo que toca cálculo ou alcance.
   - **Teste**: os três comandos, códigos de saída lidos. **Defeito a injetar**: apagar
     `small_world.values.seed`; `mix knowledge.test` reprova
 
-- [ ] T008 Ler os parâmetros da análise da base
+- [x] T008 Ler os parâmetros da análise da base
   - **Pronta quando**: T007; [contracts/network-analysis.md](contracts/network-analysis.md), *Os
     parâmetros entram pela fachada*
   - **Descrição**: `lib/the_band/network_analysis/parameters.ex`, no molde de
@@ -140,7 +163,7 @@ antes de tudo que toca cálculo ou alcance.
   - **Teste**: `test/the_band/network_analysis/parameters_test.exs`, um caso por chave apagada.
     **Defeito a injetar**: `Map.get(..., 100)` como reserva para `random_graphs`; o caso reprova
 
-- [ ] T009 [P] Criar a tabela das leituras da análise
+- [x] T009 [P] Criar a tabela das leituras da análise
   - **Pronta quando**: [data-model.md §1](data-model.md#1-network_analysis_readings--a-leitura-vigente-por-organização-rede-e-janela)
   - **Descrição**: `priv/repo/migrations/<ts>_create_network_analysis_readings.exs`, `change/0`, com
     as colunas, a FK composta `(organization_id, tenant_id)`, o índice único
@@ -154,7 +177,7 @@ antes de tudo que toca cálculo ou alcance.
     `assert_raise`. **Defeito a injetar**: FK simples em `organization_id`; o caso da FK composta
     reprova
 
-- [ ] T010 [P] Configurar a fila própria da análise
+- [x] T010 [P] Configurar a fila própria da análise
   - **Pronta quando**: [contracts/job.md](contracts/job.md)
   - **Descrição**: `config/config.exs`, `queues:` ganha `network_analysis: 1` (R4). Fila declarada e
     não configurada fica `available` para sempre (`recompute_promotions.ex:7-9`)
@@ -162,7 +185,7 @@ antes de tudo que toca cálculo ou alcance.
   - **Teste**: `test/the_band/jobs/fila_network_analysis_test.exs` lê a configuração de `:prod` e
     `assert` o limite 1. **Defeito a injetar**: tirar a linha da configuração; o teste reprova
 
-- [ ] T011 [P] Sortear de forma reproduzível
+- [x] T011 [P] Sortear de forma reproduzível
   - **Pronta quando**: [contracts/algoritmos.md](contracts/algoritmos.md) `Algorithms.Random`; R7
   - **Descrição**: `lib/the_band/network_analysis/algorithms/random.ex`: `new/1`
     (`:rand.seed_s(:exsss, seed)`), `gnm/3` por rejeição sobre índices 1..n, `shuffle/2` por
@@ -173,7 +196,7 @@ antes de tudo que toca cálculo ou alcance.
     `gnm(new(42), 10, 15)` fixada no teste. **Defeito a injetar**: `:rand.seed(:exsss, seed)` (estado
     no dicionário) e `:rand.uniform/1`; o caso da chamada intercalada reprova
 
-- [ ] T012 [P] Projetar sem direção e contar componentes e graus
+- [x] T012 [P] Projetar sem direção e contar componentes e graus
   - **Pronta quando**: `contracts/algoritmos.md` `Algorithms.Projection`
   - **Descrição**: `lib/the_band/network_analysis/algorithms/projection.ex`: `undirected/1` com o peso
     somado dos dois sentidos (FR-010), `components/1` fracos (FR-019), `degrees/1` com o par
@@ -184,7 +207,7 @@ antes de tudo que toca cálculo ou alcance.
     injetar**: guardar o peso de um sentido só (o `to_undirected()` da referência); o caso do par
     recíproco reprova
 
-- [ ] T013 [security] Conferir antes de calcular, e encadear depois da 073
+- [x] T013 [security] Conferir antes de calcular, e encadear depois da 073
   - **Pronta quando**: T010; [contracts/job.md](contracts/job.md)
   - **Descrição**: `lib/the_band/jobs/compute_network_analysis.ex` com a unicidade, o `timeout/1` e as
     três conferências, cancelando sem gravar; `enqueue/2`. Em `compute_review_network.ex`, depois do
@@ -197,7 +220,7 @@ antes de tudo que toca cálculo ou alcance.
     que o caminho feliz grava. **Defeito a injetar**: trocar o cancelamento da organização de outro
     tenant por leitura vazia; o teste reprova
 
-- [ ] T014 [security] Calcular e substituir só a mesma rede e janela
+- [x] T014 [security] Calcular e substituir só a mesma rede e janela
   - **Pronta quando**: T004 (o conserto da R10 vem antes da primeira tarefa que toca o cálculo,
     spec, *Dependências*), T008, T009, T011, T012, T013; `contracts/network-analysis.md` `compute/3`
   - **Descrição**: `lib/the_band/network_analysis/commands.ex`: `compute/3,4` recebe arestas por
@@ -215,7 +238,7 @@ antes de tudo que toca cálculo ou alcance.
     injetar**, um por vez: ignorar a impressão; tirar o teto; `delete_all` sem a rede;
     `Repo.insert!`; logar o `nodes`. Cada um reprova o seu caso
 
-- [ ] T015 [P] [security] Alcançar por concessão (DS1)
+- [x] T015 [P] [security] Alcançar por concessão (DS1)
   - **Pronta quando**: `contracts/fronteiras.md`, `Tenants`
   - **Descrição**: `Tenants.pessoas_alcancadas/3` com `origem: :concedida` em
     `lib/the_band/tenants/access.ex`, delegada em `tenants.ex`: só escopos `origin: :granted`; a
@@ -225,7 +248,7 @@ antes de tudo que toca cálculo ou alcance.
   - **Teste**: `test/the_band/tenants/pessoas_alcancadas_concedida_test.exs`, dois tenants.
     **Defeito a injetar**: aceitar `origin: :derived_team` na `/3`; o caso do vínculo reprova
 
-- [ ] T016 [security] Recortar a leitura pelo alcance (FR-015)
+- [x] T016 [security] Recortar a leitura pelo alcance (FR-015)
   - **Pronta quando**: T014, T015; `contracts/algoritmos.md` `View.build/5`; R10
   - **Descrição**: `lib/the_band/network_analysis/view.ex`, puro, com as dez regras de R10 sobre o que
     a leitura já tem (nós, arestas, componentes, comunidade quando existir): agregados por comunidade
@@ -240,7 +263,7 @@ antes de tudo que toca cálculo ou alcance.
     injetar**: tirar o k; criar *"other communities"* sem conferir k; id do agregado por hash do
     `person_id`. Cada um reprova o seu caso
 
-- [ ] T017 [security] Ler pelo alcance, a cada chamada
+- [x] T017 [security] Ler pelo alcance, a cada chamada
   - **Pronta quando**: T005 (a #1185 decidida e corrigida antes da tarefa que aplica o alcance, DS4),
     T016; `contracts/network-analysis.md` `read/4`, `selection/1`, `options/0`
   - **Descrição**: `lib/the_band/network_analysis/reader.ex`: `selection/1` por texto exato contra as

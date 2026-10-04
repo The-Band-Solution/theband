@@ -250,29 +250,32 @@ defmodule TheBand.NetworkAnalysis.Commands do
   defp aplicar(%Tenant{id: tenant_id}, organization_id, planos, agora) do
     Repo.transaction(fn ->
       for %{outcome: :unchanged, network: rede, window_days: dias} <- planos do
-        from(r in Reading,
-          where:
-            r.tenant_id == ^tenant_id and r.organization_id == ^organization_id and
-              r.network == ^rede and r.window_days == ^dias
-        )
+        tenant_id
+        |> mesma(organization_id, rede, dias)
         |> Repo.update_all(set: [checked_at: agora])
       end
 
       for %{outcome: :computed, network: rede, window_days: dias, attrs: attrs} <- planos do
         # Só a MESMA rede e janela (A21): a chave do delete é a do índice único.
-        Repo.delete_all(
-          from r in Reading,
-            where:
-              r.tenant_id == ^tenant_id and r.organization_id == ^organization_id and
-                r.network == ^rede and r.window_days == ^dias
-        )
-
-        case %Reading{} |> Reading.changeset(attrs) |> Repo.insert() do
-          {:ok, gravada} -> gravada
-          {:error, changeset} -> Repo.rollback({:reading_rejected, campos_recusados(changeset)})
-        end
+        tenant_id |> mesma(organization_id, rede, dias) |> Repo.delete_all()
+        inserir(attrs)
       end
     end)
+  end
+
+  defp mesma(tenant_id, organization_id, rede, dias) do
+    from r in Reading,
+      where:
+        r.tenant_id == ^tenant_id and r.organization_id == ^organization_id and
+          r.network == ^rede and r.window_days == ^dias
+  end
+
+  # Dentro da transação: a recusa desfaz tudo, e o motivo leva só nomes de campo.
+  defp inserir(attrs) do
+    case %Reading{} |> Reading.changeset(attrs) |> Repo.insert() do
+      {:ok, gravada} -> gravada
+      {:error, changeset} -> Repo.rollback({:reading_rejected, campos_recusados(changeset)})
+    end
   end
 
   # Só os nomes: o changeset carrega as arestas, e nenhuma chega ao termo que o job devolve ao
