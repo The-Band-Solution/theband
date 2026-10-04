@@ -320,9 +320,9 @@ defmodule TheBandWeb.Router do
       live "/network-analysis", NetworkAnalysisLive.Index, :index
       # A rede de revisão da 073 é a primeira página da área (FR-003).
       live "/network-analysis/:organization_id", ReviewNetworkLive.Show, :show
-      # A rede de revisão (073): qualquer conta do tenant; o recorte é a função de domínio
-      # (`ReviewNetwork.read/4`), e não um `require_*` (research.md R15).
-      live "/organizations/:id/review-network", ReviewNetworkLive.Show, :show
+
+      # O endereço antigo da 073 leva à área, com o id validado e só a janela da lista (R13, A13).
+      live "/organizations/:id/review-network", ReviewNetworkLive.Show, :legacy
       live "/profile", ProfileLive.Index, :index
       live "/process", ProcessLive.Index, :index
       live "/projects", ProjectsLive.Index, :index

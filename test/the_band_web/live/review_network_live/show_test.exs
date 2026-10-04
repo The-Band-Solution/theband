@@ -97,7 +97,7 @@ defmodule TheBandWeb.ReviewNetworkLive.ShowTest do
   defp abrir(ctx, user, query \\ "") do
     live(
       log_in(ctx.conn, user),
-      "/organizations/#{ctx.org.organization.id}/review-network#{query}"
+      "/network-analysis/#{ctx.org.organization.id}#{query}"
     )
   end
 
@@ -254,7 +254,7 @@ defmodule TheBandWeb.ReviewNetworkLive.ShowTest do
 
       html = view |> element("#janelas a", "30 days") |> render_click()
 
-      assert_patch(view, "/organizations/#{ctx.org.organization.id}/review-network?window=30")
+      assert_patch(view, "/network-analysis/#{ctx.org.organization.id}?window=30")
       assert texto(html, "#janelas a[aria-current=true]") =~ "30 days"
       assert texto(html, "#leitura") =~ "30 days."
       assert Repo.aggregate(Oban.Job, :count) == antes
@@ -357,7 +357,7 @@ defmodule TheBandWeb.ReviewNetworkLive.ShowTest do
       {:ok, _view, html} =
         live(
           log_in(ctx.conn, ctx.admin),
-          "/organizations/#{vazia.organization.id}/review-network"
+          "/network-analysis/#{vazia.organization.id}"
         )
 
       assert texto(html, "#concentracao") =~ "no review in this window"
@@ -375,7 +375,7 @@ defmodule TheBandWeb.ReviewNetworkLive.ShowTest do
       sem = organizacao_com_repositorio(ctx.tenant)
 
       {:ok, _view, html} =
-        live(log_in(ctx.conn, ctx.admin), "/organizations/#{sem.organization.id}/review-network")
+        live(log_in(ctx.conn, ctx.admin), "/network-analysis/#{sem.organization.id}")
 
       aviso = texto(html, "#nao-calculada")
       assert aviso =~ "This reading has not been calculated yet."
@@ -407,10 +407,10 @@ defmodule TheBandWeb.ReviewNetworkLive.ShowTest do
       {outro, _} = tenant_with_admin()
       de_fora = organizacao_com_repositorio(outro)
 
-      assert {:error, {:live_redirect, %{to: "/organizations", flash: flash}}} =
+      assert {:error, {:live_redirect, %{to: "/network-analysis", flash: flash}}} =
                live(
                  log_in(ctx.conn, ctx.admin),
-                 "/organizations/#{de_fora.organization.id}/review-network"
+                 "/network-analysis/#{de_fora.organization.id}"
                )
 
       assert flash["error"] == "Not found."
@@ -418,14 +418,14 @@ defmodule TheBandWeb.ReviewNetworkLive.ShowTest do
       assert {:error, {:live_redirect, %{flash: inexistente}}} =
                live(
                  log_in(ctx.conn, ctx.admin),
-                 "/organizations/#{Ecto.UUID.generate()}/review-network"
+                 "/network-analysis/#{Ecto.UUID.generate()}"
                )
 
       assert inexistente == flash
       refute inspect(flash) =~ ~r/permission/i
 
       assert {:error, {:live_redirect, %{to: destino}}} = abrir(ctx, ctx.admin, "?window=36500")
-      assert destino == "/organizations/#{ctx.org.organization.id}/review-network?window=90"
+      assert destino == "/network-analysis/#{ctx.org.organization.id}?window=90"
     end
   end
 
@@ -532,7 +532,7 @@ defmodule TheBandWeb.ReviewNetworkLive.ShowTest do
       {:ok, _view, html} =
         live(
           log_in(ctx.conn, ctx.admin),
-          "/organizations/#{vazia.organization.id}/review-network"
+          "/network-analysis/#{vazia.organization.id}"
         )
 
       exclusoes = texto(html, "#exclusoes")
@@ -591,8 +591,8 @@ defmodule TheBandWeb.ReviewNetworkLive.ShowTest do
     refute html =~ "Zuleica"
   end
 
-  test "1.1: a página das organizações leva à rede de revisão de cada uma", ctx do
+  test "1.1: a página das organizações leva à rede de revisão de cada uma, na área (076)", ctx do
     {:ok, _view, html} = live(log_in(ctx.conn, ctx.admin), "/organizations")
-    assert html =~ ~s(href="/organizations/#{ctx.org.organization.id}/review-network")
+    assert html =~ ~s(href="/network-analysis/#{ctx.org.organization.id}")
   end
 end
