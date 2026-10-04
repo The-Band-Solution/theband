@@ -101,7 +101,7 @@ lotes de tradução.
 
 - [ ] T011 [US1] A home
   - **Pronta quando**: T008; 1.1–1.5; contrato, `on_nav` e `on_page_context`
-  - **Descrição**: `overrides/home.html` e `overrides/dados/funcionalidades.yml`; as contagens vêm do
+  - **Descrição**: `overrides/home.html` e `mkdocs-dados/funcionalidades.yml`; as contagens vêm do
     `nav` no build.
   - **Feita quando**: as treze seções aparecem com a contagem real, e a seção III lista as seis
     funcionalidades com as marcas

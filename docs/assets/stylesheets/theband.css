@@ -1,0 +1,325 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   O tema do site de desenvolvedores: a identidade de theband.dev.
+
+   TOKENS COPIADOS de gh-pages:index.html (landing de theband.dev, commit
+   09570bd, linhas 18-54) em 2026-10-03, sem ajuste (#1267 D3). A landing é
+   mantida à mão fora de development: se ela mudar, esta cópia não muda junto,
+   e o teste test/site/test_tokens.py compara com a cópia datada em
+   test/site/fixtures/tokens-da-landing.css.
+
+   Os únicos tokens que não vêm da landing:
+   - `info` / `info-fundo`, de assets/css/app.css, para a marca `declarado`
+     (sólido azul); a landing desenha o declarado tracejado, e o design system
+     reserva o tracejado para a ausência (protótipo, V1 e D5);
+   - `latao-fundo`, do protótipo aprovado, para nota e trecho destacado.
+
+   Declarados UMA vez por tema (M1). O Material troca o tema pelo atributo
+   `data-md-color-scheme` do body; `data-theme` é a ponte com o nome da
+   landing (protótipo, V4).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root,
+[data-md-color-scheme="default"],
+:root[data-theme="light"] {
+  --papel: #f1f4f2;
+  --tinta: #17211c;
+  --tinta-2: #45544d;
+  --verdete: #2c6b60;
+  --verdete-forte: #1d5a50;
+  --verdete-fundo: #e3ece8;
+  --latao: #96731f;
+  --pauta: #c9d4ce;
+  --cartao: #fafcfa;
+  --hachura: repeating-linear-gradient(135deg, transparent 0 4px, currentColor 4px 5px);
+  --latao-fundo: #f4eddb;
+  --info: #23566f;
+  --info-fundo: #e2edf3;
+}
+
+[data-md-color-scheme="slate"],
+:root[data-theme="dark"] {
+  --papel: #101816;
+  --tinta: #dee8e2;
+  --tinta-2: #93a69d;
+  --verdete: #5fa294;
+  --verdete-forte: #7dbcae;
+  --verdete-fundo: #16241f;
+  --latao: #c9a24b;
+  --pauta: #26332d;
+  --cartao: #151f1b;
+  --latao-fundo: #241d0f;
+  --info: #7fb4d6;
+  --info-fundo: #142430;
+}
+
+/* A escala tipográfica do site, declarada uma vez. A landing não tem escala
+   nomeada: os degraus vêm dela onde ela os tem (.78, .82, .88, .9, 1.15), e do
+   protótipo aprovado em 2026-10-03 onde ela não tem (o rótulo mono, a serifa em
+   linha corrida, os títulos). Literal de tamanho fora destas variáveis é desvio. */
+:root {
+  --tb-fs-rotulo: .72rem;   /* protótipo: rótulos mono em versalete (.66–.74 unificados) */
+  --tb-fs-nota: .78rem;     /* landing */
+  --tb-fs-pequeno: .82rem;  /* landing */
+  --tb-fs-apoio: .88rem;    /* landing */
+  --tb-fs-tabela: .9rem;    /* landing */
+  --tb-fs-texto: 1rem;
+  --tb-fs-serif: 1.05rem;   /* protótipo: serifa em linha corrida (citação, perguntas, curso) */
+  --tb-fs-chamada: 1.15rem; /* landing */
+  --tb-fs-h2: 1.5rem;       /* protótipo */
+  --tb-fs-h1: clamp(1.7rem, 4.2vw, 2.6rem); /* protótipo */
+  --tb-fs-codigo: .86em;    /* protótipo: relativo ao texto em volta */
+}
+
+/* As três vozes da landing, sem webfont (M2; `theme.font: false`). */
+:root {
+  --tb-serif: "Iowan Old Style", Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --tb-sans: Seravek, "Gill Sans Nova", "Gill Sans", Calibri, "Segoe UI", sans-serif;
+  --tb-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --md-text-font-family: var(--tb-sans);
+  --md-code-font-family: var(--tb-mono);
+}
+
+/* O Material desenha tudo com variáveis --md-*; apontá-las para os tokens faz
+   cada componente dele (busca, navegação, tabela, admonição) herdar a paleta
+   sem CSS componente a componente. */
+[data-md-color-scheme="default"],
+[data-md-color-scheme="slate"] {
+  --md-default-bg-color: var(--papel);
+  --md-default-fg-color: var(--tinta);
+  --md-default-fg-color--light: var(--tinta-2);
+  --md-default-fg-color--lighter: var(--tinta-2);
+  --md-default-fg-color--lightest: var(--pauta);
+  --md-primary-fg-color: var(--cartao);
+  --md-primary-fg-color--light: var(--cartao);
+  --md-primary-fg-color--dark: var(--cartao);
+  --md-primary-bg-color: var(--tinta);
+  --md-primary-bg-color--light: var(--tinta-2);
+  --md-accent-fg-color: var(--verdete-forte);
+  --md-accent-fg-color--transparent: var(--verdete-fundo);
+  --md-typeset-color: var(--tinta);
+  --md-typeset-a-color: var(--verdete);
+  --md-code-bg-color: var(--verdete-fundo);
+  --md-code-fg-color: var(--tinta);
+  --md-footer-bg-color: var(--cartao);
+  --md-footer-bg-color--dark: var(--cartao);
+  --md-footer-fg-color: var(--tinta-2);
+  --md-footer-fg-color--light: var(--tinta-2);
+  --md-footer-fg-color--lighter: var(--tinta-2);
+  --md-typeset-table-color: var(--pauta);
+  --md-admonition-bg-color: var(--cartao);
+  --md-admonition-fg-color: var(--tinta);
+  /* O Mermaid do Material lê estas variáveis: o diagrama troca de tema junto
+     com a página (D7, 3.2): estados com borda verdete, transições em tinta
+     secundária, notas em latão. */
+  --md-mermaid-font-family: var(--tb-sans);
+  --md-mermaid-edge-color: var(--tinta-2);
+  --md-mermaid-node-bg-color: var(--papel);
+  --md-mermaid-node-fg-color: var(--verdete);
+  --md-mermaid-label-bg-color: var(--cartao);
+  --md-mermaid-label-fg-color: var(--tinta);
+  --md-mermaid-sequence-actor-bg-color: var(--papel);
+  --md-mermaid-sequence-actor-fg-color: var(--tinta);
+  --md-mermaid-sequence-actor-border-color: var(--verdete);
+  --md-mermaid-sequence-actor-line-color: var(--tinta-2);
+  --md-mermaid-sequence-note-bg-color: var(--latao-fundo);
+  --md-mermaid-sequence-note-fg-color: var(--tinta);
+  --md-mermaid-sequence-note-border-color: var(--latao);
+}
+
+body { background: var(--papel); color: var(--tinta); }
+.md-typeset { font-size: var(--tb-fs-texto); line-height: 1.6; }
+.md-typeset a { text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.md-typeset a:focus-visible, .md-header a:focus-visible, .md-header button:focus-visible,
+.md-typeset summary:focus-visible { outline: 3px solid var(--latao); outline-offset: 2px; }
+::selection { background: var(--verdete); color: var(--papel); }
+
+/* Títulos em serifa, corpo humanista: a ordem da landing, e não a do design
+   system do produto (protótipo, V3 e D2). */
+.md-typeset h1, .md-typeset h2 {
+  font-family: var(--tb-serif); font-weight: 500; color: var(--tinta);
+  text-wrap: balance; letter-spacing: -.005em;
+}
+.md-typeset h1 { font-size: var(--tb-fs-h1); line-height: 1.1; margin: .3rem 0 1rem; }
+.md-typeset h1 em, .md-typeset h2 em { color: var(--verdete); }
+.md-typeset h2 { font-size: var(--tb-fs-h2); line-height: 1.2; margin: 2.2rem 0 .7rem; }
+.md-typeset h3 { font-size: var(--tb-fs-serif); font-weight: 600; margin: 1.6rem 0 .5rem; }
+.md-typeset code, .md-typeset kbd, .tb-mono {
+  font-family: var(--tb-mono); font-variant-numeric: tabular-nums;
+}
+.md-typeset code { font-size: var(--tb-fs-codigo); border-radius: 3px; overflow-wrap: anywhere; }
+.md-typeset blockquote {
+  border-left: 3px solid var(--latao); color: var(--tinta-2);
+  font-family: var(--tb-serif); font-style: italic; font-size: var(--tb-fs-serif);
+}
+.md-typeset abbr[title] { text-decoration: underline dotted; text-underline-offset: 3px; }
+
+/* ── As marcas de proveniência: forma + texto, nunca só cor (M6) ──
+   sólido verdete = observado; sólido azul = declarado; hachurado latão =
+   derivado; tracejado = ausente, e só ausente (D5). */
+.tb-marca {
+  display: inline-flex; align-items: center; gap: .4rem; padding: .16rem .55rem;
+  border-radius: 3px; font-family: var(--tb-mono); font-size: var(--tb-fs-rotulo); font-weight: 600;
+  line-height: 1.4; vertical-align: middle; white-space: nowrap;
+}
+.tb-marca .tb-q { width: 11px; height: 11px; border-radius: 2px; flex: none; }
+.tb-observado { background: var(--verdete-fundo); color: var(--verdete); }
+.tb-observado .tb-q { background: var(--verdete); }
+.tb-declarado { background: var(--info-fundo); color: var(--info); }
+.tb-declarado .tb-q { background: var(--info); }
+.tb-derivado { border: 1px solid var(--latao); color: var(--latao); }
+.tb-derivado .tb-q { border: 1px solid var(--latao); background: var(--hachura); }
+.tb-ausente { border: 1px dashed var(--tinta-2); color: var(--tinta-2); font-weight: 500; }
+.tb-ausente .tb-q { border: 1.5px dashed var(--tinta-2); }
+
+/* ── O topo (M3): a barra de /docs/, com a busca no meio ──
+   O Material põe a barra em cor de destaque e sombra; a landing é papel com
+   borda. A ordem dos itens é a do protótipo, e não a do Material. */
+.md-header {
+  background: var(--cartao); color: var(--tinta); box-shadow: none;
+  border-bottom: 1px solid var(--pauta);
+}
+.md-header--shadow { box-shadow: none; }
+.md-header__inner { gap: .6rem; padding: 0 .4rem; }
+.tb-marca-site { display: flex; align-items: baseline; gap: .45rem; min-width: 0; padding-left: .6rem; font-size: var(--tb-fs-apoio); white-space: nowrap; }
+.tb-marca-site a { color: var(--tinta); font-weight: 600; text-decoration: none; }
+.tb-marca-site .tb-aqui { color: var(--tinta-2); overflow: hidden; text-overflow: ellipsis; }
+.tb-aqui-curto { display: inline; }
+.tb-aqui-longo { display: none; }
+.tb-links { display: none; align-items: center; gap: 1rem; font-size: var(--tb-fs-apoio); margin-left: auto; white-space: nowrap; }
+.tb-links a { color: var(--tinta); }
+.tb-entrar {
+  display: inline-block; padding: .38rem .9rem; border-radius: 999px; background: var(--verdete);
+  color: var(--papel) !important; font-weight: 600; font-size: var(--tb-fs-pequeno); text-decoration: none;
+}
+.tb-gaveta-fim .tb-entrar { text-align: center; }
+/* Alvos de 44 px no telefone (D3): os botões do Material têm 2.4rem. */
+.md-header__button.md-icon { min-width: 44px; min-height: 44px; display: inline-grid; place-items: center; margin: 0; }
+.md-header__button.md-icon.tb-menu { margin-left: auto; }
+.tb-idioma { display: flex; border: 1px solid var(--pauta); border-radius: 4px; background: var(--cartao); overflow: hidden; flex: none; }
+.tb-idioma a { color: var(--tinta-2); font-size: var(--tb-fs-nota); font-weight: 600; padding: .3rem .6rem; text-decoration: none; min-height: 32px; display: inline-grid; place-items: center; }
+.tb-idioma a[aria-current="true"] { background: var(--verdete); color: var(--papel); }
+.md-search__form { background: var(--papel); border: 1px solid var(--pauta); border-radius: 4px; }
+.md-search__input { color: var(--tinta); }
+.md-search__input::placeholder { color: var(--tinta-2); }
+.tb-atalho { font-family: var(--tb-mono); font-size: var(--tb-fs-rotulo); border: 1px solid var(--pauta); border-radius: 3px; padding: 0 .3rem; color: var(--tinta-2); }
+
+/* Abaixo de 46 rem: marca, busca e menu (D3). A partir dele, a barra inteira. */
+@media screen and (min-width: 46em) {
+  .tb-links { display: flex; }
+  .tb-aqui-curto { display: none; }
+  .tb-aqui-longo { display: inline; }
+  .md-header__button.md-icon.tb-menu { margin-left: 0; }
+}
+@media screen and (min-width: 60em) {
+  .md-header__button.md-icon.tb-menu { display: none; }
+}
+
+/* ── A faixa do build (M4), no bloco `announce` do Material ── */
+.md-banner { background: var(--papel); color: var(--tinta-2); border-bottom: 1px solid var(--pauta); }
+.md-banner__inner { display: flex; flex-wrap: wrap; gap: .4rem .8rem; align-items: center; margin: .35rem auto; font-size: var(--tb-fs-nota); }
+
+/* ── Larguras (M7): uma coluna; navegação a partir de 60 rem; sumário a
+   partir de 76 rem; texto até 44 rem. O Material usa 76.25em e 60em; os
+   pontos do protótipo coincidem com os dele, e por isso nada se reescreve
+   além do limite do texto. */
+.md-grid { max-width: 90rem; }
+.md-content__inner > :not(.tb-largo):not(.md-typeset__scrollwrap):not(.mermaid):not(figure) { max-width: 44rem; }
+.md-nav { font-size: var(--tb-fs-pequeno); }
+.md-nav__link--active, .md-nav__item .md-nav__link--active { color: var(--verdete); font-weight: 600; }
+.md-nav__title { color: var(--tinta); }
+.md-sidebar--secondary .md-nav__title { font-family: var(--tb-mono); font-size: var(--tb-fs-rotulo); letter-spacing: .08em; text-transform: uppercase; color: var(--tinta-2); }
+
+/* ── Tabelas (M8): rolam dentro do próprio quadro; com mais de três colunas,
+   empilham abaixo de 40 rem com o nome da coluna em cada célula. O nome vem do
+   atributo data-label, posto pelo theband.js; sem script, a tabela continua
+   rolando no quadro, que é o comportamento seguro. */
+.md-typeset__scrollwrap { overflow-x: auto; }
+.md-typeset table:not([class]) { font-size: var(--tb-fs-tabela); border: 0; }
+.md-typeset table:not([class]) th {
+  font-family: var(--tb-mono); font-size: var(--tb-fs-rotulo); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--tinta-2); font-weight: 500; background: none;
+}
+.md-typeset table:not([class]) td, .md-typeset table:not([class]) th { border-bottom: 1px solid var(--pauta); border-top: 0; }
+@media screen and (max-width: 40em) {
+  .md-typeset table[data-tb-empilha] thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .md-typeset table[data-tb-empilha], .md-typeset table[data-tb-empilha] tbody, .md-typeset table[data-tb-empilha] tr, .md-typeset table[data-tb-empilha] td { display: block; }
+  .md-typeset table[data-tb-empilha] tr { border: 1px solid var(--pauta); background: var(--cartao); padding: .4rem .7rem; margin-bottom: .6rem; }
+  .md-typeset table[data-tb-empilha] td { border: 0; padding: .25rem 0; }
+  .md-typeset table[data-tb-empilha] td::before {
+    content: attr(data-label); display: block; font-family: var(--tb-mono); font-size: var(--tb-fs-rotulo);
+    letter-spacing: .08em; text-transform: uppercase; color: var(--tinta-2);
+  }
+}
+
+/* ── O recibo (D4, D14): o `dl` mono da landing ── */
+.md-typeset .tb-recibo {
+  background: var(--cartao); border: 1px solid var(--pauta); padding: 1rem 1.1rem; margin: 0 0 1.4rem;
+  font-size: var(--tb-fs-apoio); display: grid; grid-template-columns: 1fr; gap: .1rem 1rem;
+}
+@media screen and (min-width: 46em) { .md-typeset .tb-recibo { grid-template-columns: max-content 1fr; } }
+.md-typeset .tb-recibo dt { font-family: var(--tb-mono); font-size: var(--tb-fs-rotulo); letter-spacing: .1em; text-transform: uppercase; color: var(--tinta-2); padding-top: .45rem; font-weight: 400; }
+.md-typeset .tb-recibo dd { margin: 0; padding-top: .3rem; min-width: 0; overflow-wrap: anywhere; }
+.md-typeset .tb-assinatura, .tb-assinatura { font-family: var(--tb-mono); font-size: var(--tb-fs-rotulo); letter-spacing: .1em; text-transform: uppercase; color: var(--tinta-2); }
+
+/* ── A pauta de theband.dev, como divisor (1.2) ── */
+.tb-pauta { height: 33px; margin: 1.2rem 0; background: repeating-linear-gradient(to bottom, var(--pauta) 0 1px, transparent 1px 8px); background-size: 100% 33px; background-repeat: no-repeat; position: relative; }
+.tb-pauta .tb-nota { position: absolute; width: 10px; height: 8px; border-radius: 50% / 42%; background: var(--verdete); transform: rotate(-18deg); }
+.tb-pauta .tb-nota.tb-der { background: none; color: var(--latao); border: 1px solid var(--latao); }
+.tb-pauta .tb-nota.tb-der::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--hachura); }
+
+/* ── A home (1.1–1.5) ── */
+.tb-home .tb-chamada { font-size: var(--tb-fs-chamada); color: var(--tinta-2); text-wrap: pretty; }
+.tb-home .tb-mudo { color: var(--tinta-2); }
+.tb-home h2 .tb-num { color: var(--verdete); font-style: italic; margin-right: .45rem; }
+.md-typeset .tb-perguntas { list-style: none; padding: 0; margin: 1rem 0 0; }
+.md-typeset .tb-perguntas li {
+  margin: 0; padding: .75rem 0; border-top: 1px solid var(--pauta); font-family: var(--tb-serif);
+  font-size: var(--tb-fs-serif); display: grid; grid-template-columns: 1fr; gap: .1rem 1.2rem;
+}
+.md-typeset .tb-perguntas li:last-child { border-bottom: 1px solid var(--pauta); }
+.md-typeset .tb-perguntas a { font-family: var(--tb-sans); font-size: var(--tb-fs-tabela); }
+@media screen and (min-width: 46em) { .md-typeset .tb-perguntas li { grid-template-columns: 1fr 15rem; align-items: baseline; } }
+.tb-grupos { display: grid; grid-template-columns: 1fr; gap: 1.6rem; margin-top: 1.2rem; }
+@media screen and (min-width: 46em) { .tb-grupos { grid-template-columns: 1fr 1fr; } }
+.tb-rom { font-family: var(--tb-mono); font-size: var(--tb-fs-rotulo); letter-spacing: .12em; text-transform: uppercase; color: var(--verdete); font-weight: 700; margin: 0 0 .5rem; }
+.tb-rom + .tb-secoes + .tb-rom, .tb-secoes + .tb-rom { margin-top: 1.4rem; }
+.tb-secoes { display: grid; gap: 1px; background: var(--pauta); border: 1px solid var(--pauta); }
+.md-typeset .tb-secao { background: var(--cartao); padding: .85rem 1rem; display: grid; grid-template-columns: 1fr auto; gap: .1rem .8rem; text-decoration: none; color: var(--tinta); }
+.md-typeset .tb-secao:hover { background: var(--verdete-fundo); }
+.tb-secao b { font-weight: 600; }
+.tb-secao .tb-n { font-family: var(--tb-mono); font-size: var(--tb-fs-rotulo); color: var(--tinta-2); white-space: nowrap; }
+.tb-secao .tb-d { grid-column: 1 / -1; font-size: var(--tb-fs-pequeno); color: var(--tinta-2); }
+.tb-secao .tb-d .tb-marca { margin-top: .3rem; }
+.md-typeset .tb-curso { list-style: none; padding: 0; margin: 1rem 0; }
+.md-typeset .tb-curso li { margin: 0; padding: .8rem 0; border-top: 1px solid var(--pauta); display: grid; grid-template-columns: 3.2rem 1fr; gap: .2rem .8rem; }
+.md-typeset .tb-curso li:last-child { border-bottom: 1px solid var(--pauta); }
+.tb-curso .tb-id { font-family: var(--tb-mono); color: var(--verdete); font-weight: 600; }
+.tb-curso .tb-t { font-family: var(--tb-serif); font-size: var(--tb-fs-serif); }
+.tb-curso .tb-m { grid-column: 2; display: flex; flex-wrap: wrap; gap: .4rem .7rem; align-items: center; font-size: var(--tb-fs-nota); color: var(--tinta-2); }
+/* A home não tem sumário: o título dela já é o caminho. */
+.tb-home-pagina .md-sidebar--secondary { display: none; }
+
+/* ── O rodapé (M5, M9) ── */
+.md-footer { background: var(--cartao); color: var(--tinta-2); border-top: 1px solid var(--pauta); }
+.md-footer__link { color: var(--tinta); }
+.md-footer__direction { font-family: var(--tb-mono); font-size: var(--tb-fs-rotulo); letter-spacing: .06em; text-transform: uppercase; color: var(--tinta-2); }
+.tb-rodape { padding: 1.3rem .8rem 1.8rem; font-size: var(--tb-fs-pequeno); color: var(--tinta-2); display: grid; gap: .5rem; }
+.tb-rodape .tb-l { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem 1rem; }
+.tb-rodape p { margin: 0; max-width: 46rem; }
+.tb-rodape a { color: var(--verdete); }
+.md-typeset .tb-editar { font-size: var(--tb-fs-pequeno); display: flex; flex-wrap: wrap; gap: .4rem 1rem; color: var(--tinta-2); margin-top: 1.6rem; border-top: 1px solid var(--pauta); padding-top: .8rem; }
+
+/* ── O fim da gaveta no telefone (4.5) ── */
+.tb-gaveta-fim { padding: 1rem .8rem; display: grid; gap: .7rem; font-size: var(--tb-fs-apoio); border-top: 1px solid var(--pauta); }
+@media screen and (min-width: 60em) { .tb-gaveta-fim { display: none; } }
+
+/* ── Ausências sem script (5.3, 5.4) ── */
+.tb-sem-js { display: flex; flex-wrap: wrap; gap: .4rem .8rem; align-items: center; margin: .35rem auto; font-size: var(--tb-fs-nota); color: var(--tinta-2); }
+.md-typeset .tb-diagrama-ausente { border: 1px solid var(--pauta); background: var(--cartao); padding: .8rem; margin: 1rem 0; }
+.md-typeset .tb-diagrama-ausente pre { overflow-x: auto; font-size: var(--tb-fs-nota); margin: .6rem 0 0; }
+
+/* ── A 404 (5.1) ── */
+.tb-erro-cod { font-family: var(--tb-mono); font-size: var(--tb-fs-nota); letter-spacing: .08em; color: var(--tinta-2); overflow-wrap: anywhere; }
+.tb-variante[hidden] { display: none; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

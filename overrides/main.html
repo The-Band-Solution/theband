@@ -1,0 +1,73 @@
+{#-
+  A moldura de toda página do site de desenvolvedores (075; protótipo M1–M9).
+
+  `textos` (os rótulos da moldura no idioma do build) e `build` vêm do hook
+  scripts/mkdocs_hooks.py, em on_env. Ver specs/075-site-de-desenvolvedores/contracts/.
+-#}
+{% extends "base.html" %}
+
+{% block extrahead %}
+  {#- O Mermaid servido pelo próprio site (AC11, F3). O bundle do Material só vai
+      ao unpkg se `mermaid` não estiver definido quando o primeiro diagrama
+      aparece; carregado aqui, no <head>, ele já está. O hash sha256 é conferido
+      no build; o `integrity` faz o navegador conferir também. -#}
+  {%- set m = config.extra.mermaid -%}
+  <script src="{{ m.arquivo | url }}" integrity="{{ m.integrity }}"></script>
+  {#- Se o arquivo não carregar (bloqueado, corrompido, sem rede), o Material
+      iria buscar o CDN. Este substituto o impede, e entrega ao Material, no
+      lugar do desenho, a ausência nomeada e o código do diagrama (D13, 5.4):
+      nunca área em branco. O código é escapado antes de virar HTML. -#}
+  <script>
+    if (typeof mermaid === "undefined" || mermaid instanceof Element) {
+      window.mermaid = {
+        tbAusente: true,
+        initialize: function () {},
+        render: function (id, codigo) {
+          var esc = function (t) {
+            return String(t).replace(/[&<>"']/g, function (c) {
+              return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+            });
+          };
+          var marca = {{ textos.diagrama_ausente_marca | tojson }};
+          var frase = {{ textos.diagrama_ausente_frase | tojson }};
+          return Promise.resolve({ svg:
+            "<style>.m{display:inline-flex;gap:.4rem;align-items:center;padding:.16rem .55rem;border:1px dashed var(--tinta-2);border-radius:3px;color:var(--tinta-2);font:500 .72rem/1.4 ui-monospace,Menlo,monospace}" +
+            ".q{width:11px;height:11px;border:1.5px dashed var(--tinta-2);border-radius:2px}" +
+            "p{color:var(--tinta);margin:0 0 .6rem}pre{overflow-x:auto;font-size:.76rem;background:var(--papel);border:1px solid var(--pauta);padding:.7rem;margin:0;color:var(--tinta)}</style>" +
+            "<p><span class=\"m\"><span class=\"q\"></span>" + esc(marca) + "</span> " + esc(frase) + "</p>" +
+            "<pre>" + esc(codigo) + "</pre>" });
+        }
+      };
+    }
+  </script>
+{% endblock %}
+
+{% block announce %}
+  {#- A faixa do build (M4, D9): o commit é fato do build, logo observado; a
+      versão em produção não é lida daqui (Q5), logo ausente, com o motivo. -#}
+  {%- if build.commit -%}
+    <span class="tb-marca tb-observado" title="{{ textos.marca_observado }}"><span class="tb-q"></span>{{ textos.build_observado | replace("{commit}", build.commit) | replace("{data}", build.data) }}</span>
+  {%- else -%}
+    <span class="tb-marca tb-ausente" title="{{ textos.marca_ausente }}"><span class="tb-q"></span>{{ textos.build_ausente }}</span>
+  {%- endif %}
+  <span class="tb-marca tb-ausente" title="{{ textos.marca_ausente }}"><span class="tb-q"></span>{{ textos.versao_ausente }}</span>
+{% endblock %}
+
+{% block content %}
+  {%- if page.meta and page.meta.traducao_pendente %}
+    {#- A página EN que ainda não foi traduzida diz isso, e não finge (traducao.md). -#}
+    <p class="tb-traducao-pendente" lang="en"><span class="tb-marca tb-ausente"><span class="tb-q"></span>{{ textos.traducao_pendente_marca }}</span> {{ textos.traducao_pendente_frase }}</p>
+  {%- endif %}
+  {%- if page.content and 'class="mermaid"' in page.content %}
+    {#- 5.4 sem script nenhum: o código do diagrama aparece como texto, e o aviso diz por quê. -#}
+    <noscript><p><span class="tb-marca tb-ausente"><span class="tb-q"></span>{{ textos.diagrama_ausente_marca }}</span> {{ textos.diagrama_ausente_frase }}</p></noscript>
+  {%- endif %}
+  {%- if page.meta and page.meta.traducao_pendente %}<div lang="pt-BR">{{ super() }}</div>{% else %}{{ super() }}{% endif %}
+  {%- if page.edit_url %}
+    {#- M9: o caminho de volta ao fonte, no fim da página. -#}
+    <div class="tb-editar">
+      <a href="{{ page.edit_url }}">{{ textos.editar }}</a>
+      <span class="tb-mono">docs/{{ page.file.src_uri }}</span>
+    </div>
+  {%- endif %}
+{% endblock %}

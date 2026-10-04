@@ -1,0 +1,41 @@
+# A seção III da home (protótipo, 1.5): as funcionalidades novas e onde cada uma está.
+#
+# O status e a data vêm do cabeçalho de cada `specs/NNN-*/spec.md` (declarado), conferidos em
+# 2026-10-03. `pagina` é o arquivo em docs/ quando existe; sem ela, `ausente` diz por quê.
+# A 073 e a 074 não têm página até o merge dos PRs (seguranca.md, E5).
+- numero: "072"
+  titulo: { pt: Promover e rebaixar administradores, en: Promote and demote administrators }
+  spec: { status: Draft, data: 2026-10-02, pasta: 072-papel-de-administrador }
+  onde: { pt: "em development desde 2026-10-03 (PR #1184)", en: "on development since 2026-10-03 (PR #1184)" }
+  pagina: funcionalidades/administradores.md
+  ausente: { pt: ainda não em produção, en: not in production yet }
+- numero: "070"
+  titulo: { pt: Suspender e reativar uma organização, en: Suspend and reactivate an organization }
+  spec: { status: Draft, data: 2026-10-01, pasta: 070-operador-da-plataforma }
+  onde: { pt: em development, en: on development }
+  pagina: funcionalidades/operador-da-plataforma.md
+  ausente: { pt: ainda não em produção, en: not in production yet }
+- numero: "064"
+  titulo: { pt: Todo segredo protegido em repouso, en: Every secret protected at rest }
+  spec: { status: Draft, data: 2026-09-12, pasta: 064-segredo-em-repouso }
+  onde: { pt: "em produção desde a v0.11.0, sem aceitação registrada", en: "in production since v0.11.0, acceptance not recorded" }
+  pagina: funcionalidades/segredo-em-repouso.md
+  ausente: null
+- numero: "071"
+  titulo: { pt: "Os papéis do banco: o que migra e o que serve", en: "Database roles: what migrates and what serves" }
+  spec: { status: Draft, data: 2026-10-02, pasta: 071-papeis-do-banco }
+  onde: { pt: em development, en: on development }
+  pagina: funcionalidades/papeis-do-banco.md
+  ausente: { pt: ainda não em produção, en: not in production yet }
+- numero: "073"
+  titulo: { pt: Rede de revisão, en: Review network }
+  spec: { status: Draft, data: 2026-10-03, pasta: 073-rede-de-revisao }
+  onde: { pt: "PR #1228 aberto", en: "PR #1228 open" }
+  pagina: null
+  ausente: { pt: entra quando o PR for mergeado, en: arrives when the PR is merged }
+- numero: "074"
+  titulo: { pt: "A jornada de entrar e sair, vista por quem opera", en: "Signing in and out, as seen by operators" }
+  spec: { status: Draft, data: 2026-10-03, pasta: 074-jornada-entrar-e-sair }
+  onde: { pt: "PR #1266 aberto", en: "PR #1266 open" }
+  pagina: null
+  ausente: { pt: entra quando o PR for mergeado, en: arrives when the PR is merged }

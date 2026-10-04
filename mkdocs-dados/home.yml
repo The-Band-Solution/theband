@@ -1,0 +1,86 @@
+# A home do protótipo (tela 1): os textos e o agrupamento das seções (D8).
+#
+# Cada seção é identificada pela primeira página dela no `nav` (`chave`), e não
+# pelo título, porque o título muda com o idioma. A CONTAGEM não está aqui: o hook
+# a tira do `nav` no build (1.4). Seção do `nav` que não estiver aqui falta na
+# home, e o teste test/site/test_home.py reprova.
+pt:
+  assinatura: The Band · documentação técnica
+  titulo: Como o The Band é construído, <em>e por quê.</em>
+  chamada: >-
+    Arquitetura, modelos derivados do código, decisões registradas e o que cada sprint ensinou.
+    Para quem vai contribuir, integrar ou operar. O que o produto faz para quem usa está em
+    <a href="{produto}">o produto</a>.
+  base: >-
+    Base científica: tese de doutorado de Paulo Sérgio dos Santos Júnior (UFES, 2023),
+    <em>From Continuous Software Engineering Reference Ontologies to the Integration of Data for
+    Data-Driven Software Development</em>.
+  comecar: Por onde começar
+  secoes: As seções
+  secoes_frase: >-
+    {n} seções, agrupadas pelo que quem lê quer fazer. A contagem é de páginas na navegação,
+    tirada do <code>mkdocs.yml</code> no build.
+  pagina: página
+  paginas: páginas
+  funcionalidades: Funcionalidades novas, e as que ainda não têm página
+  funcionalidades_frase: >-
+    Cada funcionalidade ganha uma página em Funcionalidades, escrita para quem usa, com o link
+    para a spec no GitHub. As specs não são publicadas aqui. O site é construído da
+    <span class="tb-mono">main</span>: o que está só em <span class="tb-mono">development</span>
+    ou num PR aberto aparece com o lugar onde está.
+en:
+  assinatura: The Band · developer docs
+  titulo: How The Band is built, <em>and why.</em>
+  chamada: >-
+    Architecture, models derived from the code, recorded decisions and what each sprint taught.
+    For those who will contribute, integrate or operate. What the product does for its users is in
+    <a href="{produto}">the product</a>.
+  base: >-
+    Scientific basis: doctoral thesis by Paulo Sérgio dos Santos Júnior (UFES, 2023),
+    <em>From Continuous Software Engineering Reference Ontologies to the Integration of Data for
+    Data-Driven Software Development</em>.
+  comecar: Where to start
+  secoes: The sections
+  secoes_frase: >-
+    {n} sections, grouped by what the reader wants to do. The count is of pages in the navigation,
+    taken from <code>mkdocs.yml</code> at build time.
+  pagina: page
+  paginas: pages
+  funcionalidades: New features, and the ones that have no page yet
+  funcionalidades_frase: >-
+    Each feature gets a page under Features, written for its users, with the link to the spec on
+    GitHub. The specs are not published here. The site is built from
+    <span class="tb-mono">main</span>: what is only on <span class="tb-mono">development</span>
+    or in an open PR shows where it is.
+
+comecar:
+  - { pt: Entender o que o sistema é e como está organizado, en: Understand what the system is and how it is organized, pagina: architecture/overview.md }
+  - { pt: Entender as tabelas e os schemas, e por que têm essa forma, en: Understand the tables and schemas, and why they look like this, pagina: architecture/modelo-de-dados.md }
+  - { pt: Colocar a aplicação em execução, e configurar o ambiente, en: Run the application and configure the environment, pagina: deployment.md }
+  - { pt: Entender o modelo conceitual, en: Understand the conceptual model, pagina: ontology/README.md }
+  - { pt: Integrar com a API pública, en: Integrate with the public API, pagina: api/README.md }
+  - { pt: Entender de onde vem um número, en: Understand where a number comes from, pagina: metrics/README.md }
+  - { pt: Saber por que uma decisão foi tomada, en: Know why a decision was made, pagina: adr/README.md }
+  - { pt: Ler o que os sprints ensinaram, en: Read what the sprints taught, pagina: sprints/licoes-aprendidas.md }
+
+grupos:
+  - nome: { pt: entender, en: understand }
+    secoes:
+      - { chave: architecture/overview.md, d: { pt: visão geral, modelo de dados e o design system, en: "overview, data model and the design system" } }
+      - { chave: modelos/README.md, d: { pt: "classes, banco, estados e DSM, com <span class=\"tb-mono\">arquivo:linha</span>", en: "classes, database, states and DSM, with <span class=\"tb-mono\">file:line</span>" }, marca: { tipo: derivado, pt: derivado do código, en: derived from the code } }
+      - { chave: ontology/README.md, d: { pt: a rede, o índice de conceitos, uma página por ontologia, en: "the network, the concept index, one page per ontology" }, marca: { tipo: derivado, pt: gerado da base de conhecimento, en: generated from the knowledge base } }
+      - { chave: integrations/mappings.md, d: { pt: mapeamentos semânticos e verificação contínua, en: semantic mappings and continuous verification } }
+      - { chave: metrics/README.md, d: { pt: necessidades de informação e medidas, en: information needs and measures }, marca: { tipo: derivado, pt: gerado da base de conhecimento, en: generated from the knowledge base } }
+  - nome: { pt: usar e integrar, en: use and integrate }
+    secoes:
+      - { chave: funcionalidades/README.md, d: { pt: "o que cada tela diz, e o que não diz", en: "what each screen says, and what it does not" } }
+      - { chave: api/README.md, d: { pt: a API pública e o servidor MCP, en: the public API and the MCP server } }
+  - nome: { pt: operar, en: operate }
+    secoes:
+      - { chave: deployment.md, d: { pt: "deployment, runbook de produção, fluxo de uma feature", en: "deployment, production runbook, the flow of a feature" } }
+      - { chave: releases/README.md, d: { pt: "o histórico, versão por versão", en: "the history, version by version" } }
+  - nome: { pt: decidir e registrar, en: decide and record }
+    secoes:
+      - { chave: adr/README.md, d: { pt: ADRs e RFCs, en: ADRs and RFCs }, marca: { tipo: declarado, pt: "declarado, com data e status", en: "declared, with date and status" } }
+      - { chave: backlog/README.md, d: { pt: o que construir e em que ordem, en: what to build and in what order } }
+      - { chave: sprints/RETOMAR.md, d: { pt: "backlogs, reviews, aceitações e as lições aprendidas", en: "backlogs, reviews, acceptances and the lessons learned" } }

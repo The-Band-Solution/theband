@@ -1,0 +1,108 @@
+# Os textos da moldura do site, nos dois idiomas.
+#
+# Por que aqui, e não nos templates: o mesmo template serve aos dois builds (o
+# plugin de idiomas constrói o site duas vezes), e a frase em inglês precisa de
+# um lugar só para ser revisada pelo lote L01 de traducao.md. A chave é o
+# idioma do build, `pt` ou `en`.
+pt:
+  lang: pt-BR
+  local: documentação técnica
+  local_curto: doc. técnica
+  buscar: Buscar na documentação técnica
+  buscar_botao: Buscar
+  menu_abrir: Abrir a navegação
+  produto: O produto
+  github: GitHub
+  entrar: Entrar na plataforma
+  plataforma: A plataforma
+  idioma: Idioma
+  build_observado: construída de main @ {commit} · {data}
+  build_ausente: "commit do build: não informado"
+  versao_ausente: "versão em produção: não informada nesta página"
+  marca_observado: observado no build
+  marca_ausente: ausente
+  busca_sem_js: A busca precisa de JavaScript
+  busca_sem_js_marca: busca indisponível
+  busca_sem_js_frase: >-
+    Com o JavaScript desligado, a navegação e as páginas funcionam; a busca não. Use a navegação
+    ou a busca do GitHub em docs/.
+  diagrama_ausente_marca: diagrama não desenhado
+  diagrama_ausente_frase: >-
+    O script que desenha o diagrama não carregou. Abaixo, o código do diagrama, que diz o mesmo.
+  traducao_pendente_marca: translation pending
+  traducao_pendente_frase: ""
+  editar: Editar esta página no GitHub
+  sobre: sobre
+  rodape_continuum_titulo: Continuum de ontologias de Engenharia de Software da tese
+  rodape_base: >-
+    Base científica: Paulo Sérgio dos Santos Júnior, <em>From Continuous Software Engineering
+    Reference Ontologies to the Integration of Data for Data-Driven Software Development</em>, UFES, 2023.
+  rodape_como: >-
+    Construída com MkDocs a partir de <span class="tb-mono">docs/</span> na
+    <span class="tb-mono">main</span>. Identidade copiada de theband.dev em {data_copia}. Cada página
+    tem o link para editá-la no GitHub.
+  nao_encontrada_titulo: Esta página não está publicada.
+  nao_encontrada_frase: >-
+    Não há página neste endereço. Ou o endereço mudou, ou a página ainda não chegou à
+    <span class="tb-mono">main</span>: a documentação técnica é construída da
+    <span class="tb-mono">main</span>, e o que está só em <span class="tb-mono">development</span>
+    não aparece aqui.
+  nao_encontrada_neutra_titulo: Esta página não existe em theband.dev.
+  nao_encontrada_neutra_frase: >-
+    O endereço não corresponde a nenhuma página publicada. Os três lugares do The Band estão abaixo.
+  nao_encontrada_inicio: Início da documentação técnica
+  nao_encontrada_github: A pasta docs/ em development, no GitHub
+  nao_encontrada_produto: O produto, se você procurava o que o The Band faz
+  nao_encontrada_landing: theband.dev, a página de entrada
+
+en:
+  lang: en
+  local: developer docs
+  local_curto: dev docs
+  buscar: Search the developer docs
+  buscar_botao: Search
+  menu_abrir: Open navigation
+  produto: The product
+  github: GitHub
+  entrar: Sign in to the platform
+  plataforma: The platform
+  idioma: Language
+  build_observado: built from main @ {commit} · {data}
+  build_ausente: "build commit: not available"
+  versao_ausente: "version in production: not shown on this page"
+  marca_observado: observed at build time
+  marca_ausente: absent
+  busca_sem_js: Search needs JavaScript
+  busca_sem_js_marca: search unavailable
+  busca_sem_js_frase: >-
+    With JavaScript off, navigation and pages work; search does not. Use the navigation or
+    GitHub search in docs/.
+  diagrama_ausente_marca: diagram not drawn
+  diagrama_ausente_frase: >-
+    The script that draws the diagram did not load. Below is the diagram source, which says the same.
+  traducao_pendente_marca: translation pending
+  traducao_pendente_frase: >-
+    This page has not been translated yet. The text below is the Portuguese original.
+  editar: Edit this page on GitHub
+  sobre: on
+  rodape_continuum_titulo: The thesis's continuum of Software Engineering ontologies
+  rodape_base: >-
+    Scientific basis: Paulo Sérgio dos Santos Júnior, <em>From Continuous Software Engineering
+    Reference Ontologies to the Integration of Data for Data-Driven Software Development</em>, UFES, 2023.
+  rodape_como: >-
+    Built with MkDocs from <span class="tb-mono">docs/</span> on
+    <span class="tb-mono">main</span>. Identity copied from theband.dev on {data_copia}. Every page
+    links to its source on GitHub.
+  nao_encontrada_titulo: This page is not published.
+  nao_encontrada_frase: >-
+    There is no page at this address. Either the address changed, or the page has not reached
+    <span class="tb-mono">main</span> yet: the developer docs are built from
+    <span class="tb-mono">main</span>, and what is only on <span class="tb-mono">development</span>
+    does not show here.
+  nao_encontrada_neutra_titulo: This page does not exist on theband.dev.
+  nao_encontrada_neutra_frase: >-
+    The address does not match any published page. The three places of The Band are below.
+  nao_encontrada_inicio: Developer docs home
+  nao_encontrada_github: The docs/ folder on development, on GitHub
+  nao_encontrada_produto: The product, if you were looking for what The Band does
+  nao_encontrada_landing: theband.dev, the front page

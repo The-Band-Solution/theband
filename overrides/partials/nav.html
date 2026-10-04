@@ -1,0 +1,25 @@
+{#-
+  A navegação do Material, com o fim da gaveta do protótipo (4.5): Entrar, O
+  produto, GitHub e a marca do build, visíveis só no telefone, onde o topo não
+  tem lugar para eles. A logo e a fonte do repositório do Material saem.
+-#}
+{% import "partials/nav-item.html" as item with context %}
+<nav class="md-nav md-nav--primary" aria-label="{{ lang.t('nav') }}" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">The Band · {{ textos.local }}</label>
+  <ul class="md-nav__list" data-md-scrollfix>
+    {% for nav_item in nav.items %}
+      {% set path = "__nav_" ~ loop.index %}
+      {{ item.render(nav_item, path, 1) }}
+    {% endfor %}
+  </ul>
+  <div class="tb-gaveta-fim">
+    <a class="tb-entrar" href="{{ config.extra.links.plataforma }}">{{ textos.entrar }}</a>
+    <a href="{{ config.extra.links.produto }}">{{ textos.produto }}</a>
+    <a href="{{ config.extra.links.github }}">{{ textos.github }}</a>
+    {%- if build.commit %}
+      <span class="tb-marca tb-observado"><span class="tb-q"></span>main @ {{ build.commit }} · {{ build.data }}</span>
+    {%- else %}
+      <span class="tb-marca tb-ausente"><span class="tb-q"></span>{{ textos.build_ausente }}</span>
+    {%- endif %}
+  </div>
+</nav>

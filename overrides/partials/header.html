@@ -1,0 +1,55 @@
+{#-
+  O topo (M3, D3, D12), na ordem do protótipo aprovado:
+  "The Band" (a landing) · "documentação técnica" · busca · O produto · GitHub ·
+  Entrar na plataforma · idioma. Abaixo de 46 rem ficam a marca, a busca e o menu,
+  com alvos de 44 px; Entrar, O produto e GitHub vão para o fim da gaveta.
+
+  Os itens do Material que ficam: o botão da gaveta (__drawer), a busca
+  (__search) e o seletor de tema. A logo e o título do Material saem: a marca é
+  a de theband.dev.
+-#}
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="{{ lang.t('header') }}">
+    <div class="tb-marca-site">
+      <a href="{{ config.extra.links.landing }}">The Band</a>
+      <a class="tb-aqui" href="{{ nav.homepage.url | url }}" aria-label="{{ textos.local }}">· <span class="tb-aqui-longo">{{ textos.local }}</span><span class="tb-aqui-curto">{{ textos.local_curto }}</span></a>
+    </div>
+    {% if "material/search" in config.plugins %}
+      {% set search = config.plugins["material/search"] | attr("config") %}
+      {% if search.enabled %}
+        <label class="md-header__button md-icon" for="__search" aria-label="{{ textos.buscar_botao }}">
+          {% include ".icons/material/magnify.svg" %}
+        </label>
+        {% include "partials/search.html" %}
+      {% endif %}
+    {% endif %}
+    <noscript>
+      {#- 5.3: sem JavaScript o campo não responde; dizê-lo é melhor que um campo mudo. -#}
+      <span class="tb-sem-js"><span class="tb-marca tb-ausente"><span class="tb-q"></span>{{ textos.busca_sem_js_marca }}</span> {{ textos.busca_sem_js }}</span>
+    </noscript>
+    <div class="tb-links">
+      <a href="{{ config.extra.links.produto }}">{{ textos.produto }}</a>
+      <a href="{{ config.extra.links.github }}">{{ textos.github }}</a>
+      <a class="tb-entrar" href="{{ config.extra.links.plataforma }}">{{ textos.entrar }}</a>
+    </div>
+    {% if config.extra.alternate %}
+      {#- O seletor de idioma. A decisão de 2026-10-03 tirou o "English version
+          pending" do protótipo: o site inteiro existe nos dois idiomas, e a
+          página sem tradução diz isso nela mesma. -#}
+      <nav class="tb-idioma" aria-label="{{ textos.idioma }}">
+        {% for alt in config.extra.alternate %}
+          <a href="{{ alt.link | url }}" hreflang="{{ alt.lang }}" lang="{{ alt.lang }}" {% if alt.lang == textos.lang or alt.lang == config.theme.language %}aria-current="true"{% endif %}>{{ alt.lang[:2] | upper }}</a>
+        {% endfor %}
+      </nav>
+    {% endif %}
+    {% if config.theme.palette and not config.theme.palette is mapping %}
+      {% include "partials/palette.html" %}
+    {% endif %}
+    {% if not config.theme.palette is mapping %}
+      {% include "partials/javascripts/palette.html" %}
+    {% endif %}
+    <label class="md-header__button md-icon tb-menu" for="__drawer" aria-label="{{ textos.menu_abrir }}">
+      {% include ".icons/material/menu.svg" %}
+    </label>
+  </nav>
+</header>

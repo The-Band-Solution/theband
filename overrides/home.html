@@ -1,0 +1,70 @@
+{#-
+  A home (protótipo, tela 1; 1.1–1.5). O texto vem de mkdocs-dados/home.yml;
+  as contagens, do `nav` no build (hook on_nav); as funcionalidades, de
+  mkdocs-dados/funcionalidades.yml. O conteúdo de docs/README.md continua a ser
+  o README do GitHub, e não é desenhado aqui.
+-#}
+{% extends "main.html" %}
+
+{% block site_nav %}
+  {#- A home não tem sumário; a navegação continua na gaveta e na lateral. -#}
+  {% if nav %}
+    <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+      <div class="md-sidebar__scrollwrap"><div class="md-sidebar__inner">{% include "partials/nav.html" %}</div></div>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+{%- set h = home[idioma] -%}
+<div class="tb-home">
+  <div class="tb-assinatura">{{ h.assinatura }}</div>
+  <h1>{{ h.titulo }}</h1>
+  <p class="tb-chamada">{{ h.chamada | replace("{produto}", config.extra.links.produto) }}</p>
+  <p class="tb-mudo">{{ h.base }}</p>
+
+  <div class="tb-pauta" aria-hidden="true">
+    <span class="tb-nota" style="left:8%;top:2px"></span><span class="tb-nota" style="left:22%;top:18px"></span>
+    <span class="tb-nota tb-der" style="left:37%;top:10px"></span><span class="tb-nota" style="left:55%;top:25px"></span>
+    <span class="tb-nota" style="left:71%;top:2px"></span><span class="tb-nota tb-der" style="left:86%;top:18px"></span>
+  </div>
+
+  <h2 id="por-onde-comecar"><span class="tb-num">I.</span>{{ h.comecar }}</h2>
+  <ul class="tb-perguntas">
+    {%- for c in home.comecar %}
+      {%- set alvo = paginas.get(c.pagina) %}
+      <li>{{ c[idioma] }} {% if alvo %}<a href="{{ alvo.url | url }}">{{ alvo.titulo }}</a>{% endif %}</li>
+    {%- endfor %}
+  </ul>
+
+  <h2 id="as-secoes"><span class="tb-num">II.</span>{{ h.secoes }}</h2>
+  <p class="tb-mudo">{{ h.secoes_frase | replace("{n}", secoes | length) }}</p>
+  <div class="tb-grupos tb-largo">
+    {%- for coluna in [home.grupos[:1], home.grupos[1:]] %}
+    <div>
+      {%- for g in coluna %}
+      <div class="tb-rom">{{ g.nome[idioma] }}</div>
+      <div class="tb-secoes">
+        {%- for s in g.secoes %}
+          {%- set sec = secoes.get(s.chave) %}
+          {%- if sec %}
+          <a class="tb-secao" href="{{ sec.url | url }}"><b>{{ sec.titulo }}</b><span class="tb-n">{{ sec.paginas }} {{ h.pagina if sec.paginas == 1 else h.paginas }}</span><span class="tb-d">{{ s.d[idioma] }}{% if s.marca %}<br><span class="tb-marca tb-{{ s.marca.tipo }}"><span class="tb-q"></span>{{ s.marca[idioma] }}</span>{% endif %}</span></a>
+          {%- endif %}
+        {%- endfor %}
+      </div>
+      {%- endfor %}
+    </div>
+    {%- endfor %}
+  </div>
+
+  <h2 id="funcionalidades-novas"><span class="tb-num">III.</span>{{ h.funcionalidades }}</h2>
+  <p class="tb-mudo">{{ h.funcionalidades_frase }}</p>
+  <ul class="tb-curso">
+    {%- for f in funcionalidades %}
+      {%- set alvo = paginas.get(f.pagina) if f.pagina else none %}
+      <li><span class="tb-id">{{ f.numero }}</span><span class="tb-t">{% if alvo %}<a href="{{ alvo.url | url }}">{{ f.titulo[idioma] }}</a>{% else %}{{ f.titulo[idioma] }}{% endif %}</span>
+        <span class="tb-m"><span class="tb-marca tb-declarado"><span class="tb-q"></span>spec {{ f.numero }} · {{ f.spec.status }} · {{ f.spec.data }}</span><span>{{ f.onde[idioma] }}</span>{% if f.ausente %}<span class="tb-marca tb-ausente"><span class="tb-q"></span>{{ f.ausente[idioma] }}</span>{% endif %}</span></li>
+    {%- endfor %}
+  </ul>
+</div>
+{% endblock %}
