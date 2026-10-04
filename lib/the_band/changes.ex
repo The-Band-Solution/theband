@@ -20,6 +20,40 @@ defmodule TheBand.Changes do
   alias TheBand.Tenants.Tenant
 
   @doc """
+  Quem **abriu** solicitação de mudança nos repositórios dados, desde `since` — feature 073,
+  `contracts/fronteiras.md`.
+
+  É o que põe na rede de revisão a pessoa que abriu e ninguém revisou (US2, cenário 2): sem esta
+  leitura ela nem apareceria, e a ausência *"nenhuma solicitação dela revisada"* não teria de quem
+  ser. Só autor com pessoa ligada, agrupado por pessoa, uma consulta.
+
+  **Não expõe** quais solicitações, quantas, nem título.
+  """
+  @spec change_request_authors(Tenant.t(), [Ecto.UUID.t()], since: DateTime.t()) :: [
+          %{author_person_id: Ecto.UUID.t(), last_opened_at: DateTime.t()}
+        ]
+  def change_request_authors(_tenant, [], _opts), do: []
+
+  def change_request_authors(%Tenant{id: tenant_id}, observed_repository_ids, opts) do
+    since = Keyword.fetch!(opts, :since)
+
+    Repo.all(
+      from c in "collected_change_requests",
+        where:
+          c.tenant_id == type(^tenant_id, :binary_id) and
+            c.observed_repository_id in type(^observed_repository_ids, {:array, :binary_id}) and
+            not is_nil(c.author_person_id) and is_nil(c.no_longer_observed_at) and
+            c.external_created_at >= type(^since, :utc_datetime),
+        group_by: c.author_person_id,
+        order_by: c.author_person_id,
+        select: %{
+          author_person_id: type(c.author_person_id, :binary_id),
+          last_opened_at: type(max(c.external_created_at), :utc_datetime)
+        }
+    )
+  end
+
+  @doc """
   As solicitações que atendem uma issue — o rastro do escopo para a mudança.
 
   Uma consulta. Vazio significa "nenhuma solicitação reconhecida atende esta issue", e

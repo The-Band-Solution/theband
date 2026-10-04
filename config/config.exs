@@ -11,6 +11,11 @@ config :the_band,
   ecto_repos: [TheBand.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+# O log embutido do Ecto fica desligado em todo ambiente — issue #1222. Em `:debug` ele loga os
+# parâmetros antes de o tipo cifrar, e o segredo saía em claro. Quem loga as consultas é
+# `TheBand.Repo.LogDaConsulta`, que redige os parâmetros das tabelas com campo cifrado.
+config :the_band, TheBand.Repo, log: false
+
 # O catálogo de mensagens (feature 047). O padrão é "en" porque o msgid É a frase
 # que a tela mostra hoje (research R2) — trocar a plataforma para pt é trocar a
 # linha do :gettext quando o catálogo pt fechar, e só ela (FR-005). Ela vive no app

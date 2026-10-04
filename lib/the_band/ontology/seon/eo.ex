@@ -159,6 +159,9 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate fetch_organization_by_login(tenant_id, login), to: Queries
   defdelegate organizations_by_person(tenant, person_ids), to: Queries
   defdelegate fetch_organization!(tenant, organization_id), to: Queries
+  defdelegate fetch_organization(tenant, organization_id), to: Queries
+  defdelegate account_types(tenant, person_ids), to: Queries
+  defdelegate organization_person_ids(tenant, organization_id), to: Queries
   defdelegate list_people_without_team(tenant, organization_id), to: Queries
   defdelegate fetch_derived_team(tenant, organization_id), to: Queries
   defdelegate observation_impact(tenant, organization_login), to: Queries

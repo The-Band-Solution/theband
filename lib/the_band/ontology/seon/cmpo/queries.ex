@@ -15,6 +15,8 @@ defmodule TheBand.Ontology.SEON.CMPO.Queries do
   Devolve mapas e não structs: a tela precisa de repositório, identidade e situação
   juntos, e devolver a struct obrigaria quem chama a alcançar a tabela do kind — o que
   é justamente o que a fronteira impede.
+
+  Opções: `connected_tool_id:` e `organization_id:` (feature 073), as duas filtradas no banco.
   """
   @spec list_observed(Tenant.t(), keyword()) :: [map()]
   def list_observed(%Tenant{id: tenant_id}, opts \\ []) do
@@ -67,8 +69,16 @@ defmodule TheBand.Ontology.SEON.CMPO.Queries do
       }
     )
     |> then(fn q -> if tool_id, do: where(q, [o], o.connected_tool_id == ^tool_id), else: q end)
+    |> filtrar_organizacao(Keyword.get(opts, :organization_id))
     |> Repo.all()
   end
+
+  # Feature 073: a rede de revisão é por organização observada (R4), e o filtro é no banco, e não
+  # num `Enum.filter` sobre a lista do tenant inteiro (§7.2).
+  defp filtrar_organizacao(query, nil), do: query
+
+  defp filtrar_organizacao(query, organization_id),
+    do: where(query, [_o, r], r.organization_id == ^organization_id)
 
   @doc """
   Os repositórios que a coleta deve consultar.

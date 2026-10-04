@@ -6,12 +6,24 @@ defmodule TheBandWeb.SourceLive.Index do
   qualquer gravação; quando a validação falha, a tela diz o que faltou e nada é
   gravado. Depois de conectada, a chave nunca mais aparece — só `••••` mais os
   quatro últimos caracteres.
+
+  ## A idade de cada credencial, e o pedido de troca (064/T018)
+
+  A coluna `registered` mostra desde quando cada credencial vale, com a marca de
+  `TheBand.Credenciais.Idade`; a credencial **ativa** vencida ganha o pedido, pelo rótulo, sob
+  `Credentials` (protótipo aprovado em 2026-10-03, régua 1.1–1.11). Pedir, e não impedir:
+  nenhum botão muda com a idade, e a coleta não a consulta.
   """
 
   use TheBandWeb, :live_view
 
+  import TheBandWeb.IdadeDaCredencial, only: [idade: 1, aviso: 1]
+
+  alias TheBand.AI
+  alias TheBand.Credenciais.Idade
   alias TheBand.Sources
   alias TheBand.Sources.ToolCredential
+  alias TheBandWeb.IdadeDaCredencial
 
   @impl true
   def mount(_params, _session, socket) do
@@ -442,8 +454,8 @@ defmodule TheBandWeb.SourceLive.Index do
             trabalha" acha aqui, sem precisar saber que existe um endereço /ai. As telas
             continuam separadas — cada uma faz uma coisa. --%>
       <.abas abas={[
-        %{rotulo: "Connected tools", destino: ~p"/tools", atual?: true},
-        %{rotulo: "AI provider", destino: ~p"/ai", atual?: false}
+        %{rotulo: "Connected tools", destino: ~p"/tools", atual?: true, marca: @marca_tools},
+        %{rotulo: "AI provider", destino: ~p"/ai", atual?: false, marca: @marca_ai}
       ]} />
       <.header>
         Ferramentas conectadas
@@ -747,6 +759,10 @@ defmodule TheBandWeb.SourceLive.Index do
             </button>
           </div>
 
+          <%!-- Entre `Credentials` e o formulário/tabela (1.3): o pedido é a primeira coisa
+                depois do título, também no telefone (3.1). --%>
+          <.pedidos_da_ferramenta tool={tool} agora={@agora} />
+
           <form
             :if={@adding == tool.id}
             id={"add-credential-#{tool.id}"}
@@ -803,14 +819,18 @@ defmodule TheBandWeb.SourceLive.Index do
                 <th>label</th>
                 <th>credential</th>
                 <th>scopes</th>
-                <th>validated at</th>
+                <th>registered</th>
                 <th>state</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              <tr :for={credential <- tool.credentials}>
-                <td>
+              <tr
+                :for={credential <- tool.credentials}
+                id={"credential-#{credential.id}"}
+                class={[vencida_ativa?(credential, @agora) && "bg-warning/10"]}
+              >
+                <td data-label="label">
                   <form
                     :if={@renaming == credential.id}
                     id={"rename-#{credential.id}"}
@@ -834,7 +854,7 @@ defmodule TheBandWeb.SourceLive.Index do
                   </form>
                   <span :if={@renaming != credential.id}>{credential.label}</span>
                 </td>
-                <td class="font-mono text-xs">
+                <td data-label="credential" class="font-mono text-xs">
                   {ToolCredential.masked(credential)}
                   <span :if={credential.owner_login} class="ml-1 opacity-70">
                     owner: {credential.owner_login}
@@ -843,14 +863,21 @@ defmodule TheBandWeb.SourceLive.Index do
                     owner unknown until the next sync
                   </span>
                 </td>
-                <td class="text-xs">{Enum.join(credential.scopes, ", ")}</td>
-                <td class="text-xs">{credential.validated_at}</td>
-                <td>
+                <td data-label="scopes" class="text-xs">{Enum.join(credential.scopes, ", ")}</td>
+                <td data-label="registered">
+                  <.idade
+                    credencial={credential}
+                    agora={@agora}
+                    ativa?={credential.active}
+                    sem_data="the platform has no date for this credential"
+                  />
+                </td>
+                <td data-label="state">
                   <span class={["badge badge-sm", credential.active && "badge-success"]}>
                     {if credential.active, do: "active", else: "inactive"}
                   </span>
                 </td>
-                <td class="flex flex-wrap gap-1">
+                <td data-label="" class="flex flex-wrap gap-1">
                   <button
                     class="btn btn-xs btn-ghost"
                     phx-click="toggle_credential"
@@ -879,6 +906,19 @@ defmodule TheBandWeb.SourceLive.Index do
               </tr>
             </tbody>
           </table>
+          <%!-- Inativa vencida (Q1 b): sem pedido de troca — trocar é a ação errada para o que
+                ninguém usa —, mas o segredo segue em repouso, e a linha pede para remover.
+                Texto de tela: inglês de propósito. --%>
+          <p
+            :for={credential <- inativas_vencidas(tool.credentials, @agora)}
+            id={"inactive-#{credential.id}"}
+            class="text-sm mt-2"
+          >
+            “{credential.label}” is inactive and was registered {IdadeDaCredencial.intervalo(
+              Idade.em_uso_desde(credential),
+              @agora
+            )}, on {IdadeDaCredencial.data(Idade.em_uso_desde(credential))}. Its secret is still stored; remove it if it is no longer needed.
+          </p>
           <p class="text-xs opacity-60 mt-2">
             The credential is encrypted at rest and is never shown in usable form. The last four
             characters exist only to tell one credential from another.
@@ -892,14 +932,126 @@ defmodule TheBandWeb.SourceLive.Index do
             <span class="font-semibold">end the observation</span>
             — the collected data stays queryable, marked as no longer observed.
           </p>
+          <p class="text-xs opacity-60 mt-2">
+            We ask for a new token {@limite} months after one is saved. We ask; we never stop
+            collecting because of age.
+          </p>
         </div>
       </div>
     </Layouts.app>
     """
   end
 
+  # Os pedidos de uma ferramenta, um por credencial ATIVA vencida ou de idade desconhecida
+  # (1.3, 1.7, 1.9). Texto de tela: inglês de propósito.
+  attr :tool, :any, required: true
+  attr :agora, DateTime, required: true
+
+  defp pedidos_da_ferramenta(assigns) do
+    assigns =
+      assign(assigns,
+        pedidos: pedidos(assigns.tool.credentials, assigns.agora),
+        limite: Idade.limite_em_meses()
+      )
+
+    ~H"""
+    <div :if={@pedidos != []} class="mb-3 space-y-2">
+      <%= for pedido <- @pedidos do %>
+        <%= case pedido do %>
+          <% {:trocar, credencial} -> %>
+            <.aviso
+              forma={:vencida}
+              titulo={"Replace the token “#{credencial.label}”."}
+              id={"request-#{credencial.id}"}
+            >
+              <p>
+                It was registered <b>{IdadeDaCredencial.intervalo(Idade.em_uso_desde(credencial), @agora)}</b>, on {IdadeDaCredencial.data(
+                  Idade.em_uso_desde(credencial)
+                )}. The platform asks for a new token {@limite} months after one is saved.
+              </p>
+              <p>
+                Collection goes on with this token meanwhile. Nothing stops and nothing is blocked.
+              </p>
+              <p>
+                Generate a new token on GitHub, add it below, and once it works deactivate or
+                remove the old one here. Removing it here does not revoke it on GitHub: revoke it
+                there too.
+              </p>
+              <:quem>
+                Who can replace it: an administrator, or someone who answers for {@tool.organization_login}.
+              </:quem>
+            </.aviso>
+          <% {:desativar_a_antiga, antiga, nova} -> %>
+            <.aviso
+              forma={:vencida}
+              titulo={"The new token is in. “#{antiga.label}” is still active."}
+              id={"request-#{antiga.id}"}
+            >
+              <p>
+                “{antiga.label}” was registered <b>{IdadeDaCredencial.intervalo(Idade.em_uso_desde(antiga), @agora)}</b>, on {IdadeDaCredencial.data(
+                  Idade.em_uso_desde(antiga)
+                )}. Once “{nova.label}” has collected, deactivate or remove the old one, and
+                revoke it on GitHub.
+              </p>
+              <:quem>Collection goes on with both meanwhile.</:quem>
+            </.aviso>
+          <% {:sem_data, credencial} -> %>
+            <.aviso
+              forma={:desconhecida}
+              titulo={"The age of “#{credencial.label}” is unknown."}
+              id={"request-#{credencial.id}"}
+            >
+              <p>
+                The platform has no record of when it was saved, so it cannot tell whether it is
+                due. Replacing it starts a dated count.
+              </p>
+            </.aviso>
+        <% end %>
+      <% end %>
+    </div>
+    """
+  end
+
+  # Um estado por cláusula, sem coringa (achado 4): a de idade desconhecida não pode cair, por
+  # descuido, no ramo de quem está no prazo.
+  defp pedidos(credenciais, agora) do
+    ativas = Enum.filter(credenciais, & &1.active)
+
+    Enum.flat_map(ativas, fn credencial ->
+      case Idade.estado(credencial, agora) do
+        :vencida -> [pedido_da_vencida(credencial, ativas, agora)]
+        :idade_desconhecida -> [{:sem_data, credencial}]
+        :no_prazo -> []
+      end
+    end)
+  end
+
+  # D5, 1.7: a troca em `/tools` é linha nova, e a antiga segue ativa. Existindo uma ativa no
+  # prazo, mais nova que a vencida, a troca já começou — o pedido passa a ser o de desativar a
+  # antiga. Decidido pelo estado, e não pelo clique: recarregar a tela diz o mesmo.
+  defp pedido_da_vencida(antiga, ativas, agora) do
+    desde = Idade.em_uso_desde(antiga)
+
+    nova =
+      ativas
+      |> Enum.filter(fn c ->
+        Idade.estado(c, agora) == :no_prazo and
+          DateTime.compare(Idade.em_uso_desde(c), desde) == :gt
+      end)
+      |> Enum.max_by(&Idade.em_uso_desde/1, DateTime, fn -> nil end)
+
+    if nova, do: {:desativar_a_antiga, antiga, nova}, else: {:trocar, antiga}
+  end
+
+  defp inativas_vencidas(credenciais, agora),
+    do: Enum.filter(credenciais, &(!&1.active and Idade.estado(&1, agora) == :vencida))
+
+  defp vencida_ativa?(credencial, agora),
+    do: credencial.active and Idade.estado(credencial, agora) == :vencida
+
   defp load_tools(socket) do
     tenant = socket.assigns.current_tenant
+    agora = DateTime.utc_now(:second)
 
     # FR-023: quem entra por concessão organization vê e opera o que pertence às
     # organizações concedidas; administrador vê o tenant inteiro.
@@ -910,6 +1062,13 @@ defmodule TheBandWeb.SourceLive.Index do
 
     socket
     |> assign(tools: tools)
+    |> assign(agora: agora, limite: Idade.limite_em_meses())
+    # A marca das abas (A.1): a de "Connected tools" olha só as ferramentas do recorte (4.2); a
+    # do provedor olha a chave do tenant, que todo operador vê em `/ai` (4.3).
+    |> assign(
+      marca_tools: IdadeDaCredencial.marca_da_aba(Enum.flat_map(tools, & &1.credentials), agora),
+      marca_ai: marca_da_chave(tenant, agora)
+    )
     # A derivação vem de `observation_ended?/1`, a mesma função que o filtro de coleta
     # usa. Dois caminhos discordariam, e a tela mostraria como encerrado o que a
     # plataforma continua coletando.
@@ -927,6 +1086,15 @@ defmodule TheBandWeb.SourceLive.Index do
     |> assign_new(:ending, fn -> nil end)
     |> assign_new(:resuming, fn -> nil end)
     |> assign_new(:open_history, fn -> [] end)
+  end
+
+  # A chave do ambiente não acende a marca: não tem data (achado 3). Sem segredo: esta tela não
+  # mostra a chave, e não pode cair por não conseguir decifrá-la.
+  defp marca_da_chave(tenant, agora) do
+    case AI.fetch_sem_segredo(tenant) do
+      {:ok, cred} -> IdadeDaCredencial.marca_da_aba([cred], agora)
+      {:error, :not_found} -> nil
+    end
   end
 
   defp all_credentials(socket), do: Enum.flat_map(socket.assigns.tools, & &1.credentials)
