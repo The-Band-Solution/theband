@@ -2,6 +2,11 @@ defmodule TheBandWeb.Telemetry do
   use Supervisor
   import Telemetry.Metrics
 
+  alias TheBand.Telemetria.Contadores
+  alias TheBand.Telemetria.Jornada
+
+  require Logger
+
   def start_link(arg) do
     Supervisor.start_link(__MODULE__, arg, name: __MODULE__)
   end
@@ -85,9 +90,37 @@ defmodule TheBandWeb.Telemetry do
 
   defp periodic_measurements do
     [
-      # A module, function and arguments to be invoked periodically.
-      # This function must call :telemetry.execute/3 and a metric must be added above.
-      # {TheBandWeb, :count_users, []}
+      # A perda da telemetria da jornada, dita a cada rodada — spec 074, contrato §7; S11.
+      {__MODULE__, :conferir_a_telemetria, []}
     ]
   end
+
+  @doc """
+  Loga os contadores de perda da telemetria que não são zero, e confere que o handler da jornada
+  segue anexado — spec 074 (FR-008; seguranca.md, S11).
+
+  Vive aqui porque o `telemetry_poller` já roda, e porque o contador de perda não pode viajar
+  pelo cano que perdeu: com o exportador parado, um contador exportado sumiria junto.
+  """
+  @spec conferir_a_telemetria() :: :ok
+  def conferir_a_telemetria do
+    unless Jornada.anexado?() do
+      Logger.error(
+        "telemetria da jornada: o handler #{Jornada.id()} NÃO está anexado; os passos não viram span"
+      )
+    end
+
+    case Contadores.nao_zero() do
+      [] ->
+        :ok
+
+      contadores ->
+        Logger.warning(fn ->
+          "telemetria: contadores · " <> Enum.map_join(contadores, " ", &contador/1)
+        end)
+    end
+  end
+
+  defp contador({{nome, nil}, n}), do: "#{nome}=#{n}"
+  defp contador({{nome, rotulo}, n}), do: "#{nome}[#{rotulo}]=#{n}"
 end
