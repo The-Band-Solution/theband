@@ -322,7 +322,16 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
   - **Teste**: o próprio arquivo. **Defeitos a injetar**: declarar um motivo a mais no YAML;
     emitir um motivo novo no código sem declarar
 
-- [ ] T020 [US3] Sem backend, entrar e sair seguem iguais
+- [x] T020 [US3] Sem backend, entrar e sair seguem iguais — *feita em 2026-10-03:
+  `test/the_band/telemetria/sem_backend_test.exs` reinicia o SDK com o processador em lote, o
+  filtro e o OTLP/HTTP de produção, contra um coletor que recusa conexão e outro que aceita e não
+  responde: 10 de 10 entradas e saídas respondem como sempre, cada uma abaixo de 2 s, e a recusa
+  do destino sobe `exportacao_falhou`. **Sem a tag `:integration`**: `test_helper.exs` a exclui e
+  `mix gates` não a inclui, então o teste nunca rodaria. Defeito visto reprovando: o exportador
+  síncrono (processador simples) no caminho — "a entrada esperou 3014 ms pelo backend" (2/2).
+  **Limitação** (research R13): o SDK 1.7.0 não conta o descarte por fila cheia; a perda é a
+  diferença `passo_emitido − span_exportado − span_descartado`, com os spans em trânsito dentro.
+  A parada do coletor do profile `telemetria` à mão fica no quickstart*
   - **Pronta quando**: T005, T006, T012, T016
   - **Descrição**: com o profile `telemetria` de pé, parar o coletor e fazer dez entradas e dez
     saídas; ler `deps/opentelemetry/src/otel_batch_processor.erl` e decidir como o descarte por fila

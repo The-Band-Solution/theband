@@ -237,13 +237,13 @@ versão do servidor e a do coletor não casavam. O quickstart confere que um spa
 ## R13. Contar a perda — onde o contador mora, e o que ainda está em aberto
 
 **Decisão** (seguranca.md, S11): os contadores de perda (`handler_falhou`, `atributo_descartado`,
-`span_descartado`) vivem em `:counters`, **fora** do OpenTelemetry — contar a perda pelo mesmo
+`span_descartado`) vivem numa tabela ETS (`TheBand.Telemetria.Contadores`), **fora** do OpenTelemetry — contar a perda pelo mesmo
 cano que perdeu é circular: com o exportador parado, o contador some junto. O `telemetry_poller`
 que já existe (`lib/the_band_web/telemetry.ex:14`) os loga periodicamente em `warning` quando não
 são zero, e na mesma rodada confere que o handler continua anexado
 (`:telemetry.list_handlers([:the_band, :jornada, :passo])`), logando `error` se não estiver.
 
-**Em aberto**: **não foi verificado** se o `otel_batch_processor` de `opentelemetry 1.7.0` expõe
+**Estava em aberto** (fechado abaixo): não tinha sido verificado se o `otel_batch_processor` de `opentelemetry 1.7.0` expõe
 o descarte por fila cheia. A tarefa que configura o SDK lê
 `deps/opentelemetry/src/otel_batch_processor.erl` e mede com o coletor parado e fila pequena; se
 a biblioteca não disser, o exportador conta o que recebe contra o que o handler emitiu, e a
@@ -256,6 +256,14 @@ Com a fila no teto (`check_table_size`), `disable/1` desliga a inserção e `do_
 `passo_emitido` (contado pelo handler) e `span_exportado` + `span_descartado` (contados pelo
 filtro), com os spans em trânsito dentro dela; e a recusa do destino (coletor fora) é
 `exportacao_falhou`, rotulada pelo retorno.
+
+**Limitação declarada**: o descarte por fila cheia **não tem contador próprio**; aparece só como
+diferença, que mistura perda com spans em trânsito. Não se inventa contagem: medir a perda exata
+exigiria envolver o processador, e isso fica para quando a diferença for alta o bastante para
+importar. Medido na T020 (`sem_backend_test.exs`): com o processador em lote e o coletor recusando
+conexão ou mudo, vinte requisições (dez entradas, dez saídas) responderam como sempre, cada uma
+abaixo de 2 s, e a falha do destino subiu `exportacao_falhou`; com o exportador síncrono no
+caminho (o defeito), a primeira entrada esperou 3 014 ms.
 
 **Inundação** (seguranca.md, S12): o identificador que não resolve não entra em espera
 (`auth.ex:47-50`), então uma campanha de adivinhação gera um span por tentativa e enche a fila —
