@@ -33,7 +33,10 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
     `contracts/jornada.md` §5 foi atualizado no mesmo commit
   - **Teste**: revisão: as sete aparecem em `spec.md`; nenhuma ficou "pendente"
 
-- [ ] T003 Conferir que os pré-requisitos de segurança chegaram
+- [x] T003 Conferir que os pré-requisitos de segurança chegaram — *conferida em 2026-10-03: PR
+  #1227 `MERGED` em `development` às 19:04 UTC (merge `0e3c2f0`); `git grep -n "defmodule
+  TheBand.Repo.LogDaConsulta" origin/development -- lib/` devolve
+  `lib/the_band/repo/log_da_consulta.ex:1`*
   - **Pronta quando**: T002 (D6)
   - **Descrição**: `gh pr view 1227` mergeado em `development` (D6). A #887 **não** bloqueia: as
     tarefas #871, #872 e #873 estão fechadas (conferido em 2026-10-03), e a US espera só a
