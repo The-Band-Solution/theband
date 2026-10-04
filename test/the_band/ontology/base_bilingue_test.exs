@@ -92,7 +92,14 @@ defmodule TheBand.Ontology.BaseBilingueTest do
   end
 
   test "as limitações que o Mapper devolve são string em português, venha o item como vier" do
-    for %{"mapping" => %{"id" => id}, "limitations" => cruas} <- KnowledgeBase.list(:mapping) do
+    mapeamentos = KnowledgeBase.list(:mapping)
+
+    # Sem isto o laço podia passar vazio: um padrão que não casasse nenhum mapeamento
+    # aprovaria tudo sem conferir nada — foi o que a primeira versão deste teste fazia.
+    assert Enum.any?(mapeamentos, fn m -> Enum.any?(m["limitations"], &is_map/1) end),
+           "nenhuma limitação em mapa de idioma: o teste não exercita a forma nova"
+
+    for %{"id" => id, "limitations" => cruas} <- mapeamentos do
       lidas = Mapper.limitations(id)
 
       assert Enum.all?(lidas, &is_binary/1), "#{id}: o Mapper vazou o mapa de idioma"
