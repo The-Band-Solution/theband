@@ -120,6 +120,13 @@ tail -30 /tmp/telemetria.log
    `openssl rand -hex 32` e `openssl rand -hex 24`, e colados direto no painel do Dokploy, sem
    passar por chat, arquivo ou histórico (comando com espaço inicial e `HISTCONTROL=ignorespace`).
    Sem qualquer das duas, o contêiner correspondente **recusa subir**, de propósito.
+   E uma terceira, que **não é segredo**: `SIGNOZ_CONFIG_DIR` com o caminho **absoluto** da pasta
+   `deploy/signoz` no clone do Dokploy, `/etc/dokploy/compose/<app>/code/deploy/signoz` (o `<app>`
+   é o nome interno do serviço, que aparece no log do deploy). O Dokploy resolve `./` a partir da
+   raiz do clone, e não da pasta do compose: sem ela, o ClickHouse falha com *"not a directory"*
+   ao montar `config.xml` (#1260, 2026-10-04). Se o primeiro deploy já falhou assim, o Docker
+   deixou diretórios vazios em `code/clickhouse/` e `code/otel-collector-config.yaml`; apague-os
+   antes do deploy seguinte.
 5. **Deploy, e conferir que subiu — o *Done* do painel não prova nada** (#1313, P4: com o profile,
    nada subia e o painel dizia *Done*). No VPS:
 

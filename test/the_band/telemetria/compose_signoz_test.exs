@@ -92,6 +92,24 @@ defmodule TheBand.Telemetria.ComposeSignozTest do
     assert rede["name"] == "the-band-telemetria"
   end
 
+  # #1260: o Dokploy resolve `./` a partir da raiz do clone, e não da pasta do compose. Toda
+  # montagem de arquivo do repositório passa pelo diretório-base configurável.
+  test "toda montagem de arquivo do repositório parte de SIGNOZ_CONFIG_DIR, e não de ./ (#1260)" do
+    montagens =
+      ler(@producao)
+      |> Map.fetch!("services")
+      |> Enum.flat_map(fn {_servico, definicao} -> Map.get(definicao, "volumes", []) end)
+      |> Enum.filter(&is_binary/1)
+      |> Enum.reject(&String.match?(&1, ~r/^[a-z0-9_-]+:/))
+
+    assert length(montagens) == 6
+
+    for montagem <- montagens do
+      assert String.starts_with?(montagem, "${SIGNOZ_CONFIG_DIR:-.}/"),
+             "#{montagem} seria resolvida a partir da raiz do clone no Dokploy"
+    end
+  end
+
   test "em desenvolvimento, a rede telemetria deixa de ser externa e o compose a cria" do
     assert get_in(ler(@desenvolvimento), ["networks", "telemetria", "external"]) == false
   end
