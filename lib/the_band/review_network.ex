@@ -14,15 +14,20 @@ defmodule TheBand.ReviewNetwork do
     a cada chamada (FR-015);
   - `compute/3` — só o job chama;
   - `windows/0` — as janelas permitidas e a padrão, para a tela desenhar a escolha;
-  - `subscribe/1` — o aviso de leitura pronta, só com ids.
+  - `subscribe/1` — o aviso de leitura pronta, só com ids;
+  - `current_edges/2` — as arestas vigentes por janela, só com ids, para a análise de rede (076).
 
   Depende de: EO, CMPO, Quality, Changes, Tenants, KnowledgeBase, sempre pela API pública.
   """
 
-  alias TheBand.ReviewNetwork.{Commands, Notices, Parameters, Reader}
+  alias TheBand.ReviewNetwork.{Commands, Notices, Parameters, Queries, Reader}
 
   defdelegate read(tenant, user, organization_id, window), to: Reader
   defdelegate compute(tenant, organization, now), to: Commands
   defdelegate windows(), to: Parameters
   defdelegate subscribe(tenant), to: Notices
+
+  # A entrada da rede de revisão da análise de rede (076, T028): só ids, sem alcance, para o
+  # cálculo. Nenhuma tela a chama.
+  defdelegate current_edges(tenant, organization_id), to: Queries
 end

@@ -257,6 +257,22 @@ O relator **não** carrega `person_id`, nome, login, papel nem medida por pessoa
   `network_analysis_readings` e `review_network_readings` passam a ter os parâmetros redigidos,
   como as que têm campo cifrado.
 
+**Emenda de 2026-10-04 (T028)**, feita no mesmo commit da implementação:
+
+- `Inputs.for_organization/4` faz todas as buscas **uma vez**, ao montar a função (as contas
+  declaradas, as pessoas da organização, as leituras da 073, os pares de designação da maior janela
+  e os tipos de EO), e a função só filtra por janela em memória: seis chamadas, as mesmas consultas;
+- **revisão**: as arestas da leitura da 073 da mesma janela, `source_computed_at` = o instante
+  dela, e as exclusões com os códigos da regra (`self_review`, `bot_or_app`,
+  `organization_account` — nulo na leitura da versão 1 —, `unlinked_person`) e `pairs`. Sem
+  leitura da 073 na janela, `{:ausente, :not_computed}`;
+- **designação**: `AssignmentClassification.summarize/2` por janela; `provenance` leva
+  `account_type_unknown`;
+- `people_without_edges` desconta as contas declaradas da organização: elas não são pessoas nesta
+  rede, e contá-las como *"pessoa sem aresta"* as poria de volta por outra porta. Nulo quando a
+  janela não tem aresta;
+- os tipos `exclusions` e `excluded` do relator aceitam `nil` (o motivo não avaliado).
+
 ## `discard_organization/2`
 
 ```elixir
