@@ -255,7 +255,8 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
 
 ## Fase 4: US2 — sei quando sair falhou (P1)
 
-- [ ] T016 [US2] Sair diz se encerrou alguma coisa
+- [x] T016 [US2] Sair diz se encerrou alguma coisa — *feita em 2026-10-03: 2 casos em
+  `regua_test.exs`; defeito visto reprovando: `concluiu` sempre (1/2 — o do cookie velho)*
   - **Pronta quando**: T011
   - **Descrição**: `SessionController.delete/2` emite `sair` com `concluiu` quando havia
     `current_session`, e `falhou` / `sessao_ja_nao_existia` quando não havia. `Sessions.encerrar/1`
@@ -264,7 +265,11 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
     `sessao_derrubada` (`encerrada`) **e** `sair` com `sessao_ja_nao_existia`
   - **Teste**: `regua_test.exs`, a parte de sair. **Defeito a injetar**: emitir `concluiu` sempre
 
-- [ ] T017 [US2] A queda de sessão diz o motivo
+- [x] T017 [US2] A queda de sessão diz o motivo — *feita em 2026-10-03: os oito motivos, cada um
+  provocado como acontece (cookie adulterado, linha ausente, resumo errado, sessão encerrada,
+  vencida, época velha, organização suspensa, conta desativada com a sessão aberta), o visitante
+  sem cookie, e a tela aberta pela hook do LiveView (#1042). Defeitos vistos reprovando: emitir
+  para `:sem_sessao` (1/23); a hook sem o passo (1/23)*
   - **Pronta quando**: T011
   - **Descrição**: `CurrentScope.sem_sessao/3` emite `sessao_derrubada` com o motivo, ao lado do
     log. `:sem_sessao` (o visitante sem cookie) não emite. Os oito motivos de data-model §1.
