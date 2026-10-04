@@ -33,6 +33,12 @@ confere, sem usar para decidir, o que o código implementa: a ordem das exclusõ
 shuffled_real_multiset`. Com valor diferente, levanta. A rede padrão é a primeira da lista
 `networks.values.allowed`.
 
+**Emenda de 2026-10-04 (O1 da revisão semântica do PR #1383)**, feita no mesmo commit da
+implementação: uma **quinta** regra, `review.network.edge`, só pela versão. Ela entra em
+`knowledge_versions`, e por isso na impressão digital: as arestas de revisão são as que a 073
+gravou por essa regra, e sem a versão uma leitura da versão 1 e uma da 2 com as mesmas arestas
+dariam a mesma impressão. Sem a regra, `from_rules!/2` levanta dizendo o id.
+
 ---
 
 ## `options/0`
