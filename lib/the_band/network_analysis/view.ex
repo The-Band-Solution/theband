@@ -48,13 +48,18 @@ defmodule TheBand.NetworkAnalysis.View do
         }
 
   @doc """
-  A visão da leitura para quem consulta. `params` precisa de `:min_group` (k).
+  A visão da leitura para quem consulta. `params` precisa de `:min_group` (k), e pode trazer
+  `:gone` — as pessoas da leitura que não estão mais em EO (apagadas depois do cálculo, R18).
+
+  Com `:todas`, quem saiu de EO vira um agregado *"no longer in the platform"* (comunidade
+  `:gone`) sob a mesma regra k, e nunca aparece por id. Com alcance parcial, quem chama já o tirou
+  do alcance, e ele é tratado como qualquer pessoa de fora.
 
   `reach` e `granted` vêm de `Tenants.pessoas_alcancadas/2` e `/3`, calculados **na chamada** de
   quem lê; este módulo não os busca nem os guarda.
   """
   @spec build(map(), alcance(), alcance(), String.t() | nil, %{min_group: pos_integer()}) :: t()
-  def build(leitura, reach, granted, viewer_person_id, %{min_group: k}) do
+  def build(leitura, reach, granted, viewer_person_id, %{min_group: k} = params) do
     nos = leitura_nos(leitura)
     alcance = classificar(reach, viewer_person_id)
 
@@ -65,7 +70,23 @@ defmodule TheBand.NetworkAnalysis.View do
       granted: granted
     }
 
-    Map.merge(base, corpo(alcance, leitura, nos, reach, k))
+    gone = Map.get(params, :gone, MapSet.new())
+
+    corpo =
+      if alcance == :total and Enum.any?(nos, &MapSet.member?(gone, &1["id"])) do
+        presentes =
+          for n <- nos, not MapSet.member?(gone, n["id"]), into: MapSet.new(), do: n["id"]
+
+        Map.put(
+          parcial(leitura, nos, presentes, k, fn _ -> :gone end),
+          :people,
+          {:ok, length(nos)}
+        )
+      else
+        corpo(alcance, leitura, nos, reach, k)
+      end
+
+    Map.merge(base, corpo)
   end
 
   @doc """
@@ -113,9 +134,12 @@ defmodule TheBand.NetworkAnalysis.View do
     }
   end
 
-  defp corpo(:parcial, leitura, nos, {:algumas, ids}, k) do
+  defp corpo(:parcial, leitura, nos, {:algumas, ids}, k),
+    do: parcial(leitura, nos, ids, k, & &1["community"])
+
+  defp parcial(leitura, nos, ids, k, grupo_de) do
     {dentro, fora} = Enum.split_with(nos, &MapSet.member?(ids, &1["id"]))
-    {agregados, agregado_de} = agregar(fora, k)
+    {agregados, agregado_de} = agregar(fora, k, grupo_de)
     arestas = leitura_arestas(leitura)
 
     destino = fn id ->
@@ -171,13 +195,13 @@ defmodule TheBand.NetworkAnalysis.View do
 
   # Regra 1 e 2: um agregado por comunidade com ≥ k; o resto num "other" se juntar ≥ k. O id é a
   # posição na lista da visão, e nada mais.
-  defp agregar(fora, k) do
-    por_comunidade = Enum.group_by(fora, & &1["community"])
+  defp agregar(fora, k, grupo_de) do
+    por_comunidade = Enum.group_by(fora, grupo_de)
 
     {grandes, pequenas} =
       por_comunidade
       |> Enum.reject(fn {c, _} -> is_nil(c) end)
-      |> Enum.sort_by(fn {c, _} -> c end)
+      |> Enum.sort_by(fn {c, _} -> {is_atom(c), c} end)
       |> Enum.split_with(fn {_c, membros} -> length(membros) >= k end)
 
     resto = Enum.flat_map(pequenas, &elem(&1, 1)) ++ Map.get(por_comunidade, nil, [])

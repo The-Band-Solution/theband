@@ -88,6 +88,23 @@ fora da lista, o padrão, **sem dizer que era inválido**. Nunca `String.to_atom
 
 Número de consultas fixo, independente do tamanho da rede; guardado por teste de teto.
 
+**Emenda de 2026-10-04 (T017)**, feita no mesmo commit da implementação:
+
+- **os nomes vêm antes do recorte**, numa consulta só para todos os ids da leitura (passo 6
+  antes do 3). Sem isso, não há como saber quem saiu de EO depois do cálculo. Quem não tem nome
+  sai dos dois alcances. Com alcance parcial, vira pessoa de fora. Com `:todas`, vira o agregado
+  `community: :gone` (*"no longer in the platform"*), sob a mesma regra k. `View.build/5` recebe
+  esse conjunto em `params.gone`;
+- **a visão desta fatia** traz `reach`, `sees_others_positions?`, `people`, `graph` (nós, arestas
+  e componentes), `organization_id`, `network`, `window_days`, `window_start`, `window_end`,
+  `computed_at` e `newer_collection`. `counts`, `communities`, `hubs`, `distance`, `small_world`,
+  `positions`, `provenance` e o layout da visão parcial entram com as tarefas que os calculam
+  (T029, T031–T034, T035–T046). `declared_organization_accounts` entra com a T025, que cria as
+  declarações. Até lá a chave **não existe**: um zero afirmaria que nenhuma conta foi declarada;
+- `selection/1` e `options/0` têm a forma desta seção. A rede padrão é a primeira de
+  `networks.values.allowed` (`review`), e as vistas (`weighted`, `communities`) são vocabulário da
+  tela, sem valor da base.
+
 ### `view()`
 
 ```elixir
