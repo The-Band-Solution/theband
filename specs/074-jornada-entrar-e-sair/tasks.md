@@ -121,7 +121,9 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
   - **Teste**: `test/the_band/telemetria/taxonomia_test.exs`, a parte que lê o YAML.
     **Defeito a injetar**: tirar a proveniência; o validador reprova
 
-- [ ] T008 Suporte de teste para ler spans
+- [x] T008 Suporte de teste para ler spans — *feita em 2026-10-03; defeitos vistos reprovando
+  em `spans_suporte_test.exs`: a conferência aceitando qualquer exportador (1/2); `ligar/0`
+  configurando o destino sem o filtro (1/2)*
   - **Pronta quando**: T004, T005
   - **Descrição**: `test/support/spans.ex` com `Record.extract(:span, from_lib:
     "opentelemetry/include/otel_span.hrl")`, uma função que liga o exportador **real** com destino
@@ -132,7 +134,10 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
     sem o filtro; a função de suporte precisa recusar (ela confere que o módulo configurado é o
     `TheBand.Telemetria.Exportador`)
 
-- [ ] T009 O exportador que só deixa sair o permitido
+- [x] T009 O exportador que só deixa sair o permitido — *feita em 2026-10-03; defeitos vistos
+  reprovando em `exportador_test.exs`: validar só o nome (3/7, entre eles o `inspect(changeset)`
+  em `failure.reason`); entregar o recurso do SDK em vez do reconstruído (1/7); passar o status
+  original, com descrição (1/7)*
   - **Pronta quando**: `contracts/jornada.md` §6; T007, T008
   - **Descrição**: `lib/the_band/telemetria/exportador.ex`, behaviour `:otel_exporter`. Reconstrói
     cada span: nome contra a enumeração dos passos; atributos da lista com o valor na forma
@@ -150,7 +155,9 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
     o nome (o `inspect(changeset)` em `failure.reason` precisa reprovar); filtrar o recurso em vez
     de reconstruí-lo
 
-- [ ] T010 O handler que traduz sem sumir
+- [x] T010 O handler que traduz sem sumir — *feita em 2026-10-03; defeitos vistos reprovando
+  em `handler_resiliente_test.exs`: `rescue` no lugar de `catch` (os casos de `exit` e `throw`,
+  2/5); o poller que não acusa o desanexo (1/5)*
   - **Pronta quando**: `contracts/jornada.md` §4; T009
   - **Descrição**: `lib/the_band/telemetria/jornada.ex`: `anexar/0`, `id/0`, `handle_event/4`,
     montando atributos **só** dos campos permitidos da metadata. `catch kind, reason` que conta e
@@ -163,7 +170,8 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
   - **Teste**: `test/the_band/telemetria/handler_resiliente_test.exs`. **Defeito a injetar**:
     trocar `catch` por `rescue`; o caso do `exit` precisa reprovar
 
-- [ ] T011 A função única que emite o passo
+- [x] T011 A função única que emite o passo — *feita em 2026-10-03; defeito visto reprovando
+  em `access_events_passo_test.exs`: aceitar `motivo` binário (1/4)*
   - **Pronta quando**: `contracts/jornada.md` §1–2; T010
   - **Descrição**: `AccessEvents.passo/1`, com guardas que só aceitam átomo de lista, id binário,
     correlator e `nil`. S1, terceira camada.
