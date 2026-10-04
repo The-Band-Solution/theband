@@ -30,9 +30,9 @@ for this sprint.
 | Tasks of the 060 not successfully performed | 9 — T010–T012, T015, T019, T020, T022, T028, T029 |
 | Tasks not evaluated | 2 — T023, T025 (closing) |
 
-**Four of the seven refusals are due to incomplete evaluation, not to wrong behaviour** — and
+**Four of the seven refusals are due to incomplete evaluation, not to wrong behavior** — and
 they can become accepted in the same act as the confirmation, if the role measures SC-013, decides the reading of
-AC2, and measures SC-005/FR-081. The two behaviour defects are the *Squads at a glance* card
+AC2, and measures SC-005/FR-081. The two behavior defects are the *Squads at a glance* card
 (D6) and the broken yardstick of the declared team membership (H2). The heaviest record is not about a criterion: it is
 that **none of the sprint's ten PRs has a recorded review**, and four did not even request one.
 
@@ -82,15 +82,15 @@ Commands:
 | AC4 — a mistake remains, marked, with reason/author/date, and the text says it is excluded from every measure on every date (FR-011) | functional | yes | `roster_test.exs:361` "o equívoco traz razão, autor e instante"; list legend `show.ex:5001` "mistake — the person was never here. The link counts for no date at all."; probe `[HEADER]` "1 recorded by mistake" |
 | AC5 — the source still lists whoever the organization declared as departed: the two statements side by side, the screen does not choose (FR-013, 055 FR-012) | functional | yes | `duas_afirmacoes_test.exs:71` "a tela mostra AS DUAS afirmações, cada uma com a sua origem"; `:92` "não escolhe"; `:107` the reverse direction; `:122` a mistake is a case of its own |
 | AC6 — a non-administrator account with no grant reads the whole list and **no** write action (FR-006, SC-011) | functional | yes | probe `[LEITOR botões]` — `Declare role`, `Add role`, `Left the team`, `Mistake…`, `New role`, `Change`: **all `false`**; `saida_e_equivoco_na_tela_test.exs:232` |
-| AC6' — the attempt via event is refused with the reason named (FR-006, FR-082) | functional | yes | probe `[LEITOR promover / criar_papel / registrar_saida / registrar_equivoco]` → flash "Your account is not linked to a person yet, and managing a team's structure is granted to organisational roles." — refusal, **not exception**; the three reasons in the domain: `gerir_estrutura_test.exs:127-185` |
-| AC7 — the observed/declared/left/mistake distinction survives without colour (SC-004) | functional | yes | probe: the four marks are words in the HTML; legend `show.ex:4996-5008` in a textual `<dl>` |
+| AC6' — the attempt via event is refused with the reason named (FR-006, FR-082) | functional | yes | probe `[LEITOR promover / criar_papel / registrar_saida / registrar_equivoco]` → flash "Your account is not linked to a person yet, and managing a team's structure is granted to organizational roles." — refusal, **not exception**; the three reasons in the domain: `gerir_estrutura_test.exs:127-185` |
+| AC7 — the observed/declared/left/mistake distinction survives without color (SC-004) | functional | yes | probe: the four marks are words in the HTML; legend `show.ex:4996-5008` in a textual `<dl>` |
 | FR-001, SC-007 — tab in the URL; no `?tab` → Dashboard; invalid → Dashboard **and** notice | functional | yes | probe `[ABAS]`: no tab → `Dashboard aria-selected="true"`; `?tab=structure` → `Structure aria-selected="true"`; `?tab=members` → Dashboard **and** flash "A team has no “members” tab. Showing the dashboard."; `show.ex:150-154`. **Note**: there are three tabs (`Flow per person`, `?tab=people`) — an amendment declared in FR-085 of the 2026-09-08 extension, not a divergence |
-| FR-004 — common header: name, team source, *N in force*, *M with no role*, *composed of K* | functional | partial | probe `[HEADER]`: "SONDA · 2 people here · 1 left · 1 recorded by mistake · **1 with no organisational role** · source github … collected at …" — N, M and source conform; **"composed of K sub-teams" not probed** (the probe's team has no parts; `equipe_composta_test` runs green but the header assertion was not checked by name) |
+| FR-004 — common header: name, team source, *N in force*, *M with no role*, *composed of K* | functional | partial | probe `[HEADER]`: "SONDA · 2 people here · 1 left · 1 recorded by mistake · **1 with no organizational role** · source github … collected at …" — N, M and source conform; **"composed of K sub-teams" not probed** (the probe's team has no parts; `equipe_composta_test` runs green but the header assertion was not checked by name) |
 | FR-012 — in force, left and mistakes counted separately, matching the query | functional | yes | `roster_test.exs:180` "vigentes, saíram e equívocos somam o total de pessoas do roster"; `:231` invalidated + in force counts as in force; probe: 2 · 1 · 1 over 4 people |
 | SC-004, FR-008 — 0 rows with platform access level | non-functional | yes | `roster_test.exs:420` "nível de acesso da plataforma NÃO sai do roster (FR-008, SC-004)"; probe `[MAINTAINER?] false | access-at-platform? false`; `screens_test.exs:148-163` |
 | FR-005 — reading without administer permission; everything restricted to the tenant | non-functional | yes | probe: a `member` account opens `?tab=structure`; `isolamento_da_060_test.exs:61-176` (roster, totals, reach, commands); `screens_test.exs:210,218` another tenant's team → redirect |
 | Query ceiling of the tab (T013) — constant at 1×11 people and 1×3 sub-teams | non-functional | yes | `teto_de_consultas_da_equipe_test.exs:242` "o número de consultas não cresce com as pessoas"; `:270` "nem com as subequipes"; `:295` declared ceiling `@teto_da_estrutura 7`; `:317` one tab does not pay for the other |
-| **Process (constitution XI) — the test promised in `tasks.md` exists, with a named assertion** | process | **no** | T010 `abas_da_equipe_test.exs` (five cases, `assert_patched`): **does not exist** — the behaviour is only proven by this evaluation's probe, which does not live in the repository and does not guard against regression. T011 `estrutura_membros_test.exs`: **does not exist** (text marks partially covered by `screens_test.exs:163` and by the probe). T012 `estrutura_permissao_test.exs` ("the three reasons per event"): **does not exist**; the refusal per event is scattered across `saida_e_equivoco_na_tela_test:240`, `declarar_papel_na_linha_test:393`, `papeis_na_estrutura_test:270`, always with **one** reason; `promover` was only proven by the probe |
+| **Process (constitution XI) — the test promised in `tasks.md` exists, with a named assertion** | process | **no** | T010 `abas_da_equipe_test.exs` (five cases, `assert_patched`): **does not exist** — the behavior is only proven by this evaluation's probe, which does not live in the repository and does not guard against regression. T011 `estrutura_membros_test.exs`: **does not exist** (text marks partially covered by `screens_test.exs:163` and by the probe). T012 `estrutura_permissao_test.exs` ("the three reasons per event"): **does not exist**; the refusal per event is scattered across `saida_e_equivoco_na_tela_test:240`, `declarar_papel_na_linha_test:393`, `papeis_na_estrutura_test:270`, always with **one** reason; `promover` was only proven by the probe |
 | Process — PR with reviewer requested, review recorded, linked to the project | process | **no** | #817: reviewer `the-band` requested, `reviews=[]`, in the project with `Status=Done` and `Iteration=null`; #819 and #821: reviewer requested, `reviews=[]`, **outside the project** |
 
 **Derived phase**: `sro.not_accepted_deliverable` — **all functional and non-functional criteria of US1 conform with executed evidence**; the refusal is due to the process criterion of constitution XI: three tasks marked `[x]` whose promised test does not exist in the repository. Alternative reading for the role: accept on the value delivered and open a new task for the three test files — the agent records both and does not choose the one that closes the sprint.
@@ -147,7 +147,7 @@ Command: the same as D2 (`saida_declarada_test` contains the mistake `describe`;
 | Unhappy paths — empty reason, pair with nothing in force, other tenant | functional | yes | `saida_declarada_test.exs:242,271`; `isolamento_da_060_test.exs:176` "o equívoco com a equipe do outro tenant não invalida nada" |
 | SC-012 — 0 rows removed | non-functional | yes | invalidation is a mark (`saida_declarada_test.exs:193` reads both team memberships afterwards) |
 
-**Derived phase**: `sro.accepted_deliverable` — all criteria with executed evidence; the caveat on AC5 is about **locating the assertion**, not about wrong observed behaviour. If the role prefers the strict reading (unnamed assertion = no evidence), the phase becomes `sro.not_accepted_deliverable` due to incomplete evaluation — the agent records both readings and does not choose.
+**Derived phase**: `sro.accepted_deliverable` — all criteria with executed evidence; the caveat on AC5 is about **locating the assertion**, not about wrong observed behavior. If the role prefers the strict reading (unnamed assertion = no evidence), the phase becomes `sro.not_accepted_deliverable` due to incomplete evaluation — the agent records both readings and does not choose.
 **Task phase**: T016, T017 — `sro.successfully_performed_scrum_development_task`, under the same caveat.
 
 ---
@@ -167,12 +167,12 @@ Command: `MIX_ENV=test mix test test/the_band/ontology/seon/eo/declarar_e_altera
 | AC4 — *new role…* opens the form without leaving the row and the created one is already selectable (FR-034) | functional | yes | `declarar_papel_na_linha_test.exs:172` "'＋ new role…' cria o papel e declara, sem sair da linha (FR-034)" |
 | AC5 — a blank start never becomes today (FR-016) | functional | yes | `declarar_papel_na_linha_test.exs:115` "a data 'since' vem VAZIA, e o texto diz o que vazio significa"; `declarar_e_alterar_papel_test.exs:108` |
 | FR-014 — batch in the Structure, same command, saying how many rows were skipped | functional | yes, with a caveat | `promocao_na_tela_test.exs` runs green at `?tab=structure` (describes "a seção de promoção", "a data de início", "confirmar todas"); **the count of "skipped" was not checked by name** |
-| FR-006 — whoever does not manage does not see the button; direct event refused | functional | yes | `declarar_papel_na_linha_test.exs:386,393`; probe `[LEITOR promover]` → named refusal "Your account is not linked to a person yet, and managing a team's structure is granted to organisational roles." |
-| Unhappy paths — same role, role from another organization, concept outside the catalogue, ended team membership, other tenant, no name, nothing chosen | functional | yes | `declarar_e_alterar_papel_test.exs:165,187,225,315,331,353`; `declarar_papel_na_linha_test.exs:154,199,351` — all return a named refusal, none raises |
+| FR-006 — whoever does not manage does not see the button; direct event refused | functional | yes | `declarar_papel_na_linha_test.exs:386,393`; probe `[LEITOR promover]` → named refusal "Your account is not linked to a person yet, and managing a team's structure is granted to organizational roles." |
+| Unhappy paths — same role, role from another organization, concept outside the catalog, ended team membership, other tenant, no name, nothing chosen | functional | yes | `declarar_e_alterar_papel_test.exs:165,187,225,315,331,353`; `declarar_papel_na_linha_test.exs:154,199,351` — all return a named refusal, none raises |
 | SC-012 — 0 rows removed | non-functional | yes | `declarar_e_alterar_papel_test.exs:241` reads both records after the change |
 | Prototype — *Declare role* on the row; inline form; "＋ new role…" in the selector | functional (screen) | yes | `declarar_papel_na_linha_test.exs:74,102`; `show.ex:5181,5390` |
 
-**Derived phase**: `sro.not_accepted_deliverable` **due to incomplete evaluation** — AC2 has two parts without evidence ("access to the history" in the list; the screen saying "from the given date or from today"). No wrong behaviour observed. **Alternative for the role**: if it accepts that the history is the ended team membership remaining on the row (the roster lists all of the person's team memberships — `roster_test.exs:167,231`), AC2 becomes conforming and the phase becomes accepted. I do not choose.
+**Derived phase**: `sro.not_accepted_deliverable` **due to incomplete evaluation** — AC2 has two parts without evidence ("access to the history" in the list; the screen saying "from the given date or from today"). No wrong behavior observed. **Alternative for the role**: if it accepts that the history is the ended team membership remaining on the row (the roster lists all of the person's team memberships — `roster_test.exs:167,231`), AC2 becomes conforming and the phase becomes accepted. I do not choose.
 **Task phase**: T018 — success (all its criteria conform); T019/T020 — follow the decision on AC2.
 
 ---
@@ -189,14 +189,14 @@ Command: the same as D4 → **72 passed, `EXIT=0`**. Note: tasks.md T021 promise
 | AC1 — create with name and code: it exists for the organization, with author and date; it appears in the selector of this and of **any** team and in `/roles` (FR-030) | functional | **partial** | `/roles`: `papeis_na_estrutura_test.exs:143` "criar aqui aparece em /roles — é o MESMO papel (SC-005)"; selector of **this** team: `declarar_papel_na_linha_test.exs:172`. **Selector of ANOTHER team of the organization (SC-005) has no assertion** — not measured |
 | AC2 — a repeated code in the same organization refused; in another it is not a conflict (FR-031) | functional | yes | `papeis_na_estrutura_test.exs:160,169` |
 | AC3 — removing a role in use refused saying **how many** (FR-033) | functional | yes | `papeis_na_estrutura_test.exs:205` "ocultar papel COM vínculo vigente é recusado, dizendo quantos" |
-| AC4 — SRO catalogue marked, not removable, with the count here and in the organization (FR-029) | functional | yes | `:63` "traz catálogo e criados, com origem e código"; `:234` "papel do CATÁLOGO não oferece renomear nem ocultar"; `:79,95` count of distinct people |
+| AC4 — SRO catalog marked, not removable, with the count here and in the organization (FR-029) | functional | yes | `:63` "traz catálogo e criados, com origem e código"; `:234` "papel do CATÁLOGO não oferece renomear nem ocultar"; `:79,95` count of distinct people |
 | AC5 — renaming preserves the team memberships (FR-032) | functional | yes | `:183` "renomear mantém os vínculos apontando para o mesmo papel" |
 | AC6 — code suggested and editable (FR-031) | functional | yes | `:123` "o código é sugerido do nome"; `:131` "o código editado NÃO é sobrescrito pela sugestão" |
 | FR-081 — the *Roles* section shows which roles carry the *manage structure* grant (read) | functional | **not measured** | no named assertion found in `papeis_na_estrutura_test.exs`; tasks.md T022 lists the *grants* column — not checked on the screen |
 | FR-006 — whoever does not manage reads and does not act | functional | yes | `:260` "vê a tabela e nenhum botão nem formulário"; `:270` "o evento de criar é recusado"; probe `[LEITOR criar_papel]` refused with a reason |
 | FR-005 — isolation: counts and code from another tenant | non-functional | yes | `isolamento_da_060_test.exs:109,113` |
 | SC-012 — hiding is a mark, it does not delete | non-functional | yes | `:219` "ocultar papel sem ninguém funciona, e é MARCA — não apaga" |
-| Prototype — *Roles* (catalogue + created; "New role" name and code; rename; remove only without team membership) | functional (screen) | yes, with a pending decision | button label: the prototype says "remove", spec FR-033 says "hide", tasks T022 proposes *Hide* as **open question 1** — decision by the role/Design pending, not a defect of the implementation |
+| Prototype — *Roles* (catalog + created; "New role" name and code; rename; remove only without team membership) | functional (screen) | yes, with a pending decision | button label: the prototype says "remove", spec FR-033 says "hide", tasks T022 proposes *Hide* as **open question 1** — decision by the role/Design pending, not a defect of the implementation |
 
 **Derived phase**: `sro.not_accepted_deliverable` **due to incomplete evaluation** — AC1 (selector of another team) and FR-081 (grants column) without evidence. No defect observed.
 **Task phase**: T021 — success; T022 — not successful while FR-081 and the SC-005 part are not measured.
@@ -258,7 +258,7 @@ Command: `MIX_ENV=test mix test test/the_band/work_items/fluxo_da_equipe_test.ex
 
 **Sprint deliverable** (`sro.sprint_deliverable`): composed only of accepted ones. In the proposal as it stands, **only D3 (US4)** belongs to it. If the role measures SC-013 and decides AC2/FR-081/SC-005 at confirmation, D2, D4 and D5 can enter in the same act.
 
-### Observed defects (wrong behaviour or outside what was approved) {#defeitos-observados-comportamento-errado-ou-fora-do-aprovado}
+### Observed defects (wrong behavior or outside what was approved) {#defeitos-observados-comportamento-errado-ou-fora-do-aprovado}
 
 | # | Where | What | Criterion | Source |
 |---|---|---|---|---|
@@ -377,7 +377,7 @@ test/the_band_web/live/accounts_test.exs test/the_band_web/live/accounts_elo_tes
 | a disabled account **does not authenticate by token** | functional | n/a | **not evaluable** | the token does not exist (spec 061 without code). The screen writes *"the platform has none yet"* as a promise. It remains a criterion that cannot be measured — **does not count as conforming** |
 
 The other six criteria of D06 (identical refusal `:60`; rotates the session token `:99`, `:121`;
-distinction without colour `:197`; a named act of its own `:448`; not oneself / other tenant / twice `:130`,
+distinction without color `:197`; a named act of its own `:448`; not oneself / other tenant / twice `:130`,
 `:139`, `:153`; re-enabling does not give back the password `:162`, `:178`) **still conform** in the same
 execution.
 
@@ -411,7 +411,7 @@ execution.
 | FR-029 the *revoke* says it **does not remove access** | functional | yes | `:867`, `:1492`, `:448` |
 
 **Derived phase**: **`sro.not_accepted_deliverable`** — due to **incomplete evaluation**, not to
-wrong behaviour: **the five points that D06 refused are closed with executed evidence**
+wrong behavior: **the five points that D06 refused are closed with executed evidence**
 (four NO → yes; one without evidence → yes with a caveat), the prototype exists and the four decisions
 are recorded. What prevents acceptance today are **three clauses of the FRs without a test**
 (missing vocabulary refuses; note-absence sentence; `temporary_source_not_recorded`), **the
@@ -520,7 +520,7 @@ test/the_band_web/live/vincular_pessoa_test.exs test/the_band/ontology/seon/eo/t
 | the screen **does not raise** on a team membership in force with a null `started_at` (87 of 90 in the database) | functional | yes | `vinculo_possivel_test.exs:75`; `commands.ex:40` separate `%TeamMembership{started_at: nil}` clause |
 
 **Derived phase**: **`sro.not_accepted_deliverable`** — four criteria **non-conforming due to
-behaviour or absence** (§3.1 item 2 and undeclared measures; §3.4 `link` column; §3.7 future
+behavior or absence** (§3.1 item 2 and undeclared measures; §3.4 `link` column; §3.7 future
 date; refusal in Portuguese printed raw), two **without evidence** (author of the team membership not asserted;
 `not found` for another organization), two **partial** (verdicts 4 and 5 without a screen test; AC1 on the
 author). And, before any criterion: **the prototype that is the yardstick declares its own approval
@@ -533,7 +533,7 @@ task recorded.
 *Decided* and republishes **at the same address** — if P1 is A, `eo.team_membership` gains `origin` and
 the three measures get YAML before the §3.1/§3.4 yardstick can be met; (2) the backlog item
 cites artifact, `PROMPT.md` and `README.md`; (3) §3.4 and §3.7 implemented; (4) the domain refusals
-go through the catalogue (`dgettext`) before the flash; (5) tests: `declared_by_user_id`, verdicts 4 and
+go through the catalog (`dgettext`) before the flash; (5) tests: `declared_by_user_id`, verdicts 4 and
 5 on the screen, `not found` from another organization, future date refused. **Only then** QA's
 item-by-item check.
 **Destination**: it enters sprint 030 as inheritance, a **new intended task** linked to 055/US2 — and
@@ -627,7 +627,7 @@ with a destination when it is not. The retroactive creation **does not fix** wha
 | 060/US5 (D5) | not accepted — SC-005/FR-081 not measured | **measure** with two teams + *Roles* section |
 | 060/US9 (D6) | not accepted — defect | **new task via Design**: the *Squads at a glance* card conforming to the prototype; SC-009; FR-064 |
 | 045 · D06 redone (H1) | not accepted — 4 clauses without a test | **new task**: the four tests, the §3 check with capture, and the US that the 045 needs to declare |
-| 055 · FR-003 with a screen (H2) | not accepted — yardstick pending, §3 broken | **mandatory order** (see H2): decisions P1–P3 → republication → measures → §3.4/§3.7 → refusals through the catalogue → tests → QA |
+| 055 · FR-003 with a screen (H2) | not accepted — yardstick pending, §3 broken | **mandatory order** (see H2): decisions P1–P3 → republication → measures → §3.4/§3.7 → refusals through the catalog → tests → QA |
 | 055 · sub-team in one transaction (H3) | **accepted** | done |
 | #860 · *Flow per person* tab | not evaluated | its own record after #913 |
 

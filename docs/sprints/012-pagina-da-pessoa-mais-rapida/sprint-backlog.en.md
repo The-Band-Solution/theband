@@ -20,7 +20,7 @@ docs/sprints/011-vinculo-que-sumiu-na-origem/sprint-review.md    ✓
 specs/012-vinculo-que-sumiu-na-origem/aceitacao.md               ✓
 ```
 
-**And where they are** — which is L45: all three are on `main`, incorporated by PRs #278, #279 and
+**And where they are** — which is L45: all three are on `main`, merged by PRs #278, #279 and
 #280. This branch came out of `main` and sees everything. It did not need stacking.
 
 ## Lessons applied {#lições-aplicadas}

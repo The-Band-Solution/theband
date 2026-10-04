@@ -49,7 +49,7 @@ every verification measure with runs that verify nothing.
 |---|---:|
 | successful | 942 |
 | unsuccessful | 55 |
-| **interrupted** (cancelled) | 54 |
+| **interrupted** (canceled) | 54 |
 
 Counting the 54 as failures would take the breakage rate from **5.2% to 10.4%** — doubled by
 human decisions. The maintainer's decision held up against the data.

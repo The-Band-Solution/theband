@@ -45,7 +45,7 @@ all 18 remain open at the source, and that is the first thing this review fixes.
 
 ## Deliverables accepted with caveat {#entregáveis-aceitos-com-ressalva}
 
-**The thirteen deliverables passed the task's criteria and were incorporated without
+**The thirteen deliverables passed the task's criteria and were merged without
 independent review.** The four PRs — #706, #710, #712, #713 — have **2 reviewers
 requested and 0 reviews** each. The merge did not wait.
 
@@ -62,7 +62,7 @@ moves to the next sprint.
 |---|---|
 | code on the integration line | `origin/development` — commits `c2a2df9`, `f61f5f2`, `7392deb`, `1ca621c`, `8459cfb` |
 | feature functions in the code | `compose_teams`, `decompose_teams`, `record_team_departure`, `record_team_membership_mistake`, `declare_structural_team` — all in `lib/the_band/ontology/seon/eo/commands.ex` |
-| PRs incorporated | [#706](https://github.com/The-Band-Solution/theband/pull/706), [#710](https://github.com/The-Band-Solution/theband/pull/710), [#712](https://github.com/The-Band-Solution/theband/pull/712), [#713](https://github.com/The-Band-Solution/theband/pull/713) |
+| PRs merged | [#706](https://github.com/The-Band-Solution/theband/pull/706), [#710](https://github.com/The-Band-Solution/theband/pull/710), [#712](https://github.com/The-Band-Solution/theband/pull/712), [#713](https://github.com/The-Band-Solution/theband/pull/713) |
 | reviews on those PRs | **zero** — measured on 2026-09-02 with `gh pr view --json reviews` |
 
 ## Debt generated {#dívida-gerada}
@@ -94,7 +94,7 @@ on**. The merge button does not know the difference.
 
 ### L96 — An issue nobody closes makes the sprint look undelivered {#l96--issue-que-ninguém-fecha-faz-o-sprint-parecer-não-entregue}
 
-Thirteen tasks completed and incorporated, **zero issues closed**. Whoever looked at the
+Thirteen tasks completed and merged, **zero issues closed**. Whoever looked at the
 source on 2026-09-02 would see a sprint with no delivery at all. The flow measure that the
 platform exists to compute would come out wrong about its own repository.
 

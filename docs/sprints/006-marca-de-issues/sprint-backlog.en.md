@@ -146,7 +146,7 @@ faster, and nothing changes visibly.
 **Branch dependency**: this feature uses the design system and `stacked`, which live on the branch
 `007-interface-em-ingles` — [PR #184](https://github.com/The-Band-Solution/theband/pull/184),
 **awaiting human review**. This feature's branch is `008-marca-de-issues` and comes out of there; if
-#184 is not incorporated, this work goes along with it.
+#184 is not merged, this work goes along with it.
 
 The branch number differs from the spec directory on purpose, and is explained in R5 of the research.
 

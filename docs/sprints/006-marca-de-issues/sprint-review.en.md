@@ -13,7 +13,7 @@
 | Tasks | 7 | 7 |
 | Accepted deliverables | 7 | **7** |
 
-**Incorporated on 2026-08-12T12:21:51Z**, PR [#195](https://github.com/The-Band-Solution/theband/pull/195),
+**Merged on 2026-08-12T12:21:51Z**, PR [#195](https://github.com/The-Band-Solution/theband/pull/195),
 after #184 — the order mattered, because the mark applies the design system that lives there.
 
 `main` at `277d159` with **10 gates green by exit code**. The criterion-by-criterion

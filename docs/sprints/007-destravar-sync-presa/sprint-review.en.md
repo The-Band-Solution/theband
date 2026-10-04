@@ -2,7 +2,7 @@
 
 **Period**: 2026-08-12 to 2026-08-18
 **Feature**: [008 — unblock stuck sync](../../../specs/008-destravar-sync-presa/spec.md)
-**PR**: [#212](https://github.com/The-Band-Solution/theband/pull/212), incorporated on
+**PR**: [#212](https://github.com/The-Band-Solution/theband/pull/212), merged on
 2026-08-12T13:37:23Z · `main` at `f09e467`
 
 ## Summary {#resumo}

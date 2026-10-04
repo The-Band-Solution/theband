@@ -195,7 +195,7 @@ changed when T011/T012 were closed without code; that is why their phase is what
 FR-011, FR-015, FR-016, FR-017, FR-018, SC-009 and SC-010 are not tied to any US — T009 and
 T010 have no `[US]`. Measured in passing and conforming where possible: `#2393` composes `#205` and `#512`
 from two other repositories, with `repositorio` on each part; 1,953 links in force, 5 cross
-repositories; rule `border-l-[3px]` for composition and `→` for fulfilment. The
+repositories; rule `border-l-[3px]` for composition and `→` for fulfillment. The
 `other repository` mark **was not exercised on screen**.
 
 ## Process gaps {#lacunas-de-processo}

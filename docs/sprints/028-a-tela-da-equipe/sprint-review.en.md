@@ -9,10 +9,10 @@
 |---|---:|---:|
 | User stories | 6 | 6 |
 | Tasks | 37 | 36 |
-| Accepted deliverables | 37 | **36 with a reservation** |
+| Accepted deliverables | 37 | **36 with a caveat** |
 
 The six user stories are complete in `development`. The task not delivered is
-precisely the one that requires independent review, and the reservation is the same as in the
+precisely the one that requires independent review, and the caveat is the same as in the
 previous sprint.
 
 ## What was done {#o-que-foi-feito}
@@ -45,7 +45,7 @@ comment — this sprint's **L96** exists because that was not done in 027.
 |---|---|---|---|
 | T033 | [#753](https://github.com/The-Band-Solution/theband/issues/753) | gates green ✅, PRs following the standard ✅, **independent review ✗** | **sprint 029**, as an entry condition — for the second sprint in a row |
 
-## Deliverables accepted with a reservation {#entregáveis-aceitos-com-ressalva}
+## Deliverables accepted with a caveat {#entregáveis-aceitos-com-ressalva}
 
 **The five PRs were merged with 0 reviews each.** The decision was the
 maintainer's on 2026-09-02, with CI green — and **green CI is not a review**: the

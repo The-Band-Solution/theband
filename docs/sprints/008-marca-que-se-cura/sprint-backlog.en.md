@@ -129,7 +129,7 @@ this defect lived for two days.
       mechanism is measured in the database: **96 → 135** collectable repositories
 - [x] the nine issues closed — #216 to #228, all `Done` in the project
 - [x] PR [#230](https://github.com/The-Band-Solution/theband/pull/230) with reviewer `the-band`
-      **checked** via `requested_reviewers`, linked to the project, incorporated at `26f8a45`
+      **checked** via `requested_reviewers`, linked to the project, merged at `26f8a45`
 - [x] [`sprint-review.md`](sprint-review.md) written, separating done from not done
 - [x] `licoes-aprendidas.md` updated — L36 and L37, and **L36 was rewritten** when the experiment
       showed that the mechanism I had published was wrong

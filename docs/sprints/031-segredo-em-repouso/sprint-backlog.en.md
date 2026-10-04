@@ -134,7 +134,7 @@ From `tasks.md`, section *What these tasks do not cover*:
 - **the path to MinIO** — `pg_dump → varredura → restauração` is covered;
   `→ destino remoto →` was exercised on 2026-09-13 outside this feature
   (`docs/seguranca/2026-09-13-o-caminho-completo-do-backup.md`), and [redigido];
-- **where the four records cancelled without a date came from** — an unknown declared in R6.
+- **where the four records canceled without a date came from** — an unknown declared in R6.
 
 ## Risks and dependencies {#riscos-e-dependências}
 
@@ -144,7 +144,7 @@ From `tasks.md`, section *What these tasks do not cover*:
 - **T012 migrates live sessions** — failing logs out whoever is logged in, including whoever administers.
   Rehearsal against a copy of the real database before production;
 - **T018 is a screen** and goes through the Design role before the code;
-- **H9** ([redigido]) is a neighbour: secret at rest in the database and [redigido]
+- **H9** ([redigido]) is a neighbor: secret at rest in the database and [redigido]
   are two problems, and this sprint only handles the first.
 
 ## Sprint Definition of Done {#definition-of-done-do-sprint}

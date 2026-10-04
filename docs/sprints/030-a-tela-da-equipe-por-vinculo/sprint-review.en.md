@@ -110,7 +110,7 @@ The assessment by the Product Owner role, on 2026-09-14, with executed evidence 
 | **H1** — D06 redone (#853) | 4 clauses without a test; QA check absent; FR-025–029 **without a user story** in 045 | **new task** (never reopen #853): four tests + §3 check with capture; and 045 declares the missing US |
 | **H2** — FR-003 with a screen (#863) | yardstick with approval **pending**; §3.1/§3.4/§3.7 broken; refusal in Portuguese; `declared_by_user_id` not asserted | **mandatory order**: P1–P3 answered → *Decided* and republication at the same address → (if P1 = A) `origin` and the three measures in YAML → §3.4/§3.7 → refusals through the catalog → tests → QA. #703 (055/US2, closed on 2026-09-02 with FR-003 without a screen) **is not reopened** |
 
-**Accepted**: US4 (D3) — 10 of 10; H3 — 9 of 9. With the reservation common to all: review never
+**Accepted**: US4 (D3) — 10 of 10; H3 — 9 of 9. With the caveat common to all: review never
 recorded, and the classification (*attested without a record* × *did not happen*) belongs to the role.
 
 ## Debt generated {#dívida-gerada}

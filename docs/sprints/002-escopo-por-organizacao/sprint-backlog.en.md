@@ -10,7 +10,7 @@
 Each person and each team come to say which organization they came from, and the schema
 once again matches the model derived from the ontology.
 
-## Carry-over from sprint 001 {#herança-do-sprint-001}
+## Inheritance from sprint 001 {#herança-do-sprint-001}
 
 **No task in this sprint starts before what was left over from the previous one has a
 destination.** It is the rule the `product-owner` skill started to require in planning,
@@ -99,7 +99,7 @@ Twelve apply directly:
 
 The others were considered and do not apply: L01 (there is no generator in this
 feature), L04 (no new query to GitHub), L05 and L07 (fixes already
-incorporated), L06 (absolute-path discipline, already in use), L10 (there is no
+merged), L06 (absolute-path discipline, already in use), L10 (there is no
 key rotation here).
 
 ## Sprint on GitHub {#sprint-no-github}
@@ -227,13 +227,13 @@ became a prerequisite of all future sizing.
 ## Planning — `sro.planning_meeting` {#planejamento--sroplanning_meeting}
 
 **Held on 2026-08-10.** The order followed is the one the `product-owner` skill started
-to require: carry-over before new scope, and importance only afterwards.
+to require: inheritance before new scope, and importance only afterwards.
 
 | Step | Outcome |
 |---|---|
-| 1. list what is open from the previous sprint | 6 items, in the carry-over table above |
+| 1. list what is open from the previous sprint | 6 items, in the inheritance table above |
 | 2. give each one a destination | 6 destinations: 2 completed, 1 closed with a limitation, 1 discarded with reason, 1 returned, 1 blocked with a named blocker |
-| 3. carry-over first | Phase 0, before F1 |
+| 3. inheritance first | Phase 0, before F1 |
 | 4. select new scope by importance | the 9 issues below, with the declared MVP |
 
 **Conclusion: F1 is released.** No item from sprint 001 remains without a destination,
@@ -306,8 +306,8 @@ The project's scale is P0/P1/P2 and the spec's is P1/P2/P3 — the mapping prese
 
 | # | Task | Serves | Type | Issue | Tasks from `tasks.md` | State |
 |---|---|---|---|---|---|---|
-| **F0** | **Open the 001 pull request** | carry-over | Task | [#78](https://github.com/The-Band-Solution/theband/issues/78) | T073 of 001 | **done** |
-| **F0** | **Close the quickstart evidence** | carry-over | Task | [#77](https://github.com/The-Band-Solution/theband/issues/77) | T072 of 001 | **done**, with declared limitation |
+| **F0** | **Open the 001 pull request** | inheritance | Task | [#78](https://github.com/The-Band-Solution/theband/issues/78) | T073 of 001 | **done** |
+| **F0** | **Close the quickstart evidence** | inheritance | Task | [#77](https://github.com/The-Band-Solution/theband/issues/77) | T072 of 001 | **done**, with declared limitation |
 | F1 | Declare the link in the ontology | epic | Task | [#83](https://github.com/The-Band-Solution/theband/issues/83) | T001–T003 | **done** |
 | F2 | Generate a foreign key from an association | epic | Task | [#84](https://github.com/The-Band-Solution/theband/issues/84) | T004 | **done** |
 | F3 | Fix the hand-written schema | epic | Task | [#85](https://github.com/The-Band-Solution/theband/issues/85) | T005–T008 | **done** |
@@ -328,8 +328,8 @@ F0 Herança → F1 Ontologia → F2 Transformação → F3 Esquema → US1 → U
                                                      └────→ F7 Equipe derivada → F8
 ```
 
-**F0 comes first by rule, not by convenience.** Carry-over placed at the end of the
-list is carry-over that does not get in: when the sprint gets tight, what gets left for later is
+**F0 comes first by rule, not by convenience.** Inheritance placed at the end of the
+list is inheritance that does not get in: when the sprint gets tight, what gets left for later is
 what is at the end. That is why what was left over from the previous sprint is the first thing to
 receive a destination, and only afterwards is new scope selected by importance.
 
@@ -365,7 +365,7 @@ other 18, without the screen saying why.
 | Risk | Mitigation |
 |---|---|
 | **The independent review of 001 never happening** | stopped being a delay risk and became a **structural impediment**: a single account cannot review its own PR. Closing it requires two identities — an infrastructure decision, outside this sprint. Until then, every deliverable carries the declared gap |
-| **The unreviewed code being on `main`** | merged at `45d21a0` without a recorded approval. The risk did not decrease with the merge: it became indistinguishable from the rest of the code, which is why it is written in the carry-over and here |
+| **The unreviewed code being on `main`** | merged at `45d21a0` without a recorded approval. The risk did not decrease with the merge: it became indistinguishable from the rest of the code, which is why it is written in the inheritance and here |
 | **The flow measures returning zero for sprint 001** | the iteration dates do not match what happened, and the fix was not made because touching iterations caused L11. Decision pending, recorded in the planning |
 | **`mix knowledge.validate` passing where the Python validator fails** | happened in sprint 001: after the rename of `eo.sector`, the Elixir validator passed and the Python one failed on concept provenance without `source_type`. The Elixir one has 4 checks, the Python one has 11 — the two gates are **not** equivalent. In this sprint T003 closes one of them (a mapping declaring a nonexistent relation). Until the others are ported, **the Python gate is the one that decides**, and it runs in CI |
 | **The deriver's new rule changing another ontology's derivation** | T004 requires the output of all the others to come out **identical**; it is a mandatory regression, not an optional check |
