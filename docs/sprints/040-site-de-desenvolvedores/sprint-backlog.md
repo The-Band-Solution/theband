@@ -67,9 +67,9 @@ a publicação.
 | T024 | Ver como tabela em toda figura | US1 | Task | [#1296](https://github.com/The-Band-Solution/theband/issues/1296) | próximo sprint |
 | T025 | A busca diz o alcance | US1 | Task | [#1297](https://github.com/The-Band-Solution/theband/issues/1297) | próximo sprint |
 | T026 | A conferência do QA, item a item | US1 | Task | [#1298](https://github.com/The-Band-Solution/theband/issues/1298) | próximo sprint |
-| T027 | Tradução L01 | US2 | Task | [#1299](https://github.com/The-Band-Solution/theband/issues/1299) | lotes, outros agentes |
-| T028 | Tradução L02 | US2 | Task | [#1300](https://github.com/The-Band-Solution/theband/issues/1300) | lotes, outros agentes |
-| T029 | Tradução L03 | US2 | Task | [#1301](https://github.com/The-Band-Solution/theband/issues/1301) | lotes, outros agentes |
+| T027 | Tradução L01 | US2 | Task | [#1299](https://github.com/The-Band-Solution/theband/issues/1299) | feita, integrada em 2026-10-04 · evidência na issue |
+| T028 | Tradução L02 | US2 | Task | [#1300](https://github.com/The-Band-Solution/theband/issues/1300) | feita, integrada em 2026-10-04 · evidência na issue |
+| T029 | Tradução L03 | US2 | Task | [#1301](https://github.com/The-Band-Solution/theband/issues/1301) | feita, integrada em 2026-10-04 · evidência na issue |
 | T030 | Tradução L04 | US2 | Task | [#1302](https://github.com/The-Band-Solution/theband/issues/1302) | lotes, outros agentes |
 | T031 | Tradução L05 | US2 | Task | [#1303](https://github.com/The-Band-Solution/theband/issues/1303) | lotes, outros agentes |
 | T032 | Tradução L06 | US2 | Task | [#1304](https://github.com/The-Band-Solution/theband/issues/1304) | lotes, outros agentes |

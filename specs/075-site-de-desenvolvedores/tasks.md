@@ -180,9 +180,9 @@ em inglês, texto em português; nenhum número inventado; o link para a spec va
 
 ## Fase 6: as traduções, por lote ([traducao.md](traducao.md))
 
-- [ ] T027 L01 entrada e arquitetura (20)
-- [ ] T028 L02 ontologias e decisões (27), com o gerador EN das páginas geradas
-- [ ] T029 L03 modelos (30)
+- [x] T027 L01 entrada e arquitetura (20) — integrado em 2026-10-04, evidência na #1299
+- [x] T028 L02 ontologias e decisões (27), com o gerador EN das páginas geradas — integrado em 2026-10-04, evidência na #1300
+- [x] T029 L03 modelos (30) — integrado em 2026-10-04, evidência na #1301
 - [ ] T030 L04 operação e releases (24)
 - [ ] T031 L05 backlog, parte 1 (25)
 - [ ] T032 L06 backlog, parte 2 (20)
@@ -191,3 +191,7 @@ em inglês, texto em português; nenhum número inventado; o link para a spec va
 - [ ] T035 L09 sprints, parte 3 (25), e `extra.traducao.exigir: true`
   - **Feita quando** (cada lote): build estrito 0; a contagem de pendentes cai o número do lote;
     varredura 0 nos dois idiomas
+  - **Integração de L01–L03 (2026-10-04)**: build estrito 0 com **149 de 226** páginas sem versão
+    EN (226 porque development trouxe os sprints 038 e 039; 226 − 149 = 77 = 20 + 27 + 30); varredura
+    0 em 455 páginas; `test/site` 63 testes OK. Três termos unificados, registrados em
+    [traducao.md](traducao.md); a ADR 0005 EN acompanha a emenda do SigNoz que chegou com development
