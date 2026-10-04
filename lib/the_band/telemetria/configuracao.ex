@@ -34,8 +34,10 @@ defmodule TheBand.Telemetria.Configuracao do
 
   @variavel "THE_BAND_OTLP_ENDPOINT"
   @variavel_do_ambiente "THE_BAND_AMBIENTE"
-  # O coletor na rede interna (o serviço de `deploy/signoz/`) e a máquina local, em
-  # desenvolvimento. O nome do serviço é o do compose; mudá-lo lá exige mudar aqui.
+  # O coletor na rede dedicada e a máquina local, em desenvolvimento. `signoz-otel-collector` é o
+  # alias do serviço `otel-collector` na rede `telemetria` de `deploy/signoz/compose.yaml` (#1313):
+  # o nome do serviço sozinho é genérico demais para uma rede que o host compartilha.
+  # `test/the_band/telemetria/compose_signoz_test.exs` reprova se os dois divergirem.
   @hosts_permitidos ["127.0.0.1", "localhost", "signoz-otel-collector"]
   @porta 4318
 
