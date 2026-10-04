@@ -42,6 +42,7 @@ defmodule TheBand.Jobs.ComputeReviewNetwork do
       period: :infinity
     ]
 
+  alias TheBand.Jobs.ComputeNetworkAnalysis
   alias TheBand.Ontology.SEON.EO
   alias TheBand.ReviewNetwork
   alias TheBand.Tenants
@@ -64,6 +65,13 @@ defmodule TheBand.Jobs.ComputeReviewNetwork do
             System.monotonic_time(:millisecond) - inicio
           )
 
+          # ACOPLAMENTO TEMPORAL, escrito aqui de propósito — feature 076, T013 (R3). A análise
+          # de rede lê a leitura de revisão que acabou de ser gravada (R2), e a designação lê as
+          # issues que a etapa `:trabalho` já coletou (`sync_github_eo.ex`: `:mudancas` depende
+          # de `:trabalho`). Enfileirar DEPOIS do commit dá à análise as duas redes frescas. Se
+          # esta etapa falhar e a de issues não, a designação só é recalculada na sincronização
+          # seguinte: é a limitação escrita no plano. Único produtor da análise.
+          {:ok, _} = ComputeNetworkAnalysis.enqueue(tenant.id, organizacao.id)
           :ok
 
         # Erro de dado, e não de infraestrutura: tentar de novo dá o mesmo erro. O motivo só tem
