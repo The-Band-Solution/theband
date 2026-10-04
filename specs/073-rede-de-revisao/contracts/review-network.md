@@ -84,16 +84,23 @@ Custo: **cinco consultas** (organização, leitura, pessoas da organização, no
               | {:ausente, :no_change_request_reviewed_in_window},
     reviews_of: [%{person_id: Ecto.UUID.t(), name: String.t(), reviews: pos_integer()}],
     reviewed_by: [%{person_id: Ecto.UUID.t(), name: String.t(), reviews: pos_integer()}],
-    pairs_outside_reach?: boolean()
+    pairs_outside_reach?: boolean(),
+    # Por lado (issue #1308): a tela diz "some pairs are outside your reach" DENTRO da coluna que
+    # tem par de fora (régua 3.8). Só booleano, nunca contagem nem id.
+    reviews_of_outside_reach?: boolean(),
+    reviewed_by_outside_reach?: boolean()
   }],
 
   # Componentes fracos do MESMO recorte (Q4): com :parcial, só entre pessoas alcançadas
   groups: {:ok, [pos_integer()]} | {:ausente, :no_review_in_window},
   people_without_review_activity: non_neg_integer(),   # pessoas `person` alcançadas da organização
 
-  # Só com reach: :total; com :parcial, {:recortado, :regra}
+  # Só com reach: :total; com :parcial, {:recortado, :regra}. Janela sem revisão nenhuma, nem na
+  # rede nem excluída, é AUSENTE, e não 0, 0, 0 (FR-009, SC-002; corrigido pela issue #1308).
+  # Com alguma revisão na janela, o zero de um motivo é contagem de verdade.
   exclusions:
     {:ok, %{self_review: non_neg_integer(), bot_or_app: non_neg_integer(), unlinked_person: non_neg_integer()}}
+    | {:ausente, :no_review_in_window}
     | {:recortado, :regra},
 
   provenance: %{knowledge_versions: %{String.t() => pos_integer()}}
