@@ -280,7 +280,19 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
 
 ## Fase 5: US3 — nada disso vaza (P1)
 
-- [ ] T018 [US3] As sentinelas não saem, em nenhum dos quatro passos
+- [x] T018 [US3] As sentinelas não saem, em nenhum dos quatro passos — *feita em 2026-10-03:
+  `sentinelas_test.exs` percorre a jornada pela web com sentinela na senha certa, na tentada,
+  no identificador, no e-mail e no segredo do cookie, afirma os quatro passos antes da varredura,
+  e repete com `OTEL_RESOURCE_ATTRIBUTES` sentinela presente na subida do SDK. Os vazamentos foram
+  injetados no código (`Auth.authenticate/3`, abrindo um span de nome permitido) e o teste foi
+  visto: **verde com o filtro inteiro** (o filtro os neutraliza) e **vermelho com a camada do
+  filtro que os pega desligada**: sem o filtro (2/2 reprovam); `inspect(changeset)` em
+  `failure.reason` com o filtro só conferindo o nome (2/2); `set_attribute` direto no span
+  corrente com o filtro aceitando qualquer nome (2/2); `record_exception` com a sentinela na
+  mensagem com o filtro mantendo os eventos (2/2); `OTEL_RESOURCE_ATTRIBUTES` com o filtro
+  passando o recurso do SDK (1/2, o caso do recurso). `record_exception/5` trunca o termo em 50
+  caracteres e a sentinela não chegava ao evento: o defeito usa `record_exception/6`, com a
+  mensagem*
   - **Pronta quando**: T012–T017
   - **Descrição**: `test/the_band/telemetria/sentinelas_test.exs` (seguranca.md, S15, T1): os
     quatro passos com sentinela em **todo** campo de credencial, o `assert` de que chegaram spans
