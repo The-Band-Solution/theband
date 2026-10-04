@@ -23,6 +23,7 @@ defmodule TheBand.NetworkAnalysis.Parameters do
   Depende de: `TheBand.Ontology.KnowledgeBase`.
   """
 
+  alias TheBand.NetworkAnalysis.AssignmentClassification
   alias TheBand.Ontology.KnowledgeBase
 
   @analise "network.analysis.parameters"
@@ -32,7 +33,8 @@ defmodule TheBand.NetworkAnalysis.Parameters do
   @necessidade "network.structure"
 
   # O que o código implementa, nos códigos da base. Conferido, nunca lido para decidir.
-  @ordem_implementada ~w(bot_or_app organization_account unlinked_person self_assignment)
+  # A ordem das exclusões é a que `AssignmentClassification` implementa (T024): um lugar só.
+  @ordem_implementada AssignmentClassification.order()
   @gerador_implementado "exsss"
   @modelo_implementado "gnm"
   @pesos_implementados "shuffled_real_multiset"
