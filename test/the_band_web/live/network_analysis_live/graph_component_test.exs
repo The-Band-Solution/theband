@@ -102,9 +102,9 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponentTest do
     assert @script in textos(html, "svg text")
     assert Enum.any?(textos(html, "svg title"), &String.starts_with?(&1, @fo))
 
-    assert Enum.count(q(html, "script")) == 0
-    assert Enum.count(q(html, "foreignObject")) == 0
-    assert Enum.count(q(html, "foreignobject")) == 0
+    assert Enum.empty?(q(html, "script"))
+    assert Enum.empty?(q(html, "foreignObject"))
+    assert Enum.empty?(q(html, "foreignobject"))
     assert html =~ "&lt;script&gt;alert(1)&lt;/script&gt;"
   end
 
@@ -196,7 +196,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponentTest do
     assert textos(html, "#g-lista td[data-label=links]") |> hd() =~ "links out"
 
     sem = render_grafo(%{grafo() | layout: {:ausente, :network_too_large_for_platform}})
-    assert Enum.count(q(sem, "svg circle")) == 0
+    assert Enum.empty?(q(sem, "svg circle"))
     assert Enum.count(q(sem, "#g-lista tbody tr")) == 4
     assert textos(sem, "#g-sem-desenho") |> hd() =~ "not drawn"
   end

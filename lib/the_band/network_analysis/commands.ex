@@ -150,9 +150,9 @@ defmodule TheBand.NetworkAnalysis.Commands do
     end
   end
 
-  # A leitura com o que já existe nesta fatia: graus, componentes (T014) e intermediação (T030) e posições (T031). As medidas dos
-  # algoritmos entram com as tarefas deles; acima do teto, as que o teto desliga ficam ausentes
-  # com o motivo da base, e nunca com valor.
+  # A leitura com o que já existe nesta fatia: graus, componentes (T014), intermediação (T030) e
+  # posições (T031). As medidas dos algoritmos entram com as tarefas deles; acima do teto, as que
+  # o teto desliga ficam ausentes com o motivo da base, e nunca com valor.
   defp leitura(tenant, organization_id, contexto, entrada, projecao, acima?, parametros) do
     %{rede: rede, dias: dias, inicio: inicio, agora: agora, impressao: impressao} = contexto
     componentes = Projection.components(projecao.adjacency)

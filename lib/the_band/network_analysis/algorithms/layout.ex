@@ -59,15 +59,10 @@ defmodule TheBand.NetworkAnalysis.Algorithms.Layout do
     pesos =
       ids
       |> Enum.map(fn id ->
-        adjacencia
-        |> Map.get(id, %{})
-        |> Enum.flat_map(fn {v, w} ->
-          case Map.fetch(indice, v) do
-            {:ok, j} -> [{j, w}]
-            :error -> []
-          end
-        end)
-        |> Map.new()
+        for {v, w} <- Map.get(adjacencia, id, %{}),
+            Map.has_key?(indice, v),
+            into: %{},
+            do: {Map.fetch!(indice, v), w}
       end)
       |> List.to_tuple()
 

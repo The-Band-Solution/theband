@@ -66,16 +66,15 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphRecorteTest do
     ids_fora = MapSet.new(de_fora, & &1.id)
 
     for r <- Repo.all(from r in Reading, where: r.organization_id == ^org.id) do
-      nos =
-        Enum.map(r.nodes, fn n ->
-          Map.put(n, "community", if(MapSet.member?(ids_fora, n["id"]), do: 2, else: 1))
-        end)
+      nos = Enum.map(r.nodes, &Map.put(&1, "community", comunidade(&1["id"], ids_fora)))
 
       Repo.update_all(from(x in Reading, where: x.id == ^r.id), set: [nodes: nos])
     end
 
     %{org: org, fora: de_fora}
   end
+
+  defp comunidade(id, ids_fora), do: if(MapSet.member?(ids_fora, id), do: 2, else: 1)
 
   setup %{conn: conn} do
     {:ok, _} = KnowledgeBase.load()

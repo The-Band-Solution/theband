@@ -77,19 +77,22 @@ defmodule TheBand.NetworkAnalysis.Algorithms.Betweenness do
         {fila, dist, sigma, pred} =
           vizinhos
           |> Map.get(v, [])
-          |> Enum.reduce({fila, dist, sigma, pred}, fn w, {f, d, s, p} ->
-            {f, d} =
-              if Map.has_key?(d, w), do: {f, d}, else: {:queue.in(w, f), Map.put(d, w, dv + 1)}
-
-            if Map.fetch!(d, w) == dv + 1 do
-              sv = Map.fetch!(s, v)
-              {f, d, Map.update(s, w, sv, &(&1 + sv)), Map.update(p, w, [v], &(&1 ++ [v]))}
-            else
-              {f, d, s, p}
-            end
-          end)
+          |> Enum.reduce({fila, dist, sigma, pred}, &visitar(&1, &2, v, dv))
 
         bfs(vizinhos, fila, dist, sigma, pred, [v | pilha])
+    end
+  end
+
+  # O vizinho `w` de `v`: entra na fila na primeira vez; se está um passo além, herda os caminhos
+  # de `v` e o tem como predecessor.
+  defp visitar(w, {f, d, s, p}, v, dv) do
+    {f, d} = if Map.has_key?(d, w), do: {f, d}, else: {:queue.in(w, f), Map.put(d, w, dv + 1)}
+
+    if Map.fetch!(d, w) == dv + 1 do
+      sv = Map.fetch!(s, v)
+      {f, d, Map.update(s, w, sv, &(&1 + sv)), Map.update(p, w, [v], &(&1 ++ [v]))}
+    else
+      {f, d, s, p}
     end
   end
 end
