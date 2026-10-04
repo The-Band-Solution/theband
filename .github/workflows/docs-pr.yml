@@ -24,6 +24,7 @@ on:
       - 'mkdocs-dados/**'
       - 'scripts/mkdocs_hooks.py'
       - 'scripts/verificar_links_do_site.py'
+      - 'scripts/generate_docs.py'   # test/site/test_gerador_en.py
       - 'test/site/**'
       - 'requirements-docs.txt'
       - '.github/workflows/docs.yml'
