@@ -70,7 +70,10 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
     **Defeito a injetar**: tirar o teto de `grpcbox`; `mix hex.outdated grpcbox` passa a mostrar
     que a resolução aceitaria uma versão fora de `0.18.x` quando houver uma; o teto volta
 
-- [ ] T005 Configurar o SDK explicitamente, e desligado por padrão
+- [x] T005 Configurar o SDK explicitamente, e desligado por padrão — *feita em 2026-10-03: a
+  resposta sobre `OTEL_*` está em research R11 (o SDK as lê por cima da configuração; são
+  apagadas em `runtime.exs`). Defeitos vistos reprovando em `configuracao_test.exs`: aceitar
+  qualquer host (1/7), não apagar as `OTEL_*` (1/7)*
   - **Pronta quando**: T004; research R11
   - **Descrição**: `config/config.exs` e `config/test.exs`: `traces_exporter: :none`; no teste,
     `processors: [{:otel_simple_processor, %{}}]`. `config/runtime.exs`: liga só com
