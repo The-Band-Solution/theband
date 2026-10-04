@@ -13,6 +13,7 @@ concepts:
     label: { pt-BR: "Projeto", en: "Project" }
     definition:
       pt-BR: Empreendimento temporário com objetivo definido, executado por uma organização.
+      en: "Temporary endeavor with a defined objective, carried out by an organization."
     classification: { ufo_category: social_object, ontouml_stereotype: kind }
     attributes:
       - { name: name, type: string, required: true }
@@ -24,6 +25,7 @@ concepts:
     label: { pt-BR: "Projeto de Software", en: "Software Project" }
     definition:
       pt-BR: Projeto relacionado ao desenvolvimento ou manutenção de software.
+      en: "Project related to the development or maintenance of software."
     classification: { ufo_category: social_object, ontouml_stereotype: subkind, parent: spo.project }
 
   # As duas fases de um projeto, espelhando sro.atomic_user_story e sro.epic.
@@ -36,6 +38,7 @@ concepts:
     label: { pt-BR: "Projeto Simples", en: "Simple Project" }
     definition:
       pt-BR: Projeto que não é decomposto em outros projetos.
+      en: "Project that is not decomposed into other projects."
     classification: { ufo_category: social_object, ontouml_stereotype: phase, parent: spo.project }
     examples: ["o projeto de um módulo com dois repositórios e nenhum subprojeto"]
     provenance:
@@ -52,6 +55,12 @@ concepts:
         recursiva e não tem profundidade fixa. Ser complexo não é rótulo atribuído,
         e sim consequência de ter partes — um projeto sem partes é simples, ainda que
         alguém o tenha cadastrado pensando em decompô-lo.
+      en: >
+        Project composed of other projects. Since the component project is itself a project,
+        a complex project can be part of another: the decomposition is recursive and has no
+        fixed depth. Being complex is not an assigned label, but a consequence of having
+        parts — a project without parts is simple, even if someone registered it intending
+        to decompose it.
     classification: { ufo_category: social_object, ontouml_stereotype: phase, parent: spo.project }
     constraints:
       - spo.rule01.project_hierarchy_is_acyclic
@@ -68,6 +77,10 @@ concepts:
         Agente interessado em um projeto de software. A identidade vem do agente,
         que pode ser uma pessoa ou uma equipe — por isso a fundamentação é
         ufo.agent, e não eo.person: os subtipos é que fixam qual dos dois.
+      en: >
+        Agent interested in a software project. The identity comes from the agent, which may
+        be a person or a team — that is why the grounding is ufo.agent, and not eo.person:
+        it is the subtypes that fix which of the two.
     classification: { ufo_category: role, ontouml_stereotype: role_mixin, is_role_of: ufo.agent }
 
   - id: spo.project_person_stakeholder
@@ -75,6 +88,7 @@ concepts:
     label: { pt-BR: "Parte Interessada Pessoa", en: "Project Person Stakeholder" }
     definition:
       pt-BR: Pessoa interessada em um projeto de software.
+      en: "Person interested in a software project."
     classification: { ufo_category: role, ontouml_stereotype: role, parent: spo.project_stakeholder, is_role_of: eo.person }
     examples: ["o gerente do projeto"]
 
@@ -83,6 +97,7 @@ concepts:
     label: { pt-BR: "Parte Interessada Equipe", en: "Project Team Stakeholder" }
     definition:
       pt-BR: Equipe interessada em um projeto de software.
+      en: "Team interested in a software project."
     classification: { ufo_category: role, ontouml_stereotype: role, parent: spo.project_stakeholder, is_role_of: eo.team }
     examples: ["a equipe de desenvolvimento do projeto"]
 

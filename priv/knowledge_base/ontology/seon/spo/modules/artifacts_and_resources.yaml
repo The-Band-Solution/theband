@@ -13,6 +13,7 @@ concepts:
     label: { pt-BR: "Artefato", en: "Artifact" }
     definition:
       pt-BR: Objeto criado, usado ou alterado por atividades executadas do processo.
+      en: "Object created, used or changed by performed activities of the process."
     classification: { ufo_category: object, ontouml_stereotype: category }
 
   - id: spo.information_item
@@ -20,6 +21,7 @@ concepts:
     label: { pt-BR: "Item de Informação", en: "Information Item" }
     definition:
       pt-BR: Informação relevante para uso humano no contexto do processo de software.
+      en: "Information relevant for human use in the context of the software process."
     classification: { ufo_category: social_object, ontouml_stereotype: kind, parent: spo.artifact }
     examples: ["um bug reportado", "um requisito documentado"]
 
@@ -31,6 +33,10 @@ concepts:
         Informação escrita ou pictórica, unicamente identificada, relacionada ao
         processo de software, geralmente em formato predefinido. Um documento
         descreve artefatos; não é o artefato descrito.
+      en: >
+        Written or pictorial information, uniquely identified, related to the software
+        process, usually in a predefined format. A document describes artifacts; it is not
+        the described artifact.
     classification: { ufo_category: social_object, ontouml_stereotype: subkind, parent: spo.information_item }
     examples: ["uma Especificação de Projeto"]
 
@@ -43,6 +49,11 @@ concepts:
         hardware — quando é usado por uma atividade do processo. As especializações
         que apontam para conceitos de SysSwO vivem em SysSwO, e não aqui, para
         preservar a direção de dependência (SysSwO depende de SPO, não o contrário).
+      en: >
+        Role played by an artifact — software product or hardware equipment — when it is
+        used by an activity of the process. The specializations that point to SysSwO
+        concepts live in SysSwO, and not here, to preserve the direction of dependency
+        (SysSwO depends on SPO, not the other way around).
     classification: { ufo_category: role, ontouml_stereotype: role_mixin, is_role_of: spo.artifact }
 
 

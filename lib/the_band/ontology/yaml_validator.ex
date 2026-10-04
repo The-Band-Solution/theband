@@ -309,7 +309,7 @@ defmodule TheBand.Ontology.YamlValidator do
 
     [
       {semantica["equivalence"] in [nil, ""], "mapeamento não declara `semantics.equivalence`"},
-      {semantica["justification"] in [nil, ""],
+      {texto_vazio?(semantica["justification"]),
        "mapeamento não declara `semantics.justification`"},
       {List.wrap(artifact.data["limitations"]) == [],
        "mapeamento não declara `limitations` — o que ele não cobre"}
@@ -317,6 +317,12 @@ defmodule TheBand.Ontology.YamlValidator do
     |> Enum.filter(&elem(&1, 0))
     |> Enum.map(&"#{artifact.path}: #{elem(&1, 1)}")
   end
+
+  # A justificativa pode ser string ou mapa de idioma (075, #1312). O mapa com `pt-BR` vazio
+  # é a mesma ausência que a string vazia, e não pode passar só por ter mudado de forma.
+  defp texto_vazio?(%{"pt-BR" => pt}), do: texto_vazio?(pt)
+  defp texto_vazio?(texto) when is_binary(texto), do: String.trim(texto) == ""
+  defp texto_vazio?(_), do: true
 
   # Vínculo prometido por mapeamento precisa de lastro na ontologia.
   #

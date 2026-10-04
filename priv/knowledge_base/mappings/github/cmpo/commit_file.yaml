@@ -28,12 +28,19 @@ target:
   concept: cmpo.artifact_copy
 semantics:
   equivalence: partial
-  justification: >
-    Um arquivo alterado por um commit é a cópia daquele artefato na versão que o commit
-    produziu — a definição de cmpo.artifact_copy. A equivalência é PARCIAL, e a palavra
-    é escolhida: a plataforma guarda QUE arquivo mudou e quantas linhas, nunca o
-    CONTEÚDO da cópia. A cópia existe no repositório; aqui existe o registro de que ela
-    passou a existir.
+  justification:
+    pt-BR: >
+      Um arquivo alterado por um commit é a cópia daquele artefato na versão que o commit
+      produziu — a definição de cmpo.artifact_copy. A equivalência é PARCIAL, e a palavra
+      é escolhida: a plataforma guarda QUE arquivo mudou e quantas linhas, nunca o
+      CONTEÚDO da cópia. A cópia existe no repositório; aqui existe o registro de que ela
+      passou a existir.
+    en: >
+      A file changed by a commit is the copy of that artifact in the version that the commit
+      produced — the definition of cmpo.artifact_copy. The equivalence is PARTIAL, and the
+      word is chosen: the platform stores WHICH file changed and how many lines, never the
+      CONTENT of the copy. The copy exists in the repository; here exists the record that it
+      came into existence.
 identity:
   # O par [commit, caminho] identifica a cópia: o mesmo arquivo em dois commits são duas
   # cópias, e é justamente a sequência delas que responde "quem mexeu neste arquivo".
@@ -56,26 +63,49 @@ relations:
       cmpo.change_traceability). Com ela, cmpo.commit_sends_copy_to_target_branch deixa
       de ter o alvo declarado e a cópia ausente.
 limitations:
-  - >
-    **O conteúdo não é coletado, e isso é postura, não limitação técnica.** A plataforma
-    registra que o arquivo mudou e quanto; o código vive no repositório. Guardar o diff
-    faria dela um espelho de código, e nada no produto consome isso.
-  - >
-    **A coleta percorre TODOS os commits, e a limitação que existia era nossa.** A
-    primeira versão coletava só dos commits de solicitações com vínculo a issue — 3.558
-    de 16.416 — por causa do rate limit, e a tela ia declarar "não coletado" para o
-    resto. A REST entrega os arquivos de qualquer commit: o que faltava era esperar a
-    janela. Agora a coleta pausa até ela reabrir, e o checkpoint por commit faz cada
-    execução continuar de onde a anterior parou. Enquanto a primeira passada não termina,
-    o que falta aparece como NÃO COLETADO — nunca como ausência de mudança.
-  - >
-    **Renomeação é delete+add no Git**, e a CMPO trata cópia de artefato, não identidade
-    de arquivo. `previous_filename` é preservado quando a origem o informa, mas a
-    plataforma NÃO afirma que as duas cópias são do mesmo artefato: afirmar exigiria
-    decidir identidade a partir de heurística de similaridade.
-  - >
-    `status: removed` registra que a cópia deixou de existir naquele commit — e o
-    registro fica, como toda marca desta casa. Arquivo apagado é fato sobre a mudança.
+  - pt-BR: >
+      **O conteúdo não é coletado, e isso é postura, não limitação técnica.** A plataforma
+      registra que o arquivo mudou e quanto; o código vive no repositório. Guardar o diff
+      faria dela um espelho de código, e nada no produto consome isso.
+    en: >
+      **The content is not collected, and this is a stance, not a technical limitation.**
+      The platform records that the file changed and by how much; the code lives in the
+      repository. Storing the diff would make it a mirror of code, and nothing in the
+      product consumes that.
+  - pt-BR: >
+      **A coleta percorre TODOS os commits, e a limitação que existia era nossa.** A
+      primeira versão coletava só dos commits de solicitações com vínculo a issue — 3.558
+      de 16.416 — por causa do rate limit, e a tela ia declarar "não coletado" para o
+      resto. A REST entrega os arquivos de qualquer commit: o que faltava era esperar a
+      janela. Agora a coleta pausa até ela reabrir, e o checkpoint por commit faz cada
+      execução continuar de onde a anterior parou. Enquanto a primeira passada não termina,
+      o que falta aparece como NÃO COLETADO — nunca como ausência de mudança.
+    en: >
+      **The collection goes through ALL commits, and the limitation that existed was ours.**
+      The first version collected only from the commits of requests linked to an issue —
+      3,558 of 16,416 — because of the rate limit, and the screen was going to declare "not
+      collected" for the rest. REST delivers the files of any commit: what was missing was
+      waiting for the window. Now the collection pauses until it reopens, and the per-commit
+      checkpoint makes each run continue from where the previous one stopped. While the
+      first pass has not finished, what is missing appears as NOT COLLECTED — never as
+      absence of change.
+  - pt-BR: >
+      **Renomeação é delete+add no Git**, e a CMPO trata cópia de artefato, não identidade
+      de arquivo. `previous_filename` é preservado quando a origem o informa, mas a
+      plataforma NÃO afirma que as duas cópias são do mesmo artefato: afirmar exigiria
+      decidir identidade a partir de heurística de similaridade.
+    en: >
+      **Renaming is delete+add in Git**, and CMPO deals with artifact copies, not file
+      identity. `previous_filename` is preserved when the source provides it, but the
+      platform does NOT assert that the two copies are of the same artifact: asserting it
+      would require deciding identity from a similarity heuristic.
+  - pt-BR: >
+      `status: removed` registra que a cópia deixou de existir naquele commit — e o
+      registro fica, como toda marca desta casa. Arquivo apagado é fato sobre a mudança.
+    en: >
+      `status: removed` records that the copy ceased to exist in that commit — and the
+      record stays, like every mark in this house. A deleted file is a fact about the
+      change.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at, schema_version]

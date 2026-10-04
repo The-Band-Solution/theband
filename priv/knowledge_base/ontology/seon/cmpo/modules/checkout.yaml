@@ -7,6 +7,9 @@ module:
     pt-BR: >
       Extensão do CMPO desenvolvida na tese para representar checkout como ocorre
       no Git: criação e troca de branch, e checkout de artefato.
+    en: >
+      Extension of CMPO developed in the thesis to represent checkout as it occurs in Git:
+      branch creation and switch, and artifact checkout.
   provenance:
     source_type: thesis
     reference: "Tese, Seção 3.3.1, Figura 32"
@@ -20,6 +23,9 @@ concepts:
         Atividade para acessar versões definidas de um item de configuração em um
         repositório, normalmente para alteração, criando uma cópia de artefato em
         um ambiente.
+      en: >
+        Activity to access defined versions of a configuration item in a repository, usually
+        for modification, creating an artifact copy in an environment.
     classification: { ufo_category: complex_action, ontouml_stereotype: subkind, parent: spo.performed_composite_activity }
 
   - id: cmpo.branch
@@ -27,6 +33,7 @@ concepts:
     label: { pt-BR: "Branch", en: "Branch" }
     definition:
       pt-BR: Coletivo dos artefatos de um repositório de código.
+      en: "Collective of the artifacts of a source repository."
     classification: { ufo_category: collective, ontouml_stereotype: kind }
 
   - id: cmpo.branch_creation
@@ -34,6 +41,7 @@ concepts:
     label: { pt-BR: "Criação de Branch" }
     definition:
       pt-BR: Atividade executada simples que cria uma branch em um repositório de código.
+      en: "Performed simple activity that creates a branch in a source repository."
     classification: { ufo_category: action, ontouml_stereotype: subkind, parent: spo.performed_simple_activity }
 
   - id: cmpo.branch_switch
@@ -41,6 +49,7 @@ concepts:
     label: { pt-BR: "Troca de Branch" }
     definition:
       pt-BR: Atividade executada simples que alterna entre branches de um repositório.
+      en: "Performed simple activity that switches between branches of a repository."
     classification: { ufo_category: action, ontouml_stereotype: subkind, parent: spo.performed_simple_activity }
 
   - id: cmpo.artifact_checkout
@@ -48,6 +57,7 @@ concepts:
     label: { pt-BR: "Checkout de Artefato" }
     definition:
       pt-BR: Atividade executada simples que cria ou atualiza uma branch com uma cópia de artefato.
+      en: "Performed simple activity that creates or updates a branch with an artifact copy."
     classification: { ufo_category: action, ontouml_stereotype: subkind, parent: spo.performed_simple_activity }
 
 relations:

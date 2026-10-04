@@ -5,7 +5,9 @@ provenance:
 
 competency_questions:
   - id: ciro.cq01
-    question: { pt-BR: "Quais processos e atividades compuseram um processo de CI?" }
+    question:
+      pt-BR: "Quais processos e atividades compuseram um processo de CI?"
+      en: "Which processes and activities made up a CI process?"
     concepts: [ciro.continuous_integration_process, ciro.continuous_build_process,
                ciro.continuous_test_process, ciro.continuous_inspection_process,
                ciro.continuous_feedback_activity]
@@ -14,38 +16,50 @@ competency_questions:
     expected_query_type: list
 
   - id: ciro.cq02
-    question: { pt-BR: "No processo de CI, de quais outras atividades ou processos uma atividade dependeu?" }
+    question:
+      pt-BR: "No processo de CI, de quais outras atividades ou processos uma atividade dependeu?"
+      en: "In the CI process, which other activities or processes did an activity depend on?"
     concepts: [ciro.build_environment_creation, ciro.code_checkout, ciro.candidate_code_building]
     relations: [spo.activity_depends_on_activity]
     expected_query_type: list
 
   - id: ciro.cq03
-    question: { pt-BR: "Quando um processo de CI começou?" }
+    question:
+      pt-BR: "Quando um processo de CI começou?"
+      en: "When did a CI process start?"
     concepts: [ciro.continuous_integration_process]
     attributes: [spo.performed_project_process.start_date]
     expected_query_type: single
 
   - id: ciro.cq04
-    question: { pt-BR: "Quando um processo de CI terminou?" }
+    question:
+      pt-BR: "Quando um processo de CI terminou?"
+      en: "When did a CI process end?"
     concepts: [ciro.continuous_integration_process]
     attributes: [spo.performed_project_process.end_date]
     expected_query_type: single
 
   - id: ciro.cq05
-    question: { pt-BR: "Quais artefatos participaram do processo de CI?" }
+    question:
+      pt-BR: "Quais artefatos participaram do processo de CI?"
+      en: "Which artifacts participated in the CI process?"
     concepts: [ciro.candidate_code, ciro.source_code_copy, ciro.test_code_copy,
                ciro.build_problem, ciro.ci_test_result, ciro.ci_evaluation_report]
     relations: [ciro.candidate_code_building_produced_candidate_code, ciro.execution_produced_ci_test_result]
     expected_query_type: list
 
   - id: ciro.cq06
-    question: { pt-BR: "Quais stakeholders participaram do processo de CI?" }
+    question:
+      pt-BR: "Quais stakeholders participaram do processo de CI?"
+      en: "Which stakeholders participated in the CI process?"
     concepts: [ciro.ci_stakeholder, ciro.continuous_feedback_activity]
     relations: [ciro.feedback_informs_stakeholder]
     expected_query_type: list
 
   - id: ciro.cq07
-    question: { pt-BR: "Que tipo de evento disparou o processo de CI?" }
+    question:
+      pt-BR: "Que tipo de evento disparou o processo de CI?"
+      en: "What type of event triggered the CI process?"
     concepts: [ciro.check_in_triggered_continuous_integration_process,
                ciro.scheduled_continuous_integration_process,
                ciro.on_demand_continuous_integration_process, ciro.ci_request_event]
@@ -53,7 +67,9 @@ competency_questions:
     expected_query_type: single
 
   - id: ciro.cq08
-    question: { pt-BR: "Quais atividades compuseram um processo de build contínuo?" }
+    question:
+      pt-BR: "Quais atividades compuseram um processo de build contínuo?"
+      en: "Which activities made up a continuous build process?"
     concepts: [ciro.continuous_build_process, ciro.build_environment_creation,
                ciro.code_checkout, ciro.candidate_code_building]
     relations: [ciro.build_composed_of_environment_creation, ciro.build_composed_of_code_checkout,
@@ -61,19 +77,25 @@ competency_questions:
     expected_query_type: list
 
   - id: ciro.cq09
-    question: { pt-BR: "Quais recursos foram usados para construir os artefatos durante o build contínuo?" }
+    question:
+      pt-BR: "Quais recursos foram usados para construir os artefatos durante o build contínuo?"
+      en: "Which resources were used to build the artifacts during the continuous build?"
     concepts: [ciro.ci_building_environment, ciro.building_software_resource, ciro.building_hardware_resource]
     relations: [ciro.build_uses_environment]
     expected_query_type: list
 
   - id: ciro.cq10
-    question: { pt-BR: "Quais artefatos foram criados durante o processo de build contínuo?" }
+    question:
+      pt-BR: "Quais artefatos foram criados durante o processo de build contínuo?"
+      en: "Which artifacts were created during the continuous build process?"
     concepts: [ciro.candidate_code, ciro.source_code_copy, ciro.test_code_copy, ciro.build_problem]
     relations: [ciro.candidate_code_building_produced_candidate_code, ciro.candidate_code_building_described_build_problem]
     expected_query_type: list
 
   - id: ciro.cq11
-    question: { pt-BR: "Quais processos e atividades compuseram um processo de teste contínuo?" }
+    question:
+      pt-BR: "Quais processos e atividades compuseram um processo de teste contínuo?"
+      en: "Which processes and activities made up a continuous test process?"
     concepts: [ciro.continuous_test_process, ciro.ci_testing_environment_creation,
                ciro.automated_testing, ciro.automated_test_execution]
     relations: [ciro.test_composed_of_environment_creation, ciro.test_composed_of_automated_testing,
@@ -81,13 +103,17 @@ competency_questions:
     expected_query_type: list
 
   - id: ciro.cq12
-    question: { pt-BR: "Quais testes automáticos foram executados?" }
+    question:
+      pt-BR: "Quais testes automáticos foram executados?"
+      en: "Which automated tests were executed?"
     concepts: [ciro.automated_test_execution, roost.test_case, ciro.ci_test_result]
     relations: [ciro.execution_tested_candidate_code, ciro.execution_produced_ci_test_result]
     expected_query_type: list
 
   - id: ciro.cq13
-    question: { pt-BR: "Quais processos e atividades compuseram um processo de inspeção contínua?" }
+    question:
+      pt-BR: "Quais processos e atividades compuseram um processo de inspeção contínua?"
+      en: "Which processes and activities made up a continuous inspection process?"
     concepts: [ciro.continuous_inspection_process, ciro.inspection_environment_creation,
                ciro.automated_adherence_inspection, ciro.automated_artifact_inspection]
     relations: [ciro.inspection_composed_of_environment_creation,
@@ -96,7 +122,9 @@ competency_questions:
     expected_query_type: list
 
   - id: ciro.cq14
-    question: { pt-BR: "Qual artefato do projeto ficou em (não) conformidade com os requisitos de qualidade?" }
+    question:
+      pt-BR: "Qual artefato do projeto ficou em (não) conformidade com os requisitos de qualidade?"
+      en: "Which project artifact was in (non)compliance with the quality requirements?"
     concepts: [ciro.candidate_code_under_inspection, qapo.noncompliance_register, ciro.ci_evaluation_report]
     relations: [ciro.artifact_inspection_registered_noncompliance, ciro.adherence_inspection_produced_report]
     expected_query_type: list

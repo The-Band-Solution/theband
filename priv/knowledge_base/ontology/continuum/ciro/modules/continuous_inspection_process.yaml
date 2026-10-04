@@ -8,6 +8,10 @@ module:
       Inspeção automatizada da aderência do código candidato a critérios de
       qualidade. O resultado é não conformidade (QAPO), não defeito (OSDEF):
       transformar uma na outra é decisão explícita, nunca automática.
+    en: >
+      Automated inspection of the candidate code's adherence to quality criteria. The result
+      is a noncompliance (QAPO), not a defect (OSDEF): turning one into the other is an
+      explicit decision, never an automatic one.
   provenance:
     source_type: thesis
     reference: "Tese, Seção 3.3.5, Figuras 39 a 41"
@@ -21,6 +25,9 @@ concepts:
         Processo de garantia da qualidade automatizado, com participação do servidor
         de CI, que assegura que os artefatos estejam em conformidade com critérios
         de qualidade de engenharia de software.
+      en: >
+        Automated quality assurance process, with the participation of the CI server, that
+        ensures that the artifacts comply with software engineering quality criteria.
     classification: { ufo_category: complex_action, parent: qapo.quality_assurance_process }
     automated: true
 
@@ -31,6 +38,9 @@ concepts:
       pt-BR: >
         Cópia carregada de sistema de software que contém os recursos de inspeção
         necessários às atividades do processo de inspeção contínua.
+      en: >
+        Loaded software system copy that contains the inspection resources needed by the
+        activities of the continuous inspection process.
     classification: { ufo_category: disposition, parent: sys_swo.loaded_software_system_copy }
 
   - id: ciro.inspection_software_resource
@@ -38,6 +48,7 @@ concepts:
     label: { pt-BR: "Recurso de Software de Inspeção" }
     definition:
       pt-BR: Produto de software que compõe o ambiente de inspeção.
+      en: "Software product that makes up the inspection environment."
     classification: { ufo_category: role, parent: sys_swo.software_resource }
     examples: ["uma ferramenta de análise estática de código"]
 
@@ -46,6 +57,7 @@ concepts:
     label: { pt-BR: "Recurso de Hardware de Inspeção" }
     definition:
       pt-BR: Equipamento de hardware que compõe o ambiente de inspeção.
+      en: "Hardware equipment that makes up the inspection environment."
     classification: { ufo_category: role, parent: sys_swo.hardware_resource }
 
   - id: ciro.static_code_analysis_tool
@@ -55,6 +67,9 @@ concepts:
       pt-BR: >
         Produto de software usado para sinalizar erros de programação, bugs, erros
         de estilo e construções suspeitas.
+      en: >
+        Software product used to flag programming errors, bugs, stylistic errors and
+        suspicious constructs.
     classification: { ufo_category: object, parent: sys_swo.software_product }
     examples: ["SonarQube", "Credo", "ESLint"]
 
@@ -63,6 +78,7 @@ concepts:
     label: { pt-BR: "Criação do Ambiente de Inspeção" }
     definition:
       pt-BR: Atividade que cria o ambiente de inspeção de CI no servidor de CI.
+      en: "Activity that creates the CI inspection environment on the CI server."
     classification: { ufo_category: action, parent: spo.performed_project_activity }
     automated: true
 
@@ -73,6 +89,9 @@ concepts:
       pt-BR: >
         Avaliação de aderência automatizada que inspeciona a aderência do código
         candidato sob inspeção executando inspeções automatizadas de artefato.
+      en: >
+        Automated adherence evaluation that inspects the adherence of the candidate code
+        under inspection by performing automated artifact inspections.
     classification: { ufo_category: complex_action, parent: qapo.adherence_evaluation }
     automated: true
 
@@ -83,6 +102,9 @@ concepts:
       pt-BR: >
         Avaliação de artefato automatizada que usa código de critério de qualidade
         para inspecionar critérios em cada artefato do código candidato.
+      en: >
+        Automated artifact evaluation that uses quality assurance criterion code to inspect
+        criteria in each artifact of the candidate code.
     classification: { ufo_category: action, parent: qapo.artifact_evaluation }
     automated: true
 
@@ -91,6 +113,7 @@ concepts:
     label: { pt-BR: "Código de Critério de Qualidade" }
     definition:
       pt-BR: Código que materializa um critério de qualidade, tornando-o verificável automaticamente.
+      en: "Code that materializes a quality criterion, making it automatically verifiable."
     classification: { ufo_category: object, parent: sys_swo.code }
     examples: ["uma regra que implementa 'uma função pode ter no máximo 100 linhas'"]
 
@@ -99,6 +122,9 @@ concepts:
     label: { pt-BR: "Código Candidato sob Inspeção" }
     definition:
       pt-BR: Papel do código candidato cujos artefatos são artefatos avaliados em um processo de inspeção contínua.
+      en: >
+        Role of the candidate code whose artifacts are evaluated artifacts in a continuous
+        inspection process.
     classification: { ufo_category: role, parent: qapo.evaluated_artifact, is_role_of: ciro.candidate_code }
 
   - id: ciro.ci_evaluation_report
@@ -108,6 +134,9 @@ concepts:
       pt-BR: >
         Relatório de avaliação que descreve os resultados da inspeção e as questões
         identificadas no código candidato sob inspeção.
+      en: >
+        Evaluation report that describes the inspection results and the issues identified in
+        the candidate code under inspection.
     classification: { ufo_category: social_object, parent: qapo.evaluation_report }
 
   - id: ciro.successful_continuous_inspection_process
@@ -115,6 +144,7 @@ concepts:
     label: { pt-BR: "Processo de Inspeção Bem-Sucedido" }
     definition:
       pt-BR: Processo de inspeção contínua em que nenhuma não conformidade foi identificada.
+      en: "Continuous inspection process in which no noncompliance was identified."
     classification: { ufo_category: phase, parent: ciro.continuous_inspection_process }
 
   - id: ciro.unsuccessful_continuous_inspection_process
@@ -122,6 +152,7 @@ concepts:
     label: { pt-BR: "Processo de Inspeção Malsucedido" }
     definition:
       pt-BR: Processo de inspeção contínua em que ao menos uma não conformidade foi identificada.
+      en: "Continuous inspection process in which at least one noncompliance was identified."
     classification: { ufo_category: phase, parent: ciro.continuous_inspection_process }
 
 relations:
