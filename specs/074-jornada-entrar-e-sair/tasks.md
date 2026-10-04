@@ -404,9 +404,13 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
 
 - [ ] T026 👤 Subir o SigNoz no Dokploy, fechado
   - **Pronta quando**: T006, T024, T025
-  - **Descrição**: serviço *Compose* a partir de `deploy/signoz/`; **sem domínio** no Traefik; a
-    chave do JWT e a senha do ClickHouse geradas no servidor e coladas no painel do Dokploy; as duas
-    redes de ADR E7 item 2; a primeira conta criada **pelo túnel**, e a lista de usuários conferida
+  - **Descrição**: antes, a rede `the-band-telemetria` criada uma vez no VPS como overlay
+    `attachable` (ou bridge, se a T024 itens 7–9 mostrar que a aplicação não é serviço Swarm —
+    quickstart §5.2; #1313, P3); serviço *Compose* (tipo Docker Compose, não Stack) a partir de
+    `deploy/signoz/compose.yaml`, **sem** `compose.local.yaml` e sem profile (#1313, P4); **sem
+    domínio** no Traefik; `SIGNOZ_JWT_SECRET` e `SIGNOZ_CLICKHOUSE_PASSWORD` gerados no servidor e
+    colados no painel do Dokploy (#1313, P5); as duas redes de ADR E7 item 2; os **quatro**
+    contêineres conferidos `Up` por `docker ps` no VPS, e não pelo *Done* do painel; a primeira conta criada **pelo túnel**, e a lista de usuários conferida
     depois (uma conta); telemetria de uso desligada; volume do ClickHouse **fora** do backup;
     retenção 7 e 30 dias. Quickstart §5, passos 2 a 7c.
   - **Feita quando**: os seis itens de S6 têm evidência lida e registrada na issue: compose sem
@@ -418,8 +422,10 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
 
 - [ ] T027 👤 Ligar a aplicação ao coletor
   - **Pronta quando**: T026; T005
-  - **Descrição**: no Dokploy, `THE_BAND_OTLP_ENDPOINT` com o nome do serviço do coletor na rede
-    dedicada, e **nenhuma** `OTEL_*` no ambiente da aplicação. Deploy.
+  - **Descrição**: no Dokploy, a aplicação ganha a rede `the-band-telemetria` em *Swarm Settings →
+    Network*, mantendo `dokploy-network`; `THE_BAND_OTLP_ENDPOINT=http://signoz-otel-collector:4318`
+    — o alias do coletor nessa rede, e o único host de produção que `Configuracao` aceita (#1313,
+    P2) —, e **nenhuma** `OTEL_*` no ambiente da aplicação. Deploy. Quickstart §5.6a e §5.6b.
   - **Feita quando**: entrar com a própria conta e sair aparecem no SigNoz pelo túnel; o log da
     aplicação não diz "telemetria desligada"
   - **Teste**: quickstart §5, passo 9

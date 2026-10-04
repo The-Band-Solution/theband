@@ -421,8 +421,9 @@ código**, e por isso a fatia que a usa tem uma tarefa 👤 com conferência, e 
   É o que mantém S2 e a FR-024 da 058 verdadeiras: o painel tem identidade de pessoas de
   **todas** as organizações, e por isso não pode ser oferecido a nenhuma delas;
 - **a rede** (refinada em E7, item 2: uma rede só entre aplicação e coletor): a aplicação e o coletor na mesma rede Docker; **o coletor não
-  publica porta no host**, e o endpoint OTLP da aplicação é o nome do serviço na rede
-  interna. Isto **corrige a redação de S4**: "o endpoint é `localhost`" não vale para uma
+  publica porta no host**, e o endpoint OTLP da aplicação é o nome do coletor na rede
+  dedicada — `http://signoz-otel-collector:4318`, alias do serviço `otel-collector` na rede
+  `the-band-telemetria` (E7, item 2). Isto **corrige a redação de S4**: "o endpoint é `localhost`" não vale para uma
   aplicação em contêiner, onde `localhost` é o próprio contêiner. O que S4 queria — *nenhum
   coletor alcançável de fora* — vale como **nenhuma porta publicada**;
 - **o protocolo**: OTLP sobre HTTP (`4318`), sem TLS **dentro** da rede Docker, porque não
@@ -492,7 +493,18 @@ estão aplicados acima (S1 da ADR, decisão 2, alternativas, E6, vocabulário). 
    painel em outra, sem a aplicação. O coletor roda com `--config` versionado e **sem OpAMP** —
    que, na medida de E3, reescreveu o pipeline para `nop` e, em geral, deixaria quem administra o
    painel trocar o destino dos dados. Token de portador no receptor OTLP é recomendado na opção A
-   e obrigatório na B;
+   e obrigatório na B.
+   **Como a rede dedicada existe no Dokploy** (#1313, 2026-10-04): a aplicação é **serviço
+   Swarm**, e serviço Swarm só entra em rede `overlay`; uma rede declarada no compose do SigNoz
+   nasceria bridge local, fora do alcance dela. A rede é `the-band-telemetria`, criada **uma vez**
+   no VPS com `docker network create --driver overlay --attachable` (o `attachable` deixa os
+   contêineres do compose entrarem) e declarada `external: true` no compose; a aplicação a recebe
+   em *Swarm Settings → Network*, mantendo `dokploy-network`. O coletor responde nela pelo alias
+   `signoz-otel-collector`, o único host de produção que `TheBand.Telemetria.Configuracao` aceita,
+   e `test/the_band/telemetria/compose_signoz_test.exs` reprova se os dois divergirem. O compose
+   de produção não usa profile — o Dokploy não passa `--profile` —; o profile `telemetria` mora só
+   no override de desenvolvimento. Se a T024 (itens 7–9) mostrar a aplicação fora do Swarm, a
+   mesma rede nasce bridge, e o resto não muda (quickstart §5.2);
 3. **a #1162** (distribuição Erlang em `0.0.0.0`) é pré-requisito da opção A: pôr quatro imagens
    de terceiros ao alcance da aplicação é construir sobre a porta que se sabe aberta;
 4. **o que sai pelo próprio SigNoz** (S8): a telemetria de uso do produto desligada, conferida

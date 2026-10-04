@@ -21,7 +21,8 @@
 #   limite de 3 GB; o ClickHouse com `max_server_memory_usage` de 1,5 GiB
 #   (`clickhouse/config.d/memoria.xml`) e o ZooKeeper com o heap em 256 MiB;
 # - **redes separadas** (E7, item 2; S7): `interna` (ClickHouse, ZooKeeper, painel, coletor),
-#   marcada `internal`, sem saída para a internet; `telemetria`, só a aplicação e o coletor;
+#   marcada `internal`, sem saída para a internet; `telemetria` (externa, `the-band-telemetria`),
+#   só a aplicação e o coletor;
 #   `painel`, só o painel, para o túnel. **O painel e o coletor TÊM saída** pelas duas últimas,
 #   que publicam porta e por isso não podem ser `internal` — medido em 2026-10-03 com `wget` de
 #   dentro do painel. O envio de uso do SigNoz (S8) fica desligado só pelas variáveis, e a
@@ -42,8 +43,12 @@
 # nomeando os serviços, para que o `postgres` (sem profile) não seja recriado. A senha do
 # ClickHouse entra numa URL de conexão: use só [A-Za-z0-9] (por exemplo, `openssl rand -hex 24`).
 
+# SEM `profiles:` aqui (#1313, P4). O Dokploy roda `docker compose -p <app> -f <arquivo> up -d`,
+# sem `--profile`: com os serviços num profile, nada subia e o painel dizia *Done*. O profile
+# `telemetria` mora só no override de desenvolvimento (`compose.local.yaml`), que é o que o
+# `compose.yaml` da raiz inclui — e lá ele continua impedindo que `docker compose up` suba o
+# SigNoz junto com o Postgres.
 x-comum: &comum
-  profiles: ["telemetria"]
   restart: unless-stopped
   logging:
     options:
@@ -163,7 +168,16 @@ services:
     <<: [*comum, *depende-do-clickhouse]
     image: signoz/signoz-otel-collector@sha256:3a3205cf47f92249c2c2eca8ead2cdf7d1181646910d397b6c435505422d777a # v0.144.4
     mem_limit: 448m
-    networks: [interna, telemetria]
+    networks:
+      interna: {}
+      telemetria:
+        # O nome por que a APLICAÇÃO chama o coletor (#1313, P2). É o único host de produção que
+        # `TheBand.Telemetria.Configuracao` aceita, e o teste
+        # `test/the_band/telemetria/compose_signoz_test.exs` reprova se os dois divergirem.
+        # Alias de rede, e não `container_name`: o alias vale só nesta rede — a única que a
+        # aplicação alcança —, e `container_name` é único no host inteiro, o que impediria dois
+        # projetos do compose (o de desenvolvimento e um de ensaio) de coexistirem.
+        aliases: [signoz-otel-collector]
     entrypoint:
       - /bin/sh
       - -c
@@ -183,7 +197,22 @@ services:
 networks:
   interna:
     internal: true
-  telemetria: {}
+  # A rede aplicação↔coletor (E7, item 2; S7) é EXTERNA, com nome fixo (#1313, P3).
+  #
+  # No Dokploy a aplicação é um **serviço Swarm**, e serviço Swarm só entra em rede `overlay`.
+  # Uma rede declarada aqui nasceria como bridge local `<projeto>_telemetria`, onde a aplicação
+  # não pode entrar. Por isso ela é criada UMA vez no VPS, fora do compose, como overlay
+  # `attachable` — o `attachable` é o que deixa os contêineres deste compose (que não são serviço
+  # Swarm) entrarem nela:
+  #
+  #   docker network create --driver overlay --attachable the-band-telemetria
+  #
+  # e a aplicação a recebe em *Advanced → Swarm Settings → Network* (quickstart §5). Sem a rede
+  # criada, `docker compose up` recusa subir, dizendo o nome dela — e não sobe com uma rede errada.
+  # Em desenvolvimento, `compose.local.yaml` desfaz o `external` e o compose a cria como bridge.
+  telemetria:
+    name: the-band-telemetria
+    external: true
   painel: {}
 
 volumes:
