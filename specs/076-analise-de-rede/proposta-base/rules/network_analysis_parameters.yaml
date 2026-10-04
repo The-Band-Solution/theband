@@ -348,6 +348,32 @@ derivation_rule:
         criterion_threshold: 1
         average_over: graphs_where_defined
 
+    outside_reach:
+      name:
+        pt-BR: "Quem está fora do alcance aparece agrupado, em grupos de ao menos 3"
+      statement:
+        pt-BR: >
+          Com alcance parcial, as pessoas fora do alcance de quem consulta aparecem como UM nó
+          agregado por comunidade quando forem ao menos 3; as de comunidades com menos de 3
+          juntam-se num nó "other communities" se juntarem ao menos 3; senão não há nó, e a
+          pessoa alcançada ligada a alguém de fora leva só a marca "has links outside your
+          reach". Número que, subtraídos os nomes visíveis, contaria menos de 3 pessoas de fora
+          não aparece. Nenhum nó anônimo individual (spec 076, FR-015; seguranca.md R2).
+      note:
+        pt-BR: >
+          Com 1, o agregado é uma pessoa; com 2, cada uma é identificável por quem conhece a
+          outra, e o grupo vira um par; 3 é o menor grupo em que nenhum número isola alguém sem
+          conhecimento externo sobre duas pessoas. É o mesmo valor de
+          `review.network.parameters.min_group_size_shown`. Estatística oficial costuma usar 5,
+          mas aqui as redes têm dezenas de pessoas e as comunidades, poucas: 5 suprimiria quase
+          todo agregado. Revisável com dado; a decisão DS2 da avaliação de segurança pode
+          trocá-lo por 5.
+      values:
+        min_group: 3
+        aggregate_by: community
+        individual_anonymous_nodes: false
+        complementary_suppression: true
+
     layout:
       name:
         pt-BR: "Posições calculadas no servidor por força dirigida, semente 42"

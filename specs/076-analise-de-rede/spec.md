@@ -75,6 +75,7 @@ Quem coordena encontra, no menu principal, a área **Network analysis**. A prime
 2. **Given** uma organização com leitura da rede de revisão, **When** a área é aberta, **Then** a primeira página é a rede de revisão daquela organização, com os mesmos números da tela da 073 para a mesma janela.
 3. **Given** um endereço antigo da rede de revisão (`/organizations/:id/review-network`), **When** é aberto, **Then** leva à mesma rede dentro da área nova, sem erro.
 4. **Given** o tenant com duas organizações observadas, **When** a área é aberta, **Then** quem consulta escolhe a organização, e nenhuma pessoa só da outra aparece.
+5. **Given** uma conta de alcance parcial, **When** abre uma página de análise da área, **Then** lê o aviso *"Names appear only for the people you reach. Measures are computed over the whole network. People outside your reach appear grouped, without names, and only in groups of at least 3."*; a página da rede de revisão da 073, dentro da área, mantém o aviso dela (seguranca.md R3).
 
 ---
 
@@ -110,7 +111,7 @@ Quem coordena vê o grafo como na referência: cada pessoa é um círculo cujo *
 2. **Given** o mesmo dado aberto duas vezes, **When** o grafo é desenhado, **Then** as posições são as mesmas: o layout é calculado no servidor com semente fixa.
 3. **Given** quem consulta toca ou passa o foco numa pessoa, **When** o destaque se aplica, **Then** as arestas dela ficam em evidência, as demais esmaecem, e um texto diz quantas arestas saem e chegam. O destaque funciona com teclado.
 4. **Given** uma tela estreita (telefone), **When** a página abre, **Then** no lugar do grafo aparece a lista das pessoas com grau, intermediação e as arestas de cada uma, empilhada.
-5. **Given** pessoas fora do alcance de quem consulta, **When** o grafo é desenhado, **Then** elas aparecem sem nome, agrupadas, conforme FR-015.
+5. **Given** uma comunidade com 4 pessoas fora do alcance de uma conta de alcance parcial, **When** essa conta abre o grafo, **Then** as 4 aparecem como **um** nó agregado *"People outside your reach — community N (4)"*, de forma visual distinta, sem nome e sem nó individual; **And When** quem administra abre o mesmo grafo, **Then** vê as 4 pessoas por nome. **And Given** só 1 ou 2 pessoas de fora, sem outras comunidades que juntem 3, **Then** não há nó: a pessoa alcançada ligada a elas leva a marca *"has links outside your reach"*, sem aresta nem número (FR-015).
 
 ---
 
@@ -127,7 +128,7 @@ Quem coordena vê o grafo com cada pessoa colorida pela **comunidade** detectada
 1. **Given** uma rede com leitura pronta, **When** a vista de comunidades abre, **Then** cada pessoa tem a cor da comunidade dela, com legenda em texto ("Community 1", …), e a cor não é o único sinal: o número da comunidade aparece no destaque e na lista.
 2. **Given** uma comunidade de 7 pessoas, **When** ela é listada, **Then** a tela mostra o tamanho, as arestas internas, os três mais centrais com o grau interno, e todos os membros por nome.
 3. **Given** a modularidade calculada, **When** é exibida, **Then** aparece o número e a leitura escrita na base, com a fonte da faixa (FR-031).
-4. **Given** uma comunidade com membros fora do alcance, **When** é listada, **Then** os de fora aparecem só como contagem agregada ("and N people outside your reach"), sem nome, e não entram entre os três mais centrais nomeados.
+4. **Given** uma comunidade com membros fora do alcance de uma conta de alcance parcial, **When** é listada para essa conta, **Then** os três mais centrais são escolhidos **entre os membros alcançados** (*"among the members you reach"*); os de fora aparecem pela regra do agrupado (FR-015) só se forem ao menos 3; e o tamanho e as arestas internas não aparecem quando, subtraídos os nomes visíveis, contariam menos de 3 pessoas de fora. **And When** quem administra lista a mesma comunidade, **Then** vê todos os membros e os três mais centrais da comunidade inteira.
 5. **Given** o texto da vista, **When** é lido, **Then** ele diz que comunidade detectada **não é equipe**.
 
 ---
@@ -147,7 +148,7 @@ Quem coordena vê, como na referência, as pessoas com maior centralidade de **g
 3. **Given** a lista de proximidade numa rede desconexa, **When** é lida, **Then** cada linha diz a distância média até as pessoas que ela alcança **e quantas alcança**, e nunca converte 1/proximidade em distância.
 4. **Given** a lista de autovetor numa rede com mais de um componente, **When** é lida, **Then** os valores aparecem por componente, e a tela diz que valores de componentes diferentes não se comparam.
 5. **Given** um componente em que o autovetor não converge, **When** a lista é montada, **Then** as pessoas daquele componente têm a medida ausente com motivo, e nenhum valor de reserva.
-6. **Given** uma pessoa fora do alcance numa posição da lista, **When** a lista é exibida, **Then** a linha aparece sem nome ("a person outside your reach"), conforme FR-015.
+6. **Given** uma conta de alcance parcial, **When** a seção de hubs abre, **Then** a lista mostra só as pessoas que ela alcança (*"Among the people you reach"*), ordenadas pela medida da rede inteira, sem a posição na rede inteira, e diz que as de fora não são ordenadas aqui, sem dizer quantas; nenhuma linha é de pessoa de fora, com ou sem nome. **And When** quem administra abre a seção, **Then** a lista é a da rede inteira, como na referência (seguranca.md R1).
 
 ---
 
@@ -197,7 +198,8 @@ Quem coordena vê, para cada pessoa da rede, o papel na rede derivado da posiç�
 1. **Given** uma pessoa no percentil 90 de grau e 85 de intermediação, **When** o papel é exibido, **Then** ele é o do quadrante "alto grau e alta intermediação" da base, com os percentis e os cortes ao lado.
 2. **Given** uma rede com menos pessoas que o mínimo declarado para percentis, **When** a tela abre, **Then** o papel é ausente com motivo para todos, e nenhuma pessoa é classificada.
 3. **Given** a tela do papel, **When** é lida, **Then** ela diz que o papel descreve a **posição na rede observada na janela**, e não desempenho, importância nem mérito, e que muda quando outras pessoas entram ou saem.
-4. **Given** uma pessoa fora do alcance, **When** os papéis são listados, **Then** ela não aparece com papel por nome.
+4. **Given** uma conta de alcance parcial, **When** os papéis são listados, **Then** só pessoas alcançadas têm papel exibido, e nenhuma contagem de papel entre as de fora aparece (*"2 people outside your reach are Central position"* é o mesmo ranking por outro caminho). **And When** quem administra lista os papéis, **Then** vê o de todas as pessoas da rede.
+5. **Given** qualquer conta, **When** abre o próprio perfil, **Then** vê o próprio papel.
 
 ---
 
@@ -242,8 +244,8 @@ Quem coordena abre uma pessoa e vê o perfil dela na rede, como na referência: 
 **A área no menu**
 
 - **FR-001**: O menu principal MUST ter a área **Network analysis**, visível para toda conta do tenant, marcada como ativa nas páginas da área. A primeira página é a rede de revisão da 073.
-- **FR-002**: A área MUST deixar escolher a organização observada, a rede (revisão ou designação) e a janela (30, 90 ou 180 dias, padrão 90). Cada escolha fica no endereço.
-- **FR-003**: O endereço da rede de revisão da 073 MUST continuar funcionando e levar à mesma rede dentro da área.
+- **FR-002**: A área MUST deixar escolher a organização observada, a rede (revisão ou designação) e a janela (30, 90 ou 180 dias, padrão 90). Cada escolha fica no endereço. Rede, vista e janela são listas fechadas, comparadas como texto exato e nunca convertidas em átomo; valor fora da lista volta ao padrão (seguranca.md R13).
+- **FR-003**: O endereço da rede de revisão da 073 MUST continuar funcionando e levar à mesma rede dentro da área. O redirecionamento monta o destino a partir do identificador já validado, nunca do texto recebido.
 
 **As redes**
 
@@ -252,38 +254,48 @@ Quem coordena abre uma pessoa e vê o perfil dela na rede, como na referência: 
 - **FR-006**: Nas duas redes, só é nó a **pessoa observada** com tipo de conta pessoa. Equipe, conta da plataforma, bot, aplicativo e conta da organização não são nós.
 - **FR-007**: Toda designação ou revisão que não vira aresta MUST cair em exatamente um motivo, contado e mostrado só como contagem, sem login e nunca por pessoa: bot ou aplicativo; conta da organização; sem pessoa ligada; auto-designação (ou auto-revisão). A conta da organização MUST ser reconhecível como não-pessoa mesmo quando a origem a apresenta como usuário.
 - **FR-008**: Pessoa sem aresta na janela MUST NOT ser nó. A contagem de pessoas sem aresta é dita.
-- **FR-009**: Toda leitura MUST filtrar cada tabela pelo tenant e a organização observada, buscada por id e tenant juntos.
+- **FR-009**: Toda leitura MUST filtrar cada tabela pelo tenant e a organização observada, buscada por id e tenant juntos. Na rede de designação, cada tabela da junção — issue, responsável, autor, responsável como pessoa, repositório observado, repositório de origem — é filtrada pelo tenant; a organização é alcançada pelo repositório observado, sem repositório excluído; responsável vigente é o não marcado como deixado de observar; o tipo de conta vem de EO, nunca do login (seguranca.md R9).
 - **FR-010**: As medidas sem direção MUST usar a projeção sem direção em que o peso do par é a **soma** dos dois sentidos. As medidas com direção dizem que usam a direção.
 
 **O alcance**
 
-- **FR-011**: As medidas estruturais (grau, intermediação, proximidade, autovetor, comunidades, distâncias, clustering, σ, percentis e papel) MUST ser calculadas sobre a rede **inteira** da organização na janela, e não sobre o recorte de quem consulta. A tela diz isso.
+- **FR-011**: As medidas estruturais (grau, intermediação, proximidade, autovetor, comunidades, distâncias, clustering, σ, percentis e papel) MUST ser calculadas sobre a rede **inteira** da organização na janela, e não sobre o recorte de quem consulta. A tela diz isso. Com alcance parcial, o número de pessoas da rede, o tamanho de componente e o grau normalizado seguem a regra do mínimo da FR-015 (seguranca.md R3).
 - **FR-012**: O **nome** de uma pessoa MUST aparecer só para quem a alcança, pela mesma regra da tela de pessoas, recalculada a cada leitura.
-- **FR-013**: A leitura que chega à tela MUST passar por **uma** função de domínio que aplica o alcance; nenhuma tela monta o recorte sozinha.
-- **FR-014**: Recurso de pessoa fora do alcance aberto pelo endereço MUST responder "not found".
-- **FR-015**: Quem está fora do alcance MUST aparecer **sem nome, agrupado**. A forma do agrupamento, o tamanho mínimo abaixo do qual o agrupamento não é dito, e o que os hubs, as comunidades e os perfis mostram no lugar da pessoa de fora são os de [seguranca.md](seguranca.md).
-- **FR-016**: Nenhum identificador de pessoa fora do alcance MUST chegar ao navegador, nem no markup, nem em atributo, nem no estado da página.
+- **FR-013**: A leitura que chega à tela MUST passar por **uma** função de domínio que aplica o alcance; nenhuma tela monta o recorte sozinha. A área inteira usa uma só função de alcance, `pessoas_alcancadas/2`, chamada dentro da função de domínio a cada leitura. O perfil é aberto se, e só se, a pessoa está nesse conjunto ou é a de quem consulta; `pode_ver/3` não decide nada nesta área (seguranca.md R5).
+- **FR-014**: Recurso de pessoa fora do alcance aberto pelo endereço MUST responder "not found", igual para pessoa de outro tenant, inexistente, fora do alcance e identificador que não é UUID. "Sem arestas nesta rede" só para pessoa alcançada.
+- **FR-015**: Quem está fora do alcance MUST aparecer **sem nome, agrupado**, pela regra de [seguranca.md](seguranca.md) R2, com alcance parcial:
+  1. o mínimo é **k = 3** pessoas, declarado na base (`network.analysis.parameters.outside_reach`) com a razão;
+  2. no grafo, as pessoas de fora de cada comunidade são **um nó agregado** quando forem ≥ k; as de comunidades com menos de k juntam-se num nó *"other communities"* se juntarem ≥ k; senão não há nó, e cada pessoa alcançada ligada a alguém de fora leva a marca *"has links outside your reach"*, sem aresta nem número;
+  3. **nenhum nó anônimo individual**;
+  4. número que, subtraídos os nomes visíveis, contaria menos de k pessoas de fora não aparece (supressão complementar), e a tela diz por quê;
+  5. hubs: só pessoas alcançadas, ordenadas pela medida da rede inteira, sem a posição na rede inteira e sem linha de pessoa de fora;
+  6. comunidades: membros alcançados por nome, os três mais centrais entre os alcançados, os de fora pelas regras 2 e 4; comunidade sem ninguém alcançado não tem bloco próprio;
+  7. papel: só de pessoa alcançada, e nenhuma contagem de papel entre os de fora;
+  8. perfil: pares de fora só agregados (FR-049).
+
+  A mesma regra vale no grafo ponderado, no de comunidades e na lista do telefone. Quem alcança todas as pessoas vê a rede inteira por nome, como na referência.
+- **FR-016**: Nenhum identificador de pessoa fora do alcance MUST chegar ao navegador, nem no markup, nem em atributo, nem no estado da página, nem pseudônimo derivado dele (hash). Nó agregado tem identificador opaco por renderização. O hook do grafo não recebe dado: o servidor renderiza o SVG, e o hook só aplica transformação e classe. Nenhum `push_event` leva nó, aresta ou medida. A tela guarda só a visão já recortada. O destaque é comando de cliente; evento com identificador, se houver, é conferido contra os nós da visão (seguranca.md R6).
 
 **O cálculo e a leitura**
 
-- **FR-017**: O cálculo MUST rodar em segundo plano, por organização observada, rede e janela, e conferir antes de ler: o tenant existe e está ativo; a organização pertence ao tenant; a janela e a rede estão nas listas fechadas da base. Falha cancela sem gravar.
-- **FR-018**: Cada leitura MUST guardar a proveniência: rede, janela, instante, quantos itens entraram e saíram por motivo, a versão das regras e das medidas, a semente e o número de grafos aleatórios do σ, e a semente do layout. Existe uma leitura vigente por organização, rede e janela; a nova substitui a anterior. A leitura guarda identificadores de pessoa, nunca nome nem login.
+- **FR-017**: O cálculo MUST rodar em segundo plano, por organização observada, rede e janela, e conferir antes de ler: o tenant existe e está ativo; a organização pertence ao tenant; a janela e a rede estão nas listas fechadas da base. Falha cancela sem gravar. O cálculo roda em fila própria, configurada, com concorrência 1; um cálculo pendente por tenant e organização; as duas redes no mesmo job; com tempo máximo e cancelamento. A rede de entrada tem impressão digital: igual à vigente, σ, Q e layout não são recalculados. Acima do tamanho máximo da base (o valor sai do plano, medido pela #1190), σ, Q contra aleatórios e layout são ausentes com motivo (seguranca.md R7).
+- **FR-018**: Cada leitura MUST guardar a proveniência: rede, janela, instante, quantos itens entraram e saíram por motivo, a versão das regras e das medidas, a semente e o número de grafos aleatórios do σ, e a semente do layout. Existe uma leitura vigente por organização, rede e janela; a nova substitui a anterior. A leitura guarda identificadores de pessoa, nunca nome nem login. O percentil e o papel **não** são gravados: derivam-se na leitura. A chave da leitura vigente inclui a rede, e a substituição apaga só a da mesma rede. A gravação não usa operação que levante com o conteúdo da leitura na mensagem. Ao encerrar a observação da organização, as leituras dela são apagadas; leitura mais velha que a maior janela não é mostrada (seguranca.md R4, R10, R11).
 - **FR-019**: A conectividade MUST usar um critério só, o **fraco** (direção ignorada), declarado, e a frase da tela usa o número certo de componentes ("1 group" quando conexa).
 
 **Os grafos**
 
 - **FR-020**: O grafo ponderado MUST mostrar cada pessoa com tamanho pelo grau, cor pela intermediação, e cada aresta com espessura pelo peso e seta pela direção, com legenda em texto para tamanho, cor e espessura.
 - **FR-021**: O grafo de comunidades MUST mostrar cada pessoa com a cor da comunidade, com o número da comunidade também em texto (no destaque e na lista). Cor nunca é o único sinal.
-- **FR-022**: As posições MUST ser calculadas no servidor, com semente fixa: o mesmo dado dá o mesmo desenho. O desenho é SVG; o navegador não recalcula posição.
-- **FR-023**: O grafo MUST permitir aproximar, afastar e destacar uma pessoa com suas arestas, por ponteiro e por teclado, sem biblioteca de script nova.
-- **FR-024**: Nenhum rótulo do grafo MUST ser inserido como HTML a partir de texto (073, R13): todo nome é texto escapado pelo servidor.
+- **FR-022**: As posições MUST ser calculadas no servidor, com semente fixa: o mesmo dado dá o mesmo desenho. O desenho é SVG; o navegador não recalcula posição. Com alcance parcial, as posições são recalculadas na leitura sobre o grafo da visão (alcançados e agregados), com a mesma semente e ordem; as posições da rede inteira só aparecem para quem alcança todos (seguranca.md R2).
+- **FR-023**: O grafo MUST permitir aproximar, afastar e destacar uma pessoa com suas arestas, por ponteiro e por teclado, sem biblioteca de script nova e sem pacote novo em `assets/`; o zoom e o arrasto acontecem no cliente, sem evento ao servidor.
+- **FR-024**: Nenhum rótulo do grafo MUST ser inserido como HTML a partir de texto (073, R13): todo nome é texto escapado pelo servidor. Nenhum `raw/1`, nenhum `foreignObject`; `href` só para o perfil de pessoa alcançada; cor da paleta do servidor; atributo `style` só com número formatado no servidor; SVG inline no markup.
 - **FR-025**: Em tela estreita, o grafo MUST virar a lista das pessoas com as medidas e as arestas, empilhada, com o nome da coluna em cada célula.
 - **FR-026**: As duas vistas (ponderada e comunidades) MUST ser alternáveis na mesma página, como na referência, sem recalcular nada.
 
 **Comunidades**
 
 - **FR-027**: As comunidades MUST ser detectadas pela maximização gulosa de modularidade sobre a projeção sem direção **com peso**, com o desempate declarado na base: o mesmo dado dá a mesma partição.
-- **FR-028**: Para cada comunidade, a tela MUST mostrar tamanho, arestas internas, os três mais centrais por grau interno (número declarado na base) e todos os membros no alcance por nome; os de fora, agrupados (FR-015).
+- **FR-028**: Para cada comunidade, a tela MUST mostrar tamanho, arestas internas, os três mais centrais por grau interno (número declarado na base) e todos os membros no alcance por nome; os de fora, agrupados (FR-015). Com alcance parcial, os três mais centrais são escolhidos **entre os membros alcançados**, pelo grau interno da rede inteira, com a frase *"among the members you reach"*; tamanho e arestas internas seguem a regra 4 da FR-015.
 - **FR-029**: A modularidade da partição MUST ser mostrada com o número de comunidades.
 - **FR-030**: A tela MUST dizer que comunidade detectada não é equipe, e comunidade MUST NOT receber nome de equipe.
 - **FR-031**: A leitura da modularidade por faixas MUST usar só faixas declaradas na base com a fonte escrita; faixa sem fonte não vira adjetivo.
@@ -291,7 +303,7 @@ Quem coordena abre uma pessoa e vê o perfil dela na rede, como na referência: 
 **Hubs**
 
 - **FR-032**: A tela MUST mostrar as quatro centralidades da referência — grau, intermediação, proximidade e autovetor —, cada uma em lista ordenada pela medida, com o tamanho da lista declarado na base.
-- **FR-033**: O grau MUST ser dito como número de pessoas distintas, separado por sentido, e o grau normalizado, quando aparece, diz que depende do tamanho da rede.
+- **FR-033**: O grau MUST ser dito como número de pessoas distintas, separado por sentido, e o grau normalizado, quando aparece, diz que depende do tamanho da rede. O grau normalizado não aparece com alcance parcial: devolveria n pelo quociente (seguranca.md R3).
 - **FR-034**: As listas de hubs MUST ser ordenadas pela medida, com desempate declarado. A lista geral de pessoas continua ordenada por nome.
 - **FR-035**: A proximidade MUST ser dita junto da distância média da pessoa até quem ela alcança e do número de pessoas que alcança. MUST NOT converter 1/proximidade em distância.
 - **FR-036**: O autovetor MUST ser calculado por componente, com peso, pelo método declarado na base; valor que não converge é ausente com motivo; valores de componentes diferentes não são comparados nem ordenados juntos.
@@ -311,7 +323,7 @@ Quem coordena abre uma pessoa e vê o perfil dela na rede, como na referência: 
 - **FR-044**: O papel de cada pessoa MUST ser derivado dos percentis de grau e de intermediação pelos cortes e rótulos declarados na regra `network.position_role`, cada corte com razão escrita.
 - **FR-045**: O percentil MUST ser calculado sobre as pessoas da rede inteira (FR-011), pelo método declarado na base, com empates tratados pela mesma regra para todos.
 - **FR-046**: Abaixo do número mínimo de pessoas da base, o papel MUST ser ausente com motivo para todos.
-- **FR-047**: Todo papel MUST aparecer com os percentis e o critério ao lado, e a tela MUST dizer que o papel descreve a posição na rede observada na janela, e não desempenho, importância nem mérito.
+- **FR-047**: Todo papel MUST aparecer com os percentis e o critério ao lado, e a tela MUST dizer que o papel descreve a posição na rede observada na janela, e não desempenho, importância nem mérito. Ao lado do papel e dos hubs, a tela diz: *"Position in this network and window. It does not measure performance, importance or merit, and must not be used to evaluate a person."* A própria pessoa vê sempre o próprio papel (seguranca.md R4). Quem lê o papel e os hubs com o nome de **outra** pessoa é a decisão DS1.
 - **FR-048**: O perfil individual MUST mostrar para quantas pessoas a pessoa designa (ou revisa) e de quantas recebe, o grau e a intermediação com percentil, o papel, e as duas listas de pares com o peso, ordenadas pelo peso, com o total.
 - **FR-049**: No perfil, os pares com pessoas fora do alcance MUST aparecer só agregados, sem nome e sem número por pessoa de fora.
 
@@ -320,8 +332,8 @@ Quem coordena abre uma pessoa e vê o perfil dela na rede, como na referência: 
 - **FR-050**: Medida sem valor MUST ser ausente com motivo nomeado, de quem é a ausência (da origem ou da plataforma), nunca 0, 0,01 ou `inf`. Os motivos estão na base, em cada medida.
 - **FR-051**: Todo número da tela MUST ser marcado como **derivado**, com texto.
 - **FR-052**: Calcular de novo a mesma rede, janela e dado MUST dar o mesmo resultado, incluindo comunidades, σ e posições do desenho.
-- **FR-053**: A feature MUST NOT oferecer exportação do grafo, das listas ou do perfil (imagem, GEXF, CSV, HTML), nem expor a análise pela API pública, pelo servidor MCP ou ao material de geração de perfil.
-- **FR-054**: O cálculo registra organização, rede, janela, contagens e duração, e MUST NOT registrar par, nome, login, papel nem valor de medida por pessoa.
+- **FR-053**: A feature MUST NOT oferecer exportação do grafo, das listas ou do perfil (imagem, GEXF, CSV, HTML), nem expor a análise pela API pública, pelo servidor MCP ou ao material de geração de perfil. Nenhuma rota da área além de `live`; nenhum botão, atributo `download` nem folha de impressão dedicada; nenhum módulo da API, do MCP ou do material de perfil referencia a análise, com teste que reprova se surgir (seguranca.md R12).
+- **FR-054**: O cálculo registra organização, rede, janela, contagens e duração, e MUST NOT registrar par, nome, login, papel nem valor de medida por pessoa, nem `person_id` com medida, comunidade ou papel. O resultado do job volta como relato testável, e o registro sai dele. A leitura não é atributo de telemetria (seguranca.md R15).
 - **FR-055**: As emendas de [seguranca.md](seguranca.md) marcadas como incorporadas valem como requisitos desta spec.
 
 ### Key Entities
@@ -339,7 +351,7 @@ Quem coordena abre uma pessoa e vê o perfil dela na rede, como na referência: 
 - **SC-001**: Para uma organização real, as contagens da rede de designação (issues, arestas, exclusões por motivo) batem com uma contagem manual na origem para a mesma janela, sem diferença.
 - **SC-002**: Para cinco redes de teste com resposta conhecida (estrela, caminho, dois grupos ligados por uma ponte, bipartida, desconexa), grau, intermediação, proximidade, autovetor, distância média, diâmetro, eficiência, clustering e modularidade batem com o valor calculado à mão ou por ferramenta de referência, com tolerância declarada no plano.
 - **SC-003**: Recalcular a mesma leitura 10 vezes dá 10 resultados idênticos, inclusive comunidades, σ e posições.
-- **SC-004**: Nenhuma pessoa fora do alcance aparece por nome, e nenhum identificador dela chega ao navegador: verificado com dois tenants, duas organizações e uma conta de alcance restrito, inspecionando o HTML entregue.
+- **SC-004**: Nenhuma pessoa fora do alcance aparece por nome, e nenhum identificador dela chega ao navegador: verificado com dois tenants, duas organizações e uma conta de alcance restrito, inspecionando o HTML entregue. Nenhum identificador nem pseudônimo de pessoa de fora aparece em JSON entregue a hook nem em `push_event`; nenhum agregado de menos de 3 pessoas aparece; nenhuma linha de hub é de pessoa de fora — verificado com uma organização em que 1, 2 e 3 pessoas de fora pertencem à mesma comunidade.
 - **SC-005**: Nenhum número da tela aparece como zero, 0,01 ou infinito quando o fato é ausência: verificado numa rede sem aresta, numa rede desconexa e num componente bipartido.
 - **SC-006**: Quem coordena responde, a partir da tela e em menos de dois minutos, "quais grupos se formam e quem os liga?", sem consultar outra fonte.
 - **SC-007**: No telefone, a página não rola de lado, e toda informação do grafo está na lista.
@@ -360,4 +372,23 @@ Quem coordena abre uma pessoa e vê o perfil dela na rede, como na referência: 
 - **Revisão semântica** antes do plano: [revisao-semantica.md](revisao-semantica.md).
 - **Avaliação do agente `security` antes do plano**: [seguranca.md](seguranca.md).
 - **Protótipo aprovado pela pessoa mantenedora** antes do código da tela, pelo agente `design`.
-- #1185 (alcance: a frase e o recorte) decidida antes da tarefa que aplica o alcance.
+- #1185 (alcance: a frase e o recorte) decidida antes da tarefa que aplica o alcance (DS4).
+- O conserto de `Repo.insert!` em `ReviewNetwork.Commands` (`lib/the_band/review_network/commands.ex:172`, seguranca.md R10: a exceção leva os pares de `person_id` para `oban_jobs.errors`) antes ou junto da primeira tarefa que toca o cálculo. É defeito de segurança conhecido na mesma superfície (AGENTS.md §14.0).
+
+## Decisões pendentes da pessoa mantenedora
+
+Bloqueiam o plano. As opções e a recomendação de cada uma estão no documento de origem.
+
+| # | Pergunta | Recomendação | Onde |
+|---|---|---|---|
+| D1 | Qual aresta é a "da referência": autor → responsável vigente (igual à referência) ou quem designou → designado (`AssignedEvent`, com data) | autor → responsável, com o nome "designação" | [revisao-semantica.md](revisao-semantica.md) |
+| D2 | Rótulos do papel e corte baixo: posicionais e 20, ou os da referência e 30 | posicionais e 20 | revisao-semantica.md |
+| D3 | Como a conta da organização é reconhecida (e se vale para a rede de revisão da 073) | a administração marca, com as guardas de seguranca.md R8 | revisao-semantica.md; seguranca.md R8 |
+| D4 | Intermediação sem direção ou dirigida | sem direção | revisao-semantica.md |
+| D5 | Clustering exclui quem tem menos de 2 vizinhos, ou conta 0 | excluir e dizer quantos | revisao-semantica.md |
+| D6 | Segundo revisor do papel semântico antes do plano | sim | revisao-semantica.md |
+| DS1 | Quem lê papel e hubs com o nome de outra pessoa | quem tem escopo concedido e a administração | [seguranca.md](seguranca.md) |
+| DS2 | O mínimo do agrupado: 3 ou 5 | 3 (já na FR-015) | seguranca.md |
+| DS3 | O total de uma pessoa alcançada: verdadeiro, ou separado em "with people you reach" / "in total" | total verdadeiro, com o risco residual escrito | seguranca.md |
+| DS4 | A #1185: corrigir a frase ou incluir a liderança declarada | corrigir a frase | seguranca.md |
+| DS5 | Conta sem alcance: vê tudo agregado, ou só as medidas da rede e o próprio perfil | só medidas e o próprio perfil | seguranca.md |
