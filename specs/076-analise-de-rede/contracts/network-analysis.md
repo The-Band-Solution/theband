@@ -212,15 +212,33 @@ quem chama. Depois do commit, avisa por PubSub só com ids (`Notices`, como a 07
 ```elixir
 @type relator :: %{
         readings: [%{network: String.t(), window_days: pos_integer(),
-                     outcome: :computed | :unchanged,
+                     outcome: :computed | :unchanged | {:ausente, atom()},
                      edges: non_neg_integer(), people: non_neg_integer(),
-                     excluded: %{atom() => non_neg_integer()},
-                     absent: [atom()],          # p. ex. [:sigma, :layout] por teto
+                     excluded: %{String.t() => non_neg_integer()},
+                     absent: [atom()],          # [:sigma, :q_rand, :efficiency_rand, :layout] por teto
                      duration_ms: non_neg_integer()}]
       }
 ```
 
 O relator **não** carrega `person_id`, nome, login, papel nem medida por pessoa: o log sai dele (A19).
+
+**Emenda de 2026-10-04 (T014)**, feita no mesmo commit da implementação:
+
+- **as arestas entram por uma função de entrada.** `compute/3` lê os parâmetros e monta
+  `NetworkAnalysis.Inputs.for_organization/4`; `compute/5` (interna, para os testes) recebe essa
+  função, de forma `(rede, janela, início) -> {:ok, entrada} | {:ausente, motivo}`, e devolve
+  `{:ok, relator, ids_gravados}`. Até a T028 ligar as duas fontes, as duas redes dão
+  `{:ausente, :source_not_connected}`: nada é gravado, e o relator diz por quê. Lista vazia faria
+  a leitura afirmar que não houve aresta;
+- **o `outcome` ganha `{:ausente, motivo}`**, para a rede sem fonte. As exclusões são chaveadas
+  pelos códigos da base, em texto;
+- **a impressão digital** cobre as arestas canônicas, as exclusões, as pessoas sem aresta e as
+  versões da base. `source_computed_at` não entra: com as mesmas arestas, a 073 recalculada não
+  muda a leitura;
+- **o log das consultas**: em `:debug`, `TheBand.Repo.LogDaConsulta` escrevia os parâmetros do
+  INSERT da leitura, isto é, cada `person_id` da rede (A19, encontrado por este teste). As tabelas
+  `network_analysis_readings` e `review_network_readings` passam a ter os parâmetros redigidos,
+  como as que têm campo cifrado.
 
 ## `discard_organization/2`
 
