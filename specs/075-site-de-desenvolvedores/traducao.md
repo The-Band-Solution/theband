@@ -65,22 +65,22 @@ Regras que acompanham o glossário:
 
 ## Os lotes
 
-Contagem de 2026-10-03 em `development`, mais as seis páginas de funcionalidade desta base. As pastas de
-protótipo (`site-developers/prototipo/` e o que a avaliação de segurança tirar do site) não se traduzem.
+Contagem de 2026-10-03 em `development`, mais as quatro páginas de funcionalidade desta base. Não se
+traduz o que não é publicado: `site-developers/prototipo/` e o que [seguranca.md](seguranca.md) tirou do site.
 
 | lote | seção | páginas | o que entra |
 |---|---|---:|---|
-| **L01** | entrada e arquitetura | 22 | `README.md`, `design-system.md`, `deployment.md`, `architecture/` (2), `api/` (2), `funcionalidades/` (8), `processes/` (1), `research/` (1), `rfc/` (2), `metrics/` (1, gerada: só conferir), `integrations/` (2, uma gerada) |
+| **L01** | entrada e arquitetura | 20 | `README.md`, `design-system.md`, `deployment.md`, `architecture/` (2), `api/` (2), `funcionalidades/` (6; a 073 e a 074 entram com o merge dos PRs), `processes/` (1), `research/` (1), `rfc/` (2), `metrics/` (1, gerada: só conferir), `integrations/` (2, uma gerada) |
 | **L02** | ontologias e decisões | 27 | `ontology/` (16, geradas: a tarefa é o gerador EN), `adr/` (11) |
 | **L03** | modelos | 30 | `modelos/` inteiro: classes, banco, estados, DSM, arquitetura |
-| **L04** | operação e releases | 25 | `producao/` (10, menos o que a avaliação de segurança tirar), `releases/` (15) |
-| **L05** | segurança e backlog, parte 1 | 25 | `seguranca/` (9, só o que ficar publicado), `backlog/` em ordem alfabética até completar 25 |
-| **L06** | backlog, parte 2 | 29 | o resto de `backlog/` |
+| **L04** | operação e releases | 24 | `producao/` (9: sem `prototipo-fila-parada/seguranca.md`, excluído por E1), `releases/` (15) |
+| **L05** | backlog, parte 1 | 25 | `backlog/`, os 25 primeiros em ordem alfabética. `seguranca/` sai do site (E1) e não se traduz |
+| **L06** | backlog, parte 2 | 20 | o resto de `backlog/` |
 | **L07** | sprints, parte 1 | 25 | `sprints/RETOMAR.md`, `licoes-aprendidas.md`, e os sprints 001 a 012 |
 | **L08** | sprints, parte 2 | 25 | sprints 013 a 027 |
 | **L09** | sprints, parte 3 | 25 | sprints 028 a 037 e os que chegarem até lá |
 
-**Total**: 233 páginas, nove lotes. O L01 vem primeiro porque é a porta de quem chega pela landing em
+**Total**: 221 páginas, nove lotes, mais a 073 e a 074 quando entrarem. O L01 vem primeiro porque é a porta de quem chega pela landing em
 inglês. `licoes-aprendidas.md` é grande (centenas de âncoras): se passar de um dia de trabalho, vira
 lote próprio.
 

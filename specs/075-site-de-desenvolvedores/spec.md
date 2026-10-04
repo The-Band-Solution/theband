@@ -137,8 +137,8 @@ o roda (fato medido acima).
 - **Hash do Mermaid que não confere**: o build reprova, com o hash esperado e o obtido.
 - **O commit do build não é obtível** (árvore sem `.git`): a faixa diz "commit do build: não
   informado", nunca um valor inventado.
-- **Spec só num PR aberto** (073, 074): a página existe e diz que a implementação ainda não está em
-  `development`; o texto descreve o que a spec pede como lacuna nomeada, não no presente.
+- **Spec só num PR aberto** (073, 074): não tem página até o merge (E5); a home diz onde está e
+  "entra quando o PR for mergeado".
 - **Busca sem resultado**: diz que nenhuma página fala do termo e qual é o alcance da busca (4.3).
 
 ## Requirements *(mandatory)*
@@ -159,7 +159,11 @@ o roda (fato medido acima).
   build.
 - **FR-006**: MUST existir uma página por funcionalidade 064, 070, 071, 072, 073 e 074 em
   `docs/funcionalidades/`, na forma D14, escrita a partir da spec e da tela, sem copiar a spec, com o
-  link para a spec no GitHub (D1).
+  link para a spec no GitHub (D1). **Emendado em 2026-10-03 pela avaliação de segurança (E5)**: as
+  páginas da 073 e da 074 só entram depois do merge dos PRs #1228 e #1266; até lá, a home as lista com
+  "entra quando o PR for mergeado". Nenhuma página diz defeito aberto nem mecanismo de proteção.
+- **FR-012**: A seção `docs/seguranca/` e os arquivos de evidência MUST sair do site publicado (E1, E3);
+  os links para eles vão ao GitHub.
 - **FR-007**: MUST existir um `404.html` para a raiz da `gh-pages`, com a variante de `/developers/`;
   o guarda do `docs.yml` MUST passar a conferir a presença dele, sem deixar de conferir os três de hoje.
 - **FR-008**: O build MUST reprovar página fora do `nav` (`validation.nav.omitted_files: warn` com

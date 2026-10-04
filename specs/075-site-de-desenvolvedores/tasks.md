@@ -62,8 +62,8 @@ lotes de tradução.
     confere o sha256 em `on_config`; o `<head>` o carrega antes do bundle do Material.
   - **Feita quando**: nenhuma página construída cita `unpkg` nem outro domínio em `src`
   - **Teste**: `test/site/test_terceiros.py`. **Defeitos a injetar**: um byte a mais no arquivo (o build
-    reprova com os dois hashes); tirar o script do `<head>` (o HTML passa a depender do `unpkg`, e o
-    teste reprova).
+    reprova com os dois hashes, por erro e não aviso, D2); tirar o script do `<head>` (o HTML passa a
+    depender do `unpkg`, e o teste reprova); `securityLevel: "loose"` em script do site (D3).
 
 ## Fase 2: US1 — a identidade e o caminho de volta (P1)
 
@@ -117,12 +117,15 @@ lotes de tradução.
 
 - [ ] T013 [US3] A 404, na raiz e em /developers/
   - **Pronta quando**: T008; 5.1; FR-007; [seguranca.md](seguranca.md)
-  - **Descrição**: `overrides/404.html`; o caminho pedido por `textContent`; texto neutro sem JS; o
-    `docs.yml` copia `site/404.html` para a raiz e o guarda confere `404.html` além dos três de hoje.
+  - **Descrição**: `overrides/404.html`; o caminho pedido só por `textContent`, de `pathname`, com
+    `decodeURIComponent` em `try` e limite de 200; links fixos; meta CSP com o hash do script; texto
+    neutro sem JS (E6). O `docs.yml` copia **só** `site/404.html` para a raiz, e o guarda confere
+    `404.html` (existe e é igual ao construído) e que `developers/seguranca` não existe, além dos três
+    de hoje (E2, E7). **Bloqueante** da publicação.
   - **Feita quando**: `site/404.html` tem as duas variantes e os links de saída; o guarda tem as quatro
     conferências
   - **Teste**: `test/site/test_404.py`, inclusive que o guarda do `docs.yml` confere os quatro arquivos.
-    **Defeito a injetar**: `innerHTML` no lugar de `textContent`; o teste reprova.
+    **Defeitos a injetar**: `innerHTML` no lugar de `textContent`; o hash da CSP diferente do script.
 
 ## Fase 3: US3 — as funcionalidades novas (P1)
 
@@ -134,40 +137,57 @@ em inglês, texto em português; nenhum número inventado; o link para a spec va
 - [ ] T015 [US3] A página da 070, suspender e reativar uma organização
 - [ ] T016 [US3] A página da 071, os papéis do banco (em Operação, sem tela)
 - [ ] T017 [US3] A página da 072, promover e rebaixar administradores (tela 6)
-- [ ] T018 [US3] A página da 073, a rede de revisão (spec em PR aberto: lacuna nomeada)
-- [ ] T019 [US3] A página da 074, entrar e sair vistos por quem opera (spec em PR aberto)
-  - **Pronta quando** (T014–T019): T002; a spec; a tela em `lib/`
+- [ ] T018 [US3] A página da 073, a rede de revisão — **só depois do merge do PR #1228** (E5)
+- [ ] T019 [US3] A página da 074, entrar e sair vistos por quem opera — **só depois do merge do PR #1266** (E5)
+  - **Pronta quando** (T014–T019): T002; a spec; a tela em `lib/`; [seguranca.md](seguranca.md), E5. Até
+    o merge, a home lista 073 e 074 com "entra quando o PR for mergeado".
   - **Feita quando**: recibo, as três seções, o link para a spec; a página está no `nav`, e a seção
     `funcionalidades/README.md` (5.2) lista os grupos com "sem página ainda" onde couber
-  - **Teste**: `test/site/test_funcionalidades.py`: as seis existem, têm as três seções e nenhum link
-    para `seguranca`, `tasks.md` ou `research.md`. **Defeito a injetar**: um link para
-    `specs/072-…/seguranca.md` numa página; o teste reprova.
+  - **Teste**: `test/site/test_funcionalidades.py`: as páginas existem, têm as três seções, nenhum link
+    para `seguranca`, `tasks.md` ou `research.md`, e nenhum dos termos proibidos de E5 (`THE_BAND_`,
+    `#1229`, `#1221`, `em aberto`, `sem limite`, `por IP`, `tentativas`, `cipher`, `AES`, nomes de papel
+    do banco). **Defeitos a injetar**: um link para `specs/072-…/seguranca.md`; um termo proibido. Cada
+    página passa por revisão do `security` antes do merge.
 
 ## Fase 4: as exigências da avaliação de segurança
 
-- [ ] T020 O que a avaliação manda, antes de publicar
+- [ ] T020 A seção Segurança e os arquivos de evidência fora do site (E1, E3, E4)
   - **Pronta quando**: [seguranca.md](seguranca.md)
-  - **Descrição**: cada achado bloqueante vira um item aqui, com o seu teste.
-  - **Feita quando**: os bloqueantes têm teste visto reprovando com o defeito
+  - **Descrição**: `exclude_docs` com `seguranca/`, `producao/prototipo-fila-parada/seguranca.md` e as
+    extensões `*.txt`, `*.log`, `*.sql`, `*.dump`, `*.env*`; a seção sai do `nav`; o hook leva ao GitHub
+    os links para página excluída. **Bloqueante** da publicação.
+  - **Feita quando**: `site/seguranca/` não existe, e o índice de busca não cita os inventários
+  - **Teste**: `test/site/test_exposicao.py`, que antes confere que o índice tem entradas.
+    **Defeito a injetar**: tirar `seguranca/` do `exclude_docs`; o teste reprova.
+
+- [ ] T021 O build da documentação endurecido (D1, E8)
+  - **Pronta quando**: [seguranca.md](seguranca.md)
+  - **Descrição**: `requirements-docs.txt` com todas as dependências e `--hash`, gerado para Python
+    3.13; `pip install --require-hashes`; `persist-credentials: false` e `timeout-minutes` nos dois
+    workflows de documentação.
+  - **Feita quando**: o CI instala com `--require-hashes`
+  - **Teste**: `test/site/test_workflows.py`: nenhum `pull_request_target`, nenhum `secrets.` e nenhum
+    `contents: write` no `docs-pr.yml`, todo `uses:` com SHA de 40, `persist-credentials: false`.
+    **Defeito a injetar**: trocar o gatilho por `pull_request_target`.
 
 ## Fase 5: o resto da régua do protótipo (depois da base)
 
-- [ ] T021 O recibo das ADRs (2.2), lido da seção *Status*
-- [ ] T022 O recibo dos modelos (3.1, 3.3), lido do comentário `DERIVADO de …`
-- [ ] T023 "Ver como tabela" e "ver o código Mermaid" em toda figura (3.4)
-- [ ] T024 A busca diz o alcance e marca o que está fora da navegação (4.2, 4.3)
-- [ ] T025 A conferência do QA, item a item, com captura (AC1, AC4, AC5, AC9)
+- [ ] T022 O recibo das ADRs (2.2), lido da seção *Status*
+- [ ] T023 O recibo dos modelos (3.1, 3.3), lido do comentário `DERIVADO de …`
+- [ ] T024 "Ver como tabela" e "ver o código Mermaid" em toda figura (3.4)
+- [ ] T025 A busca diz o alcance e marca o que está fora da navegação (4.2, 4.3)
+- [ ] T026 A conferência do QA, item a item, com captura (AC1, AC4, AC5, AC9)
 
 ## Fase 6: as traduções, por lote ([traducao.md](traducao.md))
 
-- [ ] T026 L01 entrada e arquitetura (22)
-- [ ] T027 L02 ontologias e decisões (27), com o gerador EN das páginas geradas
-- [ ] T028 L03 modelos (30)
-- [ ] T029 L04 operação e releases (25)
-- [ ] T030 L05 segurança e backlog, parte 1 (25)
-- [ ] T031 L06 backlog, parte 2 (29)
-- [ ] T032 L07 sprints, parte 1 (25)
-- [ ] T033 L08 sprints, parte 2 (25)
-- [ ] T034 L09 sprints, parte 3 (25), e `extra.traducao.exigir: true`
+- [ ] T027 L01 entrada e arquitetura (20)
+- [ ] T028 L02 ontologias e decisões (27), com o gerador EN das páginas geradas
+- [ ] T029 L03 modelos (30)
+- [ ] T030 L04 operação e releases (24)
+- [ ] T031 L05 backlog, parte 1 (25)
+- [ ] T032 L06 backlog, parte 2 (20)
+- [ ] T033 L07 sprints, parte 1 (25)
+- [ ] T034 L08 sprints, parte 2 (25)
+- [ ] T035 L09 sprints, parte 3 (25), e `extra.traducao.exigir: true`
   - **Feita quando** (cada lote): build estrito 0; a contagem de pendentes cai o número do lote;
     varredura 0 nos dois idiomas
