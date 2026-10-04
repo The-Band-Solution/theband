@@ -20,17 +20,29 @@ target:
   concept: sro.sprint
 semantics:
   equivalence: derived
-  justification: >
-    A iteração do Projects v2 é o que mais se aproxima de um sprint, e não é a
-    mesma coisa. Iteração é CONFIGURAÇÃO do quadro; sprint é processo EXECUTADO —
-    sro.sprint é complex_action, algo que ocorreu.
+  justification:
+    pt-BR: >
+      A iteração do Projects v2 é o que mais se aproxima de um sprint, e não é a
+      mesma coisa. Iteração é CONFIGURAÇÃO do quadro; sprint é processo EXECUTADO —
+      sro.sprint é complex_action, algo que ocorreu.
 
-    Daí a condição: só iteração cuja data de início já passou é promovida.
-    Promover uma iteração futura afirmaria um sprint que não aconteceu, e toda
-    medida de vazão passaria a incluir sprints com zero entregas.
+      Daí a condição: só iteração cuja data de início já passou é promovida.
+      Promover uma iteração futura afirmaria um sprint que não aconteceu, e toda
+      medida de vazão passaria a incluir sprints com zero entregas.
 
-    A promoção é derivada, não observada, e a proveniência diz isso: a origem é
-    configuração de projeto.
+      A promoção é derivada, não observada, e a proveniência diz isso: a origem é
+      configuração de projeto.
+    en: >
+      The Projects v2 iteration is what comes closest to a sprint, and it is not the same
+      thing. An iteration is board CONFIGURATION; a sprint is a PERFORMED process —
+      sro.sprint is a complex_action, something that occurred.
+
+      Hence the condition: only an iteration whose start date has already passed is
+      promoted. Promoting a future iteration would assert a sprint that did not happen, and
+      every throughput measure would come to include sprints with zero deliveries.
+
+      The promotion is derived, not observed, and the provenance says so: the origin is
+      project configuration.
 identity:
   external_id_path: id
   natural_key: [project.id, title]
@@ -45,29 +57,53 @@ relations:
       O sprint backlog não vem de um campo: é o CONJUNTO dos itens atribuídos a
       esta iteração. Derivado da atribuição, nunca gravado como pertencimento.
 limitations:
-  - >
-    Só iteração JÁ INICIADA vem para cá. A futura é pretendida, e tem mapeamento
-    próprio para spo.specific_intended_project_process — "interações futuras são
-    plannings que não foram feitas". A mesma iteração troca de registro ao começar.
-  - >
-    A data de início é PLANEJAMENTO, não observação. Um sprint que começou atrasado
-    terá a data que o quadro dizia. Este repositório já produziu essa divergência
-    duas vezes: sprints declarados de sete dias, aceitos no primeiro. A data
-    ocorrida exigiria o histórico de itens, fora de escopo por custo de consumo.
-  - >
-    `end_date` é calculada de `startDate + duration`, e é a data PREVISTA de
-    término. O GitHub não registra quando a iteração de fato terminou.
-  - >
-    Iteração removida da configuração depois de ter tido itens permanece
-    consultável, marcada como não mais presente na origem — apagar destruiria a
-    resposta a "o que foi feito naquele sprint".
-  - >
-    Iteração NÃO é release. O mesmo campo é usado por times para as duas coisas, e
-    distinguir exigiria declaração do tenant.
-  - >
-    sro.scrum_process, que a matriz de cobertura lista como derivável da existência
-    de sprints, NÃO é derivado aqui. A confiança declarada é baixa, e inferir
-    processo a partir de configuração de quadro seria afirmar demais.
+  - pt-BR: >
+      Só iteração JÁ INICIADA vem para cá. A futura é pretendida, e tem mapeamento
+      próprio para spo.specific_intended_project_process — "interações futuras são
+      plannings que não foram feitas". A mesma iteração troca de registro ao começar.
+    en: >
+      Only an ALREADY STARTED iteration comes here. A future one is intended, and has its
+      own mapping to spo.specific_intended_project_process — "future iterations are
+      plannings that were not carried out" (original: "interações futuras são plannings que
+      não foram feitas"). The same iteration changes record when it starts.
+  - pt-BR: >
+      A data de início é PLANEJAMENTO, não observação. Um sprint que começou atrasado
+      terá a data que o quadro dizia. Este repositório já produziu essa divergência
+      duas vezes: sprints declarados de sete dias, aceitos no primeiro. A data
+      ocorrida exigiria o histórico de itens, fora de escopo por custo de consumo.
+    en: >
+      The start date is PLANNING, not observation. A sprint that started late will have the
+      date the board stated. This repository has already produced this divergence twice:
+      sprints declared as seven days long, accepted on the first. The actual date would
+      require the item history, out of scope due to consumption cost.
+  - pt-BR: >
+      `end_date` é calculada de `startDate + duration`, e é a data PREVISTA de
+      término. O GitHub não registra quando a iteração de fato terminou.
+    en: >
+      `end_date` is computed from `startDate + duration`, and it is the PLANNED end date.
+      GitHub does not record when the iteration actually ended.
+  - pt-BR: >
+      Iteração removida da configuração depois de ter tido itens permanece
+      consultável, marcada como não mais presente na origem — apagar destruiria a
+      resposta a "o que foi feito naquele sprint".
+    en: >
+      An iteration removed from the configuration after having had items remains queryable,
+      marked as no longer present at the origin — deleting it would destroy the answer to
+      "what was done in that sprint".
+  - pt-BR: >
+      Iteração NÃO é release. O mesmo campo é usado por times para as duas coisas, e
+      distinguir exigiria declaração do tenant.
+    en: >
+      An iteration is NOT a release. The same field is used by teams for both things, and
+      distinguishing them would require a declaration by the tenant.
+  - pt-BR: >
+      sro.scrum_process, que a matriz de cobertura lista como derivável da existência
+      de sprints, NÃO é derivado aqui. A confiança declarada é baixa, e inferir
+      processo a partir de configuração de quadro seria afirmar demais.
+    en: >
+      sro.scrum_process, which the coverage matrix lists as derivable from the existence of
+      sprints, is NOT derived here. The declared confidence is low, and inferring a process
+      from board configuration would be asserting too much.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at]

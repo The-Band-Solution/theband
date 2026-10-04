@@ -32,6 +32,10 @@ module:
       Qual item de escopo uma solicitação de mudança atende. Fecha o rastreio que
       começa na pessoa e passa pelo commit e pela solicitação, ligando trabalho de
       gerência de configuração ao escopo que o motivou.
+    en: >
+      Which scope item a change request serves. It closes the trace that starts at the
+      person and passes through the commit and the request, linking configuration management
+      work to the scope that motivated it.
   provenance:
     source_type: project_decision
     reference: "Issue #426; complementa cmpo.change_traceability"
