@@ -328,7 +328,12 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
   responde: 10 de 10 entradas e saídas respondem como sempre, cada uma abaixo de 2 s, e a recusa
   do destino sobe `exportacao_falhou`. **Sem a tag `:integration`**: `test_helper.exs` a exclui e
   `mix gates` não a inclui, então o teste nunca rodaria. Defeito visto reprovando: o exportador
-  síncrono (processador simples) no caminho — "a entrada esperou 3014 ms pelo backend" (2/2).
+  síncrono (processador simples) no caminho — "a entrada esperou 3014 ms pelo backend" (o caso
+  do coletor mudo). O primeiro `mix gates` achou o teste **vazio** dentro da suíte: o SDK guarda
+  o tracer em `persistent_term`, com os processadores, e depois do reinício os passos ainda iam
+  ao processador simples antigo, que não existia — 40 `exit` no handler, respostas rápidas, e o
+  limiar sem medir nada. O reinício passou a apagar o cache, e a guarda de que nenhum passo se
+  perdeu no handler nasceu provada: sem apagar o cache, 2/2 reprovam.
   **Limitação** (research R13): o SDK 1.7.0 não conta o descarte por fila cheia; a perda é a
   diferença `passo_emitido − span_exportado − span_descartado`, com os spans em trânsito dentro.
   A parada do coletor do profile `telemetria` à mão fica no quickstart*

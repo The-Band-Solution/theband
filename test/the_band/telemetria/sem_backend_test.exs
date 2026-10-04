@@ -102,8 +102,17 @@ defmodule TheBand.Telemetria.SemBackendTest do
     :ok
   end
 
+  # Reiniciar o SDK não basta: `opentelemetry` guarda o tracer de cada aplicação em
+  # `persistent_term`, com os processadores dentro, e o tracer em cache continuaria chamando o
+  # processador antigo. Medido em 2026-10-03: depois do reinício com o lote, os passos ainda iam
+  # ao `otel_simple_processor_global`, que não existia mais — 40 `exit` no handler, e um teste
+  # verde que não media o lote. Só acontece em teste: em produção o SDK sobe uma vez.
   defp reiniciar_o_sdk do
     :ok = Application.stop(:opentelemetry)
+
+    for {{:opentelemetry, _provedor, :tracer, _nome} = chave, _} <- :persistent_term.get(),
+        do: :persistent_term.erase(chave)
+
     {:ok, _} = Application.ensure_all_started(:opentelemetry)
   end
 
@@ -113,6 +122,15 @@ defmodule TheBand.Telemetria.SemBackendTest do
   end
 
   defp entrar_e_sair(user) do
+    falhas_do_handler = Contadores.valor(:handler_falhou, :todos)
+    entrar_e_sair_sem_conferir(user)
+
+    # A guarda do cenário: nenhum passo se perdeu no handler. Um tracer que chama um processador
+    # que não existe faria cada passo sair por `exit` — rápido, e por isso invisível ao limiar.
+    assert Contadores.valor(:handler_falhou, :todos) == falhas_do_handler
+  end
+
+  defp entrar_e_sair_sem_conferir(user) do
     for _ <- 1..@vezes do
       {ms_entrar, dentro} =
         medir(fn ->
@@ -131,14 +149,16 @@ defmodule TheBand.Telemetria.SemBackendTest do
   test "com o coletor recusando conexão, dez entradas e dez saídas funcionam", ctx do
     sdk_de_producao(porta_fechada())
     antes = Contadores.valor(:passo_emitido, nil)
+    falhas_antes = Contadores.valor(:exportacao_falhou, :todos)
 
     entrar_e_sair(ctx.user)
 
     # Os passos foram emitidos: o handler está no caminho, e a medida não é sobre nada.
     assert Contadores.valor(:passo_emitido, nil) - antes >= 2 * @vezes
 
-    # E a exportação foi tentada e falhou — contada, e não silenciosa (FR-008).
-    falhas_antes = Contadores.valor(:exportacao_falhou, :todos)
+    # E a exportação foi tentada e falhou — contada, e não silenciosa (FR-008). O lote exporta a
+    # cada 5 s: com a suíte lenta, a exportação pode já ter acontecido antes do `force_flush`, e
+    # por isso a referência é tomada antes das entradas.
     :otel_tracer_provider.force_flush()
     assert esperar(fn -> Contadores.valor(:exportacao_falhou, :todos) > falhas_antes end)
   end
