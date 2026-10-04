@@ -25,6 +25,10 @@ defmodule TheBand.WorkItems.Schemas.IssueAssignee do
     field :login, :string
     field :person_id, :binary_id
 
+    # O tipo da conta designada, por `Mapper.account_type/1` na coleta (076, R13). Nulo é "não se
+    # sabe", nunca "pessoa".
+    field :account_type, :string
+
     field :no_longer_observed_at, :utc_datetime
 
     timestamps(type: :utc_datetime)
@@ -33,8 +37,16 @@ defmodule TheBand.WorkItems.Schemas.IssueAssignee do
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(assignee, attrs) do
     assignee
-    |> cast(attrs, [:tenant_id, :collected_issue_id, :login, :person_id, :no_longer_observed_at])
+    |> cast(attrs, [
+      :tenant_id,
+      :collected_issue_id,
+      :login,
+      :person_id,
+      :account_type,
+      :no_longer_observed_at
+    ])
     |> validate_required([:tenant_id, :collected_issue_id, :login])
+    |> check_constraint(:account_type, name: :issue_assignees_account_type_allowed)
     |> unique_constraint([:collected_issue_id, :login])
   end
 end

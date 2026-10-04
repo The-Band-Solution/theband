@@ -529,6 +529,11 @@ defmodule TheBand.Ingestion.GithubWorkItems do
 
   # Só contas com identidade: o nó de um autor apagado na origem vem sem `id`, e criar pessoa a
   # partir do login seria chavear identidade por string que o GitHub deixa renomear — a L25.
+  # O tipo da conta (076, R13): `Mapper.account_type/1`, chamado e nunca reimplementado. O nó nulo
+  # é a conta apagada na origem, e o tipo dela não se sabe: nulo, e não "person".
+  defp tipo_da_conta(conta) when is_map(conta), do: Mapper.account_type(conta)
+  defp tipo_da_conta(_conta), do: nil
+
   defp contas_do_no(node) do
     designados = get_in(node, ["assignees", "nodes"]) || []
 
@@ -665,6 +670,8 @@ defmodule TheBand.Ingestion.GithubWorkItems do
         state_reason: node["stateReason"],
         author_login: get_in(node, ["author", "login"]),
         author_person_id: ctx.pessoas[get_in(node, ["author", "login"])],
+        # 076, R13: o tipo, e nunca só o login. Autor apagado na origem fica nulo.
+        author_account_type: tipo_da_conta(node["author"]),
         milestone_title: get_in(node, ["milestone", "title"]),
         # #368: o marco é onde o prazo mora no GitHub — a issue não tem campo de prazo. O
         # id acompanha porque título é renomeável, e `dueOn` nulo é marco sem prazo
@@ -684,8 +691,8 @@ defmodule TheBand.Ingestion.GithubWorkItems do
     ctx.sync |> Ingestion.reload() |> Ingestion.tally(issue.outcome || :unchanged)
 
     designados =
-      for %{"login" => login} <- get_in(node, ["assignees", "nodes"]) || [],
-          do: %{login: login, person_id: ctx.pessoas[login]}
+      for %{"login" => login} = conta <- get_in(node, ["assignees", "nodes"]) || [],
+          do: %{login: login, person_id: ctx.pessoas[login], account_type: tipo_da_conta(conta)}
 
     rotulos =
       for rotulo <- get_in(node, ["labels", "nodes"]) || [],
