@@ -298,10 +298,11 @@ def gen_mappings_doc(kb, out):
         L.append(f"### `{m['id']}`\n")
         L.append(f"**{s['provider']}.{s['entity']} → {t['concept']}** · equivalência "
                  f"*{sem['equivalence']}* · versão {m['version']} · status *{m['status']}*\n")
-        L.append(f"{sem['justification'].strip()}\n")
+        L.append(f"{pt(sem['justification'])}\n")
         L.append("**Limitações**\n")
         for lim in d.get("limitations") or []:
-            L.append(f"- {lim}")
+            # Item em mapa de idioma (075, #1312): o português sai como saía, sem strip.
+            L.append(f"- {lim['pt-BR'] if isinstance(lim, dict) else lim}")
         L.append("")
     return write(f"{out}/integrations/mappings.md", "\n".join(L) + "\n")
 
