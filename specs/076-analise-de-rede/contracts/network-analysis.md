@@ -19,6 +19,20 @@ e chama a função de mesmo nome com aridade + 1, que os recebe como argumento. 
 aridade maior com parâmetros montados; nenhum valor de k, janela, semente, teto ou corte está
 escrito no código.
 
+```elixir
+@spec Parameters.fetch!() :: Parameters.t()
+@spec Parameters.from_rules!(%{String.t() => map()}, %{String.t() => map()}) :: Parameters.t()
+```
+
+**Emenda de 2026-10-04 (T008)**: a leitura usa **quatro** regras, e não três. As janelas são as
+de `review.network.parameters` (`network.analysis.parameters.networks.values.windows_from`).
+`from_rules!/2` recebe por isso um mapa `id da regra => artefato` e as medidas de
+`network.structure` (para as versões da proveniência), no lugar de `from_rules!/3`. A função
+confere, sem usar para decidir, o que o código implementa: a ordem das exclusões de
+`assignment.network.edge`, o gerador `exsss`, o modelo `gnm` e `random_weights:
+shuffled_real_multiset`. Com valor diferente, levanta. A rede padrão é a primeira da lista
+`networks.values.allowed`.
+
 ---
 
 ## `options/0`
