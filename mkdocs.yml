@@ -159,6 +159,33 @@ plugins:
           build: true
           site_name: The Band — Developer docs
           nav_translations:
+            # L03 (075/T029): os títulos da seção Modelos.
+            Índice: Index
+            Mapa dos schemas: Map of the schemas
+            Declarações da organização: The organization's declarations
+            EO — estrutura organizacional: EO — organizational structure
+            Ingestão e observação: Ingestion and observation
+            Perfis e modelo: Profiles and model
+            Projetos e processo: Projects and process
+            Tenants e acesso: Tenants and access
+            Trabalho e mudança: Work and change
+            Banco (ERD): Database (ERD)
+            Mapa das tabelas: Map of the tables
+            EO e acesso: EO and access
+            Operador da plataforma: Platform operator
+            Estados: States
+            Mapa dos ciclos de vida: Map of the lifecycles
+            Declaração revogável: Revocable declaration
+            Observação: Observation
+            Atividade executada: Performed activity
+            Conta: Account
+            Coleta: Collection
+            Projeto declarado: Declared project
+            Vínculo de equipe: Team membership
+            Credencial do operador: Operator credential
+            Organização suspensa: Suspended organization
+            Módulos de lib: lib modules
+            060 — a tela da equipe: 060 — the team screen
             Início: Home
             Arquitetura: Architecture
             Visão geral: Overview
