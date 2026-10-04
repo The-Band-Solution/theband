@@ -1,7 +1,7 @@
 # Sprint 037 — a marca de administrador
 
 **Período**: 2026-10-03 a 2026-10-09, na iteration Sprint 035 do GitHub (`ee36a246`)
-**Feature**: [072](../../specs/072-papel-de-administrador/spec.md) · **Plano**: [plan.md](../../specs/072-papel-de-administrador/plan.md)
+**Feature**: [072](../../../specs/072-papel-de-administrador/spec.md) · **Plano**: [plan.md](../../../specs/072-papel-de-administrador/plan.md)
 **Issue de origem**: [#568](https://github.com/The-Band-Solution/theband/issues/568), a lacuna nomeada pela aceitação do sprint 023
 
 ## Objetivo do sprint
