@@ -15,6 +15,7 @@ vez. Este arquivo é o que eles leem antes de começar.
 | âncoras: o slug do título EN muda; link com `#âncora` para outra página precisa da âncora EN | o build estrito reporta a âncora que falta |
 | o título no `nav` se traduz em `nav_translations` do `mkdocs.yml`, não no arquivo | `Decisões: Decisions` |
 | páginas geradas (`ontology/`, `integrations/mappings.md`, `metrics/README.md`) **não se traduzem à mão**: o gerador `scripts/generate_docs.py` ganha a saída EN numa tarefa própria | lote 2 tem essa tarefa, e não a tradução manual |
+| **feito no L02 (T028)**: `python3 scripts/generate_docs.py` escreve PT e EN. A moldura sai em inglês; o texto da base sai em inglês onde a base tem `en`, e senão em português **marcado `pt-BR`**, com a contagem num aviso no topo. Traduzir esse texto é escrever o `en` **na base**, não na página | `test/site/test_gerador_en.py` reprova página gerada divergente da base |
 
 ## A ausência nomeada enquanto a tradução não chega
 
@@ -73,6 +74,24 @@ Continuum) têm nome em inglês; a tradução EN usa esse nome, e não uma tradu
 | sortalidade / rigidez | sortality / rigidity | UFO (L01) |
 | aceitação | acceptance | (L01) |
 | ponta (do ramo, no merge) | tip | (L01) |
+| vínculo observado | observed team membership | ADR 0008 (L02) |
+| evidência de vínculo | team membership evidence | `github.team_membership_evidence` (L02) |
+| declarar papel / papel não declarado | declare role / role not declared | rótulo da tela (L02) |
+| saída declarada, equívoco | declared departure, mistake | 055/060 (L02) |
+| concessão | grant | `eo.role_*_grant` (L02) |
+| elo (conta ↔ pessoa) | link | AGENTS, tela de contas (L02) |
+| veredito (de acesso) | verdict | `Tenants.Access` (L02) |
+| alcance | reach | `Tenants.Access` (L02) |
+| desligamento (de alguém) | offboarding | ADR 0009 (L02) |
+| coleta, etapa | collection, stage | ingestão (L02) |
+| verificações (execuções de CI) | checks | ADR 0006/0007 (L02) |
+| cota, balde, gestor de cotas | quota, bucket, quota manager | ADR 0007 (L02) |
+| hibernar sem dormir | hibernate without sleeping | ADR 0006 (L02) |
+| em voo | in flight | ADR 0007 (L02) |
+| camada fundacional / core / de domínio | foundational / core / domain layer | ADR 0004 (L02) |
+| kind, subkind, role, phase, relator, qua-entity | iguais | OntoUML: não se traduzem (L02) |
+| Proposta, Aceita, Emenda (ADR) | Proposed, Accepted, Amendment | (L02) |
+| tese | thesis | (L02) |
 
 Regras que acompanham o glossário:
 

@@ -19,6 +19,18 @@ Nenhuma medida existe sem uma necessidade de informação declarada, e nenhum da
 
 **Medidas candidatas.** `ci.pipeline_success_rate.ratio`
 
+### `flow.open_work_balance` — Equilíbrio entre o que abre e o que fecha
+
+**Pergunta.** A equipe fecha trabalho na velocidade em que ele aparece, e o que está em aberto está crescendo ou diminuindo ao longo do tempo?
+
+**Decisão apoiada.** Decidir se o problema de uma equipe é de capacidade ou de entrada. Uma equipe que fecha bem e mesmo assim acumula não precisa trabalhar mais rápido — precisa que menos coisa entre, ou que alguém decida o que não será feito. As duas conclusões exigem ações opostas, e sem esta medida elas são indistinguíveis.
+
+**Stakeholders.** engineering_manager, team_lead, scrum_master, product_manager
+
+**Conceitos necessários.** `sro.intended_scrum_development_task`, `sro.performed_scrum_development_task`, `eo.team`, `eo.team_membership`, `eo.person`
+
+**Medidas candidatas.** `flow.open_work.cumulative`, `flow.completion.forecast`
+
 ### `flow.throughput` — Vazão de tarefas concluídas
 
 **Pergunta.** Quantas tarefas de desenvolvimento o time conclui por sprint, e essa taxa se sustenta ao longo dos sprints?
@@ -54,6 +66,19 @@ Ausência de um domínio é lacuna do registro, nunca lacuna de competência: em
 **Stakeholders.** engineering_manager, team_lead, developer
 
 **Conceitos necessários.** `eo.person`, `eo.team_member`, `spo.performed_project_activity`, `cmpo.source_repository`
+
+**Medidas candidatas.** 
+
+### `people.project_participation` — Quem trabalhou neste projeto, e quando
+
+**Pergunta.** Quem trabalhou neste projeto num intervalo, e por qual equipe cada pessoa chegou até ele?
+
+**Decisão apoiada.** Saber com quem falar sobre uma decisão tomada no passado, e quem tem o contexto de uma parte do sistema. Um projeto de dois anos tem pessoas que entraram, saíram e voltaram — perguntar à equipe de hoje sobre uma escolha de janeiro passado leva à resposta de quem não estava lá.
+Apoia também a decisão de alocação: quem já trabalhou neste projeto precisa de menos tempo para voltar a ele.
+
+**Stakeholders.** engineering_manager, project_manager, team_lead, product_manager
+
+**Conceitos necessários.** `eo.person`, `eo.team`, `eo.team_membership`, `spo.project`
 
 **Medidas candidatas.** 
 
@@ -95,6 +120,10 @@ Tipo: `percentage` · unidade: `percent` · níveis: repository, project, team
 
 **Limitações**
 
+- No nível TEAM, o caminho é repositório → projeto → equipe, e NUNCA o ator da execução. `collected_verifications.actor_person_id` existe e daria uma taxa mais barata, e ela responderia outra pergunta: o ator é quem DISPAROU, não quem cuida do código. Execução agendada tem por ator quem configurou o agendamento; de push, quem empurrou. Uma equipe cujo CI roda por agendamento apareceria quase vazia (feature 058, R1).
+- Equipe sem projeto declarado NÃO recebe taxa. Zero diria que o pipeline falhou; a verdade é que a plataforma não sabe de quais repositórios aquela equipe cuida — e a recusa nomeia o elo que falta.
+- A taxa precisa vir com o NÚMERO DE EXECUÇÕES sobre o qual foi calculada. Cem por cento sobre três execuções e cem por cento sobre trezentas não são a mesma afirmação, e a cobertura do dado no nível equipe não foi medida (feature 058, R6).
+- Execução em andamento fica FORA do numerador e do denominador: processo que ainda não decidiu nada não é sucesso nem falha, e contá-lo como qualquer um dos dois inventaria um veredito.
 - Execuções canceladas e puladas não são insucesso e devem sair do denominador.
 - Repositórios com pipelines de propósitos distintos precisam de recorte por workflow.
 - Reexecução manual de um pipeline que falhou pode inflar artificialmente a taxa.
@@ -102,6 +131,97 @@ Tipo: `percentage` · unidade: `percent` · níveis: repository, project, team
 **Interpretações incorretas possíveis**
 
 - Taxa alta com poucos testes não indica qualidade; cruzar com cobertura e inspeção.
+
+### `flow.completion.forecast` — Previsão de conclusão por simulação, com sua confiança
+
+Responde a: `flow.open_work_balance`
+
+```text
+For each of N runs: sample a weekly closed count from the observed history and subtract from remaining; under the live-scope hypothesis also sample a weekly opened count and add. Repeat until remaining <= 0 or the horizon is reached. The forecast is the distribution of run lengths, reported as the 50th, 85th and 95th percentiles, together with the proportion of runs that did not finish within the horizon.
+
+```
+
+Tipo: `duration` · unidade: `weeks` · níveis: team
+
+**Limitações**
+
+- A simulação assume que o período à frente se parece com o observado — mesmas pessoas, mesmo tipo de trabalho. Uma equipe que acabou de perder alguém não tem histórico que sustente essa premissa, e a previsão continua saindo sem saber disso.
+- Oito semanas é histórico fino. O piso de seis períodos e dez itens fechados evita o pior caso, e não transforma histórico curto em previsão boa.
+- A hipótese de escopo congelado responde uma pergunta que quase nunca é a real: nada novo entrar. Ela existe para separar capacidade de entrada, e não para ser lida sozinha.
+- Quando a maioria das rodadas não conclui dentro do horizonte, os percentis descrevem uma MINORIA. A proporção de não conclusão é parte obrigatória do resultado, e não uma nota de rodapé.
+- Percentil de hipótese cujas rodadas não concluíram é NULO, nunca um número grande. Um número grande diria uma data; nulo diz desconhecido.
+- A amostragem trata as semanas como independentes e intercambiáveis. Férias, feriado e ciclo de release não são independentes, e a variabilidade real é maior que a simulada.
+- Herda todas as limitações de flow.open_work.cumulative, inclusive a de que 'fechado' é o ato da ferramenta.
+
+**Interpretações incorretas possíveis**
+
+- Ler a faixa de 85% como uma data prometida. É a semana em que 85% das rodadas terminaram, dado o passado observado — não um compromisso, e nada nela obriga o futuro.
+- Assumir o p50 como previsão. Metade das rodadas passou dele; usá-lo para prometer erra metade das vezes por definição.
+- Concluir que a equipe precisa trabalhar mais quando a hipótese de escopo vivo não converge. Se a entrada supera a saída, nenhuma quantidade de esforço dentro das taxas atuais fecha a conta — a decisão é sobre o que entra.
+- Comparar a previsão de duas equipes como medida de desempenho. Elas amostram históricos diferentes, com trabalho de naturezas diferentes.
+- Refazer a simulação até sair um número melhor. A semente é derivada dos dados justamente para que isso não seja possível.
+
+### `flow.open_work.cumulative` — Abertas e fechadas acumuladas, e o que resta entre elas
+
+Responde a: `flow.open_work_balance`
+
+```text
+opened_cumulative(t) = open_at(window_start)
+  + count(items WHERE created_at IN [window_start, t]);
+closed_cumulative(t) = count(items WHERE closed_at IN [window_start, t]); still_open(t) = opened_cumulative(t) - closed_cumulative(t)
+
+```
+
+Tipo: `count` · unidade: `work_items` · níveis: team, project
+
+**Limitações**
+
+- NÃO existe escopo comprometido. A medida não responde se um sprint termina — não há compromisso declarado contra o qual comparar, e o escopo aqui é simplesmente tudo o que foi aberto.
+- 'Fechado' é o ato registrado na ferramenta, e não um critério de término declarado. Item abandonado e item concluído entram iguais, e a medida não distingue os dois. O critério de fim continua sendo a lacuna da issue #506.
+- O acumulado PRECISA partir da contagem de itens já em aberto no início da janela. Partindo de zero, a distância entre as curvas mede apenas os itens nascidos dentro da janela: uma equipe com quarenta itens abertos há meses e nenhuma abertura recente apareceria com distância zero.
+- Item reaberto acrescenta uma abertura na semana em que foi reaberto e mantém o fechamento anterior na semana em que ocorreu. A mesma unidade de trabalho aparece duas vezes na série de abertas.
+- Trabalho que não virou item — revisão, apoio a incidente, espera por terceiro — não entra em nenhuma das duas curvas, e o saldo medido é menor que o real nas duas pontas.
+- A janela padrão é de oito semanas. Oito semanas é histórico curto, e uma equipe que mudou de composição no meio dela tem duas realidades numa série só.
+- O que resta é DERIVADO das duas séries, e não observado. Apresentá-lo com o mesmo peso visual das curvas afirmaria observação que não houve.
+
+**Interpretações incorretas possíveis**
+
+- Ler a distância entre as curvas como atraso. Ela é trabalho em aberto, e trabalho em aberto é o estado normal de uma equipe que existe — o que informa é se ela alarga ou estreita.
+- Concluir que a equipe está lenta quando a faixa alarga. Alargar significa que entra mais do que sai; pode ser inteiramente entrada, com a saída inalterada.
+- Somar as curvas de duas equipes. A mesma pessoa pode pertencer às duas e o mesmo item aparecer nas duas — o total contaria duas vezes.
+- Tratar a curva de fechadas como entrega de valor. Ela conta itens fechados na ferramenta, incluindo os abandonados.
+- Comparar a distância entre equipes de tamanhos diferentes sem normalizar. A medida vira contagem de pessoas.
+
+### `flow.per_person.readings` — As duas leituras da tabela por pessoa — a direção do estoque e a regularidade do fechamento
+
+Responde a: `flow.open_work_balance`, `flow.throughput`
+
+```text
+LÊ flow.open_work.cumulative:
+  change_across_window = still_open(last_sample) - still_open(first_sample);
+LÊ flow.throughput.rate:
+  periods_with_a_close  = count(periods WHERE closed(period) > 0)
+
+```
+
+Tipo: `count` · unidade: `work_items` · níveis: person
+
+**Limitações**
+
+- A VARIAÇÃO NÃO É SALDO DE TRABALHO. É a diferença entre dois estados amostrados, e um item aberto e fechado DENTRO de um mesmo período não aparece em nenhuma das duas pontas — a variação é zero e houve movimento.
+- A variação pode ser negativa por efeito da JANELA, e não do fechamento: item aberto antes da janela e fechado dentro dela entra na série de fechadas e nunca entrou na de abertas. O piso apresentado é zero, e é o piso do que a coluna afirma — não uma correção da medida.
+- A REGULARIDADE NÃO É RITMO. Diz em quantos períodos houve ao menos um fechamento, e não quantos itens fecharam: um período com um fechamento e outro com trinta contam igual. Quem quer o volume lê a coluna de fechadas, ao lado.
+- Nenhuma das duas se converte em média ou taxa por pessoa, e a tela não as apresenta assim: um número único por pessoa é a figura de produtividade que a plataforma não guarda.
+- As duas herdam TODAS as limitações das medidas que leem — inclusive a que mais importa: 'fechado' é o ato registrado na ferramenta, e não um critério de término declarado. Item abandonado e item concluído entram iguais, e a lacuna do critério de fim continua sendo a issue #506.
+- Sem data de designação — a origem não a fornece —, o item é da pessoa e o período dele é o do próprio item (decisão de 2026-08-27). A variação e a regularidade descrevem os itens DA pessoa, e não o que ela fez naquele período.
+
+**Interpretações incorretas possíveis**
+
+- Ler a variação como produtividade ou como esforço. Ela é a direção de um estoque: cresce quando entra mais do que sai, e pode crescer inteiramente por entrada, com a saída inalterada.
+- Ler `no change` como ausência de trabalho. Significa que se conferiu e o estoque terminou onde começou — o que é compatível com muito movimento dentro da janela.
+- Ordenar as pessoas por qualquer uma das duas. É a comparação que a tabela recusa: as linhas não compartilham denominador, e o maior número da tela conta trabalho que NÃO se moveu. Nenhuma coluna de medida ordena a tabela, e nenhuma se oferece para ordenar.
+- Somar a regularidade de duas pessoas. Duas pessoas com fechamento na mesma semana não somam duas semanas — é a mesma semana.
+- Ler a regularidade baixa como irregularidade da pessoa. O denominador é a janela coletada, e quem entrou no meio dela tem menos períodos possíveis — a coluna reduz o denominador e diz qual é.
 
 ### `flow.throughput.rate` — Vazão de tarefas concluídas por sprint
 
@@ -180,6 +300,10 @@ Tipo: `duration` · unidade: `seconds` · níveis: change_request, repository, p
 
 **Limitações**
 
+- No nível TEAM, a solicitação conta para a equipe quando quem a ABRIU pertencia a ela na data de abertura — e não na data da consulta, nem pela equipe de quem revisou. Recortar pela revisão mediria a equipe de quem revisa, e esta é uma espera de quem abriu (feature 058, R3).
+- Solicitação ainda sem revisão humana NÃO tem tempo: tem espera em curso. Omiti-la faria a mediana melhorar quanto pior a equipe estivesse, porque as que mais interessam são justamente as que ninguém revisou (feature 058, R5).
+- A mediana por pessoa e a da equipe respondem perguntas diferentes e não devem ser reconciliadas. Cada solicitação tem um autor, então não há dupla contagem — mas os dois números medem coisas distintas.
+- Solicitação aberta por quem nunca teve vínculo declarado não conta para equipe nenhuma. Ela é nomeada no que ficou de fora, e não some.
 - Revisões automáticas devem ser excluídas ou classificadas separadamente.
 - Solicitações de mudança sem revisão não possuem valor concluído e não entram na média.
 - Solicitações abertas como rascunho distorcem o início da espera.

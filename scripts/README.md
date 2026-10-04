@@ -11,7 +11,7 @@ task que vai substituí-la.
 | Script | Faz | Vira |
 |---|---|---|
 | `validate_knowledge_base.py` | valida sintaxe, schemas, integridade referencial, direção de dependências, ciclos, fundamentação de papéis, proveniência e segredos | `mix knowledge.validate` + `mix knowledge.graph` |
-| `generate_docs.py` | gera `docs/ontology/`, `docs/integrations/mappings.md` e `docs/metrics/` a partir da base | `mix knowledge.docs` |
+| `generate_docs.py` | gera `docs/ontology/`, `docs/integrations/mappings.md` e `docs/metrics/` a partir da base, em português (`.md`) e em inglês (`.en.md`); o texto que a base só tem em português sai marcado `pt-BR` na versão inglesa | `mix knowledge.docs` |
 | `derive_information_model.py` | aplica os cinco passos da transformação e produz o modelo de informação de uma ontologia | `mix knowledge.information_model` |
 
 ## Uso

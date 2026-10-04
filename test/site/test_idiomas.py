@@ -31,21 +31,32 @@ class DoisIdiomas(unittest.TestCase):
         self.assertNotIn("Entrar na plataforma", en)
 
 
+PENDENTE = "sprints/037-papel-de-administrador/sprint-backlog"
+
+
 class TraducaoPendente(unittest.TestCase):
     def test_pagina_sem_traducao_mostra_a_ausencia_nomeada_e_marca_o_texto_como_portugues(self):
         exigir_site()
-        en = ler("en/adr/0008-vinculo-observado/index.html")
+        # A 0008 foi a amostra até o L02 a traduzir (075/T028); a de agora é do L09.
+        en = ler(f"en/{PENDENTE}/index.html")
         self.assertIn("translation pending</span> This page has not been translated yet.", en)
         self.assertIn('<div lang="pt-BR">', en)
 
     def test_a_pagina_portuguesa_nao_mostra_a_marca(self):
         exigir_site()
-        self.assertNotIn("translation pending", ler("adr/0008-vinculo-observado/index.html"))
+        self.assertNotIn("translation pending", ler(f"{PENDENTE}/index.html"))
+
+    def test_pagina_traduzida_nao_mostra_a_marca_e_fala_ingles(self):
+        exigir_site()
+        en = ler("en/adr/0008-vinculo-observado/index.html")
+        self.assertNotIn("translation pending", en)
+        self.assertIn("The observed team membership", en)
 
     def test_o_build_lista_as_pendentes(self):
         exigir_site()
         pendentes = ler("traducao-pendente.txt").split()
-        self.assertIn("adr/0008-vinculo-observado.md", pendentes)
+        self.assertIn(f"{PENDENTE}.md", pendentes)
+        self.assertNotIn("adr/0008-vinculo-observado.md", pendentes)
         traduzidas = [p for p in glob.glob(os.path.join(DOCS, "**", "*.en.md"), recursive=True)]
         for t in traduzidas:
             self.assertNotIn(os.path.relpath(t, DOCS).replace(".en.md", ".md"), pendentes)

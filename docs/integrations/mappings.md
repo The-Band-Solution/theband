@@ -406,7 +406,7 @@ O vínculo pessoa-time observado é preservado como evidência, com o nível de 
 **Limitações**
 
 - MAINTAINER e MEMBER são níveis de acesso na plataforma, não papéis organizacionais; não devem virar eo.organizational_role.
-- Sem papel atribuído pelo tenant, o vínculo não é promovido a eo.team_membership e CQ14 e CQ16 permanecem sem resposta.
+- O vínculo é promovido a eo.team_membership na coleta, como vínculo observado sem papel (regra github.team_membership_evidence v2, 2026-09-06); CQ14 e CQ16 permanecem sem resposta até o tenant declarar o papel.
 - A API não informa quando a pessoa entrou no time; started_at e ended_at ficam nulos e o histórico de alocação não é reconstituível.
 - Contas do tipo Bot podem integrar times e não são pessoas; devem ser classificadas separadamente.
 - Um vínculo deixa de ser vigente por DUAS causas, e elas significam coisas diferentes. PRIMEIRA - a origem mudou: remoção de uma pessoa do time no GitHub não gera evento, e só é detectável por comparação entre coletas. SEGUNDA - a plataforma parou de olhar: o tenant encerrou a observação daquela organização, e a decisão é da plataforma, não fato sobre a origem.
