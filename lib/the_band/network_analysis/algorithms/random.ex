@@ -29,7 +29,7 @@ defmodule TheBand.NetworkAnalysis.Algorithms.Random do
           {[{pos_integer(), pos_integer()}], state()}
   def gnm(state, n, m) when is_integer(n) and n > 0 and is_integer(m) and m >= 0 do
     if m > div(n * (n - 1), 2), do: raise(ArgumentError, "m=#{m} passa dos pares de n=#{n}")
-    sortear(state, n, m, MapSet.new(), [])
+    sortear(state, n, m, %{}, [])
   end
 
   defp sortear(state, _n, 0, _vistos, acc), do: {Enum.reverse(acc), state}
@@ -39,9 +39,9 @@ defmodule TheBand.NetworkAnalysis.Algorithms.Random do
     {v, state} = :rand.uniform_s(n, state)
     par = {min(u, v), max(u, v)}
 
-    if u == v or MapSet.member?(vistos, par),
+    if u == v or Map.has_key?(vistos, par),
       do: sortear(state, n, faltam, vistos, acc),
-      else: sortear(state, n, faltam - 1, MapSet.put(vistos, par), [par | acc])
+      else: sortear(state, n, faltam - 1, Map.put(vistos, par, true), [par | acc])
   end
 
   @doc "A lista embaralhada por Fisher–Yates, do último índice para o primeiro."

@@ -58,7 +58,10 @@ defmodule TheBand.NetworkAnalysis.View do
   `reach` e `granted` vêm de `Tenants.pessoas_alcancadas/2` e `/3`, calculados **na chamada** de
   quem lê; este módulo não os busca nem os guarda.
   """
-  @spec build(map(), alcance(), alcance(), String.t() | nil, %{min_group: pos_integer()}) :: t()
+  @spec build(map(), alcance(), alcance(), String.t() | nil, %{
+          required(:min_group) => pos_integer(),
+          optional(:gone) => MapSet.t()
+        }) :: t()
   def build(leitura, reach, granted, viewer_person_id, %{min_group: k} = params) do
     nos = leitura_nos(leitura)
     alcance = classificar(reach, viewer_person_id)
