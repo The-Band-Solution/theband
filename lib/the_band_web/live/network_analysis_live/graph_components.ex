@@ -317,8 +317,8 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
         <b>Width</b> how many {unidade(@network)} on that link. <b>Arrow</b> its direction.
       </p>
       <p :if={@agregados != []}>
-        <b>Dashed</b> people outside your reach, grouped and unnamed; their links with each other
-        are not drawn.
+        <b>Dashed</b> people outside your reach, grouped and unnamed; links between people of the
+        same group are not drawn.
       </p>
     </div>
     """
@@ -359,8 +359,8 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
     >
       <h3 class="font-semibold">{g.size} people outside your reach</h3>
       <p class="text-sm opacity-80">
-        They are part of every measure on this page, but you do not see who they are. Their links
-        with each other are not drawn.
+        They are part of every measure on this page, but you do not see who they are. Links between
+        them are not drawn.
       </p>
     </div>
     """
@@ -512,29 +512,36 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
   defp intermediacao({:ausente, :network_too_small}), do: "not calculated: fewer than 3 people"
   defp intermediacao({:ausente, _}), do: "not calculated in this reading"
 
+  # Os verbos dizem o que a aresta liga, e só isso (D1): na designação, quem abriu a issue e quem
+  # é responsável por ela, nunca quem designou.
   defp verbo_saida("review"), do: "reviewed"
   defp verbo_saida("assignment"), do: "opened"
   defp verbo_entrada("review"), do: "was reviewed"
-  defp verbo_entrada("assignment"), do: "assigned to"
+  defp verbo_entrada("assignment"), do: "assignee of"
 
   defp saida(%{out_people: 0}, _rede), do: "none in this window"
 
   defp saida(p, "review"),
     do:
-      "#{plural(p.out_weight, "review", "reviews")} of change requests of #{p.out_people} #{pessoas(p.out_people)}"
+      "#{plural(p.out_weight, "change request", "change requests")} of " <>
+        "#{p.out_people} #{pessoas(p.out_people)}"
 
   defp saida(p, "assignment"),
     do:
-      "#{plural(p.out_weight, "issue", "issues")} assigned to #{p.out_people} #{pessoas(p.out_people)}"
+      "#{plural(p.out_weight, "issue", "issues")} assigned to " <>
+        "#{p.out_people} #{pessoas(p.out_people)}"
 
   defp entrada(%{in_people: 0}, _rede), do: "none in this window"
 
   defp entrada(p, "review"),
-    do: "#{plural(p.in_weight, "review", "reviews")} by #{p.in_people} #{pessoas(p.in_people)}"
+    do:
+      "on #{plural(p.in_weight, "change request", "change requests")}, by " <>
+        "#{p.in_people} #{pessoas(p.in_people)}"
 
   defp entrada(p, "assignment"),
     do:
-      "#{plural(p.in_weight, "issue", "issues")} opened by #{p.in_people} #{pessoas(p.in_people)}"
+      "#{plural(p.in_weight, "issue", "issues")} opened by " <>
+        "#{p.in_people} #{pessoas(p.in_people)}"
 
   defp unidade("review"), do: "reviews"
   defp unidade("assignment"), do: "issues"
