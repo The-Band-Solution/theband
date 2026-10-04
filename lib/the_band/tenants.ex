@@ -63,6 +63,11 @@ defmodule TheBand.Tenants do
     as: :revoke
 
   defdelegate organization_account_ids(tenant), to: OrganizationAccounts, as: :ids
+
+  defdelegate organization_accounts_changed_at(tenant),
+    to: OrganizationAccounts,
+    as: :last_change_at
+
   defdelegate list_organization_accounts(tenant, actor), to: OrganizationAccounts, as: :list
 
   # ------------------------------------------- o token de API (feature 061)

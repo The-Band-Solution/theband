@@ -119,6 +119,28 @@ defmodule TheBand.Tenants.OrganizationAccounts do
     |> MapSet.new()
   end
 
+  @doc """
+  O instante da última mudança nas contas declaradas deste tenant: a declaração ou a revogação
+  mais recente, vigente ou não. `nil` quando nunca houve declaração.
+
+  Para a análise de rede (076, E4 da revisão semântica do PR #1383): a leitura da 073 calculada
+  até este instante não sabe da mudança, e não é usada como se tivesse medido. Revogação conta
+  porque devolve uma pessoa à rede, e a leitura anterior a deixaria de fora.
+  """
+  @spec last_change_at(Tenant.t()) :: DateTime.t() | nil
+  def last_change_at(%Tenant{id: tenant_id}) do
+    Repo.one(
+      from d in Declaracao,
+        where: d.tenant_id == ^tenant_id,
+        select: fragment("max(greatest(?, ?))", d.declared_at, d.revoked_at)
+    )
+    |> como_utc()
+  end
+
+  defp como_utc(nil), do: nil
+  defp como_utc(%NaiveDateTime{} = instante), do: DateTime.from_naive!(instante, "Etc/UTC")
+  defp como_utc(%DateTime{} = instante), do: instante
+
   @doc "A lista das declarações vigentes, com quem declarou e quando. Só a administração."
   @spec list(Tenant.t(), User.t()) :: {:ok, [declaration_view()]} | {:error, :not_admin}
   def list(%Tenant{id: tenant_id} = tenant, %User{} = actor) do

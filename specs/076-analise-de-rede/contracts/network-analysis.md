@@ -70,7 +70,7 @@ fora da lista, o padrão, **sem dizer que era inválido**. Nunca `String.to_atom
 ```elixir
 @spec read(Tenant.t(), User.t(), organization_id :: term(), selection()) ::
         {:ok, view()}
-        | {:ausente, :not_computed | :stale}
+        | {:ausente, :not_computed | :stale | :review_reading_outdated}
         | {:error, :not_found}
 ```
 
@@ -80,7 +80,9 @@ fora da lista, o padrão, **sem dizer que era inválido**. Nunca `String.to_atom
    tenant, inexistente e id malformado dão o mesmo `{:error, :not_found}`;
 2. a leitura vigente de `(tenant, organização, rede, janela)`; sem ela, `{:ausente, :not_computed}`;
    com `computed_at` mais velho que a maior janela, `{:ausente, :stale}` (R18) — nunca a de outra
-   rede ou janela no lugar (edge case *"Leitura de uma rede pronta e da outra não"*);
+   rede ou janela no lugar (edge case *"Leitura de uma rede pronta e da outra não"*). Na rede
+   `review`, a leitura feita de uma 073 que não sabe das contas declaradas vigentes é
+   `{:ausente, :review_reading_outdated}` (ver a emenda E4 em `compute/3`);
 3. `Tenants.pessoas_alcancadas(tenant, user)` e `Tenants.pessoas_alcancadas(tenant, user, origem:
    :concedida)`, **nesta chamada**; nunca recebidos de fora nem guardados (A22);
 4. `View.build/5` (puro, [algoritmos.md](algoritmos.md) §View): o recorte da FR-015 com k da base;
@@ -297,6 +299,22 @@ O relator **não** carrega `person_id`, nome, login, papel nem medida por pessoa
   rede, e contá-las como *"pessoa sem aresta"* as poria de volta por outra porta. Nulo quando a
   janela não tem aresta;
 - os tipos `exclusions` e `excluded` do relator aceitam `nil` (o motivo não avaliado).
+
+**Emenda de 2026-10-04 (E4 da revisão semântica do PR #1383)**, feita no mesmo commit da
+implementação. A conta declarada da organização sai das **duas** redes (A7), mas a de designação
+usa as declarações de agora e a de revisão usa as arestas que a 073 gravou, e nada recalcula a 073
+quando se declara ou revoga. Opção (b) da revisão:
+
+- `Inputs.for_organization/4` devolve `{:ausente, :review_reading_outdated}` para a revisão
+  quando a leitura da 073 foi gravada pela versão 1 (`organization_account` nulo) ou foi calculada
+  **até** a última declaração ou revogação do tenant (`Tenants.organization_accounts_changed_at/1`).
+  Instante igual conta como desatualizado: os dois são gravados em segundos. Nada é gravado, como
+  no `:not_computed`;
+- o mesmo predicado, `Inputs.review_reading_current?/3`, é aplicado por `read/4` à leitura da
+  análise já gravada (pela contagem `organization_account` e por `source_computed_at`): a leitura
+  feita antes da declaração não é mostrada, e a tela diz que a rede de revisão é recalculada na
+  sincronização seguinte (`sync_github_eo` → `ComputeReviewNetwork` → `ComputeNetworkAnalysis`);
+- a rede de designação não muda: ela não depende da 073.
 
 ## `discard_organization/2`
 

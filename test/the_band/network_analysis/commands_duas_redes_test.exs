@@ -9,7 +9,14 @@ defmodule TheBand.NetworkAnalysis.CommandsDuasRedesTest do
   - a janela da designação é a da **abertura** da issue: aberta antes da janela e atualizada
     dentro dela, não entra;
   - a pessoa da organização sem aresta conta em `people_without_edges`, e não é nó; a conta
-    declarada da organização não conta como pessoa sem aresta.
+    declarada da organização não conta como pessoa sem aresta;
+  - a leitura da 073 que não sabe das contas declaradas vigentes — calculada antes da última
+    declaração, ou gravada pela versão 1 — deixa a revisão `{:ausente, :review_reading_outdated}`,
+    no cálculo e na leitura, e nunca é usada como se tivesse medido (E4 da revisão semântica do
+    PR #1383).
+
+  **Defeito a injetar (E4)**: `review_reading_current?/3` devolvendo `true` sempre; os dois casos
+  da leitura desatualizada reprovam.
   """
   use TheBand.DataCase, async: false
 
@@ -20,7 +27,9 @@ defmodule TheBand.NetworkAnalysis.CommandsDuasRedesTest do
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Ontology.SEON.EO
   alias TheBand.ReviewNetwork
+  alias TheBand.ReviewNetwork.Schemas.Reading, as: Leitura073
   alias TheBand.Tenants
+  alias TheBand.Tenants.Access.OrganizationAccountDeclaration
   alias TheBand.WorkItems
 
   defp dias_atras(n), do: DateTime.add(DateTime.utc_now(:second), -n * 86_400, :second)
@@ -147,11 +156,13 @@ defmodule TheBand.NetworkAnalysis.CommandsDuasRedesTest do
       revisao(ctx.tenant, cr, revisor, dias_atras(19 + i))
     end
 
-    {:ok, _} = ReviewNetwork.compute(ctx.tenant, ctx.org.organization, DateTime.utc_now(:second))
+    # A 073 calculada DEPOIS da declaração do setup: no mesmo segundo, não se sabe qual veio
+    # antes, e a leitura seria desatualizada (E4).
+    calculada_em = DateTime.add(DateTime.utc_now(:second), 1, :second)
+    {:ok, _} = ReviewNetwork.compute(ctx.tenant, ctx.org.organization, calculada_em)
     da_073 = ReviewNetwork.current_edges(ctx.tenant, ctx.org.organization.id)
 
-    assert {:ok, _} =
-             NetworkAnalysis.compute(ctx.tenant, ctx.org.organization, DateTime.utc_now(:second))
+    assert {:ok, _} = NetworkAnalysis.compute(ctx.tenant, ctx.org.organization, calculada_em)
 
     l = leituras(ctx.tenant)
     assert map_size(l) == 6
@@ -218,5 +229,87 @@ defmodule TheBand.NetworkAnalysis.CommandsDuasRedesTest do
 
     # Caio e Dora: da organização, pessoas, sem aresta na janela. LEDS é conta da organização.
     assert trinta.people_without_edges == 2
+  end
+
+  describe "a leitura da 073 que não sabe das contas declaradas (E4)" do
+    # A 073 calculada DEPOIS da declaração do setup (2 s à frente do relógio, porque os instantes
+    # são gravados em segundos), com Ana revisando Bia.
+    setup ctx do
+      cr = solicitacao(ctx.tenant, ctx.org.observed_repository_id, ctx.bia, dias_atras(3))
+      revisao(ctx.tenant, cr, ctx.ana, dias_atras(2))
+
+      calculada_em = DateTime.add(DateTime.utc_now(:second), 2, :second)
+      {:ok, _} = ReviewNetwork.compute(ctx.tenant, ctx.org.organization, calculada_em)
+
+      %{calculada_em: calculada_em}
+    end
+
+    defp revisao_90(ctx, agora) do
+      {:ok, relator} = NetworkAnalysis.compute(ctx.tenant, ctx.org.organization, agora)
+      Map.new(relator.readings, &{{&1.network, &1.window_days}, &1.outcome})[{"review", 90}]
+    end
+
+    defp ler(ctx, rede) do
+      NetworkAnalysis.read(ctx.tenant, ctx.admin, ctx.org.organization.id, %{
+        network: rede,
+        window: 90,
+        view: "weighted"
+      })
+    end
+
+    test "declarar DEPOIS da leitura da 073 deixa a revisão ausente, no cálculo e na leitura",
+         ctx do
+      # Controle: a 073 calculada depois da declaração do setup é usada.
+      assert revisao_90(ctx, DateTime.add(ctx.calculada_em, 1, :second)) == :computed
+      assert {:ok, _} = ler(ctx, "review")
+
+      # Dora é declarada 3 s depois da 073: a leitura dela não sabe disso.
+      {:ok, declaracao} =
+        Tenants.declare_organization_account(ctx.tenant, ctx.dora.id, "shared", ctx.admin)
+
+      depois = DateTime.add(ctx.calculada_em, 3, :second)
+
+      {1, _} =
+        Repo.update_all(
+          from(d in OrganizationAccountDeclaration, where: d.id == ^declaracao.id),
+          set: [declared_at: depois]
+        )
+
+      assert revisao_90(ctx, DateTime.add(depois, 1, :second)) ==
+               {:ausente, :review_reading_outdated}
+
+      # A leitura da análise feita antes também não é mostrada: ela é da mesma 073.
+      assert ler(ctx, "review") == {:ausente, :review_reading_outdated}
+      # A designação não depende da 073, e continua.
+      assert {:ok, _} = ler(ctx, "assignment")
+    end
+
+    test "a revogação também desatualiza: ela devolve uma pessoa à rede", ctx do
+      [declaracao] =
+        Repo.all(from d in OrganizationAccountDeclaration, where: d.tenant_id == ^ctx.tenant.id)
+
+      {:ok, _} = Tenants.revoke_organization_account(ctx.tenant, declaracao.id, ctx.admin)
+      depois = DateTime.add(ctx.calculada_em, 3, :second)
+
+      {1, _} =
+        Repo.update_all(
+          from(d in OrganizationAccountDeclaration, where: d.id == ^declaracao.id),
+          set: [revoked_at: depois]
+        )
+
+      assert revisao_90(ctx, DateTime.add(depois, 1, :second)) ==
+               {:ausente, :review_reading_outdated}
+    end
+
+    test "a leitura da 073 gravada pela versão 1 não é usada", ctx do
+      {_, _} =
+        Repo.update_all(
+          from(r in Leitura073, where: r.tenant_id == ^ctx.tenant.id),
+          set: [excluded_organization_account: nil]
+        )
+
+      assert revisao_90(ctx, DateTime.add(ctx.calculada_em, 1, :second)) ==
+               {:ausente, :review_reading_outdated}
+    end
   end
 end

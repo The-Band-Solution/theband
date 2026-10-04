@@ -198,6 +198,13 @@ derivation_rule:
       calculada, e não as da data de cada revisão. Uma conta declarada hoje sai também das
       revisões de 180 dias atrás; a revogação a devolve do mesmo modo.
     - >
+      LEITURA DESATUALIZADA: nada recalcula a rede de revisão quando se declara ou revoga. A
+      análise de rede (076) não usa a leitura da versão 1, nem a calculada até a última
+      declaração ou revogação do tenant: ela fica ausente, com o motivo
+      `review_reading_outdated`, até a sincronização seguinte recalcular esta rede (E4 da
+      revisão semântica do PR #1383). A tela da 073 continua mostrando a leitura com o instante
+      em que foi calculada.
+    - >
       A aresta é derivada, e nada nela foi dito pela origem como "A revisou B". Erro de
       resolução de conta em pessoa vira aresta errada, e é por isso que conta não resolvida é
       excluída e contada, e nunca adivinhada.
