@@ -20,7 +20,7 @@ sair falhou, e quando definir ou trocar a senha falhou — sem que nenhum segred
 
 | pré-requisito | estado em 2026-10-03 | bloqueia |
 |---|---|---|
-| PR [#1227](https://github.com/The-Band-Solution/theband/issues/1227) ([#1222](https://github.com/The-Band-Solution/theband/issues/1222), o log das consultas redigido) | aberto | **toda tarefa que toca `lib/` ou `mix.exs`** (T003 em diante, exceto T006 e T007) — decisão D6, §14.0 item 2 |
+| PR [#1227](https://github.com/The-Band-Solution/theband/issues/1227) ([#1222](https://github.com/The-Band-Solution/theband/issues/1222), o log das consultas redigido) | mergeado em 2026-10-03 (T003) | **toda tarefa que toca `lib/` ou `mix.exs`** (T003 em diante, exceto T006 e T007) — decisão D6, §14.0 item 2 |
 | [#887](https://github.com/The-Band-Solution/theband/issues/887) (064/US3) | aberta só à espera da aceitação; as tarefas [#871](https://github.com/The-Band-Solution/theband/issues/871), [#872](https://github.com/The-Band-Solution/theband/issues/872) e [#873](https://github.com/The-Band-Solution/theband/issues/873) estão **fechadas** | **não bloqueia** |
 | [#1162](https://github.com/The-Band-Solution/theband/issues/1162) (distribuição Erlang em `0.0.0.0`) | aberta | a implantação do SigNoz no mesmo VPS (T026) |
 | os seis itens de S6 da avaliação | não verificados | a implantação do SigNoz (T026) |
@@ -64,35 +64,35 @@ Do [registro acumulado](../licoes-aprendidas.md), lido em 2026-10-03:
 |---|---|---|---|---|---|
 | T001 | 👤 Aceitar ou recusar a ADR 0005 | — | Task | [#1235](https://github.com/The-Band-Solution/theband/issues/1235) | feito — decisão de 2026-10-03 |
 | T002 | 👤 Decidir D1 a D7 da avaliação de segurança | — | Task | [#1236](https://github.com/The-Band-Solution/theband/issues/1236) | feito — decisão de 2026-10-03 |
-| T003 | Conferir que os pré-requisitos de segurança chegaram | — | Task | [#1237](https://github.com/The-Band-Solution/theband/issues/1237) | bloqueado — PR #1227 |
-| T004 | Fixar as dependências do OpenTelemetry | — | Task | [#1238](https://github.com/The-Band-Solution/theband/issues/1238) | bloqueado — T003 |
-| T005 | Configurar o SDK explicitamente, e desligado por padrão | — | Task | [#1239](https://github.com/The-Band-Solution/theband/issues/1239) | bloqueado — T003 |
-| T006 | Subir o SigNoz local num profile próprio | — | Task | [#1240](https://github.com/The-Band-Solution/theband/issues/1240) | a fazer |
-| T007 | Declarar a taxonomia da jornada | — | Task | [#1241](https://github.com/The-Band-Solution/theband/issues/1241) | a fazer |
-| T008 | Suporte de teste para ler spans | — | Task | [#1242](https://github.com/The-Band-Solution/theband/issues/1242) | bloqueado — T003 |
-| T009 | O exportador que só deixa sair o permitido | — | Task | [#1243](https://github.com/The-Band-Solution/theband/issues/1243) | bloqueado — T003 |
-| T010 | O handler que traduz sem sumir | — | Task | [#1244](https://github.com/The-Band-Solution/theband/issues/1244) | bloqueado — T003 |
-| T011 | A função única que emite o passo | — | Task | [#1245](https://github.com/The-Band-Solution/theband/issues/1245) | bloqueado — T003 |
-| T012 | A entrada emite o passo depois da transação | US1 | Task | [#1246](https://github.com/The-Band-Solution/theband/issues/1246) | bloqueado — T003 |
-| T013 | O correlator nasce no servidor e morre na tentativa | US1 | Task | [#1247](https://github.com/The-Band-Solution/theband/issues/1247) | bloqueado — T003 |
-| T014 | A abertura da entrada conta uma vez | US1 | Task | [#1248](https://github.com/The-Band-Solution/theband/issues/1248) | bloqueado — T003 |
-| T015 | O tempo e a sessão não distinguem os motivos | US1 | Task | [#1249](https://github.com/The-Band-Solution/theband/issues/1249) | bloqueado — T003 |
-| T016 | Sair diz se encerrou alguma coisa | US2 | Task | [#1250](https://github.com/The-Band-Solution/theband/issues/1250) | bloqueado — T003 |
-| T017 | A queda de sessão diz o motivo | US2 | Task | [#1251](https://github.com/The-Band-Solution/theband/issues/1251) | bloqueado — T003 |
-| T018 | As sentinelas não saem, em nenhum dos quatro passos | US3 | Task | [#1252](https://github.com/The-Band-Solution/theband/issues/1252) | bloqueado — T003 |
-| T019 | O gate da taxonomia | US3 | Task | [#1253](https://github.com/The-Band-Solution/theband/issues/1253) | bloqueado — T003 |
-| T020 | Sem backend, entrar e sair seguem iguais | US3 | Task | [#1254](https://github.com/The-Band-Solution/theband/issues/1254) | bloqueado — T003 |
-| T021 | Definir e trocar a senha emitem o desfecho | US4 | Task | [#1255](https://github.com/The-Band-Solution/theband/issues/1255) | bloqueado — T003 |
-| T022 | O painel das três perguntas | US5 | Task | [#1256](https://github.com/The-Band-Solution/theband/issues/1256) | bloqueado — T003 |
-| T023 | O alerta de enumeração de contas | US5 | Task | [#1257](https://github.com/The-Band-Solution/theband/issues/1257) | bloqueado — T003 |
+| T003 | Conferir que os pré-requisitos de segurança chegaram | — | Task | [#1237](https://github.com/The-Band-Solution/theband/issues/1237) | feito — 2026-10-03, branch `feature/1230-jornada-entrar-e-sair`; evidência no `tasks.md` |
+| T004 | Fixar as dependências do OpenTelemetry | — | Task | [#1238](https://github.com/The-Band-Solution/theband/issues/1238) | feito — 2026-10-03, branch `feature/1230-jornada-entrar-e-sair`; evidência no `tasks.md` |
+| T005 | Configurar o SDK explicitamente, e desligado por padrão | — | Task | [#1239](https://github.com/The-Band-Solution/theband/issues/1239) | feito — 2026-10-03, branch `feature/1230-jornada-entrar-e-sair`; evidência no `tasks.md` |
+| T006 | Subir o SigNoz local num profile próprio | — | Task | [#1240](https://github.com/The-Band-Solution/theband/issues/1240) | feito — 2026-10-03, branch `feature/1230-jornada-entrar-e-sair`; evidência no `tasks.md` |
+| T007 | Declarar a taxonomia da jornada | — | Task | [#1241](https://github.com/The-Band-Solution/theband/issues/1241) | feito — 2026-10-03, branch `feature/1230-jornada-entrar-e-sair`; evidência no `tasks.md` |
+| T008 | Suporte de teste para ler spans | — | Task | [#1242](https://github.com/The-Band-Solution/theband/issues/1242) | feito — 2026-10-03, branch `feature/1230-jornada-entrar-e-sair`; evidência no `tasks.md` |
+| T009 | O exportador que só deixa sair o permitido | — | Task | [#1243](https://github.com/The-Band-Solution/theband/issues/1243) | feito — 2026-10-03, branch `feature/1230-jornada-entrar-e-sair`; evidência no `tasks.md` |
+| T010 | O handler que traduz sem sumir | — | Task | [#1244](https://github.com/The-Band-Solution/theband/issues/1244) | feito — 2026-10-03, branch `feature/1230-jornada-entrar-e-sair`; evidência no `tasks.md` |
+| T011 | A função única que emite o passo | — | Task | [#1245](https://github.com/The-Band-Solution/theband/issues/1245) | feito — 2026-10-03, branch `feature/1230-jornada-entrar-e-sair`; evidência no `tasks.md` |
+| T012 | A entrada emite o passo depois da transação | US1 | Task | [#1246](https://github.com/The-Band-Solution/theband/issues/1246) | feito — 2026-10-03, branch `feature/1230-jornada-entrar-e-sair`; evidência no `tasks.md` |
+| T013 | O correlator nasce no servidor e morre na tentativa | US1 | Task | [#1247](https://github.com/The-Band-Solution/theband/issues/1247) | feito — 2026-10-03, branch `feature/1230-jornada-entrar-e-sair`; evidência no `tasks.md` |
+| T014 | A abertura da entrada conta uma vez | US1 | Task | [#1248](https://github.com/The-Band-Solution/theband/issues/1248) | feito — 2026-10-03, branch `feature/1230-jornada-entrar-e-sair`; evidência no `tasks.md` |
+| T015 | O tempo e a sessão não distinguem os motivos | US1 | Task | [#1249](https://github.com/The-Band-Solution/theband/issues/1249) | feito — 2026-10-03, branch `feature/1230-jornada-entrar-e-sair`; evidência no `tasks.md` |
+| T016 | Sair diz se encerrou alguma coisa | US2 | Task | [#1250](https://github.com/The-Band-Solution/theband/issues/1250) | feito — 2026-10-03, branch `feature/1230-jornada-entrar-e-sair`; evidência no `tasks.md` |
+| T017 | A queda de sessão diz o motivo | US2 | Task | [#1251](https://github.com/The-Band-Solution/theband/issues/1251) | feito — 2026-10-03, branch `feature/1230-jornada-entrar-e-sair`; evidência no `tasks.md` |
+| T018 | As sentinelas não saem, em nenhum dos quatro passos | US3 | Task | [#1252](https://github.com/The-Band-Solution/theband/issues/1252) | feito — 2026-10-03, branch `feature/1230-jornada-entrar-e-sair`; evidência no `tasks.md` |
+| T019 | O gate da taxonomia | US3 | Task | [#1253](https://github.com/The-Band-Solution/theband/issues/1253) | feito — 2026-10-03, branch `feature/1230-jornada-entrar-e-sair`; evidência no `tasks.md` |
+| T020 | Sem backend, entrar e sair seguem iguais | US3 | Task | [#1254](https://github.com/The-Band-Solution/theband/issues/1254) | feito — 2026-10-03, branch `feature/1230-jornada-entrar-e-sair`; evidência no `tasks.md` |
+| T021 | Definir e trocar a senha emitem o desfecho | US4 | Task | [#1255](https://github.com/The-Band-Solution/theband/issues/1255) | a fazer — o bloqueio (T003) caiu em 2026-10-03 |
+| T022 | O painel das três perguntas | US5 | Task | [#1256](https://github.com/The-Band-Solution/theband/issues/1256) | a fazer — o bloqueio (T003) caiu em 2026-10-03 |
+| T023 | O alerta de enumeração de contas | US5 | Task | [#1257](https://github.com/The-Band-Solution/theband/issues/1257) | a fazer — o bloqueio (T003) caiu em 2026-10-03 |
 | T024 | 👤 Medir o VPS antes de subir | — | Task | [#1258](https://github.com/The-Band-Solution/theband/issues/1258) | a fazer 👤 |
 | T025 | 👤 Consertar a distribuição Erlang antes de juntar as redes | — | Task | [#1259](https://github.com/The-Band-Solution/theband/issues/1259) | a fazer 👤 |
 | T026 | 👤 Subir o SigNoz no Dokploy, fechado | — | Task | [#1260](https://github.com/The-Band-Solution/theband/issues/1260) | a fazer 👤 |
 | T027 | 👤 Ligar a aplicação ao coletor | — | Task | [#1261](https://github.com/The-Band-Solution/theband/issues/1261) | a fazer 👤 |
 | T028 | 👤 Medir depois, e conferir a saída e a retenção | — | Task | [#1262](https://github.com/The-Band-Solution/theband/issues/1262) | a fazer 👤 |
-| T029 | Atualizar o runbook | — | Task | [#1263](https://github.com/The-Band-Solution/theband/issues/1263) | bloqueado — T003 |
-| T030 | Medir o custo da telemetria na entrada | — | Task | [#1264](https://github.com/The-Band-Solution/theband/issues/1264) | bloqueado — T003 |
-| T031 | Rodar os gates e abrir o PR | — | Task | [#1265](https://github.com/The-Band-Solution/theband/issues/1265) | bloqueado — T003 |
+| T029 | Atualizar o runbook | — | Task | [#1263](https://github.com/The-Band-Solution/theband/issues/1263) | a fazer — o bloqueio (T003) caiu em 2026-10-03 |
+| T030 | Medir o custo da telemetria na entrada | — | Task | [#1264](https://github.com/The-Band-Solution/theband/issues/1264) | a fazer — o bloqueio (T003) caiu em 2026-10-03 |
+| T031 | Rodar os gates e abrir o PR | — | Task | [#1265](https://github.com/The-Band-Solution/theband/issues/1265) | a fazer — o bloqueio (T003) caiu em 2026-10-03 |
 
 Tarefas de fase (sem US) são filhas do épico [#802](https://github.com/The-Band-Solution/theband/issues/802); as de US são filhas da US. Tarefa não
 recebe `Priority`.

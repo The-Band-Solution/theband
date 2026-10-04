@@ -55,6 +55,87 @@ defmodule TheBand.Tenants.AccessEvents do
   """
   require Logger
 
+  # ------------------------------------------------- o passo de jornada (spec 074)
+  #
+  # Contrato em `specs/074-jornada-entrar-e-sair/contracts/jornada.md` §1–2. Esta função é **só de
+  # emissão**: não loga — as funções de log abaixo não mudam — e não decide nada. O evento é
+  # traduzido em span por `TheBand.Telemetria.Jornada`, fora do domínio.
+  #
+  # **As guardas são a terceira camada de S1** (seguranca.md): só passam átomo da lista, id
+  # binário e o correlator. Struct de conta, `conn`, changeset e texto livre não cabem na
+  # assinatura — e por isso nenhum handler anexado ao mesmo evento os recebe.
+
+  @passos [
+    :abrir_a_entrada,
+    :entrar_com_senha,
+    :sair,
+    :sessao_derrubada,
+    :definir_a_senha,
+    :trocar_a_senha
+  ]
+
+  @type passo ::
+          :abrir_a_entrada
+          | :entrar_com_senha
+          | :sair
+          | :sessao_derrubada
+          | :definir_a_senha
+          | :trocar_a_senha
+
+  # As guardas de `passo/1`, nomeadas. Juntas na cabeça, eram uma expressão só que ninguém lia.
+  # `motivo` é `nil` se e só se o desfecho é `:concluiu`; um booleano não é motivo.
+  defguardp e_desfecho(desfecho, motivo)
+            when (desfecho == :concluiu and is_nil(motivo)) or
+                   (desfecho == :falhou and is_atom(motivo) and not is_nil(motivo) and
+                      not is_boolean(motivo))
+
+  defguardp e_id(valor) when is_nil(valor) or is_binary(valor)
+
+  # As cinco chaves obrigatórias, e no máximo `jornada_id` além delas: um mapa com qualquer
+  # outra chave — `senha`, `email`, `conn` — não passa.
+  defguardp so_as_chaves(dados)
+            when map_size(dados) == 5 or
+                   (map_size(dados) == 6 and is_map_key(dados, :jornada_id) and
+                      e_id(:erlang.map_get(:jornada_id, dados)))
+
+  @doc """
+  Emite um passo da jornada de entrar e sair, como evento `[:the_band, :jornada, :passo]`.
+
+  `motivo` é `nil` **se e só se** `desfecho` é `:concluiu`. `jornada_id` é opcional, e só vem em
+  `abrir_a_entrada` e `entrar_com_senha`. Qualquer outra forma levanta `FunctionClauseError`:
+  é bug de quem chama, e a régua (`test/the_band/telemetria/regua_test.exs`) o pega.
+  """
+  @spec passo(%{
+          required(:passo) => passo(),
+          required(:desfecho) => :concluiu | :falhou,
+          required(:motivo) => atom() | nil,
+          required(:tenant_id) => Ecto.UUID.t() | nil,
+          required(:user_id) => Ecto.UUID.t() | nil,
+          optional(:jornada_id) => String.t() | nil
+        }) :: :ok
+  def passo(
+        %{
+          passo: passo,
+          desfecho: desfecho,
+          motivo: motivo,
+          tenant_id: tenant_id,
+          user_id: user_id
+        } =
+          dados
+      )
+      when passo in @passos and e_desfecho(desfecho, motivo) and e_id(tenant_id) and
+             e_id(user_id) and so_as_chaves(dados) do
+    :telemetry.execute([:the_band, :jornada, :passo], %{}, %{
+      jornada: :entrar_e_sair,
+      passo: passo,
+      desfecho: desfecho,
+      motivo: motivo,
+      tenant_id: tenant_id,
+      user_id: user_id,
+      jornada_id: Map.get(dados, :jornada_id)
+    })
+  end
+
   @doc """
   Entrada aceita.
 

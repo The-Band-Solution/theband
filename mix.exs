@@ -85,7 +85,11 @@ defmodule TheBand.MixProject do
     [
       the_band: [
         include_executables_for: [:unix],
-        steps: [:assemble]
+        steps: [:assemble],
+        # `:temporary` para o SDK — spec 074, T004. Com o padrão (`:permanent`), uma falha do
+        # OpenTelemetry derrubaria o nó inteiro; a jornada da pessoa não pode depender do cano
+        # que a observa (FR-008). `opentelemetry_exporter` e `opentelemetry_api` seguem o padrão.
+        applications: [opentelemetry: :temporary]
       ]
     ]
   end
@@ -185,7 +189,20 @@ defmodule TheBand.MixProject do
       # não `~> 1.5`: com o til, uma 1.x nova entraria sem que a medição do `cowlib` fosse
       # refeita. **A mitigação é a camada fina**: as respostas vivem em `lib/the_band/mcp/`, que
       # não conhece a biblioteca, e trocá-la é trabalho de adaptador.
-      {:ex_mcp, "== 1.5.0"}
+      {:ex_mcp, "== 1.5.0"},
+      # A telemetria da jornada — spec 074, T004; ADR 0005 (E6) e seguranca.md (S9), aceitas em
+      # 2026-10-03 (D5). Versão EXATA nas três diretas: o `TheBand.Telemetria.Exportador` lê o
+      # registro `span` do SDK, e uma versão nova só entra com o teste das sentinelas refeito.
+      # **Nenhum instrumentador automático** (Phoenix, Ecto, Oban): cada um exige fatia e
+      # avaliação de segurança próprias (ADR 0005, E6; seguranca.md, S2 e S3).
+      {:opentelemetry_api, "== 1.5.0"},
+      {:opentelemetry, "== 1.7.0"},
+      {:opentelemetry_exporter, "== 1.11.0"},
+      # SÓ O TETO — seguranca.md, S9. O `opentelemetry_exporter` exige `grpcbox >= 0.0.0`, sem
+      # teto, e o `grpcbox` é publicado por uma conta pessoal única. Esta linha não é uso direto:
+      # existe para que `mix deps.update --all` não aceite uma `grpcbox` fora de `0.18.x` sem que
+      # o `mix.exs` mostre a mudança.
+      {:grpcbox, "~> 0.18.0"}
     ]
   end
 

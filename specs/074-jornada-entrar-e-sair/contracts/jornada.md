@@ -54,7 +54,24 @@ mudam**.
 | `SessionLive.New.mount/3` | só com `connected?(socket)`, lendo `:jornada_id` da sessão | `abrir_a_entrada` |
 | `SessionController.delete/2` | depois de decidir por `conn.assigns[:current_session]` | `sair` |
 | `CurrentScope.sem_sessao/3` | ao lado de `AccessEvents.sessao_derrubada/3` | `sessao_derrubada` |
+| `TheBandWeb.Live.Hooks.derrubar/3` | ao lado de `AccessEvents.sessao_derrubada/3`, exceto `:sem_sessao` | `sessao_derrubada` |
 | `SessionController.set_password/2` e `update_password/2` | depois da decisão | `definir_a_senha`, `trocar_a_senha` |
+
+**Corrigido na implementação (2026-10-03)**:
+
+- **a hook do LiveView também emite a queda.** A tabela original só nomeava `CurrentScope`, mas a
+  tela aberta que cai — o cenário da US2, *"desativar a conta com uma tela aberta"* (#1042) — passa
+  por `Hooks.reconferir/2` e `Hooks.on_mount/4`, e não pelo plug. Sem a linha, esse caso não
+  produziria passo nenhum. `:sem_sessao` não emite em nenhum dos dois: é o visitante, não a queda;
+- **`sair` que falhou vai sem conta.** Sem `current_session`, o controller não sabe de quem era o
+  cookie; quando ele trazia uma sessão já encerrada, a conta vai no `sessao_derrubada` da mesma
+  requisição, emitido por `CurrentScope`. `sair` com `concluiu` leva só a organização;
+- **`{:error, :not_found}` de `set_password/3` e `change_password/4` não emite passo.** É a conta
+  da sessão sumindo entre a conferência e a troca: inalcançável sem corrida, e sem motivo declarado
+  na taxonomia. Inventar um motivo para ele seria ampliar a taxonomia sem spec; emitir
+  `recusada_pela_regra` seria mentir. A resposta à pessoa não muda;
+- nos passos de senha, a conta vai no `falhou` (conta conhecida) e não no `concluiu`, como na
+  entrada.
 
 **`Auth.authenticate/3`**: `authenticate(identificador, senha, opts \\ [])`, com
 `opts[:jornada_id]`. `authenticate/2` continua existindo e delega com `[]`. O **retorno não muda**:
@@ -94,8 +111,16 @@ recurso     service.name=the_band, service.version, deployment.environment — e
 ```elixir
 @spec anexar() :: :ok | {:error, :already_exists}
 @spec id() :: String.t()
+@spec evento() :: [atom()]
+@spec anexado?() :: boolean()
 @spec handle_event(list(atom()), map(), map(), term()) :: :ok
 ```
+
+**Corrigido na implementação**: `evento/0` e `anexado?/0` entram para o `telemetry_poller` conferir
+o anexo sem repetir o id e o nome do evento. E `handle_event/4` lê `config[:emitir]` — a
+configuração do `:telemetry.attach/4`, `%{}` em produção —, que é como o teste de resiliência
+anexa **este mesmo** handler com uma função que levanta, faz `exit` ou `throw`: é o `catch` de
+produção que ele prova, e não uma cópia.
 
 - anexado em `TheBand.Application.start/2`, **antes** dos filhos, como `LogDaConsulta` (#1222);
 - `handle_event/4` tem `catch kind, reason` — e não só `rescue`, que não pega `exit` nem `throw`
@@ -114,13 +139,21 @@ muda **só** aqui — o nome do atributo fica. Opções e recomendação em [seg
 
 ## 6. `TheBand.Telemetria.Exportador` — o filtro
 
-Implementa o behaviour `:otel_exporter` (`init/1`, `export/4`, `shutdown/1`).
+Implementa o behaviour `:otel_exporter_traces` (`init/1`, `export/3`, `shutdown/1`).
 
 ```elixir
-@spec init(%{destino: {module(), term()}}) :: {:ok, estado}
-@spec export(:traces, :ets.tab(), :otel_resource.t(), estado) :: :ok | :failed_not_retryable | :failed_retryable
+@spec init(%{required(:destino) => {module(), term()}, optional(:ambiente) => String.t()}) :: {:ok, estado} | :ignore
+@spec export(:ets.tab(), :otel_resource.t(), estado) :: :ok | :success | :failed_not_retryable | :failed_retryable
 @spec shutdown(estado) :: :ok
 ```
+
+**Corrigido na implementação (2026-10-03)**: o contrato dizia `:otel_exporter` com `export/4`. Lido
+em `deps/opentelemetry/src/otel_simple_processor.erl` e `otel_batch_processor.erl` (1.7.0): os
+processadores chamam `otel_exporter_traces:export/3`, que chama **`Mod:export(Tab, Resource,
+Config)`**, com aridade 3. Um `export/4` nunca seria chamado. O `:ambiente` vai para
+`deployment.environment`. O `destino` é iniciado por `:otel_exporter.init/1`, o mesmo caminho do
+SDK, e o exportador **nunca levanta**: o processador loga a exceção de um exportador com a pilha, e
+a pilha traz o span.
 
 - para cada span da tabela, monta um span **novo**: nome conferido contra a enumeração dos
   passos (span de nome desconhecido é descartado inteiro); só os atributos da **lista permitida**
@@ -129,7 +162,9 @@ Implementa o behaviour `:otel_exporter` (`init/1`, `export/4`, `shutdown/1`).
 - cada descarte incrementa `the_band.telemetria.atributo_descartado` com o **nome** do atributo
   (nunca o valor);
 - o recurso é reescrito com os três atributos de §3;
-- delega ao `destino` (`:opentelemetry_exporter` em produção; `:otel_exporter_pid` no teste).
+- delega ao `destino` (`:opentelemetry_exporter` em produção; no teste, `TheBand.Spans.Destino`,
+  que é o `:otel_exporter_pid` do SDK mais o recurso — o `:otel_exporter_pid` descarta o recurso, e
+  o teste das sentinelas precisa varrê-lo).
 
 **O que NÃO expõe**: nenhuma função para "liberar" um atributo em tempo de execução. A lista é
 constante do módulo e só muda por commit com teste.
@@ -138,13 +173,25 @@ constante do módulo e só muda por commit com teste.
 
 | nome | quando | rótulos |
 |---|---|---|
-| `the_band.telemetria.handler_falhou` | `rescue` do handler | `tipo` do erro |
-| `the_band.telemetria.atributo_descartado` | o filtro descartou | `atributo` (nome) |
-| `the_band.telemetria.span_descartado` | o `BatchProcessor` descartou por fila cheia | — |
+| `handler_falhou` | o `catch` do handler | o `kind` |
+| `passo_emitido` | o handler recebeu um passo | — |
+| `span_exportado` | o destino aceitou o span | — |
+| `span_descartado` | o filtro descartou o span inteiro (nome fora da enumeração) | — |
+| `atributo_descartado` | o filtro descartou um atributo | o **nome**, só se tiver forma de nome |
+| `evento_descartado` | o filtro descartou eventos ou links | — |
+| `exportacao_falhou` | o destino recusou, ou o filtro levantou | o tipo |
 
-Vivem em `:counters`, **fora** do OpenTelemetry, e o `telemetry_poller` existente os loga em
-`warning` quando não são zero, junto com a conferência de que o handler segue anexado (research
-R13). Contá-los como span seria contar a perda pelo cano que perdeu.
+Vivem numa tabela ETS (`TheBand.Telemetria.Contadores`), **fora** do OpenTelemetry, e o
+`telemetry_poller` existente os loga em `warning` quando não são zero, junto com a conferência de
+que o handler segue anexado (research R13). Contá-los como span seria contar a perda pelo cano que
+perdeu.
+
+**Corrigido na implementação (2026-10-03)**: a tabela original tinha `span_descartado` como *"o
+`BatchProcessor` descartou por fila cheia"*. Lido em `otel_batch_processor.erl` (1.7.0): `on_end/2`
+devolve `dropped` com a fila cheia, e **ninguém conta** — o SDK não expõe o descarte. A perda na
+fila aparece como `passo_emitido − span_exportado − span_descartado` (com os spans em trânsito
+dentro da diferença), e `span_descartado` passou a nomear o descarte do filtro. Tabela ETS, e não
+`:counters`, porque o rótulo (o nome do atributo) não é um conjunto fechado de índices.
 
 ## 8. Mudança de comportamento observável
 

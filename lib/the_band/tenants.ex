@@ -28,7 +28,8 @@ defmodule TheBand.Tenants do
   @colunas_para_a_plataforma [:id, :name, :slug, :status]
 
   # Feature 045 — contratos em specs/045-autenticacao-e-acesso/contracts/.
-  defdelegate authenticate(identificador, senha), to: Auth
+  # `opts[:jornada_id]` — o correlator da jornada, spec 074 (contracts/jornada.md §2).
+  defdelegate authenticate(identificador, senha, opts \\ []), to: Auth
   defdelegate set_password(tenant, user_id, senha), to: Auth
   defdelegate change_password(tenant, user_id, atual, nova), to: Auth
   defdelegate reset_password(tenant, user_id, actor_id), to: Auth

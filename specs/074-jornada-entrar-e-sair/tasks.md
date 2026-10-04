@@ -33,7 +33,10 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
     `contracts/jornada.md` §5 foi atualizado no mesmo commit
   - **Teste**: revisão: as sete aparecem em `spec.md`; nenhuma ficou "pendente"
 
-- [ ] T003 Conferir que os pré-requisitos de segurança chegaram
+- [x] T003 Conferir que os pré-requisitos de segurança chegaram — *conferida em 2026-10-03: PR
+  #1227 `MERGED` em `development` às 19:04 UTC (merge `0e3c2f0`); `git grep -n "defmodule
+  TheBand.Repo.LogDaConsulta" origin/development -- lib/` devolve
+  `lib/the_band/repo/log_da_consulta.ex:1`*
   - **Pronta quando**: T002 (D6)
   - **Descrição**: `gh pr view 1227` mergeado em `development` (D6). A #887 **não** bloqueia: as
     tarefas #871, #872 e #873 estão fechadas (conferido em 2026-10-03), e a US espera só a
@@ -45,7 +48,15 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
 
 ## Fase 1: Setup
 
-- [ ] T004 Fixar as dependências do OpenTelemetry
+- [x] T004 Fixar as dependências do OpenTelemetry — *feita em 2026-10-03: o `mix.lock` ganhou
+  exatamente onze pacotes (`acceptor_pool`, `chatterbox`, `ctx`, `gproc`, `grpcbox`, `hpack`,
+  `opentelemetry`, `opentelemetry_api`, `opentelemetry_exporter`, `ssl_verify_fun`,
+  `tls_certificate_check`); `mix hex.audit` EXIT=0 (só os dois avisos de `cowlib` já ignorados,
+  anteriores à 074); `mix deps.audit` EXIT=0, "No vulnerabilities found"; `mix hex.outdated
+  grpcbox`: `~> 0.18.0`, em dia. Defeito injetado: `{:grpcbox, ">= 0.0.0"}` —
+  `dependencias_test.exs` reprova 1/4. Portas: com o SDK e o exportador iniciados (endpoint
+  local), nenhum socket novo aberto no nó, medido no ambiente de teste; a conferência com
+  `:inet.i()` **dentro do contêiner da release** fica para T027 (👤), que é quando a release roda*
   - **Pronta quando**: T001, T002 (D5), T003
   - **Descrição**: em `mix.exs`, `{:opentelemetry_api, "== 1.5.0"}`, `{:opentelemetry, "==
     1.7.0"}`, `{:opentelemetry_exporter, "== 1.11.0"}` e `{:grpcbox, "~> 0.18.0"}` (só o teto, com
@@ -59,7 +70,10 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
     **Defeito a injetar**: tirar o teto de `grpcbox`; `mix hex.outdated grpcbox` passa a mostrar
     que a resolução aceitaria uma versão fora de `0.18.x` quando houver uma; o teto volta
 
-- [ ] T005 Configurar o SDK explicitamente, e desligado por padrão
+- [x] T005 Configurar o SDK explicitamente, e desligado por padrão — *feita em 2026-10-03: a
+  resposta sobre `OTEL_*` está em research R11 (o SDK as lê por cima da configuração; são
+  apagadas em `runtime.exs`). Defeitos vistos reprovando em `configuracao_test.exs`: aceitar
+  qualquer host (1/7), não apagar as `OTEL_*` (1/7)*
   - **Pronta quando**: T004; research R11
   - **Descrição**: `config/config.exs` e `config/test.exs`: `traces_exporter: :none`; no teste,
     `processors: [{:otel_simple_processor, %{}}]`. `config/runtime.exs`: liga só com
@@ -75,7 +89,22 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
     função que monta a configuração. **Defeito a injetar**: ler a variável sem validar o host; o
     caso do host de fora precisa reprovar
 
-- [ ] T006 Subir o SigNoz local num profile próprio
+- [x] T006 Subir o SigNoz local num profile próprio — *feita em 2026-10-03, com uma diferença:
+  `foundryctl` não está instalado; o compose foi escrito a partir do de referência da v0.125.0,
+  com cada diferença comentada em `deploy/signoz/compose.yaml`. Medido num projeto isolado
+  (`-p the_band_signoz_teste`), derrubado com `down -v` no fim: os seis serviços subiram, o
+  migrador saiu com 0; `POST` OTLP vazio a `127.0.0.1:4318` → 200; um span de teste **e** um passo
+  `sair` emitido pela aplicação através do filtro chegaram ao ClickHouse
+  (`signoz_traces.distributed_signoz_index_v3`, recurso só com as três chaves, mesmo com
+  `OTEL_RESOURCE_ATTRIBUTES` sentinela no ambiente); `docker port` só em `127.0.0.1` (4318 e
+  3301), nada no ClickHouse e no ZooKeeper; cliente sem senha de outro contêiner →
+  `AUTHENTICATION_FAILED`; sem `SIGNOZ_JWT_SECRET` o painel sai com 1, e sem
+  `SIGNOZ_CLICKHOUSE_PASSWORD` o ClickHouse sai com 1; `the_band_postgres` com o mesmo `CREATED`
+  (2026-09-01 00:19:05). Defeito injetado: coletor com `--manager-config` (OpAMP) contra o
+  servidor v0.125.0 — 12 sondagens em 2 min, contêiner `running`, OTLP recusando conexão (000);
+  restaurado, 200 de novo. **Achado**: o painel e o coletor têm saída para a internet (as redes
+  `painel` e `telemetria` não são `internal`, e precisam publicar porta); o desligamento do envio
+  de uso do SigNoz depende só das variáveis, e a conferência pelo tráfego fica na T028*
   - **Pronta quando**: T001
   - **Descrição**: `foundryctl forge` gera o compose; o resultado vai para `deploy/signoz/` com
     as imagens fixadas por resumo (`@sha256:`), servidor e coletor fixados juntos, o coletor com
@@ -93,7 +122,10 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
 
 ## Fase 2: Fundação
 
-- [ ] T007 Declarar a taxonomia da jornada
+- [x] T007 Declarar a taxonomia da jornada — *feita em 2026-10-03: `mix knowledge.validate`
+  EXIT=0; `taxonomia_test.exs` lê os seis passos e os 20 motivos da régua (a descrição dizia 17:
+  são 6 + 1 + 8 + 3 + 2). Defeitos vistos reprovando: sem `provenance`, o validador sai com 1
+  ("proveniência ausente ou sem source_type"); um motivo a mais no YAML reprova 1/5*
   - **Pronta quando**: `data-model.md` §1; T001
   - **Descrição**: `priv/knowledge_base/rules/journey_entrar_e_sair.yaml`, `derivation_rule`
     `journey.entrar_e_sair`, com os seis passos, os desfechos, os 17 motivos por passo, o cenário
@@ -104,7 +136,9 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
   - **Teste**: `test/the_band/telemetria/taxonomia_test.exs`, a parte que lê o YAML.
     **Defeito a injetar**: tirar a proveniência; o validador reprova
 
-- [ ] T008 Suporte de teste para ler spans
+- [x] T008 Suporte de teste para ler spans — *feita em 2026-10-03; defeitos vistos reprovando
+  em `spans_suporte_test.exs`: a conferência aceitando qualquer exportador (1/2); `ligar/0`
+  configurando o destino sem o filtro (1/2)*
   - **Pronta quando**: T004, T005
   - **Descrição**: `test/support/spans.ex` com `Record.extract(:span, from_lib:
     "opentelemetry/include/otel_span.hrl")`, uma função que liga o exportador **real** com destino
@@ -115,7 +149,10 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
     sem o filtro; a função de suporte precisa recusar (ela confere que o módulo configurado é o
     `TheBand.Telemetria.Exportador`)
 
-- [ ] T009 O exportador que só deixa sair o permitido
+- [x] T009 O exportador que só deixa sair o permitido — *feita em 2026-10-03; defeitos vistos
+  reprovando em `exportador_test.exs`: validar só o nome (3/7, entre eles o `inspect(changeset)`
+  em `failure.reason`); entregar o recurso do SDK em vez do reconstruído (1/7); passar o status
+  original, com descrição (1/7)*
   - **Pronta quando**: `contracts/jornada.md` §6; T007, T008
   - **Descrição**: `lib/the_band/telemetria/exportador.ex`, behaviour `:otel_exporter`. Reconstrói
     cada span: nome contra a enumeração dos passos; atributos da lista com o valor na forma
@@ -133,7 +170,9 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
     o nome (o `inspect(changeset)` em `failure.reason` precisa reprovar); filtrar o recurso em vez
     de reconstruí-lo
 
-- [ ] T010 O handler que traduz sem sumir
+- [x] T010 O handler que traduz sem sumir — *feita em 2026-10-03; defeitos vistos reprovando
+  em `handler_resiliente_test.exs`: `rescue` no lugar de `catch` (os casos de `exit` e `throw`,
+  2/5); o poller que não acusa o desanexo (1/5)*
   - **Pronta quando**: `contracts/jornada.md` §4; T009
   - **Descrição**: `lib/the_band/telemetria/jornada.ex`: `anexar/0`, `id/0`, `handle_event/4`,
     montando atributos **só** dos campos permitidos da metadata. `catch kind, reason` que conta e
@@ -146,7 +185,8 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
   - **Teste**: `test/the_band/telemetria/handler_resiliente_test.exs`. **Defeito a injetar**:
     trocar `catch` por `rescue`; o caso do `exit` precisa reprovar
 
-- [ ] T011 A função única que emite o passo
+- [x] T011 A função única que emite o passo — *feita em 2026-10-03; defeito visto reprovando
+  em `access_events_passo_test.exs`: aceitar `motivo` binário (1/4)*
   - **Pronta quando**: `contracts/jornada.md` §1–2; T010
   - **Descrição**: `AccessEvents.passo/1`, com guardas que só aceitam átomo de lista, id binário,
     correlator e `nil`. S1, terceira camada.
@@ -157,7 +197,11 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
 
 ## Fase 3: US1 — sei quem não conseguiu entrar, e por quê (P1) 🎯 MVP
 
-- [ ] T012 [US1] A entrada emite o passo depois da transação
+- [x] T012 [US1] A entrada emite o passo depois da transação — *feita em 2026-10-03: 11 casos em
+  `regua_test.exs`; defeitos vistos reprovando: motivo devolvido ao controller (8/11 reprovam),
+  hash do identificador em forma de UUID como conta (2/11), conta em todo `concluiu` (2/11).
+  "Emitir dentro da transação" **não** é pegável pelo teste de tempo: a emissão custa o mesmo
+  dentro ou fora; a ordem fica garantida pela leitura do código (`authenticate/3`)*
   - **Pronta quando**: T011
   - **Descrição**: em `Auth`, `verificar_com_trava/2` passa a devolver o relator interno
     `{decisão, motivo, conta}`; `authenticate/3` emite **um** `entrar_com_senha` depois da
@@ -172,7 +216,8 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
     injetar**: emitir dentro da transação (o teste de tempo, T015, reprova); devolver o motivo ao
     controller (o caso estrutural reprova); pôr `hash(identificador)` no passo
 
-- [ ] T013 [US1] O correlator nasce no servidor e morre na tentativa
+- [x] T013 [US1] O correlator nasce no servidor e morre na tentativa — *feita em 2026-10-03: 5
+  casos; defeitos vistos reprovando: ler dos parâmetros (1/5), não apagar (2/5)*
   - **Pronta quando**: research R5; T011
   - **Descrição**: `lib/the_band_web/plugs/jornada_de_entrada.ex` só no `GET /sign-in`, que
     substitui `:jornada_id`; `SessionController.create/2` lê **só da sessão**, passa a
@@ -184,7 +229,8 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
   - **Teste**: `test/the_band_web/jornada_de_entrada_test.exs`. **Defeitos a injetar**: ler dos
     parâmetros; não apagar no sucesso
 
-- [ ] T014 [US1] A abertura da entrada conta uma vez
+- [x] T014 [US1] A abertura da entrada conta uma vez — *feita em 2026-10-03: 2 casos; defeito
+  visto reprovando: emitir em todo `mount` (2/2)*
   - **Pronta quando**: T013
   - **Descrição**: `SessionLive.New.mount/3` emite `abrir_a_entrada` só com `connected?(socket)`,
     com o correlator da sessão. Research R5.
@@ -193,12 +239,14 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
   - **Teste**: `test/the_band_web/live/abrir_a_entrada_test.exs`. **Defeito a injetar**: emitir em
     todo `mount`; a contagem vira dois
 
-- [ ] T015 [US1] O tempo e a sessão não distinguem os motivos
+- [x] T015 [US1] O tempo e a sessão não distinguem os motivos — *feita em 2026-10-03; defeitos
+  vistos reprovando: correlator mantido só na espera (`login_test.exs`), consulta no handler só
+  com conta (4/4 rodadas com o limiar de 0,25 ms; com 2 ms passava — research R9)*
   - **Pronta quando**: T012, T013
   - **Descrição**: estender `test/the_band_web/live/login_test.exs` (o do `Enum.uniq`): para os seis
     motivos, além do corpo e do destino, o **conjunto de chaves da sessão decodificada** do
     `Set-Cookie`. E um teste de mediana: 50 emissões por motivo, a diferença entre medianas abaixo
-    de 2 ms. FR-003, SC-003, FR-009; S4.
+    de 0,25 ms (eram 2 ms; medido insuficiente — research R9). FR-003, SC-003, FR-009; S4.
   - **Feita quando**: o conjunto de chaves é o mesmo nos seis; a diferença de medianas fica abaixo
     do limiar
   - **Teste**: `login_test.exs` e `test/the_band/telemetria/tempo_por_motivo_test.exs`.
@@ -207,7 +255,8 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
 
 ## Fase 4: US2 — sei quando sair falhou (P1)
 
-- [ ] T016 [US2] Sair diz se encerrou alguma coisa
+- [x] T016 [US2] Sair diz se encerrou alguma coisa — *feita em 2026-10-03: 2 casos em
+  `regua_test.exs`; defeito visto reprovando: `concluiu` sempre (1/2 — o do cookie velho)*
   - **Pronta quando**: T011
   - **Descrição**: `SessionController.delete/2` emite `sair` com `concluiu` quando havia
     `current_session`, e `falhou` / `sessao_ja_nao_existia` quando não havia. `Sessions.encerrar/1`
@@ -216,7 +265,11 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
     `sessao_derrubada` (`encerrada`) **e** `sair` com `sessao_ja_nao_existia`
   - **Teste**: `regua_test.exs`, a parte de sair. **Defeito a injetar**: emitir `concluiu` sempre
 
-- [ ] T017 [US2] A queda de sessão diz o motivo
+- [x] T017 [US2] A queda de sessão diz o motivo — *feita em 2026-10-03: os oito motivos, cada um
+  provocado como acontece (cookie adulterado, linha ausente, resumo errado, sessão encerrada,
+  vencida, época velha, organização suspensa, conta desativada com a sessão aberta), o visitante
+  sem cookie, e a tela aberta pela hook do LiveView (#1042). Defeitos vistos reprovando: emitir
+  para `:sem_sessao` (1/23); a hook sem o passo (1/23)*
   - **Pronta quando**: T011
   - **Descrição**: `CurrentScope.sem_sessao/3` emite `sessao_derrubada` com o motivo, ao lado do
     log. `:sem_sessao` (o visitante sem cookie) não emite. Os oito motivos de data-model §1.
@@ -227,7 +280,19 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
 
 ## Fase 5: US3 — nada disso vaza (P1)
 
-- [ ] T018 [US3] As sentinelas não saem, em nenhum dos quatro passos
+- [x] T018 [US3] As sentinelas não saem, em nenhum dos quatro passos — *feita em 2026-10-03:
+  `sentinelas_test.exs` percorre a jornada pela web com sentinela na senha certa, na tentada,
+  no identificador, no e-mail e no segredo do cookie, afirma os quatro passos antes da varredura,
+  e repete com `OTEL_RESOURCE_ATTRIBUTES` sentinela presente na subida do SDK. Os vazamentos foram
+  injetados no código (`Auth.authenticate/3`, abrindo um span de nome permitido) e o teste foi
+  visto: **verde com o filtro inteiro** (o filtro os neutraliza) e **vermelho com a camada do
+  filtro que os pega desligada**: sem o filtro (2/2 reprovam); `inspect(changeset)` em
+  `failure.reason` com o filtro só conferindo o nome (2/2); `set_attribute` direto no span
+  corrente com o filtro aceitando qualquer nome (2/2); `record_exception` com a sentinela na
+  mensagem com o filtro mantendo os eventos (2/2); `OTEL_RESOURCE_ATTRIBUTES` com o filtro
+  passando o recurso do SDK (1/2, o caso do recurso). `record_exception/5` trunca o termo em 50
+  caracteres e a sentinela não chegava ao evento: o defeito usa `record_exception/6`, com a
+  mensagem*
   - **Pronta quando**: T012–T017
   - **Descrição**: `test/the_band/telemetria/sentinelas_test.exs` (seguranca.md, S15, T1): os
     quatro passos com sentinela em **todo** campo de credencial, o `assert` de que chegaram spans
@@ -239,7 +304,15 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
     `inspect(changeset)` em `failure.reason`; `set_attribute` direto no span corrente;
     `OTEL_RESOURCE_ATTRIBUTES` com sentinela; `record_exception` com a sentinela na mensagem
 
-- [ ] T019 [US3] O gate da taxonomia
+- [x] T019 [US3] O gate da taxonomia — *feita em 2026-10-03: `TaxonomiaGateTest` (em
+  `taxonomia_test.exs`) percorre pela web e pelo domínio todos os caminhos dos seis passos e
+  coleta o que chegou **depois do filtro**: um `falhou` sem `failure.reason` é motivo não
+  declarado (o filtro o apagou e contou), um span sem `outcome` é desfecho fora da lista
+  (`abandonou`), e a diferença com o YAML é motivo nunca emitido. Defeitos vistos reprovando:
+  motivo a mais no YAML ("declarado e nunca emitido: sair/motivo_inventado"); motivo novo no
+  código, `:sessao_sumiu` ("motivo emitido e não declarado"). `abandonou` emitido não é
+  injetável: a guarda de `passo/1` o recusa antes (T011). Os caminhos de US4 (definir e trocar
+  a senha) entram no gate porque o código já os emite; o teste próprio de T021 continua aberto*
   - **Pronta quando**: T007, T012, T016, T017
   - **Descrição**: `taxonomia_test.exs` coleta o que **chegou ao exportador** nos casos da régua e
     compara com o YAML: motivo emitido e não declarado reprova; motivo declarado e nunca emitido
@@ -249,7 +322,21 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
   - **Teste**: o próprio arquivo. **Defeitos a injetar**: declarar um motivo a mais no YAML;
     emitir um motivo novo no código sem declarar
 
-- [ ] T020 [US3] Sem backend, entrar e sair seguem iguais
+- [x] T020 [US3] Sem backend, entrar e sair seguem iguais — *feita em 2026-10-03:
+  `test/the_band/telemetria/sem_backend_test.exs` reinicia o SDK com o processador em lote, o
+  filtro e o OTLP/HTTP de produção, contra um coletor que recusa conexão e outro que aceita e não
+  responde: 10 de 10 entradas e saídas respondem como sempre, cada uma abaixo de 2 s, e a recusa
+  do destino sobe `exportacao_falhou`. **Sem a tag `:integration`**: `test_helper.exs` a exclui e
+  `mix gates` não a inclui, então o teste nunca rodaria. Defeito visto reprovando: o exportador
+  síncrono (processador simples) no caminho — "a entrada esperou 3014 ms pelo backend" (o caso
+  do coletor mudo). O primeiro `mix gates` achou o teste **vazio** dentro da suíte: o SDK guarda
+  o tracer em `persistent_term`, com os processadores, e depois do reinício os passos ainda iam
+  ao processador simples antigo, que não existia — 40 `exit` no handler, respostas rápidas, e o
+  limiar sem medir nada. O reinício passou a apagar o cache, e a guarda de que nenhum passo se
+  perdeu no handler nasceu provada: sem apagar o cache, 2/2 reprovam.
+  **Limitação** (research R13): o SDK 1.7.0 não conta o descarte por fila cheia; a perda é a
+  diferença `passo_emitido − span_exportado − span_descartado`, com os spans em trânsito dentro.
+  A parada do coletor do profile `telemetria` à mão fica no quickstart*
   - **Pronta quando**: T005, T006, T012, T016
   - **Descrição**: com o profile `telemetria` de pé, parar o coletor e fazer dez entradas e dez
     saídas; ler `deps/opentelemetry/src/otel_batch_processor.erl` e decidir como o descarte por fila
