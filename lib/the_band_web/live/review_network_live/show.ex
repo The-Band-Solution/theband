@@ -1,7 +1,17 @@
 defmodule TheBandWeb.ReviewNetworkLive.Show do
   @moduledoc """
-  `/organizations/:id/review-network` — a rede de revisão de uma organização observada, feature
-  073 (US1, US2, US3; T021, T024, T026).
+  `/network-analysis/:organization_id` — a rede de revisão de uma organização observada, feature
+  073 (US1, US2, US3; T021, T024, T026), e a primeira página da área **Network analysis** da 076
+  (T020; FR-003; `contracts/tela.md`).
+
+  ## A área, e o endereço antigo (076, T020)
+
+  A página mora na área desde a 076: as seis páginas dela (`Shared.area_nav/1`) ficam acima, e o
+  resto é a página da 073 **como foi aprovada**, com o aviso de recorte dela (Q4 (a) da aprovação
+  da 076; US1, cen. 5). O endereço antigo, `/organizations/:id/review-network`, é a ação
+  `:legacy`: valida o id por `EO.fetch_organization/2` e navega para a área só com a janela, e só
+  se ela for da lista. Nada mais da query original atravessa — um `return_to` colado no destino
+  seria um redirecionamento aberto (R13 da segurança, A13).
 
   **A tela é exatamente o protótipo aprovado** em 2026-10-03 (versão 2,
   `specs/073-rede-de-revisao/prototipo/`). A régua é `prototipo/PROMPT.md` §3: cada item tem o
@@ -24,6 +34,7 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
 
   alias TheBand.Ontology.SEON.EO
   alias TheBand.ReviewNetwork
+  alias TheBandWeb.NetworkAnalysisLive.Shared
 
   @impl true
   def mount(_params, _session, socket) do
@@ -31,13 +42,44 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
 
     {:ok,
      socket
-     |> assign(page_title: "Review network", nav_area: :organization)
+     |> assign(page_title: "Review network", nav_area: :network_analysis)
      |> assign(abertos: MapSet.new(), janelas: ReviewNetwork.windows())}
   end
 
   @impl true
-  def handle_params(%{"id" => id} = params, _uri, socket) do
+  def handle_params(%{"id" => id} = params, _uri, %{assigns: %{live_action: :legacy}} = socket) do
+    {:noreply, legado(socket, id, params["window"])}
+  end
+
+  def handle_params(%{"organization_id" => id} = params, _uri, socket) do
     {:noreply, ler(socket, id, Map.get(params, "window", socket.assigns.janelas.default))}
+  end
+
+  # O endereço antigo (A13): o id passa pela busca por id E tenant, e o destino é montado só com
+  # o id validado e a janela da lista. Janela fora dela, a padrão; nenhum outro parâmetro.
+  defp legado(socket, id, janela) do
+    case EO.fetch_organization(socket.assigns.current_tenant, id) do
+      {:ok, organizacao} ->
+        dias =
+          Enum.find(
+            socket.assigns.janelas.allowed,
+            socket.assigns.janelas.default,
+            &(to_string(&1) == janela)
+          )
+
+        push_navigate(socket, to: caminho(organizacao.id, dias))
+
+      {:error, :not_found} ->
+        nao_encontrada(socket)
+    end
+  end
+
+  # O mesmo texto para a de outro tenant, a inexistente e o id malformado: dizer "sem permissão"
+  # confirmaria que existe (§11.1, 4.6).
+  defp nao_encontrada(socket) do
+    socket
+    |> put_flash(:error, dgettext("errors", "Not found."))
+    |> push_navigate(to: ~p"/network-analysis")
   end
 
   # A leitura é refeita pela função de domínio, com o alcance de AGORA, e nunca a partir do que
@@ -71,12 +113,8 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
       {:error, :janela_invalida} ->
         push_patch(socket, to: caminho(id, socket.assigns.janelas.default))
 
-      # O mesmo texto para a de outro tenant e a inexistente: dizer "sem permissão" confirmaria
-      # que existe (§11.1, 4.6).
       {:error, :not_found} ->
-        socket
-        |> put_flash(:error, dgettext("errors", "Not found."))
-        |> push_navigate(to: ~p"/organizations")
+        nao_encontrada(socket)
 
       {:ausente, :not_computed} ->
         socket |> com_organizacao(id) |> assign(window: janela(window), visao: :not_computed)
@@ -100,7 +138,7 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
   defp janela(dias) when is_integer(dias), do: dias
   defp janela(texto), do: String.to_integer(texto)
 
-  defp caminho(id, dias), do: ~p"/organizations/#{id}/review-network?window=#{dias}"
+  defp caminho(id, dias), do: Shared.page_path(:review, id, %{window: dias})
 
   @impl true
   def render(assigns) do
@@ -112,6 +150,13 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
       nav_area={assigns[:nav_area]}
       operacao_menu={assigns[:operacao_menu]}
     >
+      <%!-- 076, 3.0.1: as seis páginas da área acima da página da 073 --%>
+      <Shared.area_nav
+        :if={assigns[:organizacao]}
+        active={:review}
+        organization_id={@organization_id}
+        selection={%{window: @window}}
+      />
       <div :if={assigns[:organizacao]} class="flex flex-col gap-6" id="review-network">
         <%!-- 1.1 --%>
         <nav class="text-sm opacity-70" aria-label="breadcrumb">

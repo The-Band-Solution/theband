@@ -288,7 +288,20 @@ injetado comentada na issue de cada tarefa. O que divergiu do texto das tarefas,
 **Objetivo**: a área no menu, com a rede de revisão da 073 a um clique. **Teste independente**: a
 área aparece, abre a rede de revisão com os números da página da 073, e o endereço antigo leva a ela.
 
-- [ ] T018 [P] [US1] Pôr Network analysis no menu principal
+**Feita em 2026-10-04**, na branch `feature/1309-us1` (empilhada sobre `feature/1309-fundacao`), com
+a evidência de cada defeito injetado comentada na issue de cada tarefa. O que divergiu do texto das
+tarefas, e por quê:
+
+- **T018 e T019**: o commit da T019 vem antes do da T018, porque o teste do item ativo abre
+  `/network-analysis`, que nasce na T019;
+- **T019**: `NetworkAnalysisLive.Shared` expõe também `area_nav/1`, `marca/1`, `page_path/3`,
+  `link_label/1` e `pages/0` (emenda de `contracts/tela.md`). As páginas ainda não construídas
+  aparecem nas abas e nos cartões sem link; os cartões de `/network-analysis` não têm link porque a
+  área ainda não tem organização escolhida;
+- **T020**: além do endereço antigo, a página das organizações passou a apontar direto para a área.
+  O `show_test.exs` da 073 foi atualizado para o endereço novo.
+
+- [x] T018 [P] [US1] Pôr Network analysis no menu principal
   - **Pronta quando**: [contracts/tela.md](contracts/tela.md)
   - **Descrição**: `lib/the_band_web/components/layouts.ex`: o item **Network analysis** depois de
     *Organization*, e `{"/network-analysis", :network_analysis}` em `@nav_areas` (FR-001). O
@@ -300,7 +313,7 @@ injetado comentada na issue de cada tarefa. O que divergiu do texto das tarefas,
     da área) e um teste de LiveView que `assert` o `aria-current`. **Defeito a injetar**: tirar a linha
     de `@nav_areas`; o teste reprova
 
-- [ ] T019 [US1] Abrir a área e escolher a organização
+- [x] T019 [US1] Abrir a área e escolher a organização
   - **Pronta quando**: T017, T018; protótipo §3 Tela 1
   - **Descrição**: `lib/the_band_web/live/network_analysis_live/index.ex` e
     `shared.ex` (cabeçalho, seletores, linha da leitura, aviso de alcance parcial): título e pergunta,
@@ -314,7 +327,7 @@ injetado comentada na issue de cada tarefa. O que divergiu do texto das tarefas,
     organizações, e um caso do cabeçalho que `assert` a marca *derived* em texto. **Defeito a
     injetar**: listar organizações sem filtro de tenant; o caso de outro tenant reprova
 
-- [ ] T020 [security] [US1] Montar a rede de revisão na área, e o endereço antigo
+- [x] T020 [security] [US1] Montar a rede de revisão na área, e o endereço antigo
   - **Pronta quando**: T019
   - **Descrição**: `router.ex`: `live "/network-analysis/:organization_id", ReviewNetworkLive.Show,
     :show` e o endereço antigo com a ação `:legacy`, que valida o id por `EO.fetch_organization/2` e
