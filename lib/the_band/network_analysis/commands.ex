@@ -22,13 +22,15 @@ defmodule TheBand.NetworkAnalysis.Commands do
   Não lê relógio (`now` vem de quem chama), não registra log (o job registra a partir do relator,
   que só tem contagens: A19), e não grava percentil nem papel (R17).
 
-  Depende de: `Algorithms.Projection`, `Algorithms.Betweenness`, `Parameters`, `Notices`; nenhuma
+  Depende de: `Algorithms.Projection`, `Algorithms.Betweenness`,
+  `Algorithms.Layout`, `Parameters`, `Notices`; nenhuma
   tabela de ontologia.
   """
 
   import Ecto.Query
 
   alias TheBand.NetworkAnalysis.Algorithms.Betweenness
+  alias TheBand.NetworkAnalysis.Algorithms.Layout
   alias TheBand.NetworkAnalysis.Algorithms.Projection
   alias TheBand.NetworkAnalysis.Inputs
   alias TheBand.NetworkAnalysis.Notices
@@ -148,7 +150,7 @@ defmodule TheBand.NetworkAnalysis.Commands do
     end
   end
 
-  # A leitura com o que já existe nesta fatia: graus, componentes (T014) e intermediação (T030). As medidas dos
+  # A leitura com o que já existe nesta fatia: graus, componentes (T014) e intermediação (T030) e posições (T031). As medidas dos
   # algoritmos entram com as tarefas deles; acima do teto, as que o teto desliga ficam ausentes
   # com o motivo da base, e nunca com valor.
   defp leitura(tenant, organization_id, contexto, entrada, projecao, acima?, parametros) do
@@ -158,6 +160,17 @@ defmodule TheBand.NetworkAnalysis.Commands do
 
     intermediacao =
       Betweenness.brandes(projecao.adjacency, %{min_people: parametros.betweenness_min_people})
+
+    # Acima do teto o layout não roda (A16): o nó fica sem x/y, e a leitura diz por quê.
+    posicoes =
+      if acima?,
+        do: %{},
+        else:
+          Layout.fruchterman_reingold(
+            projecao.nodes,
+            projecao.adjacency,
+            Map.take(parametros.layout, [:seed, :iterations])
+          )
 
     componente_de =
       for {membros, i} <- Enum.with_index(componentes, 1), id <- membros, into: %{}, do: {id, i}
@@ -176,6 +189,7 @@ defmodule TheBand.NetworkAnalysis.Commands do
           "component" => Map.fetch!(componente_de, id),
           "betweenness" => medida_gravada(Map.fetch!(intermediacao, id))
         }
+        |> com_posicao(Map.get(posicoes, id))
       end
 
     medidas =
@@ -215,6 +229,9 @@ defmodule TheBand.NetworkAnalysis.Commands do
         })
     }
   end
+
+  defp com_posicao(no, nil), do: no
+  defp com_posicao(no, {x, y}), do: Map.merge(no, %{"x" => x, "y" => y})
 
   # Ausência gravada com o motivo, e nunca 0 (data-model §1.2).
   defp medida_gravada({:ok, v}), do: %{"value" => v}
