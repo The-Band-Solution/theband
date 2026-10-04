@@ -241,6 +241,15 @@ plugins:
             0008 vinculo observado: 0008 observed team membership
             0009 API pública com token: 0009 public API with a token
             0010 hash do token de API: 0010 API token hash
+            # L04 (075/T030): operação e releases.
+            Runbook de produção: Production runbook
+            O fluxo de release: The release flow
+            A saúde da fila: Queue health
+            Desligar alguém da plataforma: Offboarding someone from the platform
+            Ensaio da migração 060: Rehearsal of migration 060
+            Ensaio da migração da conta desativada: Rehearsal of the disabled-account migration
+            Aceitação em produção da v0.9.1: Production acceptance of v0.9.1
+            Histórico: History
 
 # Os links que saem de `docs/` viram URL do GitHub no momento do build — o fonte
 # continua relativo e navegável no repositório. Ver o moduledoc do arquivo.
