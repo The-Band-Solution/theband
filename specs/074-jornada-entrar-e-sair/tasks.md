@@ -48,7 +48,15 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
 
 ## Fase 1: Setup
 
-- [ ] T004 Fixar as dependências do OpenTelemetry
+- [x] T004 Fixar as dependências do OpenTelemetry — *feita em 2026-10-03: o `mix.lock` ganhou
+  exatamente onze pacotes (`acceptor_pool`, `chatterbox`, `ctx`, `gproc`, `grpcbox`, `hpack`,
+  `opentelemetry`, `opentelemetry_api`, `opentelemetry_exporter`, `ssl_verify_fun`,
+  `tls_certificate_check`); `mix hex.audit` EXIT=0 (só os dois avisos de `cowlib` já ignorados,
+  anteriores à 074); `mix deps.audit` EXIT=0, "No vulnerabilities found"; `mix hex.outdated
+  grpcbox`: `~> 0.18.0`, em dia. Defeito injetado: `{:grpcbox, ">= 0.0.0"}` —
+  `dependencias_test.exs` reprova 1/4. Portas: com o SDK e o exportador iniciados (endpoint
+  local), nenhum socket novo aberto no nó, medido no ambiente de teste; a conferência com
+  `:inet.i()` **dentro do contêiner da release** fica para T027 (👤), que é quando a release roda*
   - **Pronta quando**: T001, T002 (D5), T003
   - **Descrição**: em `mix.exs`, `{:opentelemetry_api, "== 1.5.0"}`, `{:opentelemetry, "==
     1.7.0"}`, `{:opentelemetry_exporter, "== 1.11.0"}` e `{:grpcbox, "~> 0.18.0"}` (só o teto, com
