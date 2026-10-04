@@ -105,6 +105,25 @@ Número de consultas fixo, independente do tamanho da rede; guardado por teste d
   `networks.values.allowed` (`review`), e as vistas (`weighted`, `communities`) são vocabulário da
   tela, sem valor da base.
 
+**Emenda de 2026-10-04 (T029)**, feita no mesmo commit da implementação:
+
+- a visão ganha `counts`, `declared_organization_accounts` e uma `provenance` parcial
+  (`knowledge_versions`, `account_type_unknown`, `source_computed_at`; o resto entra com as
+  tarefas que o calculam);
+- `counts.items` é o número de issues abertas na janela (designação) ou de revisões contáveis
+  (revisão), e é `{:ausente, :none_in_window}` quando zero: uma janela pode ter issues e nenhuma
+  aresta, e por isso o motivo não é `:no_edge_in_window`;
+- `counts.exclusions` é `{:ausente, :none_in_window}` quando a janela não tem par nem issue; com
+  algum, a contagem de um motivo que não ocorreu é zero de verdade (073, #1308). Sem `pairs` nem
+  `issues` no mapa: esses estão em `items`. Com alcance parcial, `{:recortado, :regra}`;
+- `counts.people_without_edges` também é `{:recortado, :regra}` com alcance parcial: é contagem
+  sobre a organização inteira;
+- `declared_organization_accounts` é o número de pessoas **desta organização** com declaração
+  vigente, calculado na leitura (`EO.organization_person_ids/2` ∩
+  `Tenants.organization_account_ids/1`): duas consultas fixas, e o número não envelhece com a
+  leitura;
+- `provenance.account_type_unknown` só com alcance total.
+
 ### `view()`
 
 ```elixir

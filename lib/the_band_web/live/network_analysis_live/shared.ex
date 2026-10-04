@@ -67,7 +67,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.Shared do
 
   # As páginas que já existem nesta fatia. As outras entram com a user story que as constrói
   # (tasks.md, fases 4 a 11); até lá aparecem na ordem, sem link, e nunca como link quebrado.
-  @disponiveis [:review]
+  @disponiveis [:review, :graph]
 
   @doc "As seis páginas da área, na ordem do protótipo (3.0.1)."
   @spec pages() :: [map()]
@@ -89,6 +89,16 @@ defmodule TheBandWeb.NetworkAnalysisLive.Shared do
           String.t()
   def page_path(:review, organization_id, %{window: janela}),
     do: ~p"/network-analysis/#{organization_id}?#{[window: janela]}"
+
+  # A rede só vai no endereço quando foi escolhida: da página da 073, que só lê janela, o link
+  # leva a janela, e a página de análise abre na rede padrão.
+  def page_path(:graph, organization_id, selecao),
+    do: ~p"/network-analysis/#{organization_id}/graph?#{consulta(selecao)}"
+
+  defp consulta(selecao) do
+    [network: Map.get(selecao, :network), window: Map.get(selecao, :window)]
+    |> Enum.reject(fn {_chave, valor} -> is_nil(valor) end)
+  end
 
   @doc """
   As frases das duas arestas, em palavras, com a direção da seta (3.0.2, 3.1.2).
