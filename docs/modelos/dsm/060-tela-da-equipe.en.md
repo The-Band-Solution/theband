@@ -204,7 +204,7 @@ Four items that are not stories and that PR 1 needs before the screen exists.
 | Code | Item | Task |
 |---|---|---|
 | **E1** | `priv/knowledge_base/ontology/seon/eo/modules/role_grants.yaml` (new) + `role_grants` in `eo/ontology.yaml` — declares **both** grants, the visibility one (which has existed in the code since #369 and was never declared) and the management one | T002 |
-| **E2** | rule `github_team_membership_evidence.yaml` → **v3**: a declared exit and a mistake on an observed team membership block recreation while observation is continuous | T003 |
+| **E2** | rule `github_team_membership_evidence.yaml` → **v3**: a declared departure and a mistake on an observed team membership block recreation while observation is continuous | T003 |
 | **E3** | migration `saida_declarada_com_autor`: `declared_at`, `ended_by_user_id`, `end_declared_at` and the two `CHECK`s | T008 |
 | **E4** | migration `concessao_de_gestao_da_estrutura`: table `eo_role_structure_management_grants` with the partial index | T004 |
 
@@ -229,7 +229,7 @@ without going through it.
   the visibility grant is in `eo_role_visibility_grants` (migration `20260827060000:45`) and is not
   declared in the base.
 - **E2** — unlocks US3 (FR-026: after the exit, collection does not recreate) and US4 (FR-027: a new
-  observation after an established absence is a return). Without it, a declared exit on an observed team
+  observation after an established absence is a return). Without it, a declared departure on an observed team
   membership is **undone by the next collection** — see `estados/vinculo-de-equipe.md`, finding 1.
 - **E3** — unlocks the **reading** of US1 (FR-010 *declared by X on D*, FR-011 *with who recorded it*,
   FR-022 *declared end × established end*), that of US2 (`declared_at`) and the **writing** of US3.

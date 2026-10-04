@@ -56,10 +56,10 @@ stateDiagram-v2
 
     observado_sem_papel --> declarado : declare role
     observado_sem_papel --> encerrado_pela_coleta : the source stopped listing
-    observado_sem_papel --> encerrado : declared exit
+    observado_sem_papel --> encerrado : declared departure
     observado_sem_papel --> equivoco : mistake with a reason
 
-    declarado --> encerrado : declared exit
+    declarado --> encerrado : declared departure
     declarado --> equivoco : mistake with a reason
 
     encerrado --> [*]
@@ -174,14 +174,14 @@ September", which is what SC-001 forbids.
 |---|---|---|---|
 | P1 | T6 (in force → ended) | `record_team_departure/5` starts **using** the `actor_id` it ignores today (`commands.ex:110`, `_actor_id`), writes `ended_by_user_id` and `end_declared_at`, and operates on **all** team memberships in force for the pair through `update_all` — not through `Repo.one` | `plan.md` D4; `tasks.md` T014 |
 | P2 | T8 (in force → mistake) | same treatment: `update_all` over all the ones in force for the pair; zero in force becomes a named error | `plan.md` D4; `tasks.md` T016 |
-| P3 | **ended → *(nothing)*** | the recreation guard starts recognizing the **declared exit**: `existe_declaracao?/3` gains `ended_by_user_id`. Today an observed team membership with a declared exit has null role and author and a null invalidation → `existe_declaracao?` returns `false` → **collection recreates it** | `plan.md` (Summary); `data-model.md` §3.2 (rule v3); `tasks.md` T003, T014 |
+| P3 | **ended → *(nothing)*** | the recreation guard starts recognizing the **declared departure**: `existe_declaracao?/3` gains `ended_by_user_id`. Today an observed team membership with a declared departure has null role and author and a null invalidation → `existe_declaracao?` returns `false` → **collection recreates it** | `plan.md` (Summary); `data-model.md` §3.2 (rule v3); `tasks.md` T003, T014 |
 | P4 | T9 (return) | becomes explicit: `observar_vinculo` receives `retorno?`, and a new team membership is only born after the absence has been **established** (`no_longer_observed_at`) | `tasks.md` T014; spec 060 FR-026, FR-027 |
 | P5 | **declared → declared (another role)** | gets a command: `change_role/5` = `end_allocation/4` + `declare_role/6` in one transaction, returning `{:ok, %{encerrado, novo}}` | spec 060 Impact; `plan.md` (premise *Alterar papel*); `tasks.md` T018 |
 | P6 | every write transition | starts requiring `pode_gerir_estrutura/3` **on the event**, not only at render time: hiding the button is not authorization | spec 060 FR-006; `tasks.md` T012 |
 
 ## Findings
 
-1. **The recreation guard does not see the declared exit.** `existe_declaracao?/3`
+1. **The recreation guard does not see the declared departure.** `existe_declaracao?/3`
    (`commands.ex:683-691`) recognizes a declaration by `declared_by_user_id`, `organizational_role_id`
    **or** `invalidated_at`. An **observed** team membership whose exit was declared has all three null —
    and the next collection recreates the team membership, silently undoing what someone declared. The
@@ -190,7 +190,7 @@ September", which is what SC-001 forbids.
 
 2. **ADR 0008 and rule v2 say less than the decision of 2026-09-07 requires.** ADR 0008 item 4
    (`docs/adr/0008-vinculo-observado.md:72-75`) speaks of a "**declared** team membership — in force,
-   ended or invalidated"; the **observed** team membership with a declared exit does not fit in that
+   ended or invalidated"; the **observed** team membership with a declared departure does not fit in that
    sentence. The rule `github_team_membership_evidence.yaml` is at `version: 2` (`:3`) and the promotion
    note (`:89-93`) does not mention blocking by exit. **Whom to take it to**: the ADR gets a note in T025;
    the rule becomes v3 in T003.

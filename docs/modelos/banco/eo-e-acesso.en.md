@@ -230,7 +230,7 @@ multiplying.
 | Constraint | Rule |
 |---|---|
 | `eo_declaracao_tem_autor` | `declared_by_user_id` and `declared_at` are **both** null, or **both** filled |
-| `eo_saida_declarada_completa` | a declared exit requires author, declaration date **and** `ended_at` |
+| `eo_saida_declarada_completa` | a declared departure requires author, declaration date **and** `ended_at` |
 | `eo_equivoco_do_vinculo_completo` | a mistake requires `invalidated_at`, author **and reason** — all three, or none |
 | `papel_tem_uma_origem_so` | `num_nonnulls(catalog_concept_id, declared_by_user_id) = 1` — the role comes from the catalog **or** from someone, never both |
 | `eo_teams_type_check` | `organizational_team` or `project_team` |
