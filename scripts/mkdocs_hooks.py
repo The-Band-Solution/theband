@@ -175,6 +175,9 @@ def on_env(env, config, files, **kwargs):
     env.globals.update({
         "idioma": idioma,
         "textos": _ler_yaml("textos.yml")[idioma],
+        # A 404 é uma só para os dois idiomas (o build EN a escreve por cima da
+        # PT, na raiz do site), e por isso ela recebe os dois conjuntos.
+        "textos_todos": _ler_yaml("textos.yml"),
         "home": _ler_yaml("home.yml"),
         "funcionalidades": _ler_yaml("funcionalidades.yml"),
         "build": _build["build"],
@@ -226,7 +229,7 @@ def on_post_build(config, **kwargs):
     total = len(pendentes) + len(_build["traduzidas"])
     with open(os.path.join(config["site_dir"], "traducao-pendente.txt"), "w", encoding="utf-8") as f:
         f.write("".join(p + "\n" for p in pendentes))
-    print(f"INFO    -  tradução: {len(pendentes)} de {total} páginas sem versão EN (site/en/traducao-pendente.txt)")
+    print(f"INFO    -  tradução: {len(pendentes)} de {total} páginas sem versão EN (traducao-pendente.txt, na raiz do site)")
     if config["extra"].get("traducao", {}).get("exigir") and pendentes:
         raise PluginError(
             f"tradução exigida: {len(pendentes)} páginas sem .en.md: " + ", ".join(pendentes[:20])

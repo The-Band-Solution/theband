@@ -1,0 +1,39 @@
+/* Cópia de gh-pages:index.html (commit 09570bd), linhas 18-54, feita em 2026-10-03.
+   É a régua de test_tokens.py: se a landing mudar, esta cópia e theband.css mudam juntas. */
+  :root {
+    color-scheme: light dark;
+    --papel: #f1f4f2;
+    --tinta: #17211c;
+    --tinta-2: #45544d;
+    --verdete: #2c6b60;
+    --verdete-forte: #1d5a50;
+    --verdete-fundo: #e3ece8;
+    --latao: #96731f;
+    --pauta: #c9d4ce;
+    --cartao: #fafcfa;
+    --hachura: repeating-linear-gradient(135deg, transparent 0 4px, currentColor 4px 5px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --papel: #101816;
+      --tinta: #dee8e2;
+      --tinta-2: #93a69d;
+      --verdete: #5fa294;
+      --verdete-forte: #7dbcae;
+      --verdete-fundo: #16241f;
+      --latao: #c9a24b;
+      --pauta: #26332d;
+      --cartao: #151f1b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --papel: #101816;
+    --tinta: #dee8e2;
+    --tinta-2: #93a69d;
+    --verdete: #5fa294;
+    --verdete-forte: #7dbcae;
+    --verdete-fundo: #16241f;
+    --latao: #c9a24b;
+    --pauta: #26332d;
+    --cartao: #151f1b;
+  }

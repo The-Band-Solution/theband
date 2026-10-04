@@ -1,0 +1,67 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Constrói o site da documentação em todo PR, sem publicar nada (075, AC7 e AC8).
+#
+# Até 2026-10-03 o site só era construído no push da `main`, pelo docs.yml. O
+# build estrito reprovava em `development` havia dias e ninguém sabia (quatro
+# links para specs/ com um ../ a menos). Este job põe o veredito no PR.
+#
+# Segurança (avaliação da 075, E8): roda código do PR (plugins, pip, testes), e
+# por isso só lê: `pull_request` e nunca `pull_request_target`, `contents: read`,
+# nenhum segredo, o checkout sem credencial guardada, e a varredura de links é
+# offline. As dependências entram só pelo hash (D1).
+#
+# O veredito de cada passo é o código de saída do próprio comando: nenhum passo
+# termina num pipe (lição L60).
+# ═══════════════════════════════════════════════════════════════════════════════
+name: Docs (PR)
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - 'overrides/**'
+      - 'mkdocs-dados/**'
+      - 'scripts/mkdocs_hooks.py'
+      - 'scripts/verificar_links_do_site.py'
+      - 'test/site/**'
+      - 'requirements-docs.txt'
+      - '.github/workflows/docs.yml'
+      - '.github/workflows/docs-pr.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  construir:
+    name: build estrito, varredura de links e testes do site
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.13'
+          cache: pip
+
+      - name: dependências fixadas, conferidas pelo hash
+        run: pip install --require-hashes -r requirements-docs.txt
+
+      - name: construir — MODO ESTRITO
+        run: mkdocs build --strict
+
+      - name: varredura de links do site construído
+        run: python3 scripts/verificar_links_do_site.py site
+
+      - name: testes do site construído
+        env:
+          SITE_DIR: site
+        run: python3 -m unittest discover -s test/site -t test/site

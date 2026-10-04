@@ -24,21 +24,27 @@
 {% block content %}
 <div class="tb-erro-cod">404 · <span id="tb-caminho"></span></div>
 
-<div class="tb-variante" data-variante="neutra">
-  <h1>{{ textos.nao_encontrada_neutra_titulo }}</h1>
-  <p>{{ textos.nao_encontrada_neutra_frase }}</p>
+{#- Os dois idiomas na mesma página: sem JavaScript aparecem os dois, PT primeiro;
+    com JavaScript, o idioma do caminho (/developers/en/) ou o do navegador. -#}
+{%- for codigo in ["pt", "en"] %}
+{%- set t = textos_todos[codigo] %}
+<div class="tb-idioma-404" data-idioma="{{ codigo }}" lang="{{ t.lang }}">
+  <div class="tb-variante" data-variante="neutra">
+    <h1>{{ t.nao_encontrada_neutra_titulo }}</h1>
+    <p>{{ t.nao_encontrada_neutra_frase }}</p>
+  </div>
+  <div class="tb-variante" data-variante="developers" hidden>
+    <h1>{{ t.nao_encontrada_titulo }}</h1>
+    <p>{{ t.nao_encontrada_frase }}</p>
+  </div>
+  <ul>
+    <li><a href="{{ config.site_url }}{{ 'en/' if codigo == 'en' else '' }}">{{ t.nao_encontrada_inicio }}</a></li>
+    <li><a href="{{ config.extra.links.github_docs }}">{{ t.nao_encontrada_github }}</a></li>
+    <li><a href="{{ config.extra.links.produto }}">{{ t.nao_encontrada_produto }}</a></li>
+    <li><a href="{{ config.extra.links.landing }}">{{ t.nao_encontrada_landing }}</a></li>
+  </ul>
 </div>
-<div class="tb-variante" data-variante="developers" hidden>
-  <h1>{{ textos.nao_encontrada_titulo }}</h1>
-  <p>{{ textos.nao_encontrada_frase }}</p>
-</div>
-
-<ul>
-  <li><a href="{{ config.site_url }}">{{ textos.nao_encontrada_inicio }}</a></li>
-  <li><a href="{{ config.extra.links.github_docs }}">{{ textos.nao_encontrada_github }}</a></li>
-  <li><a href="{{ config.extra.links.produto }}">{{ textos.nao_encontrada_produto }}</a></li>
-  <li><a href="{{ config.extra.links.landing }}">{{ textos.nao_encontrada_landing }}</a></li>
-</ul>
+{%- endfor %}
 <script>
   (function () {
     var bruto = window.location.pathname;
@@ -47,6 +53,12 @@
     if (caminho.length > 200) { caminho = caminho.slice(0, 200) + "…"; }
     document.getElementById("tb-caminho").textContent = caminho;
     var developers = bruto.indexOf("/developers/") === 0;
+    var en = bruto.indexOf("/developers/en/") === 0 ||
+      (!developers && /^en\b/i.test(navigator.language || ""));
+    var idiomas = document.querySelectorAll(".tb-idioma-404");
+    for (var j = 0; j < idiomas.length; j++) {
+      idiomas[j].hidden = (idiomas[j].getAttribute("data-idioma") === "en") !== en;
+    }
     var variantes = document.querySelectorAll(".tb-variante");
     for (var i = 0; i < variantes.length; i++) {
       var v = variantes[i];

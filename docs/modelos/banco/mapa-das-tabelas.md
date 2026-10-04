@@ -322,5 +322,5 @@ usam `CASCADE`, e estão nos ERDs de cada contexto.
 
 1. este mapa — para saber o tamanho do que se está olhando;
 2. o [ERD do contexto](.) que interessa;
-3. o [diagrama de classes](../classes/) do mesmo contexto, para o *nulo que significa*;
-4. a [máquina de estados](../estados/), quando existir para a entidade.
+3. o [diagrama de classes](../classes/mapa-dos-schemas.md) do mesmo contexto, para o *nulo que significa*;
+4. a [máquina de estados](../estados/mapa-dos-ciclos-de-vida.md), quando existir para a entidade.

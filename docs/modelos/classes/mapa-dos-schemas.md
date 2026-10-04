@@ -219,5 +219,5 @@ está em [`estados/atividade-executada.md`](../estados/atividade-executada.md).
 
 1. este mapa — para saber o tamanho, e para não procurar `preload`;
 2. o [diagrama de classes](.) do contexto que interessa, pelo *nulo que significa*;
-3. o [ERD](../banco/) do mesmo contexto, para chaves e índices parciais;
-4. a [máquina de estados](../estados/), que é onde o comportamento mora.
+3. o [ERD](../banco/mapa-das-tabelas.md) do mesmo contexto, para chaves e índices parciais;
+4. a [máquina de estados](../estados/mapa-dos-ciclos-de-vida.md), que é onde o comportamento mora.

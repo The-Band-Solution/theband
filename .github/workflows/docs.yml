@@ -5,9 +5,13 @@
 # `index.html` (53 KB) e carrega o `CNAME` do domínio. Por isso:
 #
 #   • `mkdocs gh-deploy` NUNCA é usado — ele APAGA a branch inteira;
-#   • a publicação escreve APENAS em `developers/`, e o passo de guarda aborta se o
-#     `CNAME`, o `index.html` da raiz ou a página do produto em `/docs/`
-#     sumirem.
+#   • a publicação escreve em `developers/` e, desde a 075, também o `404.html` da
+#     raiz (Q4 do protótipo, decisão de 2026-10-03) — só esse arquivo, por `cp`
+#     dele e de nenhum outro;
+#   • o passo de guarda aborta se o `CNAME`, o `index.html` da raiz, a página do
+#     produto em `/docs/` ou o `404.html` sumirem, se a 404 publicada não for a
+#     construída, e se a seção Segurança voltar a ser publicada (E1, E2, E7 da
+#     avaliação de segurança da 075).
 #
 # O guarda existe porque um deploy que destrói o domínio não dá erro: ele
 # publica com sucesso um site sem CNAME, e o domínio cai em silêncio. É a
@@ -22,6 +26,10 @@ on:
       - 'docs/**'
       - 'mkdocs.yml'
       - 'scripts/mkdocs_hooks.py'
+      - 'scripts/verificar_links_do_site.py'
+      - 'overrides/**'
+      - 'mkdocs-dados/**'
+      - 'test/site/**'
       - 'requirements-docs.txt'
       - '.github/workflows/docs.yml'
   # Permite publicar sem esperar um push — útil depois de mexer na gh-pages à mão.
@@ -38,9 +46,14 @@ jobs:
   publicar:
     name: construir e publicar em /developers
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # O commit do build aparece na página (git log -1); a credencial não fica
+          # guardada no checkout: o push na gh-pages usa o token só no clone abaixo.
+          persist-credentials: false
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
@@ -48,13 +61,21 @@ jobs:
           cache: pip
 
       - name: dependências fixadas
-        run: pip install -r requirements-docs.txt
+        run: pip install --require-hashes -r requirements-docs.txt
 
       - name: construir — MODO ESTRITO
         # `--strict` transforma link quebrado em falha de build. Não é rigor
         # decorativo: foi ele que encontrou 118 links quebrados que ninguém via,
         # inclusive no GitHub. Sem ele o site publica os 404 em silêncio.
         run: mkdocs build --strict
+
+      - name: varredura de links do site construído
+        run: python3 scripts/verificar_links_do_site.py site
+
+      - name: testes do site construído
+        env:
+          SITE_DIR: site
+        run: python3 -m unittest discover -s test/site -t test/site
 
       - name: publicar em gh-pages/developers, preservando a raiz
         env:
@@ -68,6 +89,9 @@ jobs:
           # Só a subpasta é substituída. A raiz não é tocada por comando nenhum.
           rm -rf publicacao/developers
           cp -r site publicacao/developers
+          # A 404 da raiz vale para todo theband.dev (5.1). É o único arquivo que este
+          # workflow escreve fora de developers/.
+          cp site/404.html publicacao/404.html
 
           # ── O GUARDA ──
           # Um deploy que perdeu o CNAME publica com sucesso e derruba o domínio
@@ -80,6 +104,10 @@ jobs:
           # e um dos endereços que a landing anuncia cai sem erro nenhum — a mesma
           # família do sucesso silencioso que o guarda do CNAME já cobre.
           test -f publicacao/docs/index.html || { echo "::error::a página do produto em /docs/ sumiu — abortando"; exit 1; }
+          test -f publicacao/404.html || { echo "::error::a 404 da raiz não foi escrita — abortando"; exit 1; }
+          cmp site/404.html publicacao/404.html || { echo "::error::a 404 da raiz não é a construída — abortando"; exit 1; }
+          # E1/E2: a seção Segurança saiu do site; se voltar, é regressão de exposição.
+          test ! -e publicacao/developers/seguranca || { echo "::error::developers/seguranca foi publicado — abortando"; exit 1; }
 
           echo "CNAME preservado: $(cat publicacao/CNAME)"
 
