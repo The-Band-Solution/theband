@@ -9,6 +9,10 @@ module:
       nunca se manifestar. Quando se manifesta em uma falha, chamamos aquele
       defeito de fault. Tratar os três como sinônimos destrói qualquer métrica de
       qualidade.
+    en: >
+      A failure is an event; a defect is a disposition. A defect can exist for years without
+      ever manifesting itself. When it manifests itself in a failure, we call that defect a
+      fault. Treating the three as synonyms destroys any quality metric.
   provenance:
     source_type: reference_ontology
     reference: "Tese, Seção 2.2.2.5, Figura 21"
@@ -19,6 +23,9 @@ concepts:
     label: { pt-BR: "Vulnerabilidade", en: "Vulnerability" }
     definition:
       pt-BR: Disposição de um programa que, em certas circunstâncias, pode se manifestar em uma falha.
+      en: >
+        Disposition of a program that, under certain circumstances, can manifest itself in a
+        failure.
     classification: { ufo_category: disposition }
 
   - id: osdef.defect
@@ -28,6 +35,9 @@ concepts:
       pt-BR: >
         Tipo de vulnerabilidade que pode existir em programas. Alguns defeitos
         podem, acidentalmente, nunca se manifestar em execuções do software.
+      en: >
+        Type of vulnerability that can exist in programs. Some defects may, accidentally,
+        never manifest themselves in executions of the software.
     classification: { ufo_category: disposition, parent: osdef.vulnerability }
 
   - id: osdef.fault
@@ -35,6 +45,9 @@ concepts:
     label: { pt-BR: "Fault (Defeito em Tempo de Execução)" }
     definition:
       pt-BR: Defeito que se manifestou em uma falha. É o defeito visto pelo seu momento de manifestação.
+      en: >
+        Defect that has manifested itself in a failure. It is the defect seen through its
+        moment of manifestation.
     classification: { ufo_category: disposition, parent: osdef.defect }
 
   - id: osdef.failure
@@ -44,6 +57,9 @@ concepts:
       pt-BR: >
         Evento em que um programa não se comporta como pretendido, ferindo os
         objetivos dos stakeholders. É evento, não estado nem propriedade.
+      en: >
+        Event in which a program does not behave as intended, hurting the stakeholders'
+        goals. It is an event, not a state or a property.
     classification: { ufo_category: event }
 
   - id: osdef.vulnerable_state
@@ -54,6 +70,10 @@ concepts:
         Situação anterior à ocorrência da falha, que ativa a disposição que se
         manifestará nela. O software está executando e o defeito ainda não se
         manifestou.
+      en: >
+        Situation prior to the occurrence of the failure, which activates the disposition
+        that will manifest itself in it. The software is executing and the defect has not
+        yet manifested itself.
     classification: { ufo_category: situation }
 
   - id: osdef.failure_state
@@ -63,6 +83,9 @@ concepts:
       pt-BR: >
         Situação trazida à tona pela ocorrência da falha: o software não está
         executando suas funções como pretendido pelos stakeholders.
+      en: >
+        Situation brought about by the occurrence of the failure: the software is not
+        executing its functions as intended by the stakeholders.
     classification: { ufo_category: situation }
 
 relations:

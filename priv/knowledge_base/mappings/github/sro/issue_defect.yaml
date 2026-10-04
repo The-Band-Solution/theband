@@ -21,14 +21,23 @@ target:
   concept: osdef.defect
 semantics:
   equivalence: derived
-  justification: >
-    Issue do tipo Bug é um defeito — não uma user story. Promover toda issue a
-    user story inflaria o product backlog com correção, e o erro só apareceria
-    quando alguém perguntasse por que o backlog cresce sem funcionalidade nova.
+  justification:
+    pt-BR: >
+      Issue do tipo Bug é um defeito — não uma user story. Promover toda issue a
+      user story inflaria o product backlog com correção, e o erro só apareceria
+      quando alguém perguntasse por que o backlog cresce sem funcionalidade nova.
 
-    Este mapeamento NÃO tem `structural_requirements`. Ao contrário de épico e
-    atômica, ser defeito não depende de composição: um bug com sub-issues continua
-    sendo um bug. A ausência do bloco é decisão, não esquecimento.
+      Este mapeamento NÃO tem `structural_requirements`. Ao contrário de épico e
+      atômica, ser defeito não depende de composição: um bug com sub-issues continua
+      sendo um bug. A ausência do bloco é decisão, não esquecimento.
+    en: >
+      An issue of type Bug is a defect — not a user story. Promoting every issue to user
+      story would inflate the product backlog with fixes, and the error would only show up
+      when someone asked why the backlog grows without new functionality.
+
+      This mapping does NOT have `structural_requirements`. Unlike epic and atomic, being a
+      defect does not depend on composition: a bug with sub-issues is still a bug. The
+      absence of the block is a decision, not an oversight.
 identity:
   external_id_path: node.id
   natural_key: [node.repository.nameWithOwner, node.number]
@@ -40,17 +49,28 @@ relations:
     target_ontology: cmpo
     target_concept: cmpo.source_repository
 limitations:
-  - >
-    Defeito NÃO é falta nem falha. OSDEF distingue defect, fault e failure, e o
-    GitHub não dá base para separá-los: uma issue de bug descreve o que alguém
-    observou, sem dizer se é a causa no artefato, o estado errado em execução, ou
-    o desvio percebido. Só `defect` é afirmável.
-  - >
-    Severidade não é coletada. O que existe é label de texto livre, e mapear label
-    para severidade por semelhança de nome é o antipadrão declarado.
-  - >
-    Um bug pode ser tipado como Task por times que não usam o tipo Bug. A regra é
-    sobrescrita por tenant, e a lacuna aparece contada em vez de suposta.
+  - pt-BR: >
+      Defeito NÃO é falta nem falha. OSDEF distingue defect, fault e failure, e o
+      GitHub não dá base para separá-los: uma issue de bug descreve o que alguém
+      observou, sem dizer se é a causa no artefato, o estado errado em execução, ou
+      o desvio percebido. Só `defect` é afirmável.
+    en: >
+      A defect is NOT a fault nor a failure. OSDEF distinguishes defect, fault, and failure,
+      and GitHub gives no basis for separating them: a bug issue describes what someone
+      observed, without saying whether it is the cause in the artifact, the wrong state in
+      execution, or the perceived deviation. Only `defect` is assertable.
+  - pt-BR: >
+      Severidade não é coletada. O que existe é label de texto livre, e mapear label
+      para severidade por semelhança de nome é o antipadrão declarado.
+    en: >
+      Severity is not collected. What exists is a free-text label, and mapping label to
+      severity by name similarity is the declared antipattern.
+  - pt-BR: >
+      Um bug pode ser tipado como Task por times que não usam o tipo Bug. A regra é
+      sobrescrita por tenant, e a lacuna aparece contada em vez de suposta.
+    en: >
+      A bug may be typed as Task by teams that do not use the Bug type. The rule is
+      overridden per tenant, and the gap shows up counted instead of assumed.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at, schema_version]
