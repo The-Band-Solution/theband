@@ -33,6 +33,11 @@ module:
       por decisão de quem opera, não executado por condição não cumprida, ou encerrado por
       esgotamento de tempo. Nenhuma delas é malsucedida — a definição de malsucedido exige
       problema em componente.
+    en: >
+      The phases of the CI process that ended without deciding on the integration:
+      interrupted by a decision of whoever operates it, not performed because of an unmet
+      condition, or ended by running out of time. None of them is unsuccessful — the
+      definition of unsuccessful requires a problem in a component.
   provenance:
     source_type: project_decision
     reference: "Issue #401; decidido ao desenhar a tela de verificação contínua"
@@ -52,6 +57,11 @@ concepts:
         verificação. Não integrou o código candidato e **não encontrou problema nele** —
         a decisão de parar é externa ao código. Contá-lo como malsucedido atribuiria ao
         código uma falha que foi escolha de quem opera.
+      en: >
+        CI process ended by a stakeholder's decision before completing the verification. It
+        did not integrate the candidate code and **did not find a problem in it** — the
+        decision to stop is external to the code. Counting it as unsuccessful would
+        attribute to the code a failure that was a choice of whoever operates it.
     classification: { ufo_category: phase, ontouml_stereotype: phase, parent: ciro.continuous_integration_process }
     examples: ["execução cancelada porque um commit mais novo a tornou obsoleta", "cancelamento manual"]
 
@@ -63,6 +73,10 @@ concepts:
         Processo de CI que foi disparado e **não executou**, porque a condição declarada
         para sua execução não se cumpriu. Nada foi verificado — e é diferente de nunca ter
         sido disparado: o gatilho ocorreu, e é isso que esta fase registra.
+      en: >
+        CI process that was triggered and **did not run**, because the condition declared
+        for its execution was not met. Nothing was verified — and it is different from never
+        having been triggered: the trigger occurred, and that is what this phase records.
     classification: { ufo_category: phase, ontouml_stereotype: phase, parent: ciro.continuous_integration_process }
     examples: ["job pulado porque o anterior falhou", "condição `if` do workflow não satisfeita"]
 
@@ -76,6 +90,12 @@ concepts:
         problema no código (laço infinito, teste que trava) ou limite mal dimensionado —
         e a plataforma não sabe qual. Fase separada é o que permite contá-lo à parte em
         vez de escolher um lado.
+      en: >
+        CI process ended by running out of the declared time, without completing the
+        verification. **It is the most ambiguous of the three and has its own phase for that
+        reason**: it may be a problem in the code (infinite loop, test that hangs) or a
+        poorly sized limit — and the platform does not know which. A separate phase is what
+        allows counting it apart instead of choosing a side.
     classification: { ufo_category: phase, ontouml_stereotype: phase, parent: ciro.continuous_integration_process }
 
 relations: []

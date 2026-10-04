@@ -8,6 +8,10 @@ module:
       Visão geral do processo de CI: um processo executado composto e automatizado,
       classificado pelo tipo de gatilho que o iniciou e pelo desfecho (sucesso ou
       insucesso). O desfecho é fase do processo, não atributo solto.
+    en: >
+      Overview of the CI process: an automated composite performed process, classified by
+      the type of trigger that started it and by its outcome (successful or unsuccessful).
+      The outcome is a phase of the process, not a loose attribute.
   provenance:
     source_type: thesis
     reference: "Tese, Seção 3.3.2, Figura 34"
@@ -21,6 +25,10 @@ concepts:
         Processo executado específico composto e automatizado que verifica se um
         novo artefato de software pode ser integrado sem trazer problemas ao
         código já aprovado, sem intervenção humana.
+      en: >
+        Automated specific performed project composite process that checks whether a new
+        software artifact can be integrated without bringing problems to the already
+        approved code, without human intervention.
     classification: { ufo_category: complex_action, parent: spo.specific_performed_project_composite_process }
     automated: true
 
@@ -29,6 +37,7 @@ concepts:
     label: { pt-BR: "Parte Interessada de CI" }
     definition:
       pt-BR: Stakeholder interessado em informação sobre um processo de integração contínua.
+      en: "Stakeholder interested in information about a continuous integration process."
     classification: { ufo_category: role, parent: spo.project_stakeholder }
     examples: ["um desenvolvedor", "um testador"]
 
@@ -39,6 +48,9 @@ concepts:
       pt-BR: >
         Cópia carregada de sistema de software que fornece artefatos que participam
         do processo de CI, permitindo executá-lo automaticamente.
+      en: >
+        Loaded software system copy that provides artifacts that participate in the CI
+        process, allowing it to be performed automatically.
     classification: { ufo_category: disposition, parent: sys_swo.loaded_software_system_copy }
     examples: ["uma cópia do GitLab carregada em um computador", "GitHub Actions"]
 
@@ -49,6 +61,9 @@ concepts:
       pt-BR: >
         Atividade executada simples e automatizada que informa a um stakeholder de
         CI o status de um processo de CI.
+      en: >
+        Automated performed simple activity that informs a CI stakeholder of the status of a
+        CI process.
     classification: { ufo_category: action, parent: spo.performed_simple_activity }
     automated: true
 
@@ -57,6 +72,9 @@ concepts:
     label: { pt-BR: "Evento de Solicitação de CI" }
     definition:
       pt-BR: Evento que ocorre quando um stakeholder executa um comando no servidor de CI para iniciar o processo.
+      en: >
+        Event that occurs when a stakeholder executes a command on the CI server to start
+        the process.
     classification: { ufo_category: event }
 
   - id: ciro.check_in_triggered_continuous_integration_process
@@ -64,6 +82,7 @@ concepts:
     label: { pt-BR: "Processo de CI Disparado por Check-in" }
     definition:
       pt-BR: Processo de CI iniciado quando um novo artefato é submetido a um repositório de código.
+      en: "CI process started when a new artifact is submitted to a source repository."
     classification: { ufo_category: complex_action, parent: ciro.continuous_integration_process }
 
   - id: ciro.scheduled_continuous_integration_process
@@ -71,6 +90,7 @@ concepts:
     label: { pt-BR: "Processo de CI Agendado" }
     definition:
       pt-BR: Processo de CI iniciado quando uma data ou horário específico é alcançado.
+      en: "CI process started when a specific date or time is reached."
     classification: { ufo_category: complex_action, parent: ciro.continuous_integration_process }
 
   - id: ciro.on_demand_continuous_integration_process
@@ -78,6 +98,7 @@ concepts:
     label: { pt-BR: "Processo de CI Sob Demanda" }
     definition:
       pt-BR: Processo de CI iniciado por um evento de solicitação de CI.
+      en: "CI process started by a CI request event."
     classification: { ufo_category: complex_action, parent: ciro.continuous_integration_process }
 
   - id: ciro.successful_continuous_integration_process
@@ -85,6 +106,7 @@ concepts:
     label: { pt-BR: "Processo de CI Bem-Sucedido" }
     definition:
       pt-BR: Processo de CI em que o código candidato foi integrado sem problemas.
+      en: "CI process in which the candidate code was integrated without problems."
     classification: { ufo_category: phase, parent: ciro.continuous_integration_process }
 
   - id: ciro.unsuccessful_continuous_integration_process
@@ -94,6 +116,9 @@ concepts:
       pt-BR: >
         Processo de CI que não integrou o código candidato, devido a problema em
         algum de seus processos ou atividades.
+      en: >
+        CI process that did not integrate the candidate code, due to a problem in one of its
+        processes or activities.
     classification: { ufo_category: phase, parent: ciro.continuous_integration_process }
 
 relations:
