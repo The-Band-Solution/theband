@@ -346,7 +346,32 @@ tarefas, e por quê:
 **Objetivo**: a rede autor → responsável, com contagens e exclusões por motivo. **Teste
 independente**: as contagens batem com uma contagem manual das mesmas issues e designações.
 
-- [ ] T021 [P] [US2] [security] Gravar o tipo da conta na coleta de issues (A3)
+**Feita em 2026-10-04**, na branch `feature/1309-us2` (empilhada sobre `feature/1309-us1`), com a
+evidência de cada defeito injetado comentada na issue de cada tarefa. O que divergiu do texto das
+tarefas, e por quê:
+
+- **T022**: a medida em desenvolvimento foi feita com o mesmo SQL num `select`, só leitura, sem
+  migrar o banco compartilhado: 5 629 → 0 issues sem tipo, 5 139 → 12 responsáveis sem tipo, e as 3
+  contas de máquina sem sufixo (R13) ficam `bot`;
+- **T023**: o contrato ganhou `assigned: boolean()` (emenda em `contracts/fronteiras.md`). Os
+  repositórios observado e de origem não são juntados: a organização entra pela lista de
+  repositórios, que `CMPO.list_observed/2` busca por tenant. A fixture ganhou uma issue de outro
+  tenant apontando para o repositório deste, e só assim tirar `i.tenant_id` reprova;
+- **T024**: o contrato do módulo foi acrescentado em `contracts/algoritmos.md`; `Parameters`
+  passou a conferir a base contra `AssignmentClassification.order/0`;
+- **T025**: as funções moram em `Tenants.OrganizationAccounts`, e não em `Access` (emenda em
+  `contracts/fronteiras.md`): a declaração não decide quem vê o quê. Só UUID válido chega ao log;
+- **T026**: a administração é conferida no domínio, e não repetida no `handle_event`; o defeito
+  injetado foi tirar a conferência de lá, que é o único lugar. O estado é lido ao abrir a seção,
+  porque a página da pessoa está no teto de consultas;
+- **T027**: a redação da versão 2 de `review.network.edge` não passou pelo agente semântico nesta
+  sessão; fica pedida no PR. Os testes da 073 que fixavam a versão 1 foram atualizados;
+- **T028**: `people_without_edges` desconta as contas declaradas (emenda em
+  `contracts/network-analysis.md`);
+- **T029**: o `Reader` ganhou `counts`, `declared_organization_accounts` e parte da `provenance`
+  (emenda em `contracts/network-analysis.md`). A página não tem o desenho, que é a US3.
+
+- [x] T021 [P] [US2] [security] Gravar o tipo da conta na coleta de issues (A3)
   - **Pronta quando**: [data-model.md §3](data-model.md#3-o-tipo-da-conta-na-coleta-de-issues-r13-a3); R13
   - **Descrição**: migração `<ts>_add_account_type_to_issue_people.exs` (`change/0`, duas colunas com
     `check`); `CollectedIssue` e `IssueAssignee` aceitam o campo; `Ingestion.GithubWorkItems` passa
@@ -357,7 +382,7 @@ independente**: as contagens batem com uma contagem manual das mesmas issues e d
     fixture. **Defeito a injetar**: classificar pelo sufixo do login; o caso do `Bot` sem sufixo
     reprova
 
-- [ ] T022 [US2] Preencher o tipo da conta das issues já coletadas
+- [x] T022 [US2] Preencher o tipo da conta das issues já coletadas
   - **Pronta quando**: T021
   - **Descrição**: migração de dados `<ts>_backfill_issue_account_types.exs`: `up/0` com `execute/1`
     que preenche pelo payload bruto mais recente por `(tenant_id, external_id)` em `raw_payloads`
@@ -369,7 +394,7 @@ independente**: as contagens batem com uma contagem manual das mesmas issues e d
     fixture de dois tenants. **Defeito a injetar**: casar o payload sem `tenant_id`; o caso do payload
     de outro tenant com o mesmo `external_id` reprova
 
-- [ ] T023 [US2] [security] Ler os pares de designação com seis filtros de tenant
+- [x] T023 [US2] [security] Ler os pares de designação com seis filtros de tenant
   - **Pronta quando**: T021; `contracts/fronteiras.md` `WorkItems.assignment_pairs/3`
   - **Descrição**: `lib/the_band/work_items/queries.ex` (delegada em `work_items.ex`): a consulta de R12,
     com `i.tenant_id`, `a.tenant_id`, `p_autor.tenant_id`, `p_resp.tenant_id` e os repositórios da
@@ -381,7 +406,7 @@ independente**: as contagens batem com uma contagem manual das mesmas issues e d
     vez (para as que não reprovam, escrever na issue qual igualdade de join segura, como a 073 fez);
     filtrar só pelo tenant, sem a organização (L19)
 
-- [ ] T024 [US2] Classificar cada designação em exatamente um destino
+- [x] T024 [US2] Classificar cada designação em exatamente um destino
   - **Pronta quando**: T008, T023
   - **Descrição**: `lib/the_band/network_analysis/assignment_classification.ex`, puro, pela ordem da
     regra (`bot_or_app` → `organization_account` → `unlinked_person` → `self_assignment` → aresta);
@@ -394,7 +419,7 @@ independente**: as contagens batem com uma contagem manual das mesmas issues e d
     injetar**: inverter `organization_account` e `bot_or_app`; o caso da conta que é as duas reprova
     pela contagem dobrada
 
-- [ ] T025 [P] [US2] [security] Declarar e revogar a conta da organização
+- [x] T025 [P] [US2] [security] Declarar e revogar a conta da organização
   - **Pronta quando**: [data-model.md §2](data-model.md#2-organization_account_declarations--a-conta-da-organização-declarada-r14);
     `contracts/fronteiras.md` *Contas da organização*
   - **Descrição**: migração `<ts>_create_organization_account_declarations.exs` (com
@@ -409,7 +434,7 @@ independente**: as contagens batem com uma contagem manual das mesmas issues e d
   - **Teste**: `test/the_band/tenants/organization_accounts_test.exs`, dois tenants. **Defeitos a
     injetar**: gravar a marca em `account_type`; aceitar de membro. Cada um reprova
 
-- [ ] T026 [US2] [security] Declarar a conta da organização na tela de pessoas
+- [x] T026 [US2] [security] Declarar a conta da organização na tela de pessoas
   - **Pronta quando**: T025
   - **Descrição**: `PeopleLive.Show`: para a administração, o controle de declarar (com motivo
     obrigatório) e revogar; `PeopleLive.Index`: para a administração, as contas declaradas com quem
@@ -420,7 +445,7 @@ independente**: as contagens batem com uma contagem manual das mesmas issues e d
     forjado por conta de membro. **Defeito a injetar**: conferir a administração só no `render`, e não
     no `handle_event`; o evento forjado passa e o teste reprova
 
-- [ ] T027 [US2] [security] Excluir a conta da organização também na revisão (A7)
+- [x] T027 [US2] [security] Excluir a conta da organização também na revisão (A7)
   - **Pronta quando**: **T002 decidida como sim**; T025
   - **Descrição**: `review.network.edge` versão 2 com `organization_account` na ordem;
     `ReviewNetwork.Classification` recebe as contas declaradas e ganha o destino;
@@ -434,7 +459,7 @@ independente**: as contagens batem com uma contagem manual das mesmas issues e d
     `test/the_band_web/live/review_network_live/show_test.exs` (leitura antiga). **Defeito a
     injetar**: coluna com `default: 0`; o caso da leitura antiga reprova
 
-- [ ] T028 [US2] Calcular as duas redes nas três janelas
+- [x] T028 [US2] Calcular as duas redes nas três janelas
   - **Pronta quando**: T014, T024; T004
   - **Descrição**: `ReviewNetwork.current_edges/2` (só ids, por janela, a partir das leituras
     vigentes da 073) e, em `NetworkAnalysis.Commands`, as arestas das duas redes: revisão de
@@ -450,7 +475,7 @@ independente**: as contagens batem com uma contagem manual das mesmas issues e d
     janela da designação por `updated_at` da issue; o caso da issue aberta antes da janela e
     atualizada dentro dela reprova
 
-- [ ] T029 [US2] Mostrar as contagens da rede de designação
+- [x] T029 [US2] Mostrar as contagens da rede de designação
   - **Pronta quando**: T017, T028; protótipo 3.2.6–3.2.8
   - **Descrição**: `lib/the_band_web/live/network_analysis_live/graph.ex` (a página Graph, sem o
     desenho ainda): issues, arestas, exclusões por motivo (só com alcance total), pessoas sem aresta,
