@@ -140,6 +140,32 @@ página do lote que usou a outra foi corrigida:
 | a régua | yardstick | ruler | 6 / 1 | `adr/0004-modelo-de-informacao-one-table-per-kind.en.md` (L02) |
 | desligamento | offboarding | dismissal | 1 / 1, empate: fica a do glossário | `modelos/estados/conta.en.md` (L03) |
 
+### Unificações e convenções dos lotes L07–L09
+
+| termo PT | ficou | saiu |
+|---|---|---|
+| ressalva | caveat | reservation |
+| herança (do sprint anterior) | inheritance | carry-over |
+| incorporado (PR) | merged | incorporated |
+| grafia | americana (behavior, catalog, color, canceled, fulfillment) | britânica |
+
+- **âncora do título**: nas páginas de `sprints/`, o título EN leva a âncora do título PT
+  (`## L36 — … {#l36--gate-que-…}`), posta por script depois da tradução. Os links com `#âncora`
+  escritos contra o PT (o índice de `licoes-aprendidas`) continuam valendo em `/en/` sem
+  traduzir âncora nenhuma;
+- **`[redigido]`**: trecho que reproduziria sufixo de token, credencial ou detalhe de achado de
+  segurança aberto sai assim na EN, com a lista no relatório do lote. Quando o achado fechar, a
+  frase pode ser restaurada a partir do PT;
+- **a 040** (`sprints/040-site-de-desenvolvedores/`) é o backlog vivo desta spec e ficou fora do
+  L09: traduz-se na integração final, junto com a virada do `exigir`.
+
+### O passo final: ligar `exigir`
+
+Não foi feito no L09, porque L04, L05 e L06 estão em outras branches. Na integração final, depois de
+juntar todos os lotes e traduzir a 040: `mkdocs build --strict` tem de contar **0 de M páginas sem
+versão EN**; então `extra.traducao.exigir: true`, e a classe `TraducaoPendente` de
+`test/site/test_idiomas.py` muda junto (ela usa a 040 como a página pendente de exemplo).
+
 ## Os lotes
 
 Contagem de 2026-10-03 em `development`, mais as quatro páginas de funcionalidade desta base. Não se

@@ -31,7 +31,10 @@ class DoisIdiomas(unittest.TestCase):
         self.assertNotIn("Entrar na plataforma", en)
 
 
-PENDENTE = "sprints/037-papel-de-administrador/sprint-backlog"
+# Uma página que ainda não tem EN. A 037 ganhou tradução no L09 (075/T035); a 040 é o
+# backlog vivo desta spec e só se traduz na integração final. Quando `exigir` ligar, não
+# haverá página pendente, e esta classe muda junto.
+PENDENTE = "sprints/040-site-de-desenvolvedores/sprint-backlog"
 
 
 class TraducaoPendente(unittest.TestCase):
