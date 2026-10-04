@@ -24,12 +24,19 @@ target:
   concept: cmo.comment
 semantics:
   equivalence: total
-  justification: >
-    Um IssueComment do GitHub é exatamente uma manifestação escrita, unicamente
-    identificada, publicada por um agente no fio de discussão de um artefato do
-    projeto — a definição de cmo.comment. A equivalência é total porque o conceito
-    foi criado reconhecendo esta classe de coisa, e não o contrário: a CMO nasceu da
-    lacuna que este dado expôs.
+  justification:
+    pt-BR: >
+      Um IssueComment do GitHub é exatamente uma manifestação escrita, unicamente
+      identificada, publicada por um agente no fio de discussão de um artefato do
+      projeto — a definição de cmo.comment. A equivalência é total porque o conceito
+      foi criado reconhecendo esta classe de coisa, e não o contrário: a CMO nasceu da
+      lacuna que este dado expôs.
+    en: >
+      A GitHub IssueComment is exactly a written manifestation, uniquely identified,
+      published by an agent on the discussion thread of a project artifact — the definition
+      of cmo.comment. The equivalence is total because the concept was created by
+      recognizing this class of thing, and not the other way around: the CMO was born from
+      the gap that this data exposed.
 identity:
   external_id_path: id
   natural_key: [repository.node_id, issue.number, id]
@@ -56,31 +63,58 @@ relations:
       gravada como entidade — ela É o conjunto dos comentários do artefato, e
       materializá-la duplicaria o que a consulta responde.
 limitations:
-  - >
-    relations.author liga o comentário a eo.person como ATALHO materializado da
-    cadeia ontológica agente → ato de comentar → comentário
-    (cmo.agent_performed_commenting_act + cmo.commenting_act_published_comment):
-    a origem entrega o comentário com autor, não o ato — o ato é derivado deste
-    registro, um por comentário, no published_at.
-  - >
-    relations.discussion_of liga o comentário a spo.artifact como atalho da cadeia
-    comentário → discussão → artefato (cmo.comment_belonged_to_discussion +
-    cmo.discussion_was_about_artifact): a discussão não é gravada como entidade —
-    ela É o conjunto dos comentários do artefato.
-  - >
-    Edição e apagamento na origem: o GitHub entrega o corpo ATUAL e lastEditedAt,
-    não o histórico de versões — o que se afirma é "o texto como estava na coleta".
-    Comentário apagado na origem some da API; a marca no coletado é
-    no_longer_observed_at, nunca DELETE (marca, nunca apaga).
-  - >
-    Reações (👍 etc.) ficam fora desta versão: são outro ato comunicativo, mais
-    fraco, e entrariam como conceito próprio se um dia sustentarem decisão.
-  - >
-    Comentário de pull request review NÃO entra aqui: é outro fio (review thread),
-    com âncora em código, e exigiria conceito próprio — registrado como lacuna.
-  - >
-    bodyText é texto plano: formatação, menções e links do markdown são achatados.
-    Menção (@pessoa) como relação é derivação futura possível, não afirmada.
+  - pt-BR: >
+      relations.author liga o comentário a eo.person como ATALHO materializado da
+      cadeia ontológica agente → ato de comentar → comentário
+      (cmo.agent_performed_commenting_act + cmo.commenting_act_published_comment):
+      a origem entrega o comentário com autor, não o ato — o ato é derivado deste
+      registro, um por comentário, no published_at.
+    en: >
+      relations.author links the comment to eo.person as a materialized SHORTCUT of the
+      ontological chain agent → commenting act → comment (cmo.agent_performed_commenting_act
+      + cmo.commenting_act_published_comment): the source delivers the comment with an
+      author, not the act — the act is derived from this record, one per comment, at
+      published_at.
+  - pt-BR: >
+      relations.discussion_of liga o comentário a spo.artifact como atalho da cadeia
+      comentário → discussão → artefato (cmo.comment_belonged_to_discussion +
+      cmo.discussion_was_about_artifact): a discussão não é gravada como entidade —
+      ela É o conjunto dos comentários do artefato.
+    en: >
+      relations.discussion_of links the comment to spo.artifact as a shortcut of the chain
+      comment → discussion → artifact (cmo.comment_belonged_to_discussion +
+      cmo.discussion_was_about_artifact): the discussion is not stored as an entity — it IS
+      the set of the artifact's comments.
+  - pt-BR: >
+      Edição e apagamento na origem: o GitHub entrega o corpo ATUAL e lastEditedAt,
+      não o histórico de versões — o que se afirma é "o texto como estava na coleta".
+      Comentário apagado na origem some da API; a marca no coletado é
+      no_longer_observed_at, nunca DELETE (marca, nunca apaga).
+    en: >
+      Editing and deletion at the source: GitHub delivers the CURRENT body and lastEditedAt,
+      not the version history — what is asserted is "the text as it was at collection". A
+      comment deleted at the source disappears from the API; the mark on the collected
+      record is no_longer_observed_at, never DELETE (mark, never delete).
+  - pt-BR: >
+      Reações (👍 etc.) ficam fora desta versão: são outro ato comunicativo, mais
+      fraco, e entrariam como conceito próprio se um dia sustentarem decisão.
+    en: >
+      Reactions (👍 etc.) are left out of this version: they are another communicative act, a
+      weaker one, and would come in as a concept of their own if they ever support a
+      decision.
+  - pt-BR: >
+      Comentário de pull request review NÃO entra aqui: é outro fio (review thread),
+      com âncora em código, e exigiria conceito próprio — registrado como lacuna.
+    en: >
+      Pull request review comments do NOT come in here: they are another thread (review
+      thread), anchored in code, and would require a concept of their own — recorded as a
+      gap.
+  - pt-BR: >
+      bodyText é texto plano: formatação, menções e links do markdown são achatados.
+      Menção (@pessoa) como relação é derivação futura possível, não afirmada.
+    en: >
+      bodyText is plain text: markdown formatting, mentions and links are flattened. Mention
+      (@person) as a relation is a possible future derivation, not asserted.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at, schema_version]
