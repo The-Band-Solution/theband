@@ -6,18 +6,27 @@ source: { provider: github, entity: organization, api: graphql, schema_version: 
 target: { ontology: eo, concept: eo.organization }
 semantics:
   equivalence: partial
-  justification: >
-    Uma organização do GitHub é um agrupamento administrativo de repositórios e
-    pessoas. Corresponde parcialmente à organização de EO: não representa a
-    estrutura organizacional real, apenas o recorte visível na ferramenta.
+  justification:
+    pt-BR: >
+      Uma organização do GitHub é um agrupamento administrativo de repositórios e
+      pessoas. Corresponde parcialmente à organização de EO: não representa a
+      estrutura organizacional real, apenas o recorte visível na ferramenta.
+    en: >
+      A GitHub organization is an administrative grouping of repositories and people. It
+      corresponds partially to the EO organization: it does not represent the real
+      organizational structure, only the slice visible in the tool.
 identity:
   external_id_path: id
   natural_key: [login]
 attributes:
   name: { source_path: name }
 limitations:
-  - Uma organização no GitHub pode representar apenas uma unidade organizacional, não a organização inteira.
-  - Times do GitHub não correspondem necessariamente a equipes de projeto (eo.project_team).
+  - pt-BR: Uma organização no GitHub pode representar apenas uma unidade organizacional, não a organização inteira.
+    en: >
+      An organization on GitHub may represent only an organizational unit, not the whole
+      organization.
+  - pt-BR: Times do GitHub não correspondem necessariamente a equipes de projeto (eo.project_team).
+    en: "GitHub teams do not necessarily correspond to project teams (eo.project_team)."
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at]

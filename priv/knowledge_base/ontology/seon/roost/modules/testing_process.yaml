@@ -8,6 +8,10 @@ module:
       Distinção central: o caso de teste é um documento planejado; a execução de
       teste é o evento que o aplica e produz o resultado. Contar casos de teste
       não é contar execuções.
+    en: >
+      Central distinction: the test case is a planned document; the test execution is the
+      event that applies it and produces the result. Counting test cases is not counting
+      executions.
   provenance:
     source_type: reference_ontology
     reference: "Tese, Seção 2.2.2.3, Figura 19"
@@ -18,6 +22,7 @@ concepts:
     label: { pt-BR: "Processo de Teste" }
     definition:
       pt-BR: Processo executado específico para planejar e executar as atividades de teste dinâmico.
+      en: "Specific performed process for planning and performing dynamic testing activities."
     classification: { ufo_category: complex_action, parent: spo.specific_performed_project_process }
 
   - id: roost.level_based_testing
@@ -27,6 +32,9 @@ concepts:
       pt-BR: >
         Atividade executada composta que agrupa atividades de teste classificadas
         pelo nível em que são realizadas.
+      en: >
+        Performed composite activity that groups testing activities classified by the level
+        at which they are carried out.
     classification: { ufo_category: complex_action, parent: spo.performed_composite_activity }
 
   - id: roost.unit_testing
@@ -34,6 +42,7 @@ concepts:
     label: { pt-BR: "Teste de Unidade" }
     definition:
       pt-BR: Teste por nível focado na unidade ou componente individual, isoladamente.
+      en: "Level-based testing focused on the individual unit or component, in isolation."
     classification: { ufo_category: complex_action, parent: roost.level_based_testing }
 
   - id: roost.integration_testing
@@ -41,6 +50,9 @@ concepts:
     label: { pt-BR: "Teste de Integração" }
     definition:
       pt-BR: Teste por nível focado em componentes maiores, garantindo que um conjunto de unidades funcione em conjunto.
+      en: >
+        Level-based testing focused on larger components, ensuring that a set of units works
+        together.
     classification: { ufo_category: complex_action, parent: roost.level_based_testing }
 
   - id: roost.system_testing
@@ -48,6 +60,9 @@ concepts:
     label: { pt-BR: "Teste de Sistema" }
     definition:
       pt-BR: Teste por nível focado no comportamento do sistema inteiro e sua conformidade com os requisitos.
+      en: >
+        Level-based testing focused on the behavior of the whole system and its conformance
+        with the requirements.
     classification: { ufo_category: complex_action, parent: roost.level_based_testing }
 
   - id: roost.test_coding
@@ -55,6 +70,7 @@ concepts:
     label: { pt-BR: "Codificação de Teste" }
     definition:
       pt-BR: Atividade executada simples que implementa os casos de teste como código de teste.
+      en: "Performed simple activity that implements the test cases as test code."
     classification: { ufo_category: action, parent: spo.performed_simple_activity }
 
   - id: roost.test_case
@@ -64,6 +80,9 @@ concepts:
       pt-BR: >
         Documento contendo dados de entrada, resultados esperados, passos e
         condições gerais para testar uma situação do código sob teste.
+      en: >
+        Document containing input data, expected results, steps and general conditions for
+        testing a situation of the code under test.
     classification: { ufo_category: social_object, parent: spo.document }
 
   - id: roost.test_code
@@ -71,6 +90,7 @@ concepts:
     label: { pt-BR: "Código de Teste" }
     definition:
       pt-BR: Código produzido para implementar um caso de teste.
+      en: "Code produced to implement a test case."
     classification: { ufo_category: object, parent: sys_swo.code }
 
   - id: roost.code_to_be_tested
@@ -78,6 +98,7 @@ concepts:
     label: { pt-BR: "Código a Ser Testado" }
     definition:
       pt-BR: Papel assumido por uma porção de código quando é alvo de um caso de teste.
+      en: "Role played by a portion of code when it is the target of a test case."
     classification: { ufo_category: role, is_role_of: sys_swo.code }
 
   - id: roost.performed_test_execution
@@ -87,6 +108,9 @@ concepts:
       pt-BR: >
         Atividade executada simples que efetivamente executa os casos de teste,
         rodando o código de teste e produzindo resultados.
+      en: >
+        Performed simple activity that actually executes the test cases, running the test
+        code and producing results.
     classification: { ufo_category: action, parent: spo.performed_simple_activity }
 
   - id: roost.test_result
@@ -96,6 +120,9 @@ concepts:
       pt-BR: >
         Documento com os resultados observados, que descreve faults (defeitos em
         tempo de execução) e questões identificadas na execução de um caso de teste.
+      en: >
+        Document with the observed results, which describes faults (runtime defects) and
+        issues identified in the execution of a test case.
     classification: { ufo_category: social_object, parent: spo.document }
 
   - id: roost.testing_environment
@@ -103,6 +130,7 @@ concepts:
     label: { pt-BR: "Ambiente de Teste" }
     definition:
       pt-BR: Conjunto de recursos de hardware e software usados para executar as atividades de teste.
+      en: "Set of hardware and software resources used to perform the testing activities."
     classification: { ufo_category: object }
 
   - id: roost.test_software_resource
@@ -110,6 +138,7 @@ concepts:
     label: { pt-BR: "Recurso de Software de Teste" }
     definition:
       pt-BR: Recurso de software que compõe o ambiente de teste.
+      en: "Software resource that composes the testing environment."
     classification: { ufo_category: role, parent: sys_swo.software_resource }
 
   - id: roost.test_hardware_resource
@@ -117,6 +146,7 @@ concepts:
     label: { pt-BR: "Recurso de Hardware de Teste" }
     definition:
       pt-BR: Recurso de hardware que compõe o ambiente de teste.
+      en: "Hardware resource that composes the testing environment."
     classification: { ufo_category: role, parent: sys_swo.hardware_resource }
 
 relations:

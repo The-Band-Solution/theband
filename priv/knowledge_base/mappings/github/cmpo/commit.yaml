@@ -27,11 +27,17 @@ target:
   concept: cmpo.commit_artifact_copy
 semantics:
   equivalence: total
-  justification: >
-    Um commit do Git é o ato que envia cópias de artefato para uma branch de destino,
-    com autor, instante e mensagem — a definição de cmpo.commit_artifact_copy, que é
-    atividade (ufo action) e não objeto. A equivalência é total para o ATO; a cópia de
-    artefato que ele produz é outro conceito, e está fora deste mapeamento.
+  justification:
+    pt-BR: >
+      Um commit do Git é o ato que envia cópias de artefato para uma branch de destino,
+      com autor, instante e mensagem — a definição de cmpo.commit_artifact_copy, que é
+      atividade (ufo action) e não objeto. A equivalência é total para o ATO; a cópia de
+      artefato que ele produz é outro conceito, e está fora deste mapeamento.
+    en: >
+      A Git commit is the act that sends artifact copies to a target branch, with author,
+      instant and message — the definition of cmpo.commit_artifact_copy, which is an
+      activity (ufo action) and not an object. The equivalence is total for the ACT; the
+      artifact copy it produces is another concept, and is outside this mapping.
 identity:
   external_id_path: oid
   natural_key: [repository.node_id, oid]
@@ -87,37 +93,67 @@ derivation:
   on_divergence: flag_and_follow_precedence
   fallback: skip
 limitations:
-  - >
-    **As duas relações que faltavam foram declaradas** (issue #426): a participação
-    cmpo.stakeholder_performed_commit e a associação
-    cmpo.commit_accomplished_change_request, no módulo cmpo.change_traceability.
-  - >
-    `mentions_issues` aponta para sro.user_story (ou o destino que o roteamento tiver
-    decidido) por padrão de TEXTO, e continua sem relação própria: o caminho declarado é
-    commit → change_request → item de escopo, e a menção é atalho de confiança baixa.
-    Quando os dois discordam, a estrutura vence — com a divergência registrada.
-  - >
-    **O commit não sabe em qual branch está.** O mesmo `oid` existe em quantas branches
-    o tiverem; a branch de destino pertence ao cmpo.checkin, não ao ato isolado. O
-    campo grava a branch em que o commit foi OBSERVADO na coleta, e nada mais se
-    afirma.
-  - >
-    `cmpo.artifact_copy` (a cópia versionada de cada arquivo) NÃO é coletada: exigiria
-    o diff por arquivo em todo commit, e nada na plataforma o consome. Sem ela,
-    `cmpo.commit_sends_copy_to_target_branch` fica com o alvo declarado e a cópia
-    ausente — dito, não silenciado.
-  - >
-    `cmpo.checkin` (o ato composto que inclui verificação de conflito, resolução e
-    remoção de branch) não é derivável de commits isolados: precisaria do PR e do
-    evento de merge juntos. Fica para quando o consumidor existir.
-  - >
-    Commit de autor sem conta no GitHub (`user: null`, comum em commits antigos e
-    importados) fica com nome e e-mail preservados e sem vínculo com pessoa — a mesma
-    regra dos designados e dos comentários. E-mail é dado pessoal: não vai para tela.
-  - >
-    Menção de issue por padrão de texto tem confiança BAIXA e nunca substitui o
-    caminho commit → PR → issue. Quando os dois discordam, a estrutura vence, com a
-    divergência registrada.
+  - pt-BR: >
+      **As duas relações que faltavam foram declaradas** (issue #426): a participação
+      cmpo.stakeholder_performed_commit e a associação
+      cmpo.commit_accomplished_change_request, no módulo cmpo.change_traceability.
+    en: >
+      **The two missing relations were declared** (issue #426): the participation
+      cmpo.stakeholder_performed_commit and the association
+      cmpo.commit_accomplished_change_request, in the module cmpo.change_traceability.
+  - pt-BR: >
+      `mentions_issues` aponta para sro.user_story (ou o destino que o roteamento tiver
+      decidido) por padrão de TEXTO, e continua sem relação própria: o caminho declarado é
+      commit → change_request → item de escopo, e a menção é atalho de confiança baixa.
+      Quando os dois discordam, a estrutura vence — com a divergência registrada.
+    en: >
+      `mentions_issues` points to sro.user_story (or whatever target the routing has
+      decided) by TEXT pattern, and still has no relation of its own: the declared path is
+      commit → change_request → scope item, and the mention is a low-confidence shortcut.
+      When the two disagree, the structure wins — with the divergence recorded.
+  - pt-BR: >
+      **O commit não sabe em qual branch está.** O mesmo `oid` existe em quantas branches
+      o tiverem; a branch de destino pertence ao cmpo.checkin, não ao ato isolado. O
+      campo grava a branch em que o commit foi OBSERVADO na coleta, e nada mais se
+      afirma.
+    en: >
+      **The commit does not know which branch it is on.** The same `oid` exists in as many
+      branches as contain it; the target branch belongs to cmpo.checkin, not to the isolated
+      act. The field stores the branch on which the commit was OBSERVED during collection,
+      and nothing more is asserted.
+  - pt-BR: >
+      `cmpo.artifact_copy` (a cópia versionada de cada arquivo) NÃO é coletada: exigiria
+      o diff por arquivo em todo commit, e nada na plataforma o consome. Sem ela,
+      `cmpo.commit_sends_copy_to_target_branch` fica com o alvo declarado e a cópia
+      ausente — dito, não silenciado.
+    en: >
+      `cmpo.artifact_copy` (the versioned copy of each file) is NOT collected: it would
+      require the per-file diff on every commit, and nothing in the platform consumes it.
+      Without it, `cmpo.commit_sends_copy_to_target_branch` has the target declared and the
+      copy absent — stated, not silenced.
+  - pt-BR: >
+      `cmpo.checkin` (o ato composto que inclui verificação de conflito, resolução e
+      remoção de branch) não é derivável de commits isolados: precisaria do PR e do
+      evento de merge juntos. Fica para quando o consumidor existir.
+    en: >
+      `cmpo.checkin` (the composite act that includes conflict checking, resolution and
+      branch deletion) is not derivable from isolated commits: it would need the PR and the
+      merge event together. It is left for when the consumer exists.
+  - pt-BR: >
+      Commit de autor sem conta no GitHub (`user: null`, comum em commits antigos e
+      importados) fica com nome e e-mail preservados e sem vínculo com pessoa — a mesma
+      regra dos designados e dos comentários. E-mail é dado pessoal: não vai para tela.
+    en: >
+      A commit whose author has no GitHub account (`user: null`, common in old and imported
+      commits) keeps name and e-mail preserved and has no link to a person — the same rule
+      as for assignees and comments. E-mail is personal data: it does not go to the screen.
+  - pt-BR: >
+      Menção de issue por padrão de texto tem confiança BAIXA e nunca substitui o
+      caminho commit → PR → issue. Quando os dois discordam, a estrutura vence, com a
+      divergência registrada.
+    en: >
+      An issue mention by text pattern has LOW confidence and never replaces the commit → PR
+      → issue path. When the two disagree, the structure wins, with the divergence recorded.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at, schema_version]

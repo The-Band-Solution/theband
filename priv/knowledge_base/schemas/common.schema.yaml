@@ -21,3 +21,16 @@ $defs:
   label:
     type: object
     properties: { pt-BR: { type: string }, en: { type: string } }
+  text:
+    description: >
+      Texto em linguagem natural que o site bilíngue publica (075, #1312). Aceita as duas
+      formas de propósito: a string em português, que é como a base nasceu, e o mapa de
+      idioma, quando o `en` já foi escrito. `pt-BR` é obrigatório no mapa porque a base nasce
+      em português, e um mapa só com `en` seria tradução sem original. Contrato em
+      specs/075-site-de-desenvolvedores/contracts/base-bilingue.md.
+    anyOf:
+      - { type: string }
+      - type: object
+        additionalProperties: false
+        required: [pt-BR]
+        properties: { pt-BR: { type: string }, en: { type: string } }

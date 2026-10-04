@@ -104,7 +104,7 @@ properties:
     required: [equivalence, justification]
     properties:
       equivalence:   { enum: [total, partial, role_of, derived] }
-      justification: { type: string }
+      justification: { $ref: "the-band/schemas/common#/$defs/text" }
   identity:
     type: object
     additionalProperties: false
@@ -176,7 +176,7 @@ properties:
   limitations:
     type: array
     minItems: 1
-    items: { type: string }
+    items: { $ref: "the-band/schemas/common#/$defs/text" }
   provenance:
     type: object
     additionalProperties: false

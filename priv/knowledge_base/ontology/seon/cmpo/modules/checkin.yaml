@@ -8,6 +8,10 @@ module:
       Extensão do CMPO desenvolvida na tese para representar check-in no Git:
       verificação e resolução de conflitos, commit de cópia de artefato e remoção
       de branch. Branch de origem e destino são papéis, não tipos de branch.
+    en: >
+      Extension of CMPO developed in the thesis to represent check-in in Git: conflict
+      checking and resolution, artifact copy commit, and branch deletion. Source and target
+      branch are roles, not types of branch.
   provenance:
     source_type: thesis
     reference: "Tese, Seção 3.3.1, Figura 33"
@@ -18,6 +22,7 @@ concepts:
     label: { pt-BR: "Check-in" }
     definition:
       pt-BR: Atividade para incluir novas versões de itens de configuração em um repositório de código.
+      en: "Activity to include new versions of configuration items in a source repository."
     classification: { ufo_category: complex_action, ontouml_stereotype: subkind, parent: spo.performed_composite_activity }
 
   - id: cmpo.source_branch
@@ -27,6 +32,9 @@ concepts:
       pt-BR: >
         Papel assumido por uma branch quando há nova versão ou nova cópia de
         artefato que se deseja salvar em outra branch por meio de um check-in.
+      en: >
+        Role played by a branch when there is a new version or a new artifact copy that is
+        to be saved in another branch by means of a check-in.
     classification: { ufo_category: role, ontouml_stereotype: role, is_role_of: cmpo.branch }
 
   - id: cmpo.target_branch
@@ -34,6 +42,7 @@ concepts:
     label: { pt-BR: "Branch de Destino" }
     definition:
       pt-BR: Papel assumido pela branch que recebe a cópia de artefato em um check-in.
+      en: "Role played by the branch that receives the artifact copy in a check-in."
     classification: { ufo_category: role, ontouml_stereotype: role, is_role_of: cmpo.branch }
 
   - id: cmpo.check_conflict
@@ -43,6 +52,9 @@ concepts:
       pt-BR: >
         Atividade que verifica se há conflitos entre uma cópia de artefato na branch
         de origem e sua versão na branch de destino.
+      en: >
+        Activity that checks whether there are conflicts between an artifact copy in the
+        source branch and its version in the target branch.
     classification: { ufo_category: action, ontouml_stereotype: subkind, parent: spo.performed_simple_activity }
 
   - id: cmpo.conflict
@@ -50,6 +62,7 @@ concepts:
     label: { pt-BR: "Conflito", en: "Conflict" }
     definition:
       pt-BR: Diferença de conteúdo em uma mesma região de uma cópia de artefato.
+      en: "Difference in content in the same region of an artifact copy."
     classification: { ufo_category: social_object, ontouml_stereotype: kind, parent: spo.information_item }
 
   - id: cmpo.artifact_copy_with_conflict
@@ -57,6 +70,7 @@ concepts:
     label: { pt-BR: "Cópia de Artefato com Conflito" }
     definition:
       pt-BR: Cópia de artefato criada quando um conflito é identificado.
+      en: "Artifact copy created when a conflict is identified."
     classification: { ufo_category: phase, ontouml_stereotype: phase, parent: cmpo.artifact_copy }
 
   - id: cmpo.artifact_copy_without_conflict
@@ -64,6 +78,9 @@ concepts:
     label: { pt-BR: "Cópia de Artefato sem Conflito" }
     definition:
       pt-BR: Cópia de artefato sem conflito, seja porque nenhum foi identificado, seja porque todos foram resolvidos.
+      en: >
+        Artifact copy without conflict, either because none was identified or because all
+        were resolved.
     classification: { ufo_category: phase, ontouml_stereotype: phase, parent: cmpo.artifact_copy }
 
   - id: cmpo.resolve_conflict
@@ -71,6 +88,7 @@ concepts:
     label: { pt-BR: "Resolução de Conflito" }
     definition:
       pt-BR: Atividade que permite ao implementador da mudança corrigir um conflito em uma cópia de artefato.
+      en: "Activity that allows the change implementer to fix a conflict in an artifact copy."
     classification: { ufo_category: action, ontouml_stereotype: subkind, parent: spo.performed_simple_activity }
 
   - id: cmpo.commit_artifact_copy
@@ -78,6 +96,7 @@ concepts:
     label: { pt-BR: "Commit de Cópia de Artefato" }
     definition:
       pt-BR: Atividade que envia uma cópia de artefato sem conflito para a branch de destino.
+      en: "Activity that sends an artifact copy without conflict to the target branch."
     classification: { ufo_category: action, ontouml_stereotype: subkind, parent: spo.performed_simple_activity }
     attributes:
       - { name: sha, type: string, required: true }
@@ -90,6 +109,7 @@ concepts:
     label: { pt-BR: "Remoção de Branch" }
     definition:
       pt-BR: Atividade que remove uma branch de origem em um repositório de código.
+      en: "Activity that removes a source branch in a source repository."
     classification: { ufo_category: action, ontouml_stereotype: subkind, parent: spo.performed_simple_activity }
 
 relations:

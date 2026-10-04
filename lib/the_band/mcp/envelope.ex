@@ -106,7 +106,11 @@ defmodule TheBand.MCP.Envelope do
 
   # A base exige `minItems: 1`. Se chegar vazia, a resposta sairia sem ressalva, e isso é o
   # defeito que o envelope existe para impedir, e não um caso a tolerar.
-  defp limitacoes!(%{"limitations" => [_ | _] = limitacoes}, _id), do: limitacoes
+  #
+  # O item do mapeamento pode ser mapa de idioma (075, #1312); o envelope continua em
+  # português, como sempre foi. Expor o mapa ao cliente MCP mudaria o contrato do envelope.
+  defp limitacoes!(%{"limitations" => [_ | _] = limitacoes}, _id),
+    do: Enum.map(limitacoes, &KnowledgeBase.pt_br/1)
 
   defp limitacoes!(_artefato, id) do
     raise ArgumentError,

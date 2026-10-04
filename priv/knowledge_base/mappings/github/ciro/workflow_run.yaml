@@ -6,18 +6,32 @@ source: { provider: github, entity: workflow_run, api: rest, schema_version: "20
 target: { ontology: ciro, concept: ciro.continuous_integration_process }
 semantics:
   equivalence: partial
-  justification: >
-    Uma execução de workflow do GitHub Actions **pode ser** uma ocorrência automatizada de
-    processo de integração contínua — e a versão 1 deste mapeamento afirmava que sempre é.
-    O dado desmentiu: das 1.051 execuções coletadas em 2026-08-18, 399 não são nem
-    verificação nem implantação (`Sync to GitLab`, `Sprint Rollover`, `Card de promoção`).
+  justification:
+    pt-BR: >
+      Uma execução de workflow do GitHub Actions **pode ser** uma ocorrência automatizada de
+      processo de integração contínua — e a versão 1 deste mapeamento afirmava que sempre é.
+      O dado desmentiu: das 1.051 execuções coletadas em 2026-08-18, 399 não são nem
+      verificação nem implantação (`Sync to GitLab`, `Sprint Rollover`, `Card de promoção`).
 
-    O tipo é **derivado dos componentes dos jobs**, nunca assumido pela entidade de
-    origem. Sem componente reconhecido, a execução fica sem tipo — a rede não tem conceito
-    para automação de quadro, e dizê-lo é mais honesto que forçá-la num de verificação.
+      O tipo é **derivado dos componentes dos jobs**, nunca assumido pela entidade de
+      origem. Sem componente reconhecido, a execução fica sem tipo — a rede não tem conceito
+      para automação de quadro, e dizê-lo é mais honesto que forçá-la num de verificação.
 
-    O gatilho decide o SUBTIPO (check-in, agendado, sob demanda) e é eixo independente do
-    tipo e da fase.
+      O gatilho decide o SUBTIPO (check-in, agendado, sob demanda) e é eixo independente do
+      tipo e da fase.
+    en: >
+      A GitHub Actions workflow run **may be** an automated occurrence of a continuous
+      integration process — and version 1 of this mapping stated that it always is. The data
+      contradicted it: of the 1,051 runs collected on 2026-08-18, 399 are neither
+      verification nor deployment (`Sync to GitLab`, `Sprint Rollover`, `Card de promoção`).
+
+      The type is **derived from the jobs' components**, never assumed from the source
+      entity. Without a recognized component, the run stays without a type — the network has
+      no concept for board automation, and saying so is more honest than forcing it into a
+      verification one.
+
+      The trigger decides the SUBTYPE (check-in, scheduled, on demand) and is an axis
+      independent of the type and of the phase.
 identity:
   external_id_path: id
   natural_key: [repository.node_id, id]
@@ -38,23 +52,43 @@ relations:
     target_ontology: cmpo
     target_concept: cmpo.commit_artifact_copy
 limitations:
-  - >
-    A execução aponta para cmpo.source_repository, e CIRO não declara relação entre ciro.continuous_integration_process e cmpo.source_repository. Nada materializa o vínculo.
-  - >
-    RESOLVIDA na versão 2 — "nem todo workflow é integração contínua": o tipo passou a ser
-    derivado dos componentes, e `cdro.continuous_deployment_process` é um dos resultados.
-    A limitação estava declarada aqui desde a versão 1 e o código a ignorava; foi o dado
-    real que a cobrou.
-  - >
-    RESOLVIDA na versão 2 — "cancelled e skipped não são insucesso": viraram
-    `ciro.interrupted_*` e `ciro.unperformed_*`, e `timed_out` virou `ciro.expired_*`.
-  - >
-    A execução sem componente reconhecido fica **sem tipo**. Isso é ausência nomeada, não
-    falha de coleta — e a tela nunca as escreve com a mesma frase.
-  - updated_at aproxima o término, mas não é o instante exato de fim.
-  - >
-    RESOLVIDA na versão 2 — o job vem da rota `/actions/runs/{id}/jobs`, com as etapas, e
-    `github.ci_job_routing` o classifica. Não exigiu `check_run`.
+  - pt-BR: >
+      A execução aponta para cmpo.source_repository, e CIRO não declara relação entre ciro.continuous_integration_process e cmpo.source_repository. Nada materializa o vínculo.
+    en: >
+      The run points to cmpo.source_repository, and CIRO does not declare a relation between
+      ciro.continuous_integration_process and cmpo.source_repository. Nothing materializes
+      the link.
+  - pt-BR: >
+      RESOLVIDA na versão 2 — "nem todo workflow é integração contínua": o tipo passou a ser
+      derivado dos componentes, e `cdro.continuous_deployment_process` é um dos resultados.
+      A limitação estava declarada aqui desde a versão 1 e o código a ignorava; foi o dado
+      real que a cobrou.
+    en: >
+      RESOLVED in version 2 — "not every workflow is continuous integration": the type came
+      to be derived from the components, and `cdro.continuous_deployment_process` is one of
+      the results. The limitation had been declared here since version 1 and the code
+      ignored it; it was the real data that called it in.
+  - pt-BR: >
+      RESOLVIDA na versão 2 — "cancelled e skipped não são insucesso": viraram
+      `ciro.interrupted_*` e `ciro.unperformed_*`, e `timed_out` virou `ciro.expired_*`.
+    en: >
+      RESOLVED in version 2 — "cancelled and skipped are not unsuccessful": they became
+      `ciro.interrupted_*` and `ciro.unperformed_*`, and `timed_out` became
+      `ciro.expired_*`.
+  - pt-BR: >
+      A execução sem componente reconhecido fica **sem tipo**. Isso é ausência nomeada, não
+      falha de coleta — e a tela nunca as escreve com a mesma frase.
+    en: >
+      A run without a recognized component stays **without a type**. This is named absence,
+      not a collection failure — and the screen never writes the two with the same sentence.
+  - pt-BR: updated_at aproxima o término, mas não é o instante exato de fim.
+    en: "updated_at approximates the end, but it is not the exact end instant."
+  - pt-BR: >
+      RESOLVIDA na versão 2 — o job vem da rota `/actions/runs/{id}/jobs`, com as etapas, e
+      `github.ci_job_routing` o classifica. Não exigiu `check_run`.
+    en: >
+      RESOLVED in version 2 — the job comes from the `/actions/runs/{id}/jobs` route, with
+      the steps, and `github.ci_job_routing` classifies it. It did not require `check_run`.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at]

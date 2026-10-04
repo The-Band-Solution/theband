@@ -9,6 +9,11 @@ module:
       executar certos tipos de ação; processo executado (performed) é uma ocorrência
       que pode não corresponder à intenção original. Confundi-los inviabiliza
       qualquer análise de aderência entre plano e execução.
+    en: >
+      The central distinction of SPO: an intended process is an intention to perform certain
+      types of action; a performed process is an occurrence that may not correspond to the
+      original intention. Confusing them makes any analysis of adherence between plan and
+      execution unfeasible.
   provenance:
     source_type: reference_ontology
     reference: "Tese, Seção 2.2.2.1, Figura 16"
@@ -19,6 +24,7 @@ concepts:
     label: { pt-BR: "Processo Pretendido do Projeto", en: "Intended Project Process" }
     definition:
       pt-BR: Processo planejado para ser executado no projeto — uma intenção, não uma ocorrência.
+      en: "Process planned to be performed in the project — an intention, not an occurrence."
     classification: { ufo_category: intention, ontouml_stereotype: kind }
 
   - id: spo.general_intended_project_process
@@ -26,6 +32,7 @@ concepts:
     label: { pt-BR: "Processo Pretendido Geral" }
     definition:
       pt-BR: Processo pretendido que se refere ao processo inteiro definido para um projeto.
+      en: "Intended process that refers to the whole process defined for a project."
     classification: { ufo_category: intention, ontouml_stereotype: subkind, parent: spo.intended_project_process }
 
   - id: spo.specific_intended_project_process
@@ -33,6 +40,7 @@ concepts:
     label: { pt-BR: "Processo Pretendido Específico" }
     definition:
       pt-BR: Processo pretendido definido com um propósito específico no projeto.
+      en: "Intended process defined with a specific purpose in the project."
     classification: { ufo_category: intention, ontouml_stereotype: subkind, parent: spo.intended_project_process }
     examples: ["o processo de Engenharia de Requisitos definido para um projeto"]
 
@@ -41,6 +49,7 @@ concepts:
     label: { pt-BR: "Atividade Pretendida do Projeto" }
     definition:
       pt-BR: Atividade planejada que compõe um processo pretendido específico.
+      en: "Planned activity that composes a specific intended process."
     classification: { ufo_category: intention, ontouml_stereotype: kind }
 
   - id: spo.performed_project_process
@@ -50,6 +59,9 @@ concepts:
       pt-BR: >
         Processo como efetivamente executado no projeto. É uma ação complexa
         ("ocorrência") que pode não corresponder à intenção original.
+      en: >
+        Process as actually performed in the project. It is a complex action ("occurrence")
+        that may not correspond to the original intention.
     classification: { ufo_category: complex_action, ontouml_stereotype: kind }
     identity_criterion:
       form: composite_hash
@@ -76,6 +88,7 @@ concepts:
     label: { pt-BR: "Processo Executado Geral" }
     definition:
       pt-BR: Processo executado que corresponde ao processo global do projeto.
+      en: "Performed process that corresponds to the overall process of the project."
     classification: { ufo_category: complex_action, ontouml_stereotype: subkind, parent: spo.performed_project_process }
 
   - id: spo.specific_performed_project_process
@@ -83,6 +96,7 @@ concepts:
     label: { pt-BR: "Processo Executado Específico" }
     definition:
       pt-BR: Processo executado com propósito específico, composto de atividades executadas.
+      en: "Performed process with a specific purpose, composed of performed activities."
     classification: { ufo_category: complex_action, ontouml_stereotype: subkind, parent: spo.performed_project_process }
 
   - id: spo.specific_performed_project_simple_process
@@ -90,6 +104,7 @@ concepts:
     label: { pt-BR: "Processo Executado Específico Simples" }
     definition:
       pt-BR: Processo executado específico que contém apenas atividades.
+      en: "Specific performed process that contains only activities."
     classification: { ufo_category: complex_action, ontouml_stereotype: subkind, parent: spo.specific_performed_project_process }
     provenance:
       source_type: thesis
@@ -100,6 +115,7 @@ concepts:
     label: { pt-BR: "Processo Executado Específico Composto" }
     definition:
       pt-BR: Processo executado específico que contém dois ou mais processos executados específicos.
+      en: "Specific performed process that contains two or more specific performed processes."
     classification: { ufo_category: complex_action, ontouml_stereotype: subkind, parent: spo.specific_performed_project_process }
     provenance:
       source_type: thesis
@@ -117,6 +133,13 @@ concepts:
         deste conceito, e compartilham o mesmo princípio de identidade. Por isso
         o kind mora em SPO, e as ontologias de domínio o especializam em vez de
         definir cada uma o seu.
+      en: >
+        Activity actually performed, composing a specific performed process.
+
+        It is the kind of activity occurrences across the whole network: commits, test
+        executions, ceremonies, deployments and inspections are all specializations of this
+        concept, and share the same principle of identity. That is why the kind lives in
+        SPO, and the domain ontologies specialize it instead of each one defining its own.
     classification: { ufo_category: action, ontouml_stereotype: kind }
     identity_criterion:
       form: composite_hash
@@ -197,6 +220,7 @@ concepts:
     label: { pt-BR: "Atividade Executada Simples" }
     definition:
       pt-BR: Atividade executada que não se decompõe em outras atividades.
+      en: "Performed activity that is not decomposed into other activities."
     classification: { ufo_category: action, ontouml_stereotype: subkind, parent: spo.performed_project_activity }
 
   - id: spo.performed_composite_activity
@@ -204,6 +228,7 @@ concepts:
     label: { pt-BR: "Atividade Executada Composta" }
     definition:
       pt-BR: Atividade executada composta de outras atividades executadas.
+      en: "Performed activity composed of other performed activities."
     classification: { ufo_category: complex_action, ontouml_stereotype: subkind, parent: spo.performed_project_activity }
 
 relations:

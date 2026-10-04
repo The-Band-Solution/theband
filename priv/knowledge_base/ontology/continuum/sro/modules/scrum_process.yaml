@@ -8,6 +8,10 @@ module:
       Eventos que ocorrem em um projeto que adota Scrum: o processo, os sprints e
       as cerimônias, com as relações de dependência que estabelecem a ordem em que
       ocorreram.
+    en: >
+      Events that occur in a project that adopts Scrum: the process, the sprints and the
+      ceremonies, with the dependency relations that establish the order in which they
+      occurred.
   provenance:
     source_type: thesis
     reference: "Tese, Seção 3.2.1, Figura 26"
@@ -18,6 +22,7 @@ concepts:
     label: { pt-BR: "Projeto Scrum" }
     definition:
       pt-BR: Projeto de software que adota Scrum em seu processo.
+      en: "Software project that adopts Scrum in its process."
     classification: { ufo_category: social_object, ontouml_stereotype: kind, parent: spo.software_project }
 
   - id: sro.scrum_process
@@ -27,6 +32,9 @@ concepts:
       pt-BR: >
         Processo executado geral do projeto, composto da Definição do Product
         Backlog e de dois ou mais Sprints.
+      en: >
+        General performed project process, composed of the Product Backlog Definition and of
+        two or more Sprints.
     classification: { ufo_category: complex_action, ontouml_stereotype: kind, parent: spo.general_performed_project_process }
 
   - id: sro.product_backlog_definition
@@ -36,6 +44,9 @@ concepts:
       pt-BR: >
         Processo executado específico que define e prioriza as funcionalidades a
         serem produzidas no projeto Scrum.
+      en: >
+        Specific performed process that defines and prioritizes the functionalities to be
+        produced in the Scrum project.
     classification: { ufo_category: complex_action, ontouml_stereotype: kind, parent: spo.specific_performed_project_process }
 
   - id: sro.sprint
@@ -45,6 +56,9 @@ concepts:
       pt-BR: >
         Processo executado específico que ocorre após a Definição do Product
         Backlog e visa desenvolver o produto.
+      en: >
+        Specific performed process that occurs after the Product Backlog Definition and aims
+        to develop the product.
     classification: { ufo_category: complex_action, ontouml_stereotype: kind, parent: spo.specific_performed_project_process }
     attributes:
       - { name: start_date, type: datetime, required: false }
@@ -91,6 +105,7 @@ concepts:
     label: { pt-BR: "Cerimônia" }
     definition:
       pt-BR: Atividade executada do projeto que compõe um Sprint, correspondendo aos eventos do Scrum.
+      en: "Performed project activity that makes up a Sprint, corresponding to the Scrum events."
     classification: { ufo_category: action, ontouml_stereotype: kind, parent: spo.performed_project_activity }
 
   - id: sro.planning_meeting
@@ -98,6 +113,7 @@ concepts:
     label: { pt-BR: "Reunião de Planejamento" }
     definition:
       pt-BR: Cerimônia em que as user stories do sprint são selecionadas e as tarefas planejadas.
+      en: "Ceremony in which the sprint user stories are selected and the tasks planned."
     classification: { ufo_category: action, ontouml_stereotype: subkind, parent: sro.ceremony }
 
   - id: sro.daily_standup_meeting
@@ -105,6 +121,9 @@ concepts:
     label: { pt-BR: "Reunião Diária" }
     definition:
       pt-BR: Cerimônia diária que ocorre após a execução das tarefas de desenvolvimento discutidas nela.
+      en: >
+        Daily ceremony that occurs after the performance of the development tasks discussed
+        in it.
     classification: { ufo_category: action, ontouml_stereotype: subkind, parent: sro.ceremony }
 
   - id: sro.review_meeting
@@ -112,6 +131,7 @@ concepts:
     label: { pt-BR: "Reunião de Revisão" }
     definition:
       pt-BR: Cerimônia de revisão dos resultados produzidos no sprint.
+      en: "Ceremony for reviewing the results produced in the sprint."
     classification: { ufo_category: action, ontouml_stereotype: subkind, parent: sro.ceremony }
 
   - id: sro.retrospective_meeting
@@ -119,6 +139,7 @@ concepts:
     label: { pt-BR: "Reunião de Retrospectiva" }
     definition:
       pt-BR: Cerimônia de avaliação do processo executado no sprint.
+      en: "Ceremony for evaluating the process performed in the sprint."
     classification: { ufo_category: action, ontouml_stereotype: subkind, parent: sro.ceremony }
 
   - id: sro.performed_scrum_development_task
@@ -129,6 +150,9 @@ concepts:
         Atividade executada do projeto realizada em um sprint para materializar
         user stories. Corresponde à execução de uma tarefa planejada na Reunião
         de Planejamento.
+      en: >
+        Performed project activity carried out in a sprint to materialize user stories. It
+        corresponds to the performance of a task planned in the Planning Meeting.
     classification: { ufo_category: action, ontouml_stereotype: kind, parent: spo.performed_project_activity }
 
 relations:
