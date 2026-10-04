@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<!--
+  O teto de memória do ClickHouse — ADR 0005, E3, condição 1: 1,5 GiB, abaixo do pico medido de
+  1,63 GiB (uma rajada de 100 000 spans em 5 s, que a J1 não produz). Sem ele, o padrão é 90% da
+  RAM, e um pico do ClickHouse vira OOM do Postgres e da aplicação no mesmo VPS.
+-->
+<clickhouse>
+    <max_server_memory_usage>1610612736</max_server_memory_usage>
+</clickhouse>

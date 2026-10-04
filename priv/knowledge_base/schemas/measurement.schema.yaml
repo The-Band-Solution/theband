@@ -14,6 +14,10 @@ properties:
     required: [id, name, answers_information_need, value_type, formula, scope, limitations, provenance]
     properties:
       id:   { type: string }
+      # Versão da medida — feature 073, FR-011 (research.md R11). Opcional: as medidas anteriores
+      # não a declaram. Quem muda a fórmula sobe o número; nenhum gate confere isso, e a
+      # revisão semântica cobra. A leitura da rede de revisão a grava na proveniência.
+      version: { type: integer, minimum: 1 }
       name: { $ref: "the-band/schemas/common#/$defs/label" }
       answers_information_need: { type: array, minItems: 1, items: { type: string } }
       value_type: { enum: [count, ratio, percentage, duration, currency, score] }

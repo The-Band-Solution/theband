@@ -170,4 +170,10 @@ config :the_band, :github_http_client, TheBand.Integrations.GitHub.HTTP.Req
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
+# Telemetria da jornada — spec 074, T005 (FR-015). DESLIGADA por padrão: sem exportador, nada
+# sai. Quem liga é `config/runtime.exs`, e só com `THE_BAND_OTLP_ENDPOINT` num host permitido.
+# Com o padrão do SDK (`opentelemetry_exporter` para `localhost:4318`), a telemetria ficaria
+# "ligada" falhando em silêncio — no contêiner, `localhost` é a própria aplicação (S10).
+config :opentelemetry, traces_exporter: :none
+
 import_config "#{config_env()}.exs"

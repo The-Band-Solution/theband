@@ -37,22 +37,75 @@ defmodule TheBand.Tenants.Auth do
   @tentativas_livres 3
   @teto_segundos 60
 
-  @spec authenticate(String.t(), String.t()) ::
+  @doc """
+  Autentica pelo identificador e pela senha.
+
+  `opts[:jornada_id]` é o correlator da jornada (spec 074, FR-011), lido da sessão pelo
+  controller; vai para o passo `entrar_com_senha`, e para nada mais. O retorno é o mesmo de
+  sempre: o controller **nunca** vê o motivo (seguranca.md, S4).
+  """
+  @spec authenticate(String.t(), String.t(), keyword()) ::
           {:ok, User.t()}
           | {:error, :invalid_credentials}
           | {:error, {:throttled, pos_integer()}}
-  def authenticate(identificador, senha)
-      when is_binary(identificador) and is_binary(senha) do
+  def authenticate(identificador, senha, opts \\ [])
+      when is_binary(identificador) and is_binary(senha) and is_list(opts) do
+    {resultado, motivo, conta} = decidir(identificador, senha)
+    emitir_entrada(resultado, motivo, conta, Keyword.get(opts, :jornada_id))
+    resultado
+  end
+
+  # O RELATOR INTERNO — spec 074, T012; seguranca.md, S4.
+  #
+  # A decisão devolve `{resultado, motivo, conta}`: o resultado é o que o controller recebe, e o
+  # motivo e a conta ficam aqui dentro, para o passo. O passo é emitido por `authenticate/3`
+  # DEPOIS da transação, uma vez, em todo ramo: emitido dentro dela, o custo cairia no ramo da
+  # conta travada e não no do identificador que não resolve, e o tempo voltaria a distinguir os
+  # motivos (FR-009).
+  defp decidir(identificador, senha) do
     case resolver(String.trim(identificador)) do
       nil ->
         # O custo do hash roda mesmo sem conta — tempo constante.
         Bcrypt.no_user_verify()
-        recusar(nil, :identificador_nao_resolveu)
+        {recusar(nil, :identificador_nao_resolveu), :identificador_nao_resolveu, nil}
 
       %User{} = user ->
         verificar_com_trava(user, senha)
     end
   end
+
+  # A IDENTIDADE SÓ ONDE ALGUÉM PRECISA AGIR — D1 de 2026-10-03; FR-004; seguranca.md, S14.
+  #
+  # Na recusa com conta conhecida e na espera, o id da conta vai, porque é com ele que quem opera
+  # age. No sucesso comum, não: seria o registro de toda entrada de toda pessoa por sete dias. Só
+  # quando o sucesso apagou tentativas falhas — a campanha que deu certo, achado H4. E quando o
+  # identificador não resolve, nada que dependa do digitado sai, em forma nenhuma.
+  #
+  # O trabalho é o mesmo em todo ramo: a decisão de incluir é uma comparação, sem consulta.
+  defp emitir_entrada({:ok, _}, nil, %User{} = conta, jornada_id) do
+    AccessEvents.passo(%{
+      passo: :entrar_com_senha,
+      desfecho: :concluiu,
+      motivo: nil,
+      tenant_id: conta.tenant_id,
+      user_id: if(conta.failed_attempts > 0, do: conta.id),
+      jornada_id: correlator(jornada_id)
+    })
+  end
+
+  defp emitir_entrada({:error, _}, motivo, conta, jornada_id) do
+    AccessEvents.passo(%{
+      passo: :entrar_com_senha,
+      desfecho: :falhou,
+      motivo: motivo,
+      tenant_id: conta && conta.tenant_id,
+      user_id: conta && conta.id,
+      jornada_id: correlator(jornada_id)
+    })
+  end
+
+  defp correlator(valor) when is_binary(valor), do: valor
+  defp correlator(_), do: nil
 
   # A TENTATIVA É SERIALIZADA POR CONTA — issue #1046, achado A1 da avaliação da 070.
   #
@@ -88,65 +141,75 @@ defmodule TheBand.Tenants.Auth do
     {:error, :invalid_credentials}
   end
 
+  # Cada ramo devolve o relator `{resultado, motivo, conta}`; a conta é a struct travada, ANTES
+  # de `registrar_falha/1` e `registrar_sucesso/1` — é dela que sai `failed_attempts`, o número de
+  # falhas que o sucesso apagou.
   defp verificar(%User{} = user, senha) do
-    with :ok <- fora_da_janela(user) do
-      cond do
-        # A ORGANIZAÇÃO SUSPENSA NÃO AUTENTICA — achado H3, parte A, 2026-09-09.
-        #
-        # `tenants.status` existia com `default: "active"`, era castável no changeset, e
-        # **nenhum código o lia**. Medido: marcar um tenant como `"suspended"` e
-        # autenticar — as duas coisas funcionavam, e as telas abriam. Era uma coluna que
-        # parecia um controle e não era: quem a marcasse acharia que suspendeu.
-        #
-        # Decisão da pessoa mantenedora em 2026-09-09: passa a ser lida.
-        #
-        # **A recusa é a mesma**, byte a byte. Um motivo novo aqui — "organização
-        # suspensa" — seria enumeração: diria a quem tenta que a conta existe e que o
-        # e-mail está certo. `auth.ex` tem um ponto único de recusa de propósito.
-        #
-        # **E o custo do hash roda igual**, como na cláusula da conta pré-feature abaixo.
-        # Recusar antes de gastar o tempo do Bcrypt criaria um oráculo de tempo que
-        # distingue "organização suspensa" de "senha errada".
-        #
-        # **Não registra falha**, e a diferença é deliberada: a credencial pode estar
-        # perfeitamente correta, e é a organização que está suspensa. Gravar tentativa
-        # falha aqui afirmaria algo falso sobre a senha, e deixaria a conta em espera
-        # crescente no dia em que a organização voltasse.
-        not organizacao_ativa?(user.tenant_id) ->
-          Bcrypt.no_user_verify()
-          recusar(user, :organizacao_suspensa)
-
-        # A CONTA DESATIVADA NÃO AUTENTICA — achado H3, parte B, 2026-09-09.
-        #
-        # Até esta coluna existir, o desligamento era **implícito**: quem administra
-        # reiniciava a senha e não entregava a temporária. Funcionava, e o H3 mostrou por
-        # que era frágil — não estava escrito em lugar nenhum, era indistinguível de um
-        # reinício legítimo no histórico, e **para de funcionar no dia em que existir
-        # token**, porque o token não é a senha.
-        #
-        # Mesma forma da cláusula acima: recusa idêntica, custo do hash pago, e **nenhuma
-        # tentativa falha registrada** — a credencial pode estar correta, e é a conta que
-        # está desativada.
-        not User.ativa?(user) ->
-          Bcrypt.no_user_verify()
-          recusar(user, :conta_desativada)
-
-        is_nil(user.password_hash) ->
-          # Conta pré-feature (FR-014): recusa idêntica; a tela orienta em texto
-          # público, nunca na resposta do formulário.
-          Bcrypt.no_user_verify()
-          registrar_falha(user)
-          recusar(user, :conta_sem_senha)
-
-        Bcrypt.verify_pass(senha, user.password_hash) ->
-          {:ok, registrar_sucesso(user)}
-
-        true ->
-          registrar_falha(user)
-          recusar(user, :senha_errada)
-      end
+    case fora_da_janela(user) do
+      :ok -> verificar_credencial(user, senha)
+      {:error, {:throttled, _}} = espera -> {espera, :em_espera, user}
     end
   end
+
+  defp verificar_credencial(%User{} = user, senha) do
+    cond do
+      # A ORGANIZAÇÃO SUSPENSA NÃO AUTENTICA — achado H3, parte A, 2026-09-09.
+      #
+      # `tenants.status` existia com `default: "active"`, era castável no changeset, e
+      # **nenhum código o lia**. Medido: marcar um tenant como `"suspended"` e
+      # autenticar — as duas coisas funcionavam, e as telas abriam. Era uma coluna que
+      # parecia um controle e não era: quem a marcasse acharia que suspendeu.
+      #
+      # Decisão da pessoa mantenedora em 2026-09-09: passa a ser lida.
+      #
+      # **A recusa é a mesma**, byte a byte. Um motivo novo aqui — "organização
+      # suspensa" — seria enumeração: diria a quem tenta que a conta existe e que o
+      # e-mail está certo. `auth.ex` tem um ponto único de recusa de propósito.
+      #
+      # **E o custo do hash roda igual**, como na cláusula da conta pré-feature abaixo.
+      # Recusar antes de gastar o tempo do Bcrypt criaria um oráculo de tempo que
+      # distingue "organização suspensa" de "senha errada".
+      #
+      # **Não registra falha**, e a diferença é deliberada: a credencial pode estar
+      # perfeitamente correta, e é a organização que está suspensa. Gravar tentativa
+      # falha aqui afirmaria algo falso sobre a senha, e deixaria a conta em espera
+      # crescente no dia em que a organização voltasse.
+      not organizacao_ativa?(user.tenant_id) ->
+        Bcrypt.no_user_verify()
+        recusada(user, :organizacao_suspensa)
+
+      # A CONTA DESATIVADA NÃO AUTENTICA — achado H3, parte B, 2026-09-09.
+      #
+      # Até esta coluna existir, o desligamento era **implícito**: quem administra
+      # reiniciava a senha e não entregava a temporária. Funcionava, e o H3 mostrou por
+      # que era frágil — não estava escrito em lugar nenhum, era indistinguível de um
+      # reinício legítimo no histórico, e **para de funcionar no dia em que existir
+      # token**, porque o token não é a senha.
+      #
+      # Mesma forma da cláusula acima: recusa idêntica, custo do hash pago, e **nenhuma
+      # tentativa falha registrada** — a credencial pode estar correta, e é a conta que
+      # está desativada.
+      not User.ativa?(user) ->
+        Bcrypt.no_user_verify()
+        recusada(user, :conta_desativada)
+
+      is_nil(user.password_hash) ->
+        # Conta pré-feature (FR-014): recusa idêntica; a tela orienta em texto
+        # público, nunca na resposta do formulário.
+        Bcrypt.no_user_verify()
+        registrar_falha(user)
+        recusada(user, :conta_sem_senha)
+
+      Bcrypt.verify_pass(senha, user.password_hash) ->
+        {{:ok, registrar_sucesso(user)}, nil, user}
+
+      true ->
+        registrar_falha(user)
+        recusada(user, :senha_errada)
+    end
+  end
+
+  defp recusada(%User{} = user, motivo), do: {recusar(user, motivo), motivo, user}
 
   # Uma consulta, e só quando o identificador resolveu para uma conta. `resolver/1` não
   # pré-carrega o tenant — e pré-carregá-lo mudaria o custo de toda tentativa,

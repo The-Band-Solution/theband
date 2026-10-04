@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<!--
+  O cluster de um nó só, com o ZooKeeper das tabelas replicadas — derivado de
+  `deploy/common/clickhouse/cluster.xml` do SigNoz v0.125.0, sem os nós comentados.
+
+  Diferença deliberada (spec 074, T006; ADR 0005, E7): a réplica leva usuário e senha. O SigNoz
+  consulta por tabelas `Distributed`, e com a senha no usuário `default` a consulta distribuída
+  sem credencial seria recusada. A senha vem do ambiente (`from_env`), nunca deste arquivo.
+-->
+<clickhouse>
+    <zookeeper>
+        <node index="1">
+            <host>zookeeper-1</host>
+            <port>2181</port>
+        </node>
+    </zookeeper>
+    <remote_servers>
+        <cluster>
+            <shard>
+                <replica>
+                    <host>clickhouse</host>
+                    <port>9000</port>
+                    <user>default</user>
+                    <password from_env="CLICKHOUSE_PASSWORD"/>
+                </replica>
+            </shard>
+        </cluster>
+    </remote_servers>
+</clickhouse>

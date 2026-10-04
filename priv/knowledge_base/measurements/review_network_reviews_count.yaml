@@ -1,0 +1,40 @@
+measurement:
+  id: review.network.reviews.count
+  version: 1
+  name:
+    pt-BR: "Revisões na rede, no recorte de quem consulta"
+    en: "Reviews in the network, within the reader's reach"
+  answers_information_need: [review.concentration]
+  value_type: count
+  unit: reviews
+
+  formula:
+    expression: >
+      R = soma de weight(p → a) sobre as arestas com p e a no alcance P de quem consulta,
+      na janela W da organização observada O. Uma revisão é um par (revisor, solicitação):
+      uma solicitação com dois revisores conta duas revisões.
+      Se não há aresta no recorte: AUSENTE com o motivo `no_review_in_window`, nunca 0.
+    inputs: [review_edge_reviewer_person_id, review_edge_author_person_id, review_edge_weight, window_start, window_end, observed_organization_id, viewer_reach]
+
+  scope:
+    levels: [observed_organization]
+    filters:
+      - "sobre o recorte pelo alcance de quem consulta: só arestas com as duas pontas em pessoas alcançadas (R1); quem administra lê a organização inteira"
+      - "revisões excluídas (auto-revisão, bot ou aplicativo, sem pessoa ligada) não entram (FR-004)"
+    period: "janela móvel de 30, 90 ou 180 dias, padrão 90 (review.network.parameters.window_days)"
+
+  limitations:
+    - "É o denominador da concentração, e não o número de solicitações revisadas: as duas contagens divergem quando uma solicitação tem mais de um revisor."
+    - "Para alcance parcial é o total entre pessoas alcançadas, e não o da organização; a tela não diz quantas ficaram fora (R2)."
+
+  misinterpretations:
+    - "Ler como 'quantas solicitações foram revisadas'. É quantos pares revisor–solicitação houve."
+    - "Comparar o total de duas contas com alcances diferentes: são populações diferentes."
+    - "A MEDIDA NÃO AVALIA A PESSOA. Ela descreve a forma da revisão na organização; usá-la em avaliação de desempenho é o uso que a plataforma recusa (FR-018a, R5)."
+    - "Revisar muito não é qualidade nem esforço; revisar pouco não é omissão."
+    - "A revisão só é visível quando passa pela ferramenta observada: revisão em par, em chamada ou em repositório não observado não existe aqui."
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: "spec 073, FR-007 (contagens ao lado da concentração), decidido em 2026-10-03 com a aprovação do protótipo (D10, prototipo/README.md, 'Medidas e nomes que a tela pede')"

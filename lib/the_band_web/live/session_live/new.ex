@@ -21,8 +21,17 @@ defmodule TheBandWeb.SessionLive.New do
 
   use TheBandWeb, :live_view
 
+  alias TheBand.Tenants.AccessEvents
+
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
+    # A ABERTURA DA ENTRADA CONTA UMA VEZ — spec 074, T014 (research R5). O `mount` roda duas
+    # vezes, na renderização estática e na conexão; emitir nas duas faria metade das visitas
+    # parecer abandono. Só a conexão conta — e o robô que não roda JavaScript não abre o socket,
+    # então não conta como abertura. O correlator vem da sessão, onde o plug
+    # `JornadaDeEntrada` o pôs.
+    if connected?(socket), do: abrir_a_entrada(session)
+
     # A copy do painel vive no CATÁLOGO, e não literal no HEEx. O locale padrão é
     # `en` e não há troca em runtime: escrita em português no template, a frase
     # ficaria em português ao lado de um formulário em inglês — que é o que estava
@@ -65,6 +74,20 @@ defmodule TheBandWeb.SessionLive.New do
          )
      )}
   end
+
+  defp abrir_a_entrada(session) do
+    AccessEvents.passo(%{
+      passo: :abrir_a_entrada,
+      desfecho: :concluiu,
+      motivo: nil,
+      tenant_id: nil,
+      user_id: nil,
+      jornada_id: correlator(session)
+    })
+  end
+
+  defp correlator(%{"jornada_id" => valor}) when is_binary(valor), do: valor
+  defp correlator(_session), do: nil
 
   @impl true
   def render(assigns) do

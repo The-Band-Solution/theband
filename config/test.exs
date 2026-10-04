@@ -87,3 +87,11 @@ config :the_band, :llm_http_client, TheBand.LLMHTTPMock
 # Feature 045: hash rápido SÓ em teste. O custo do bcrypt é a proteção em
 # produção e seria minuto de suíte aqui — o que se testa é o contrato, não o custo.
 config :bcrypt_elixir, log_rounds: 4
+
+# Telemetria da jornada — spec 074, research R4. O processador SIMPLES, síncrono e sem rede, e
+# sem exportador: cada teste que olha spans liga `TheBand.Telemetria.Exportador` — o filtro de
+# produção — com o destino no próprio processo (`test/support/spans.ex`). Troca-se só o destino,
+# nunca o filtro (seguranca.md, S15).
+config :opentelemetry,
+  traces_exporter: :none,
+  processors: [{:otel_simple_processor, %{}}]
