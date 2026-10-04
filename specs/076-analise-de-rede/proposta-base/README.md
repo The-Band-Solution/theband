@@ -36,6 +36,7 @@ segurança ser incorporada. Formato e processo são os da 073 (`specs/073-rede-d
 | `measurements/network_global_efficiency_ratio.yaml` | `measurements/` | `network.global_efficiency.ratio` |
 | `measurements/network_clustering_ratio.yaml` | `measurements/` | `network.clustering.ratio` |
 | `measurements/network_small_world_sigma_score.yaml` | `measurements/` | `network.small_world_sigma.score` |
+| `competency_questions/spo_network_analysis_competency_questions.yaml` | `ontology/seon/spo/competency_questions/` | `spo_network_analysis.cq01`–`cq20` — uma pergunta por medida de `network.structure` (T006) |
 
 As medidas `network.*` valem para as duas redes (`review` e `assignment`); as `assignment.network.*`
 são o que a rede de designação precisa e a de revisão já tem na 073
@@ -63,6 +64,19 @@ são o que a rede de designação precisa e a de revisão já tem na 073
 | papel na rede (`:485-510`) | `network.position_role` + `network.position_percentile.percentage` | posto médio; mínimo de 10; cortes com razão; rótulos posicionais (S6, S7) |
 | perfil "atribui / recebe" (`:489-528`) | `network.degree.count` (saída e entrada) + `assignment.network.edge_weight.count` | pares com pessoa fora do alcance agregados |
 | grafos ponderado e de comunidades, HTML interativo (`:537-820`) | spec FR-020 a FR-026; `network.analysis.parameters.layout` | layout no servidor, semente fixa, mesmas posições nas duas vistas; sem GEXF nem HTML exportado (FR-053) |
+
+## 2a. As emendas do plano (T006, 2026-10-04)
+
+| Arquivo | Emenda | De onde |
+|---|---|---|
+| `rules/network_analysis_parameters.yaml` | `size_limit` (300 pessoas / 3 000 arestas, provisório) | plano R5 |
+| `rules/network_analysis_parameters.yaml` | `modularity_reading.values.random_weights: shuffled_real_multiset` | plano R8; A5 da revisão 2 |
+| `rules/network_analysis_parameters.yaml` | `small_world.values.generator: exsss` e `.sampling` (nós, rejeição, Fisher–Yates) | plano R7; A8 da revisão 2 |
+| `rules/network_analysis_parameters.yaml` | `betweenness_color_bands` (cinco faixas de cor, sem adjetivo), `layout.values.labelled_nodes: 7` e `layout.values.seeding` | plano R16, R7; protótipo 3.2.1 e 3.2.2 |
+| `measurements/network_modularity_score.yaml` | fórmula de Q_rand com os pesos reais sorteados; sai a limitação de Q_rand sem peso | plano R8 |
+| `competency_questions/spo_network_analysis_competency_questions.yaml` | novo: 20 perguntas, uma por medida | plano R19; revisão 2, §4 |
+
+A revisão semântica destas emendas está em [../revisao-semantica-3.md](../revisao-semantica-3.md).
 
 ## 3. Como foi validado
 
