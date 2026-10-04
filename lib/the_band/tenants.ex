@@ -18,6 +18,7 @@ defmodule TheBand.Tenants do
   alias TheBand.Tenants.ApiTokens
   alias TheBand.Tenants.Auth
   alias TheBand.Tenants.MudancaDePapel
+  alias TheBand.Tenants.OrganizationAccounts
   alias TheBand.Tenants.PapelDeAdministrador
   alias TheBand.Tenants.Sessions
   alias TheBand.Tenants.Tenant
@@ -50,6 +51,19 @@ defmodule TheBand.Tenants do
   defdelegate grant_scope(tenant, user_id, level, target_id, actor), to: Access, as: :grant
   defdelegate revoke_scope(tenant, grant_id, actor), to: Access, as: :revoke
   defdelegate operacional?(tenant, user), to: Access
+
+  # A conta da organização, declarada pela administração (076, T025; R14). Módulo próprio, e não
+  # `Access`: a declaração não decide quem vê o quê, decide quem é nó nas redes da análise.
+  defdelegate declare_organization_account(tenant, person_id, reason, actor),
+    to: OrganizationAccounts,
+    as: :declare
+
+  defdelegate revoke_organization_account(tenant, declaration_id, actor),
+    to: OrganizationAccounts,
+    as: :revoke
+
+  defdelegate organization_account_ids(tenant), to: OrganizationAccounts, as: :ids
+  defdelegate list_organization_accounts(tenant, actor), to: OrganizationAccounts, as: :list
 
   # ------------------------------------------- o token de API (feature 061)
   #

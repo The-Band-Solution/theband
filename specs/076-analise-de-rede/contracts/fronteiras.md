@@ -104,6 +104,19 @@ com tenant, conta que agiu, pessoa e resultado — inclusive a recusa.
 
 **Não expõe**: a lista para quem não administra; a declaração não muda `eo_people.account_type`.
 
+**Emenda de 2026-10-04 (T025)**, feita no mesmo commit da implementação:
+
+- as funções moram em `TheBand.Tenants.OrganizationAccounts`, e não em `Access`: a declaração
+  não decide quem vê o quê, decide quem é nó nas redes (princípio X). A fachada `Tenants` as
+  delega com os nomes acima; o schema é `Tenants.Access.OrganizationAccountDeclaration`;
+- conta de **outro** tenant é `:not_admin` mesmo sendo admin lá; o motivo é aparado, e motivo só
+  de espaço volta como changeset;
+- `declaration_view` é `%{id, person_id, person_name, reason, declared_by, declared_at}`, com
+  `declared_by` o nome ou o e-mail da conta que declarou;
+- o evento é `AccessEvents.conta_da_organizacao/5` (`ato`, tenant, conta que agiu, pessoa,
+  resultado), em `:warning`, com a conta que agiu **explícita**. A pessoa só entra no log como
+  UUID válido: o id malformado vem de fora, e vira `nil`.
+
 ## `TheBand.Ontology.SEON.EO`
 
 Sem função nova. Usadas: `fetch_organization/2`, `account_types/2`, `organization_person_ids/2`,
