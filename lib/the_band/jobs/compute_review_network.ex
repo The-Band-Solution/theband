@@ -54,11 +54,23 @@ defmodule TheBand.Jobs.ComputeReviewNetwork do
          :ok <- ativo(tenant),
          {:ok, organizacao} <- organizacao(tenant, organization_id) do
       inicio = System.monotonic_time(:millisecond)
-      {:ok, relator} = ReviewNetwork.compute(tenant, organizacao, DateTime.utc_now(:second))
-      duracao = System.monotonic_time(:millisecond) - inicio
 
-      registrar(tenant.id, organizacao.id, relator, duracao)
-      :ok
+      case ReviewNetwork.compute(tenant, organizacao, DateTime.utc_now(:second)) do
+        {:ok, relator} ->
+          registrar(
+            tenant.id,
+            organizacao.id,
+            relator,
+            System.monotonic_time(:millisecond) - inicio
+          )
+
+          :ok
+
+        # Erro de dado, e não de infraestrutura: tentar de novo dá o mesmo erro. O motivo só tem
+        # nomes de campo, e é o que o Oban grava em `oban_jobs.errors` (076, R10; A18).
+        {:error, {:reading_rejected, _campos} = motivo} ->
+          {:cancel, motivo}
+      end
     end
   end
 

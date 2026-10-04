@@ -166,6 +166,7 @@ são os da base; a frase da tela é da tela.
 @spec compute(Tenant.t(), organization :: map(), now :: DateTime.t()) ::
         {:ok, %{readings: [%{id: Ecto.UUID.t(), window_days: pos_integer(), reviews: non_neg_integer(),
                              excluded: %{self_review: n, bot_or_app: n, unlinked_person: n}}]}}
+        | {:error, {:reading_rejected, [atom()]}}
 ```
 
 Chamada **só pelo job** ([job.md](job.md)), com tenant ativo e organização já conferida. Lê os pares
@@ -175,8 +176,15 @@ três linhas da organização numa transação: apaga e insere. Ou as três fica
 `now` vem de quem chama. A função não lê relógio, e é isso que torna a FR-012 testável.
 
 Não devolve `{:error, _}` para caso de negócio: as conferências que poderiam falhar já foram feitas
-pelo job, e o resto é bug (base inconsistente levanta na carga dos parâmetros; erro de banco
+pelo job, e o resto é bug (base inconsistente levanta na carga dos parâmetros; erro de conexão
 desfaz a transação e o Oban tenta de novo).
+
+**Emenda de 2026-10-04 (feature 076, T004; R10 da segurança da 076, A18)**: a leitura **recusada
+pelo banco** — a organização apagada entre a busca do job e a inserção — não levanta mais. A
+inserção é `Repo.insert/1`, e o erro desfaz a transação e devolve `{:error, {:reading_rejected,
+campos}}` só com os **nomes** dos campos. Antes, `Repo.insert!` levantava
+`Ecto.InvalidChangesetError`, cuja mensagem traz os parâmetros — cada par de `person_id` da rede —,
+e o Oban a gravava em `oban_jobs.errors`.
 
 **Não expõe**: os pares, as arestas, ids de pessoa. O relator devolvido tem só contagens, e é o que o
 job loga (FR-021).
