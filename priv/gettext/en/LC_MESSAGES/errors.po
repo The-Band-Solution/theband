@@ -348,6 +348,11 @@ msgstr ""
 msgid "Syncs e Tools pedem administração ou escopo organization — o seu acesso não os alcança."
 msgstr ""
 
+#: lib/the_band_web/live/review_network_live/show.ex:77
+#, elixir-autogen, elixir-format
+msgid "Not found."
+msgstr ""
+
 #: lib/the_band_web/live/teams_live/show.ex:37
 #, elixir-autogen, elixir-format
 msgid "Team not found."

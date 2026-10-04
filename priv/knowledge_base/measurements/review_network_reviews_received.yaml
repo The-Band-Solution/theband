@@ -1,0 +1,62 @@
+measurement:
+  id: review.network.reviews_received.count
+  version: 1
+  name:
+    pt-BR: "Solicitações de uma pessoa que foram revisadas, e por quantas pessoas distintas"
+    en: "A person's change requests that were reviewed, and by how many distinct people"
+  answers_information_need: [review.concentration]
+  value_type: count
+  unit: change_requests
+
+  # O espelho de review.network.reviews_given.count, com a mesma regra do par: a contagem
+  # de solicitações e a de pessoas distintas vão juntas. A unidade declarada é a do
+  # primeiro componente; o segundo é em pessoas.
+  formula:
+    expression: >
+      Sobre as arestas da leitura (organização observada O, janela W):
+        reviewed_change_requests(a) = |{ solicitação c de a : existe revisão de outra
+                                         pessoa sobre c, enviada em W }|   [solicitações]
+        reviewers(a) = |{ p : weight(p → a) > 0 }|                         [pessoas]
+      Se a abriu solicitação e nenhuma foi revisada em W: as duas são AUSENTES com o
+      motivo `no_change_request_reviewed_in_window`, nunca 0.
+      NÃO é a soma de weight(p → a): uma solicitação revisada por três pessoas conta
+      UMA vez aqui e três vezes na soma dos pesos.
+    inputs:
+      [review_edge_reviewer_person_id, review_edge_author_person_id,
+       review_change_request_id, window_start, window_end, observed_organization_id]
+
+  scope:
+    levels: [person]
+    filters:
+      - "só arestas da organização observada consultada, buscada por id e tenant juntos (FR-001, R4)"
+      - "a revisão entra pelo instante de ENVIO dentro da janela, e não pela abertura da solicitação: uma solicitação aberta antes da janela e revisada dentro dela conta"
+      - "auto-revisão não conta como solicitação revisada — revisar a própria solicitação não é ser revisado (FR-004)"
+      - "a linha de pessoa alcançável mostra o total verdadeiro dela; revisores fora do alcance de quem consulta não viram linha nem número (FR-015, R2 item 1)"
+      - "a lista é ordenada por nome; nenhuma coluna desta medida ordena nem se oferece para ordenar (FR-018a)"
+    period: "janela móvel de 30, 90 ou 180 dias, padrão 90 (review.network.parameters.window_days)"
+
+  limitations:
+    - "Mede revisão RECEBIDA, e não integração. Solicitação revisada não é solicitação integrada: Pull Request não é merge, e quem integrou é outra relação (`cmpo.stakeholder_performed_checkin`)."
+    - "Solicitação aberta e não revisada na janela não está aqui — está na ausência com motivo. A medida não diz quantas solicitações a pessoa abriu; abrir e ser revisado são duas perguntas."
+    - "Só existe o que passou pela ferramenta observada; revisão fora dela não existe para a plataforma."
+    - "Revisão descartada (DISMISSED) conta: a solicitação foi revisada, ainda que a revisão tenha sido retirada depois."
+    - "Revisão de bot ou aplicativo não conta. Uma solicitação revisada só por robô aparece como não revisada — o que é correto para a pergunta (ninguém a leu), e precisa ser dito, porque a página da solicitação na origem mostra uma revisão."
+    - "Revisão de conta sem pessoa ligada também não conta: a solicitação revisada só por uma conta que a plataforma não reconheceu aparece como não revisada, ainda que uma pessoa real a tenha lido. A contagem dessas revisões está em review.network.excluded.count."
+
+  misinterpretations:
+    - "A MEDIDA NÃO AVALIA A PESSOA — nem quem abriu, nem quem revisou."
+    - "Ser revisado por poucas pessoas não diz nada sobre a qualidade do trabalho de quem abriu. Pode ser o único revisor designado do repositório."
+    - "Ter poucas solicitações revisadas não é sinal de pouco trabalho: a pessoa pode abrir poucas solicitações grandes, integrar sem revisão por regra do repositório, ou trabalhar fora da ferramenta."
+    - "Ordenar as pessoas por esta medida. Mesma recusa de review.network.reviews_given.count: as linhas não compartilham denominador, e nenhuma coluna de medida ordena a lista."
+    - "Ler a ausência ('nenhuma solicitação revisada na janela') como descaso de quem deveria revisar. A ausência é da janela e da origem; designação e disponibilidade não estão na rede."
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: "spec 073, US2 cenários 1 e 2, FR-007 (segundo item), FR-009"
+    note: >
+      Corresponde, na referência, a "Recebe issues de N desenvolvedores" / "Total de
+      Issues Recebidas", que lá conta delegação recebida. A contagem de solicitações
+      distintas, em vez da soma dos pesos, é escolha desta proposta: é a que responde
+      "quantas das minhas solicitações alguém leu", e a soma dos pesos responderia
+      "quantas leituras houve", que é outra pergunta.

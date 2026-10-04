@@ -105,6 +105,13 @@ defmodule TheBandWeb.OrganizationLive.Index do
           <span :if={entrada.organization.login} class="font-mono text-xs opacity-60">
             {entrada.organization.login}
           </span>
+          <%!-- A entrada da rede de revisão (073, régua 1.1: Organisations › organização). --%>
+          <.link
+            navigate={~p"/organizations/#{entrada.organization.id}/review-network"}
+            class="link text-sm"
+          >
+            Review network
+          </.link>
         </div>
 
         <div class="grid gap-4 sm:grid-cols-3">
