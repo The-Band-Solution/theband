@@ -13,8 +13,9 @@ measurement:
       Sobre a projeção sem direção com peso, m_w a soma dos pesos, A_uv o peso de {u, v},
       k_u a soma dos pesos de u, e P a partição de network.communities.count:
         Q = (1 / 2m_w) × soma sobre u, v de [A_uv − k_u·k_v / 2m_w] × δ(c_u, c_v)   [escore]
-      Q_rand = média de Q da mesma partição gulosa (sem peso, porque os aleatórios não têm
-      peso) sobre os grafos aleatórios de network.analysis.parameters.small_world, dividida
+      Q_rand = média, sobre os grafos aleatórios, de Q da partição que o MESMO algoritmo
+      guloso encontra em cada um (sem peso, porque os aleatórios não têm peso), sobre os
+      grafos aleatórios de network.analysis.parameters.small_world, dividida
       pelo número de grafos com ao menos uma aresta.
       Sem aresta: AUSENTE com motivo `no_edge_in_window`. A leitura segue
       network.analysis.parameters.modularity_reading.

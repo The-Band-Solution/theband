@@ -155,8 +155,10 @@ derivation_rule:
         pt-BR: "Como a modularidade é lida: ao lado da dos grafos aleatórios, com as faixas da literatura citadas"
       statement:
         pt-BR: >
-          A modularidade Q aparece com a modularidade média da mesma partição gulosa aplicada
-          aos grafos aleatórios de `small_world` (Q_rand). As faixas abaixo aparecem como
+          A modularidade Q aparece com Q_rand: a média, sobre os grafos aleatórios de
+          `small_world`, da modularidade da partição que o MESMO algoritmo guloso
+          (`communities`) encontra em CADA grafo aleatório. Não é a partição da rede real
+          aplicada aos aleatórios, que mediria outra coisa. As faixas abaixo aparecem como
           CITAÇÃO, com a fonte, e nunca como adjetivo próprio da plataforma:
             - Q acima de cerca de 0,3: "in practice indicates significant community
               structure" (Clauset, Newman e Moore, 2004);
@@ -332,7 +334,13 @@ derivation_rule:
           erro cai a cerca de um terço, a um custo de 100 buscas em largura de todos os pares,
           trivial para centenas de pessoas. A semente 42 é a do layout da referência
           (`spring_layout(seed=42)`, `:539`): o valor é arbitrário, e o que importa é ser fixo
-          e gravado na proveniência. O mínimo de 10 pessoas porque, abaixo disso, G(n, m) com
+          e gravado na proveniência. A semente SOZINHA não fixa a sequência: o algoritmo do
+          gerador pseudoaleatório (o de `:rand` do Erlang, escolhido no plano) e o
+          procedimento de sorteio das m arestas são parte do parâmetro, gravados com a
+          semente, e trocar qualquer um deles é versão nova desta regra. Pela mesma razão,
+          "semente 42" aqui não reproduz os números do networkx com `seed=42`: a comparação
+          com ferramenta de referência (SC-002) é de método e de valor dentro da tolerância
+          do plano, e não de sorteio. O mínimo de 10 pessoas porque, abaixo disso, G(n, m) com
           a mesma densidade tem poucos triângulos possíveis, e C_rand oscila entre zero e
           valores grandes de um sorteio para outro; o valor é revisável com dado.
 
@@ -386,6 +394,10 @@ derivation_rule:
           comunidades) usam as MESMAS posições, como a referência.
       note:
         pt-BR: >
+          "Como `networkx.spring_layout(seed=42)`" é sobre o MÉTODO: o gerador do Elixir não
+          produz a sequência do numpy, e as posições não serão as da referência. O gerador
+          é declarado e gravado como em `small_world`.
+
           A posição não é medida e não afirma nada sobre ninguém: duas pessoas próximas no
           desenho não estão "mais ligadas" do que a aresta diz. Por isso o layout é parâmetro
           de apresentação, e não medida. 50 iterações é o padrão do `spring_layout`.

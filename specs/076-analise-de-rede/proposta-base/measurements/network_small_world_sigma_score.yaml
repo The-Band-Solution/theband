@@ -18,7 +18,8 @@ measurement:
                  pares que se alcançam da rede real)
         σ      = (C / C_rand) / (L / L_rand)                                     [escore]
       Grava, com σ: C, C_rand, L, L_rand, as duas razões, N, quantos entraram em cada média,
-      a semente e o modelo.
+      a fração média de pares que se alcançam nos aleatórios (ao lado da reachable_share
+      da rede real), a semente, o gerador e o modelo.
       AUSENTE com motivo: `network_too_small` (n abaixo do mínimo da base);
       `random_clustering_undefined` (C_rand zero ou sem grafo definido);
       `clustering_undefined` ou `no_edge_in_window` (C ou L da rede).
@@ -36,6 +37,8 @@ measurement:
     - "Depende do modelo nulo: com G(n, p) em vez de G(n, m), ou com outra regra para grafos desconexos, o valor muda."
     - "Com a semente fixa, o valor é reprodutível; com outra semente, varia dentro do erro das 100 amostras."
     - "Usa o clustering que exclui quem tem menos de 2 vizinhos, nos dois lados."
+    - "A rede real não tem pessoa sem aresta (pessoa sem aresta não é nó), e um G(n, m) esparso tem: nós isolados e componentes pequenos entram nos aleatórios e não na real. A mesma regra de pares que se alcançam nos dois lados não torna as duas estruturas iguais; quando a fração de pares que se alcançam dos aleatórios difere muito da real, L / L_rand compara coisas diferentes, e a tela mostra as duas frações."
+    - "Humphries e Gurney (2008) definem σ com dois coeficientes de clustering, a transitividade e a média local; aqui é a média local de Watts e Strogatz, a do networkx e da referência, e o valor muda com a outra."
 
   misinterpretations:
     - "Ler σ ausente como 'não é mundo pequeno'. Ausência não é conclusão — a referência devolve 0 e conclui 'NÃO' (`dashboard_team_graph.py:222`)."

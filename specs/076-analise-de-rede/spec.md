@@ -53,9 +53,10 @@ São defeitos conferidos em `dashboard_team_graph.py`. Cada um tem requisito que
 | distância média como média simples das médias por componente (`:139-149`) | média sobre todos os pares que se alcançam, dita junto da fração de pares que se alcançam | FR-037 |
 | faixas sem razão: 0,3/0,1 na intermediação (`:308`), 0,5/0,2 no autovetor (`:330`), 2/3/4 na distância (`:341-348`), 0,4/0,7 na eficiência (`:354`), 0,3/0,7 na modularidade (`:404`), 80/50/30 no papel (`:497-507`) | nenhuma faixa sem razão escrita na base; onde não há razão, o número é comparado com o grafo aleatório equivalente, e não convertido em adjetivo | FR-031, FR-038, FR-044 |
 | bots e a conta da organização como nós (`developer_stats.md`; `LEDS` como membro central de comunidade) | só é nó a pessoa observada; a conta da organização é excluída e contada | FR-006, FR-007 |
+| o responsável principal entra duas vezes por issue, por `assignee` e por `assignees` (`:59-68`), e o peso não é número de issues | peso é o número de issues **distintas** do par, e cada responsável conta uma vez por issue | FR-005 |
 | laço removido em silêncio (`:71`) e erro de linha engolido (`:76-77`) | auto-designação e auto-revisão contadas; nenhuma linha some sem contagem | FR-007 |
 | `to_undirected()` guarda o peso de um só sentido do par recíproco (`:80`) | a projeção sem direção soma os dois sentidos, declarado | FR-010 |
-| comunidades sem peso (`:241`) | comunidades com peso, algoritmo e desempate declarados | FR-027 |
+| comunidades sem peso (`:241`), e a modularidade calculada com peso sobre essa partição (`:254`) | comunidades com peso, algoritmo e desempate declarados | FR-027 |
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -144,7 +145,7 @@ Quem coordena vê, como na referência, as pessoas com maior centralidade de **g
 **Acceptance Scenarios**:
 
 1. **Given** uma rede com leitura pronta, **When** a seção de hubs abre, **Then** há quatro listas de até 5 pessoas (número declarado na base), ordenadas pela medida, cada linha com o valor e a frase que ele sustenta.
-2. **Given** a lista de grau, **When** é lida, **Then** cada linha diz com quantas pessoas distintas a pessoa se liga, separando "assigns to / reviews" de "receives from / is reviewed by", e não soma o par recíproco duas vezes.
+2. **Given** a lista de grau, **When** é lida, **Then** cada linha diz com quantas pessoas distintas a pessoa se liga, separando "opened issues assigned to / reviews" de "assigned on issues opened by / is reviewed by", e não soma o par recíproco duas vezes.
 3. **Given** a lista de proximidade numa rede desconexa, **When** é lida, **Then** cada linha diz a distância média até as pessoas que ela alcança **e quantas alcança**, e nunca converte 1/proximidade em distância.
 4. **Given** a lista de autovetor numa rede com mais de um componente, **When** é lida, **Then** os valores aparecem por componente, e a tela diz que valores de componentes diferentes não se comparam.
 5. **Given** um componente em que o autovetor não converge, **When** a lista é montada, **Then** as pessoas daquele componente têm a medida ausente com motivo, e nenhum valor de reserva.
@@ -180,7 +181,7 @@ Quem coordena vê o coeficiente de clustering, a distância média, os mesmos va
 
 1. **Given** uma rede com leitura pronta, **When** a seção abre, **Then** aparece a tabela da referência (clustering e distância média, real × aleatório, razão) e o σ, com o número de grafos aleatórios e a semente.
 2. **Given** grafos aleatórios desconexos entre os gerados, **When** o σ é calculado, **Then** todos entram, e a distância do aleatório é medida pela mesma regra da real.
-3. **Given** uma rede pequena demais (abaixo do mínimo declarado na base), ou um aleatório com clustering médio igual a zero, **When** o σ é pedido, **Then** ele é ausente com motivo, e a tela não diz "não é mundo pequeno".
+3. **Given** uma rede pequena demais (abaixo do mínimo declarado na base), ou o clustering médio dos aleatórios (C_rand) zero ou indefinido, **When** o σ é pedido, **Then** ele é ausente com motivo, e a tela não diz "não é mundo pequeno".
 4. **Given** σ > 1, **When** a conclusão é escrita, **Then** ela diz que a rede **atende ao critério σ > 1**, e uma frase diz o que o critério não prova.
 
 ---
@@ -205,7 +206,7 @@ Quem coordena vê, para cada pessoa da rede, o papel na rede derivado da posiç�
 
 ### User Story 9 — O perfil individual (Priority: P3)
 
-Quem coordena abre uma pessoa e vê o perfil dela na rede, como na referência: para quantas pessoas designa (ou revisa) e de quantas recebe, o grau e a intermediação com o percentil, o papel, e as listas "para quem" e "de quem", com o peso de cada par.
+Quem coordena abre uma pessoa e vê o perfil dela na rede, como na referência: em issues de quantas pessoas abriu com outra designada (ou quantas revisa) e em issues de quantas está designada (ou por quantas é revisada), o grau e a intermediação com o percentil, o papel, e as listas "para quem" e "de quem", com o peso de cada par.
 
 **Why this priority**: pedido explícito; é a leitura que junta tudo para uma pessoa.
 
@@ -213,7 +214,7 @@ Quem coordena abre uma pessoa e vê o perfil dela na rede, como na referência: 
 
 **Acceptance Scenarios**:
 
-1. **Given** Bia, que recebe de 3 pessoas e designa para 2, **When** o perfil abre, **Then** a tela mostra "assigns to 2 people", "receives from 3 people", as duas listas com o peso de cada par e o total.
+1. **Given** Bia, designada em issues abertas por 3 pessoas e autora de issues designadas a 2, **When** o perfil abre, **Then** a tela mostra "opened issues assigned to 2 people", "assigned on issues opened by 3 people", as duas listas com o peso de cada par e o total.
 2. **Given** um par em que a outra pessoa está fora do alcance, **When** a lista é montada, **Then** o par aparece agregado como "N issues with people outside your reach", sem nome, nem um número por pessoa de fora.
 3. **Given** uma pessoa fora do alcance de quem consulta, **When** o endereço do perfil dela é aberto, **Then** a tela diz "not found", e não "permission denied".
 4. **Given** uma pessoa sem aresta na janela, **When** o perfil é pedido, **Then** a tela diz que ela não tem arestas nesta rede na janela, e não mostra zeros.
@@ -223,7 +224,7 @@ Quem coordena abre uma pessoa e vê o perfil dela na rede, como na referência: 
 ### Edge Cases
 
 - **Rede sem aresta na janela**: nenhum grafo, nenhuma medida; a tela diz que não houve designação (ou revisão) entre pessoas na janela. Nunca 0, `inf` ou grafo vazio sem texto.
-- **Rede com uma aresta só**: grafo desenhado; intermediação definida (zero para as duas, que é valor, não ausência); σ, papel e comunidades ausentes com motivo de tamanho mínimo.
+- **Rede com uma aresta só**: grafo desenhado; intermediação ausente com motivo `network_too_small` (com 2 pessoas a normalização não está definida, `network.analysis.parameters.betweenness`); σ e papel ausentes com motivo de tamanho mínimo; comunidade, uma, com as duas.
 - **Nó sem aresta**: não é nó (073, R2 item 4). Pessoa sem aresta não entra em hub, comunidade nem papel; o número de pessoas sem aresta é dito.
 - **Componente de duas pessoas**: autovetor definido (os dois iguais); comunidade possível; a regra do grupo mínimo vale para o agregado de quem está fora do alcance.
 - **Rede bipartida** (designação de uns poucos autores para muitos responsáveis): a iteração do autovetor oscila; o método declarado na base converge nesse caso, e o que não converge fica ausente.
@@ -324,7 +325,7 @@ Quem coordena abre uma pessoa e vê o perfil dela na rede, como na referência: 
 - **FR-045**: O percentil MUST ser calculado sobre as pessoas da rede inteira (FR-011), pelo método declarado na base, com empates tratados pela mesma regra para todos.
 - **FR-046**: Abaixo do número mínimo de pessoas da base, o papel MUST ser ausente com motivo para todos.
 - **FR-047**: Todo papel MUST aparecer com os percentis e o critério ao lado, e a tela MUST dizer que o papel descreve a posição na rede observada na janela, e não desempenho, importância nem mérito. Ao lado do papel e dos hubs, a tela diz: *"Position in this network and window. It does not measure performance, importance or merit, and must not be used to evaluate a person."* A própria pessoa vê sempre o próprio papel (seguranca.md R4). Quem lê o papel e os hubs com o nome de **outra** pessoa é a decisão DS1.
-- **FR-048**: O perfil individual MUST mostrar para quantas pessoas a pessoa designa (ou revisa) e de quantas recebe, o grau e a intermediação com percentil, o papel, e as duas listas de pares com o peso, ordenadas pelo peso, com o total.
+- **FR-048**: O perfil individual MUST mostrar a quantas pessoas estão designadas as issues que a pessoa abriu (ou quantas ela revisa) e por quantas pessoas foram abertas as issues em que ela está designada (ou por quantas é revisada), com os rótulos de `network.degree.count` — nunca "assigns to" nem "receives from", que atribuem ao autor o ato de designar (revisao-semantica-2.md, A1) —, o grau e a intermediação com percentil, o papel, e as duas listas de pares com o peso, ordenadas pelo peso, com o total.
 - **FR-049**: No perfil, os pares com pessoas fora do alcance MUST aparecer só agregados, sem nome e sem número por pessoa de fora.
 
 **Ausência, reprodutibilidade, o que não se faz**
@@ -358,7 +359,7 @@ Quem coordena abre uma pessoa e vê o perfil dela na rede, como na referência: 
 
 ## Assumptions
 
-- **Janela da designação pelo instante de abertura da issue**: `issue_assignees` não guarda quando a designação aconteceu (decisão de 2026-08-27, `person_work.ex`). A alternativa com data, o evento de designação da linha do tempo, está na revisão semântica como decisão.
+- **Janela da designação pelo instante de abertura da issue**: `issue_assignees` não guarda quando a designação aconteceu (decisão de 2026-08-27, `person_work.ex`). A alternativa com data, o evento de designação da linha do tempo, foi a opção (b) da D1; a pessoa mantenedora escolheu (a) em 2026-10-04.
 - **Responsáveis vigentes**: como na referência, a aresta usa os responsáveis observados na última coleta. A designação retirada não gera aresta.
 - **Tamanho das listas de hubs = 5 e dos mais centrais por comunidade = 3**, como na referência, declarados na base.
 - **σ com 100 grafos aleatórios do mesmo número de pessoas e arestas**, semente fixa: valores propostos na base, com a razão.

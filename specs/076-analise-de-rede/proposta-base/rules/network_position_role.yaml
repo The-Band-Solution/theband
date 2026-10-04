@@ -70,8 +70,11 @@ derivation_rule:
           Com n pessoas, um passo de percentil vale 100/n pontos. Abaixo de 10, cada pessoa
           move o percentil das outras em mais de 10 pontos, e "o quinto superior" tem uma
           pessoa só por construção: o rótulo deixaria de ser posição na distribuição e
-          passaria a ser o nome do primeiro colocado. 10 é o primeiro n em que o quinto
-          superior tem duas pessoas.
+          passaria a ser o nome do primeiro colocado. Com o posto médio e o corte estrito
+          (> 80), sem empate, o quinto superior tem uma pessoa só até n = 7 e duas a partir
+          de n = 8; 10 deixa folga para um empate no topo e é o mesmo mínimo do σ
+          (`network.analysis.parameters.small_world.min_people`), para que papel e σ
+          apareçam e sumam juntos. O valor é convenção, revisável com dado.
       values:
         min_people: 10
 

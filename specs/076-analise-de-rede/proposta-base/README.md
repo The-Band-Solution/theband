@@ -41,7 +41,7 @@ As medidas `network.*` valem para as duas redes (`review` e `assignment`); as `a
 são o que a rede de designação precisa e a de revisão já tem na 073
 (`review.network.reviews.count`, `review.network.excluded.count`,
 `review.network.people_without_activity.count`, `review.network.reviews_given.count` e
-`reviews_received`).
+`review.network.reviews_received.count`).
 
 ## 2. Cada análise da referência, e o que muda
 

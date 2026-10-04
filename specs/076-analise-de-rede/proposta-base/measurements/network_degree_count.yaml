@@ -13,9 +13,9 @@ measurement:
       Para a pessoa u na rede N (review ou assignment), em O e W:
         degree(u)     = pessoas distintas v ≠ u com aresta u → v OU v → u        [pessoas]
         out_degree(u) = pessoas distintas v com aresta u → v                     [pessoas]
-                        (assignment: "assigns to"; review: "reviews")
+                        (assignment: "opened issues assigned to"; review: "reviews")
         in_degree(u)  = pessoas distintas v com aresta v → u                     [pessoas]
-                        (assignment: "receives from"; review: "is reviewed by")
+                        (assignment: "assigned on issues opened by"; review: "is reviewed by")
       degree(u) ≤ out_degree(u) + in_degree(u): um par recíproco conta UMA vez em degree e
       uma vez em cada sentido. Pessoa sem aresta não é nó, e a medida não existe para ela
       (FR-008), em vez de 0. É o TAMANHO do círculo no grafo ponderado.
@@ -30,6 +30,7 @@ measurement:
   limitations:
     - "Conta pessoas, e não issues nem revisões: duas pessoas com 1 e com 40 issues em comum contribuem igual. A intensidade está no peso da aresta."
     - "Na rede de designação, uma pessoa que abre issues para uma equipe inteira tem grau alto sem ter designado ninguém (assignment.network.edge)."
+    - "Na rede de designação, o sentido da aresta é de quem ABRIU para quem está DESIGNADO, e não de quem designou: os rótulos da tela são 'opened issues assigned to' e 'assigned on issues opened by', nunca 'assigns to' nem 'receives from', que atribuem ao autor um ato que a aresta não observa (revisão semântica 2, A1)."
 
   misinterpretations:
     - "Ler grau alto como importância, liderança ou produtividade."

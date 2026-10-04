@@ -25,7 +25,7 @@ measurement:
     period: "janela móvel de 30, 90 ou 180 dias, pelo instante de abertura da issue"
 
   limitations:
-    - "Conta a issue pela data de ABERTURA. Issue aberta antes da janela e designada dentro dela não entra; a origem não dá a data da designação."
+    - "Conta a issue pela data de ABERTURA. Issue aberta antes da janela e designada dentro dela não entra: a lista de responsáveis da origem não traz a data da designação, que só existe no evento de designação (AssignedEvent), e esta medida não o lê."
     - "Issue que sumiu da origem (transferida, apagada) não entra, mesmo que tenha sido aberta na janela."
     - "Toda issue conta, promovida ou não a user story, tarefa, épico ou defeito."
 

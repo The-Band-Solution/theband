@@ -15,7 +15,8 @@ measurement:
                         responsáveis vigentes                                       [issues]
       Só existe para pares com weight ≥ 1: par sem issue não é aresta, e não é aresta de
       peso 0. No perfil individual aparecem as duas listas — para quem a pessoa abre
-      (saída) e de quem ela recebe (entrada) —, ordenadas pelo peso, com o total.
+      (saída, "opened issues assigned to") e em issues de quem ela está designada
+      (entrada, "assigned on issues opened by") —, ordenadas pelo peso, com o total.
     inputs: [issue_author_person_id, assignee_person_id, issue_opened_at, observed_organization_id]
 
   scope:

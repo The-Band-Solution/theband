@@ -61,12 +61,18 @@ derivation_rule:
   ufo_category:
     pt-BR: >
       **Relação derivada, sem relator, e não conceito da rede**, como a aresta de revisão.
-      Os fundamentos são dois fatos sobre o MESMO objeto social (a issue, que na SRO é
-      `sro.user_story`, `sro.intended_scrum_development_task`, `sro.epic`, ou
-      `osdef.defect`, ou nenhum conceito quando não promovida): o ato de registrá-la
-      (evento, `action`) e a designação vigente (uma atribuição de responsabilidade, que
+      Os fundamentos são dois fatos sobre o MESMO registro da ferramenta (a issue coletada,
+      `collected_issues`): o ato de registrá-la (evento, `action`) e a designação vigente (uma atribuição de responsabilidade, que
       em UFO seria um compromisso social — `social relator` — entre a organização e o
       responsável, e NÃO entre o autor e o responsável).
+
+      O registro é um só, mas o conceito que ele sustenta varia, e com ele a categoria UFO:
+      promovida, a issue sustenta `sro.user_story` ou `sro.epic` (social_object),
+      `sro.intended_scrum_development_task` (intention) ou `osdef.defect` (disposition);
+      não promovida, nenhum conceito. No defeito, a issue é o RELATO do defeito, e não o
+      defeito (o documento não é o que ele descreve, AGENTS.md §6). Por isso a aresta é
+      fundada no REGISTRO, e não no conceito: ela existe igual para as quatro promoções e
+      para nenhuma, e não herda a categoria de nenhuma delas.
 
       A distinção importa: se houver relator aqui, ele liga a ORGANIZAÇÃO (ou quem
       designou) ao responsável, e o autor não participa dele. Por isso a aresta autor →
@@ -99,7 +105,8 @@ derivation_rule:
       statement:
         pt-BR: >
           Uma issue entra em W quando `external_created_at` está em W. A designação não tem
-          data na origem (`issue_assignees` não a guarda), e por isso a janela é da issue,
+          data na lista de responsáveis da origem (`assignees`), e `issue_assignees` não a
+          guarda; a data existe só no evento de designação, que esta regra não lê, e por isso a janela é da issue,
           como na decisão de 2026-08-27 para o painel da pessoa (`person_work.ex`, *"sem
           data de designação, a issue é da pessoa"*).
       note:
@@ -205,6 +212,16 @@ derivation_rule:
       dizer, aqui dita.
     - >
       SEM PESSOA LIGADA em qualquer das pontas não vira aresta, e é contado separado de bot.
+    - >
+      O TIPO DA CONTA NÃO LIGADA não está gravado hoje: a consulta traz `author.__typename`
+      e `assignees.nodes.__typename` (`issues.graphql:44-45`), mas `collected_issues` e
+      `issue_assignees` guardam só o login, e a coleta não cria pessoa para conta `Bot`
+      (`github_work_items.ex:532-570`; o `id` do autor só vem `on User`). Sem o tipo, `Mapper.account_type/1` decide só pelo
+      sufixo `[bot]`, e uma conta de máquina cujo login venha sem ele cai em `unlinked_person`
+      em vez de `bot_or_app`. Nenhuma aresta errada nasce disso (as duas exclusões tiram a
+      conta da rede), mas a contagem por motivo fica errada. O plano persiste o tipo, como a
+      rede de revisão já faz com `author_type`, ou declara a subcontagem (revisão semântica
+      2, A3).
     - >
       Issue de outra organização observada ou de outro tenant nunca entra: a leitura filtra
       issue, responsável e pessoa pelo tenant, nos dois lados de cada junção, e pela
