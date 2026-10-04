@@ -238,6 +238,10 @@ Nenhuma violação de princípio a justificar. Os custos estão em D1–D12.
 
 ## Decisões a confirmar com a pessoa mantenedora (nenhuma bloqueia o início)
 
+**Confirmadas em 2026-10-04** (T002, [#1326](https://github.com/The-Band-Solution/theband/issues/1326)):
+A7, R10 item 8 e R21 com a opção padrão desta tabela; o escopo do sprint 041 é Fundação + US1–US3.
+A tabela de decisões de [spec.md](spec.md) as registra. O R5 continua esperando T050 e a #1190.
+
 | # | Pergunta | Opção padrão deste plano | O que espera por ela |
 |---|---|---|---|
 | **A7** | A marca de conta da organização (D3) vale também para a rede de revisão da 073? | **sim**: `review.network.edge` versão 2 com `organization_account`; coluna anulável na leitura da 073 | T027 |

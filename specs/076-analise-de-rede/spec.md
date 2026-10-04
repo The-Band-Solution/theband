@@ -384,7 +384,7 @@ Bloqueavam o plano. As opções e a recomendação de cada uma estão no documen
 |---|---|---|---|---|
 | D1 | Qual aresta é a "da referência": autor → responsável vigente (igual à referência) ou quem designou → designado (`AssignedEvent`, com data) | autor → responsável, com o nome "designação" | [revisao-semantica.md](revisao-semantica.md) | **(a)** autor da issue → responsável vigente, com o nome "designação" |
 | D2 | Rótulos do papel e corte baixo: posicionais e 20, ou os da referência e 30 | posicionais e 20 | revisao-semantica.md | **(a)** rótulos posicionais, corte baixo 20 |
-| D3 | Como a conta da organização é reconhecida (e se vale para a rede de revisão da 073) | a administração marca, com as guardas de seguranca.md R8 | revisao-semantica.md; seguranca.md R8 | **(a)** a administração marca a conta da organização, com as guardas da R8. Se a marca vale também para a rede de revisão da 073 não foi decidido (revisao-semantica-2.md, A7) |
+| D3 | Como a conta da organização é reconhecida (e se vale para a rede de revisão da 073) | a administração marca, com as guardas de seguranca.md R8 | revisao-semantica.md; seguranca.md R8 | **(a)** a administração marca a conta da organização, com as guardas da R8. **A7, decidida em 2026-10-04 (T002, #1326)**: a marca vale **também** para a rede de revisão da 073, com `review.network.edge` na versão 2 (`organization_account` entre `bot_or_app` e `unlinked_person`); T027 fica no backlog |
 | D4 | Intermediação sem direção ou dirigida | sem direção | revisao-semantica.md | **(a)** intermediação sem direção |
 | D5 | Clustering exclui quem tem menos de 2 vizinhos, ou conta 0 | excluir e dizer quantos | revisao-semantica.md | **(a)** quem tem menos de 2 vizinhos fica fora do clustering, e a tela diz quantos |
 | D6 | Segundo revisor do papel semântico antes do plano | sim | revisao-semantica.md | **(a)** segundo revisor independente: [revisao-semantica-2.md](revisao-semantica-2.md) |
@@ -393,3 +393,12 @@ Bloqueavam o plano. As opções e a recomendação de cada uma estão no documen
 | DS3 | O total de uma pessoa alcançada: verdadeiro, ou separado em "with people you reach" / "in total" | total verdadeiro, com o risco residual escrito | seguranca.md | **(a)** total verdadeiro, com o risco residual escrito |
 | DS4 | A #1185: corrigir a frase ou incluir a liderança declarada | corrigir a frase | seguranca.md | **(a)** a #1185 se resolve corrigindo a frase |
 | DS5 | Conta sem alcance: vê tudo agregado, ou só as medidas da rede e o próprio perfil | só medidas e o próprio perfil | seguranca.md | **(b)** só as medidas da rede e o próprio perfil |
+
+**Decisões de 2026-10-04 sobre o plano** ([plan.md](plan.md), *Decisões a confirmar*), todas iguais à opção padrão, registradas na T002 ([#1326](https://github.com/The-Band-Solution/theband/issues/1326)):
+
+| # | Pergunta | Decisão (2026-10-04) |
+|---|---|---|
+| A7 | A marca de conta da organização vale também para a rede de revisão da 073? | **sim**: `review.network.edge` versão 2, coluna anulável na leitura da 073 (T027) |
+| R10, item 8 | Os *"três mais centrais"* de cada comunidade seguem a DS1? | **sim**: só aparecem com escopo concedido ou para a administração (T037) |
+| R21 | Comunidade rotulada por letra ou por número? | **letra** (A, B, …), como no protótipo aprovado (T037) |
+| Escopo | O que entra no sprint 041 | **Fundação + US1–US3** (T001–T034); US4–US9 e o acabamento ficam para o sprint seguinte |
