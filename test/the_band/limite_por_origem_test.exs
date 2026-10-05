@@ -11,6 +11,7 @@ defmodule TheBand.LimitePorOrigemTest do
   import ExUnit.CaptureLog
 
   alias TheBand.LimitePorOrigem
+  alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Origem
   alias TheBand.OrigemDeTeste
 
@@ -26,7 +27,7 @@ defmodule TheBand.LimitePorOrigemTest do
 
   test "a regra da base de conhecimento é a que o teste supõe" do
     {:ok, %{"rules" => %{"failure_limit" => %{"values" => v}}}} =
-      TheBand.Ontology.KnowledgeBase.rule("access.origin_limit")
+      KnowledgeBase.rule("access.origin_limit")
 
     assert v["failures"] == @limite
     assert v["window_seconds"] == @janela

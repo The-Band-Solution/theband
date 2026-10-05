@@ -21,6 +21,8 @@ defmodule TheBand.Origem do
 
   import Bitwise
 
+  alias TheBand.Ontology.KnowledgeBase
+
   @enforce_keys [:chave, :estado, :prefixo]
   defstruct [:chave, :estado, :prefixo]
 
@@ -164,7 +166,7 @@ defmodule TheBand.Origem do
   # Os bits moram na base de conhecimento (`access.origin_limit`, `origin_key`), lidos a cada
   # chamada, como os da `ApiRateLimit`. Regra ausente é base incompleta, e quebra alto.
   defp bits_da_regra(campo) do
-    case TheBand.Ontology.KnowledgeBase.rule("access.origin_limit") do
+    case KnowledgeBase.rule("access.origin_limit") do
       {:ok, %{"rules" => %{"origin_key" => %{"values" => v}}}} -> Map.fetch!(v, to_string(campo))
       _ -> raise "regra access.origin_limit/origin_key ausente da base de conhecimento"
     end

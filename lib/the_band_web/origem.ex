@@ -46,13 +46,16 @@ defmodule TheBandWeb.Origem do
       |> Enum.flat_map(&String.split(&1, ","))
       |> Enum.reverse()
 
-    Enum.reduce_while(valores, conn.remote_ip, fn valor, _ ->
-      case Origem.analisar_estrito(valor) do
-        {:ok, ip} -> if confiavel?(ip, proxies), do: {:cont, conn.remote_ip}, else: {:halt, ip}
-        :error -> {:halt, conn.remote_ip}
-      end
+    Enum.reduce_while(valores, conn.remote_ip, fn valor, socket ->
+      um_valor(Origem.analisar_estrito(valor), socket, proxies)
     end)
   end
+
+  # Proxy confiável: segue para a esquerda. Outro endereço: é a origem. Malformado: o socket.
+  defp um_valor({:ok, ip}, socket, proxies),
+    do: if(confiavel?(ip, proxies), do: {:cont, socket}, else: {:halt, ip})
+
+  defp um_valor(:error, socket, _proxies), do: {:halt, socket}
 
   defp confiavel?(ip, proxies), do: Enum.any?(proxies, &Origem.pertence?(ip, &1))
 end

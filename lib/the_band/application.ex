@@ -5,6 +5,7 @@ defmodule TheBand.Application do
 
   use Application
 
+  alias TheBand.Origem.Configuracao
   alias TheBand.Repo.LogDaConsulta
   alias TheBand.Telemetria.Contadores
   alias TheBand.Telemetria.Jornada
@@ -102,7 +103,7 @@ defmodule TheBand.Application do
   # limite está no ar e não recusa, e quem lê o log do deploy precisa saber disso sem procurar.
   defp dizer_o_estado_da_origem do
     config = Application.get_env(:the_band, :origem, %{estado: :nao_declarada})
-    frase = TheBand.Origem.Configuracao.frase(config)
+    frase = Configuracao.frase(config)
 
     if config.estado == :nao_declarada, do: Logger.warning(frase), else: Logger.info(frase)
   end
