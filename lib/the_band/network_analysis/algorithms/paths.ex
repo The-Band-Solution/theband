@@ -42,15 +42,14 @@ defmodule TheBand.NetworkAnalysis.Algorithms.Paths do
   defp bfs(adjacencia, fronteira, d, vistos) do
     {proxima, vistos} =
       Enum.reduce(fronteira, {[], vistos}, fn u, acc ->
-        adjacencia
-        |> Map.get(u, %{})
-        |> Map.keys()
-        |> Enum.reduce(acc, fn v, {prox, vis} ->
-          if Map.has_key?(vis, v), do: {prox, vis}, else: {[v | prox], Map.put(vis, v, d)}
-        end)
+        adjacencia |> Map.get(u, %{}) |> Map.keys() |> Enum.reduce(acc, &visitar(&1, &2, d))
       end)
 
     bfs(adjacencia, proxima, d + 1, vistos)
+  end
+
+  defp visitar(v, {prox, vis}, d) do
+    if Map.has_key?(vis, v), do: {prox, vis}, else: {[v | prox], Map.put(vis, v, d)}
   end
 
   @doc """

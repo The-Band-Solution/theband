@@ -165,15 +165,7 @@ defmodule TheBand.NetworkAnalysis.View do
 
     case com_valor do
       [] ->
-        motivo =
-          Enum.find_value(candidatos, :no_edge_in_window, fn n ->
-            case valor.(n) do
-              {:ausente, m} -> m
-              _ -> nil
-            end
-          end)
-
-        {:ausente, motivo}
+        {:ausente, Enum.find_value(candidatos, :no_edge_in_window, &motivo_de(valor.(&1)))}
 
       _ ->
         linhas =
@@ -194,6 +186,9 @@ defmodule TheBand.NetworkAnalysis.View do
          end)}
     end
   end
+
+  defp motivo_de({:ausente, motivo}), do: motivo
+  defp motivo_de(_valor), do: nil
 
   # O último da lista empatado com quem ficou de fora dela também é marcado: o corte não decidiu.
   defp empatado_fora?(com_valor, v, linhas) do
