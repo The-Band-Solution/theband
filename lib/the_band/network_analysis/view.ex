@@ -63,7 +63,8 @@ defmodule TheBand.NetworkAnalysis.View do
              }}
             | {:recortado, :no_reach}
             | {:ausente, :no_edge_in_window},
-          communities: {:ok, map()} | {:recortado, :no_reach} | {:ausente, atom()}
+          communities: {:ok, map()} | {:recortado, :no_reach} | {:ausente, atom()},
+          hubs: {:ok, map()} | {:recortado, atom()} | {:ausente, atom()}
         }
 
   @doc """
