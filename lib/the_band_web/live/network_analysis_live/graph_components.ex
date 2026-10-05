@@ -442,9 +442,9 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
         <dt class="opacity-70">betweenness</dt>
         <dd>{intermediacao(p.betweenness)}</dd>
         <dt class="opacity-70">closeness</dt>
-        <dd><.absent reason="not calculated by the platform yet" /></dd>
+        <dd>{proximidade(p)}</dd>
         <dt class="opacity-70">eigenvector</dt>
-        <dd><.absent reason="not calculated by the platform yet" /></dd>
+        <dd>{autovetor(Map.get(p, :eigenvector))}</dd>
         <dt class="opacity-70">position</dt>
         <dd><.absent reason="not calculated by the platform yet" /></dd>
       </dl>
@@ -691,6 +691,24 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
   defp intermediacao({:ok, v}), do: "on #{round(v * 100)}% of the shortest paths between others"
   defp intermediacao({:ausente, :network_too_small}), do: "not calculated: fewer than 3 people"
   defp intermediacao({:ausente, _}), do: "not calculated in this reading"
+
+  # FR-035: a proximidade dita como distância média até quem a pessoa alcança, e quantas — nunca
+  # 1/proximidade.
+  defp proximidade(%{distance_mean: {:ok, %{mean: m, reaches: r}}}),
+    do: "reaches #{r} #{pessoas(r)}, in #{num(m)} steps on average"
+
+  defp proximidade(_p), do: "not calculated in this reading"
+
+  # O autovetor como está na leitura, de 0 a 1 com duas casas: comparável só dentro do grupo
+  # (componente). A escala 0–100 relativa ao maior do protótipo não é usada: com alcance
+  # parcial, o 100 poderia ser de alguém de fora, e diria onde ele está (R1).
+  defp autovetor({:ok, v}),
+    do: "#{:erlang.float_to_binary(v * 1.0, decimals: 2)} (comparable only within its group)"
+
+  defp autovetor({:ausente, :did_not_converge}),
+    do: "not calculated: the calculation did not settle"
+
+  defp autovetor(_), do: "not calculated in this reading"
 
   # Os verbos dizem o que a aresta liga, e só isso (D1): na designação, quem abriu a issue e quem
   # é responsável por ela, nunca quem designou.

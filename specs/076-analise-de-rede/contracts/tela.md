@@ -116,6 +116,20 @@ Componente `GraphComponents.graph/1`, SVG inline. Restrições, todas testáveis
   `sem_aresta/1`): a leitura comum das páginas de análise, na terceira cópia (§7.7). A página
   Graph passou a usá-la.
 
+**Emenda de 2026-10-05 (T040)**, feita no mesmo commit da implementação:
+
+- `NetworkAnalysisLive.Hubs` em `/network-analysis/:organization_id/hubs` (3.4.1–3.4.4): quatro
+  listas do tamanho da base, empate pelo identificador e marcado *"tied"* (o protótipo dizia
+  *"ties ordered by name"*; vale a base, R21);
+- **o autovetor aparece como está na leitura, de 0 a 1, com duas casas**, e não na escala 0–100
+  relativa ao maior do protótipo (3.2.5, 3.4.1). Com alcance parcial o maior do componente pode
+  ser alguém de fora, e o 100 diria onde ele está (R1 da segurança). **Divergência do protótipo
+  aprovado, a confirmar com a pessoa mantenedora** (recomendação: manter 0–1);
+- o cartão do grafo (3.2.5) passa a mostrar a proximidade (*"reaches N people, in M steps on
+  average"*) e o autovetor; a posição continua ausente até a T045;
+- sem escopo concedido, a página diz que os hubs com nome de outras pessoas não estão
+  disponíveis e mostra a frase de não-avaliação; sem alcance (DS5), nenhuma lista.
+
 ## O que estas telas não oferecem
 
 Botão de exportar, `download`, `Content-Disposition`, *"copy as image"*, folha de impressão do

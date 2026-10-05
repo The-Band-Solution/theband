@@ -144,7 +144,8 @@ defmodule TheBand.NetworkAnalysis.Reader do
         View.build(leitura, reach, granted, viewer, %{
           min_group: parametros.min_group,
           gone: gone,
-          core_size: parametros.community_core_size
+          core_size: parametros.community_core_size,
+          hubs_size: parametros.hubs_size
         })
 
       {:ok,
@@ -152,6 +153,7 @@ defmodule TheBand.NetworkAnalysis.Reader do
        |> Map.drop([:granted, :viewer_person_id])
        |> nomear(nomes)
        |> nomear_comunidades(nomes, parametros)
+       |> nomear_hubs(nomes)
        |> desenhar(leitura, parametros)
        |> Map.merge(%{
          counts: contagens(leitura, visao),
@@ -247,6 +249,32 @@ defmodule TheBand.NetworkAnalysis.Reader do
   end
 
   defp nomear_comunidades(visao, _nomes, _parametros), do: visao
+
+  # As listas de hubs ficam na ordem da medida (FR-034: são o único ranking, por terem sido
+  # pedidas); aqui só ganham o nome.
+  defp nomear_hubs(%{hubs: {:ok, h}} = visao, nomes) do
+    com_nome = fn
+      {:ok, linhas} ->
+        {:ok, Enum.map(linhas, &Map.put(&1, :name, Map.fetch!(nomes, &1.person_id)))}
+
+      ausente ->
+        ausente
+    end
+
+    %{
+      visao
+      | hubs:
+          {:ok,
+           %{
+             degree: com_nome.(h.degree),
+             betweenness: com_nome.(h.betweenness),
+             closeness: com_nome.(h.closeness),
+             eigenvector: Enum.map(h.eigenvector, &%{&1 | rows: com_nome.(&1.rows)})
+           }}
+    }
+  end
+
+  defp nomear_hubs(visao, _nomes), do: visao
 
   # O que o desenho precisa, decidido aqui e não na tela (T031, T033; R9, R16):
   #
