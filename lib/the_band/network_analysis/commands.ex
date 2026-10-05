@@ -13,7 +13,8 @@ defmodule TheBand.NetworkAnalysis.Commands do
      `checked_at` avança, e o relator diz `:unchanged` (A15);
   3. aplica o **teto** (R5): acima dele, σ, Q_rand, a eficiência dos aleatórios e o layout ficam
      ausentes com `network_too_large_for_platform` e **não rodam** (A16);
-  4. monta a leitura com o que já existe (graus, componentes);
+  4. monta a leitura: graus, componentes, intermediação, posições, comunidades e modularidade
+     (T035), e a modularidade dos aleatórios equivalentes (T036);
   5. substitui **só** `(tenant, organização, rede, janela)`, numa transação, com `Repo.insert/1`
      (A21, A18).
 
@@ -22,16 +23,18 @@ defmodule TheBand.NetworkAnalysis.Commands do
   Não lê relógio (`now` vem de quem chama), não registra log (o job registra a partir do relator,
   que só tem contagens: A19), e não grava percentil nem papel (R17).
 
-  Depende de: `Algorithms.Projection`, `Algorithms.Betweenness`,
-  `Algorithms.Layout`, `Parameters`, `Notices`; nenhuma
-  tabela de ontologia.
+  Depende de: `Algorithms.Projection`, `Algorithms.Betweenness`, `Algorithms.Communities`,
+  `Algorithms.SmallWorld`, `Algorithms.Layout`, `Parameters`, `Notices`; nenhuma tabela de
+  ontologia.
   """
 
   import Ecto.Query
 
   alias TheBand.NetworkAnalysis.Algorithms.Betweenness
+  alias TheBand.NetworkAnalysis.Algorithms.Communities
   alias TheBand.NetworkAnalysis.Algorithms.Layout
   alias TheBand.NetworkAnalysis.Algorithms.Projection
+  alias TheBand.NetworkAnalysis.Algorithms.SmallWorld
   alias TheBand.NetworkAnalysis.Inputs
   alias TheBand.NetworkAnalysis.Notices
   alias TheBand.NetworkAnalysis.Parameters
@@ -45,6 +48,12 @@ defmodule TheBand.NetworkAnalysis.Commands do
   # O que ESTE código deixa de rodar acima do teto, nos nomes do relator — os de
   # `network.analysis.parameters.size_limit.absent_above`. O teste de A16 confere a leitura.
   @acima_do_teto [:sigma, :q_rand, :efficiency_rand, :layout]
+
+  # O que ESTE código calcula, e entra na impressão digital. Sem isso, a leitura gravada antes de
+  # uma medida existir teria a mesma impressão da nova e nunca seria recalculada: as arestas e a
+  # base não mudaram, mas o que se grava sobre elas mudou. Cresce com cada tarefa que acrescenta
+  # medida à leitura.
+  @calculo ~w(degrees components betweenness layout communities modularity q_rand)
 
   @type entrada :: %{
           edges: [%{source: Ecto.UUID.t(), target: Ecto.UUID.t(), weight: pos_integer()}],
@@ -161,6 +170,9 @@ defmodule TheBand.NetworkAnalysis.Commands do
     intermediacao =
       Betweenness.brandes(projecao.adjacency, %{min_people: parametros.betweenness_min_people})
 
+    # Sem aresta não há comunidade: a leitura grava a ausência, e nenhum nó (T035).
+    comunidades = if projecao.nodes == [], do: nil, else: Communities.greedy(projecao.adjacency)
+
     # Acima do teto o layout não roda (A16): o nó fica sem x/y, e a leitura diz por quê.
     posicoes =
       if acima?,
@@ -171,6 +183,9 @@ defmodule TheBand.NetworkAnalysis.Commands do
             projecao.adjacency,
             Map.take(parametros.layout, [:seed, :iterations])
           )
+
+    internos =
+      comunidades && Communities.internal_degree(projecao.adjacency, comunidades.partition)
 
     componente_de =
       for {membros, i} <- Enum.with_index(componentes, 1), id <- membros, into: %{}, do: {id, i}
@@ -189,6 +204,7 @@ defmodule TheBand.NetworkAnalysis.Commands do
           "component" => Map.fetch!(componente_de, id),
           "betweenness" => medida_gravada(Map.fetch!(intermediacao, id))
         }
+        |> com_comunidade(comunidades, internos, id)
         |> com_posicao(Map.get(posicoes, id))
       end
 
@@ -198,6 +214,8 @@ defmodule TheBand.NetworkAnalysis.Commands do
         "undirected_edges" => projecao.edges,
         "components" => Enum.map(componentes, &length/1)
       }
+      |> Map.merge(modularidade(comunidades))
+      |> Map.merge(aleatorios(projecao, acima?, parametros))
       |> Map.merge(if acima?, do: ausentes_por_teto(), else: %{})
 
     %{
@@ -216,7 +234,7 @@ defmodule TheBand.NetworkAnalysis.Commands do
       exclusions: entrada.exclusions,
       people_without_edges: entrada.people_without_edges,
       nodes: nos,
-      communities: [],
+      communities: comunidades_gravadas(projecao, comunidades),
       measures: medidas,
       provenance:
         Map.merge(entrada.provenance, %{
@@ -229,6 +247,62 @@ defmodule TheBand.NetworkAnalysis.Commands do
         })
     }
   end
+
+  defp com_comunidade(no, nil, _internos, _id), do: no
+
+  defp com_comunidade(no, %{partition: p}, internos, id),
+    do: Map.merge(no, %{"community" => Map.fetch!(p, id), "internal_degree" => internos[id]})
+
+  defp comunidades_gravadas(_projecao, nil), do: []
+
+  defp comunidades_gravadas(projecao, %{partition: p}) do
+    for c <- Communities.summary(projecao.adjacency, p) do
+      %{
+        "index" => c.index,
+        "members" => c.members,
+        "internal_edges" => c.internal_edges,
+        "outside_edges" => c.outside_edges
+      }
+    end
+  end
+
+  # FR-029: a modularidade com o número de comunidades; sem aresta, ausente (data-model §1.3).
+  defp modularidade(nil), do: %{"modularity" => %{"absent" => "no_edge_in_window"}}
+
+  defp modularidade(%{partition: p, modularity: q}),
+    do: %{
+      "modularity" => %{
+        "value" => q,
+        "communities" => p |> Map.values() |> Enum.uniq() |> length()
+      }
+    }
+
+  # Os aleatórios equivalentes (R7, R8). Acima do teto não rodam (A16): `ausentes_por_teto/0`
+  # grava o motivo por cima. Sem aresta não há aleatório equivalente.
+  defp aleatorios(_projecao, true, _parametros), do: %{}
+
+  defp aleatorios(%{nodes: []}, false, _parametros),
+    do: %{"random" => %{"absent" => "no_edge_in_window"}}
+
+  defp aleatorios(projecao, false, parametros) do
+    bateria =
+      SmallWorld.random_battery(
+        projecao.adjacency,
+        Map.take(parametros.small_world, [:random_graphs, :seed])
+      )
+
+    %{
+      "random" => %{
+        "graphs" => bateria.graphs,
+        "modularity" => com_contagem(bateria.modularity)
+      }
+    }
+  end
+
+  defp com_contagem({:ok, %{value: v, graphs_defined: n}}),
+    do: %{"value" => v, "graphs_defined" => n}
+
+  defp com_contagem({:ausente, motivo}), do: %{"absent" => Atom.to_string(motivo)}
 
   defp com_posicao(no, nil), do: no
   defp com_posicao(no, {x, y}), do: Map.merge(no, %{"x" => x, "y" => y})
@@ -266,7 +340,8 @@ defmodule TheBand.NetworkAnalysis.Commands do
       arestas,
       entrada.exclusions |> Enum.sort(),
       entrada.people_without_edges,
-      versoes |> Enum.sort()
+      versoes |> Enum.sort(),
+      @calculo
     ]
 
     :sha256 |> :crypto.hash(:erlang.term_to_binary(canonico)) |> Base.encode16(case: :lower)

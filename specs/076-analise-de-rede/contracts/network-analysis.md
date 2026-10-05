@@ -333,6 +333,18 @@ quando se declara ou revoga. Opção (b) da revisão:
   sincronização seguinte (`sync_github_eo` → `ComputeReviewNetwork` → `ComputeNetworkAnalysis`);
 - a rede de designação não muda: ela não depende da 073.
 
+**Emenda de 2026-10-05 (T035, T036)**, feita no mesmo commit da implementação:
+
+- a leitura grava `nodes[].community` e `nodes[].internal_degree`, `communities` (`index`,
+  `members`, `internal_edges`, `outside_edges`), `measures.modularity` (`value` e `communities`) e
+  `measures.random` (`graphs` e `modularity` com `graphs_defined`). Sem aresta, `modularity` e
+  `random` são `{"absent": "no_edge_in_window"}`; acima do teto, `random` é
+  `network_too_large_for_platform`;
+- **a impressão digital leva também a lista do que o código calcula** (`@calculo` em
+  `Commands`). Sem ela, a leitura gravada antes de uma medida existir teria a mesma impressão da
+  nova — as arestas e a base não mudaram — e nunca seria recalculada: ficaria para sempre sem a
+  medida. A lista cresce com cada tarefa que acrescenta medida à leitura.
+
 ## `discard_organization/2`
 
 ```elixir

@@ -117,6 +117,15 @@ Nunca o dicionário do processo. Duas chamadas com o mesmo estado dão a mesma s
 Os 100 grafos G(n, m) na mesma sequência; os pesos reais sorteados para o Q_rand (R8). Toda média
 divide pelo número de grafos em que a medida está definida, que é devolvido.
 
+**Emenda de 2026-10-05 (T036)**, no mesmo commit da implementação: `random_battery/2` devolve
+também `graphs` (quantos foram gerados), e cada medida com contagem é `{:ok, %{value, graphs_defined}}`
+ou `{:ausente, motivo}`. Nesta tarefa ela calcula só `modularity`; `clustering`,
+`average_distance`, `diameter`, `global_efficiency` e `reachable_share` entram com T041 e T043,
+no mesmo laço e na mesma sequência — nenhuma delas consome o gerador, e o Q_rand não muda quando
+elas entram. Os pesos de cada aleatório são os da projeção real em ordem crescente do par,
+embaralhados por `Random.shuffle/2` depois dos pares do mesmo grafo, e dados aos pares na ordem
+do sorteio. Exige ao menos uma ligação: sem ela, quem chama grava `no_edge_in_window`.
+
 ## `Algorithms.Layout`
 
 ```elixir
