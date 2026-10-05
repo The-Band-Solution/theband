@@ -23,6 +23,7 @@ defmodule TheBand.AI do
   alias TheBand.Integrations.LLM.HTTP
   alias TheBand.Repo
   alias TheBand.Segredo
+  alias TheBand.Tenants.AccessEvents
   alias TheBand.Tenants.Tenant
 
   @base_url "https://api.openai.com"
@@ -140,46 +141,72 @@ defmodule TheBand.AI do
       agora = DateTime.utc_now(:second)
       anterior = existente(tenant, provider)
 
+      # Uma classificação só, e ela decide as datas, o declarante e o evento (#1221, condição 7).
+      ato = classificar(anterior, secret)
+
       atributos = %{
         tenant_id: tenant_id,
         provider: provider,
         base_url: @base_url,
         default_model: modelo,
         secret: secret,
-        declared_by_user_id: user_id,
         validated_at: agora,
         last_failure_at: nil,
         last_failure_reason: nil
       }
 
-      # As datas da troca são calculadas aqui e postas fora do `cast`: vindas de quem chama,
-      # uma data recente forjada esconderia uma credencial vencida (achado 2 da avaliação).
+      # As datas da troca e o declarante são calculados aqui e postos fora do `cast`. Vindas de
+      # quem chama, uma data recente forjada esconderia uma credencial vencida (achado 2 da
+      # avaliação).
       # `log: false`: em nível `:debug`, o Ecto registra os parâmetros da consulta **antes** de
       # o tipo cifrar — a chave nova sairia em claro no log (medido em 2026-10-03, condição 4
       # do parecer C.1, `test/the_band_web/live/mesma_chave_test.exs`). Produção roda em
       # `:info` e não emitia; desenvolvimento, sim.
-      anterior
-      |> ProviderCredential.changeset(atributos)
-      |> Ecto.Changeset.change(data_da_troca(anterior, secret, agora))
-      |> Repo.insert_or_update(log: false)
+      resultado =
+        anterior
+        |> ProviderCredential.changeset(atributos)
+        |> Ecto.Changeset.change(campos_do_ato(ato, anterior, agora, user_id))
+        |> Repo.insert_or_update(log: false)
+
+      # Só depois do commit: recusa e erro de changeset não deixam evento (condição 4).
+      with {:ok, _} <- resultado, do: AccessEvents.chave_do_modelo(ato, tenant_id, user_id)
+
+      resultado
     end
   end
+
+  defp classificar(%ProviderCredential{id: nil}, _secret), do: :primeira
+
+  defp classificar(%ProviderCredential{secret: gravado}, secret),
+    do: if(mesma_chave?(gravado, secret), do: :mesma_chave, else: :troca)
 
   # 064/T019, FR-018: trocar o segredo zera a contagem da idade e guarda desde quando valia o
   # anterior. Regravar a mesma chave (para trocar o modelo, por exemplo) **não** é troca, e não
   # zera nada — senão a cobrança acharia atendida uma troca que não aconteceu.
-  defp data_da_troca(%ProviderCredential{id: nil}, _secret, agora),
-    do: %{secret_set_at: agora, previous_secret_set_at: nil}
+  #
+  # #1221: o declarante é quem pôs a chave em uso. Na mesma chave, fica o anterior. É
+  # `Ecto.Changeset.change/2`, e **nunca** `force_change/3`: com o valor igual ao do registro
+  # lido, o Ecto descarta a mudança. Por isso, sob concorrência, uma `:mesma_chave` obsoleta não
+  # regrava o declarante antigo por cima de uma troca recém-commitada (parecer, S4).
+  defp campos_do_ato(:primeira, _anterior, agora, user_id),
+    do: %{secret_set_at: agora, previous_secret_set_at: nil, declared_by_user_id: user_id}
 
-  defp data_da_troca(%ProviderCredential{secret: gravado} = anterior, secret, agora) do
-    if mesma_chave?(gravado, secret) do
-      # Não é troca, mas `validated_at` vai ser reescrito com `agora`. Numa linha anterior à
-      # migração (`secret_set_at` nulo) a idade cai em `validated_at`, e voltaria a zero sem
-      # troca nenhuma. Fixar aqui o início que valia antes da gravação o impede.
-      %{secret_set_at: Idade.em_uso_desde(anterior)}
-    else
-      %{secret_set_at: agora, previous_secret_set_at: Idade.em_uso_desde(anterior)}
-    end
+  defp campos_do_ato(:mesma_chave, anterior, _agora, _user_id) do
+    # Não é troca, mas `validated_at` vai ser reescrito com `agora`. Numa linha anterior à
+    # migração (`secret_set_at` nulo) a idade cai em `validated_at`, e voltaria a zero sem
+    # troca nenhuma. Fixar aqui o início que valia antes da gravação o impede.
+    %{
+      secret_set_at: Idade.em_uso_desde(anterior),
+      declared_by_user_id: anterior.declared_by_user_id
+    }
+  end
+
+  defp campos_do_ato(:troca, anterior, agora, user_id) do
+    %{
+      secret_set_at: agora,
+      previous_secret_set_at: Idade.em_uso_desde(anterior),
+      declared_by_user_id: user_id
+    }
   end
 
   # Comparação em memória e em tempo constante; nenhuma das duas sai daqui, e o resultado não é
@@ -189,12 +216,19 @@ defmodule TheBand.AI do
 
   defp mesma_chave?(_gravado, _novo), do: false
 
-  @doc "Apaga a credencial. O segredo some — não há histórico de segredo."
-  @spec delete(Tenant.t(), String.t()) :: :ok | {:error, :not_found}
-  def delete(%Tenant{} = tenant, provider \\ "openai") do
+  @doc """
+  Apaga a credencial. O segredo some, e não há histórico de segredo.
+
+  Quem apagou fica no evento `:removida` (#1221, condição 1). Sem ele, apagar e gravar de novo
+  apareceria no log como `:primeira`, sem ninguém para a remoção. Nesse intervalo o tenant cai
+  no `API_KEY` do ambiente, que é compartilhado. Sem linha a remover, não há evento.
+  """
+  @spec delete(Tenant.t(), Ecto.UUID.t() | nil, String.t()) :: :ok | {:error, :not_found}
+  def delete(%Tenant{id: tenant_id} = tenant, actor_user_id \\ nil, provider \\ "openai") do
     case fetch(tenant, provider) do
       {:ok, cred} ->
         Repo.delete!(cred)
+        AccessEvents.chave_do_modelo(:removida, tenant_id, actor_user_id)
         :ok
 
       erro ->
