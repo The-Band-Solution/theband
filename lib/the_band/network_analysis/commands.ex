@@ -14,7 +14,8 @@ defmodule TheBand.NetworkAnalysis.Commands do
   3. aplica o **teto** (R5): acima dele, σ, Q_rand, a eficiência dos aleatórios e o layout ficam
      ausentes com `network_too_large_for_platform` e **não rodam** (A16);
   4. monta a leitura: graus, componentes, intermediação, posições, comunidades e modularidade
-     (T035), e a modularidade dos aleatórios equivalentes (T036);
+     (T035), a modularidade dos aleatórios equivalentes (T036), a proximidade e a distância média
+     de cada pessoa (T038) e o autovetor por componente (T039);
   5. substitui **só** `(tenant, organização, rede, janela)`, numa transação, com `Repo.insert/1`
      (A21, A18).
 
@@ -24,7 +25,7 @@ defmodule TheBand.NetworkAnalysis.Commands do
   que só tem contagens: A19), e não grava percentil nem papel (R17).
 
   Depende de: `Algorithms.Projection`, `Algorithms.Betweenness`, `Algorithms.Communities`,
-  `Algorithms.SmallWorld`, `Algorithms.Layout`, `Parameters`, `Notices`; nenhuma tabela de
+  `Algorithms.SmallWorld`, `Algorithms.Paths`, `Algorithms.Eigenvector`, `Algorithms.Layout`, `Parameters`, `Notices`; nenhuma tabela de
   ontologia.
   """
 
@@ -32,7 +33,9 @@ defmodule TheBand.NetworkAnalysis.Commands do
 
   alias TheBand.NetworkAnalysis.Algorithms.Betweenness
   alias TheBand.NetworkAnalysis.Algorithms.Communities
+  alias TheBand.NetworkAnalysis.Algorithms.Eigenvector
   alias TheBand.NetworkAnalysis.Algorithms.Layout
+  alias TheBand.NetworkAnalysis.Algorithms.Paths
   alias TheBand.NetworkAnalysis.Algorithms.Projection
   alias TheBand.NetworkAnalysis.Algorithms.SmallWorld
   alias TheBand.NetworkAnalysis.Inputs
@@ -53,7 +56,8 @@ defmodule TheBand.NetworkAnalysis.Commands do
   # uma medida existir teria a mesma impressão da nova e nunca seria recalculada: as arestas e a
   # base não mudaram, mas o que se grava sobre elas mudou. Cresce com cada tarefa que acrescenta
   # medida à leitura.
-  @calculo ~w(degrees components betweenness layout communities modularity q_rand)
+  @calculo ~w(degrees components betweenness layout communities modularity q_rand closeness
+              person_distance eigenvector)
 
   @type entrada :: %{
           edges: [%{source: Ecto.UUID.t(), target: Ecto.UUID.t(), weight: pos_integer()}],
@@ -170,6 +174,12 @@ defmodule TheBand.NetworkAnalysis.Commands do
     intermediacao =
       Betweenness.brandes(projecao.adjacency, %{min_people: parametros.betweenness_min_people})
 
+    # As distâncias em passos de cada pessoa (T038), e o autovetor por componente (T039).
+    distancias = Paths.all_pairs(projecao.adjacency)
+    proximidade = Paths.closeness(distancias, length(projecao.nodes))
+    distancia_da_pessoa = Paths.person_distance(distancias)
+    autovetor = Eigenvector.by_component(projecao.adjacency, componentes, parametros.eigenvector)
+
     # Sem aresta não há comunidade: a leitura grava a ausência, e nenhum nó (T035).
     comunidades = if projecao.nodes == [], do: nil, else: Communities.greedy(projecao.adjacency)
 
@@ -202,7 +212,10 @@ defmodule TheBand.NetworkAnalysis.Commands do
           "out_weight" => g.out_weight,
           "in_weight" => g.in_weight,
           "component" => Map.fetch!(componente_de, id),
-          "betweenness" => medida_gravada(Map.fetch!(intermediacao, id))
+          "betweenness" => medida_gravada(Map.fetch!(intermediacao, id)),
+          "closeness" => medida_gravada(Map.fetch!(proximidade, id)),
+          "distance_mean" => distancia_gravada(Map.fetch!(distancia_da_pessoa, id)),
+          "eigenvector" => medida_gravada(Map.fetch!(autovetor, id))
         }
         |> com_comunidade(comunidades, internos, id)
         |> com_posicao(Map.get(posicoes, id))
@@ -247,6 +260,9 @@ defmodule TheBand.NetworkAnalysis.Commands do
         })
     }
   end
+
+  defp distancia_gravada({:ok, %{mean: m, reaches: r}}), do: %{"value" => m, "reaches" => r}
+  defp distancia_gravada({:ausente, motivo}), do: %{"absent" => Atom.to_string(motivo)}
 
   defp com_comunidade(no, nil, _internos, _id), do: no
 
