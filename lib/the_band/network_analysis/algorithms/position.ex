@@ -92,26 +92,20 @@ defmodule TheBand.NetworkAnalysis.Algorithms.Position do
     confere_ordem!(regra)
     %{high_above: alto, median_above: mediana, low_below: baixo} = regra
 
-    {codigo, corte} =
-      cond do
-        g > alto and b > alto ->
-          {"central_position", "degree > #{alto} and betweenness > #{alto}"}
+    # Os cortes na ordem implementada (`order/0`, conferida contra a base); o primeiro que se
+    # aplica decide.
+    cortes = [
+      {"central_position", g > alto and b > alto, "degree > #{alto} and betweenness > #{alto}"},
+      {"many_direct_links", g > alto, "degree > #{alto}"},
+      {"on_many_paths", b > alto, "betweenness > #{alto}"},
+      {"above_median_in_both", g > mediana and b > mediana,
+       "degree > #{mediana} and betweenness > #{mediana}"},
+      {"few_links_few_paths", g < baixo and b < baixo,
+       "degree < #{baixo} and betweenness < #{baixo}"},
+      {"mixed_position", true, "none of the cuts above"}
+    ]
 
-        g > alto ->
-          {"many_direct_links", "degree > #{alto}"}
-
-        b > alto ->
-          {"on_many_paths", "betweenness > #{alto}"}
-
-        g > mediana and b > mediana ->
-          {"above_median_in_both", "degree > #{mediana} and betweenness > #{mediana}"}
-
-        g < baixo and b < baixo ->
-          {"few_links_few_paths", "degree < #{baixo} and betweenness < #{baixo}"}
-
-        true ->
-          {"mixed_position", "none of the cuts above"}
-      end
+    {codigo, true, corte} = Enum.find(cortes, fn {_c, aplica?, _t} -> aplica? end)
 
     rotulo = Map.fetch!(regra.labels, codigo)
 

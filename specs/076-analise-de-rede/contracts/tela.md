@@ -143,6 +143,21 @@ Componente `GraphComponents.graph/1`, SVG inline. Restrições, todas testáveis
 - o protótipo dizia 50 aleatórios e σ *"not tested"* em rede partida; vale a base (100, e σ pelos
   pares que se alcançam; R21). As medidas aparecem para todo alcance, inclusive DS5.
 
+**Emenda de 2026-10-05 (T046, T048)**, feita no mesmo commit da implementação:
+
+- `NetworkAnalysisLive.Positions` em `/network-analysis/:organization_id/positions` (3.6.1–3.6.3):
+  a tabela por nome, sem ordenação por coluna; a posição é o **rótulo e a frase da base**, com os
+  dois percentis e o corte (o protótipo escrevia frases próprias, *"Linked mostly inside community
+  A…"*; vale `network.position_role`, FR-044, R21). A regra a um clique usa os limiares e os
+  rótulos da base, e nenhum número escrito na tela;
+- `NetworkAnalysisLive.Profile` em `/network-analysis/:organization_id/people/:person_id` (3.6.4,
+  Tela 8): as duas redes lado a lado (empilhadas no telefone), as contagens com os rótulos de
+  `network.degree.count`, grau e intermediação com o percentil, a posição, e as duas listas por
+  peso com o total; os pares de fora só somados. `Shared.profile_path/3` é o único caminho para
+  ele, usado só com pessoas da visão (alcançadas): a lista de posições, os membros das
+  comunidades e as linhas dos hubs levam ao perfil;
+- o cartão do grafo (3.2.5) passa a mostrar a posição, com a mesma regra DS1.
+
 ## O que estas telas não oferecem
 
 Botão de exportar, `download`, `Content-Disposition`, *"copy as image"*, folha de impressão do

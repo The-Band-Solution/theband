@@ -12,6 +12,7 @@ defmodule TheBand.NetworkAnalysis do
 
   - `read/4` — a **única** porta da leitura para quem consulta, recortada pelo alcance
     recalculado a cada chamada (FR-013, FR-015);
+  - `profile/5` — o perfil de uma pessoa nas duas redes, aberto só para quem a alcança (T047);
   - `selection/1` — os parâmetros do endereço, por texto exato, sem criar átomo (A12);
   - `options/0` — as listas fechadas para a tela desenhar os seletores;
   - `compute/3` — só o job chama;
@@ -24,6 +25,7 @@ defmodule TheBand.NetworkAnalysis do
   alias TheBand.NetworkAnalysis.{Commands, Notices, Reader}
 
   defdelegate read(tenant, user, organization_id, selection), to: Reader
+  defdelegate profile(tenant, user, organization_id, person_id, selection), to: Reader
   defdelegate selection(params), to: Reader
   defdelegate options(), to: Reader
   defdelegate compute(tenant, organization, now), to: Commands

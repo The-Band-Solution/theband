@@ -135,7 +135,12 @@ defmodule TheBandWeb.NetworkAnalysisLive.Hubs do
       <section id="hubs-grau" class="flex flex-col gap-2">
         <h2 class="font-semibold">Degree <Shared.marca tipo={:derivado} /></h2>
         <p class="text-sm">How many different people someone is linked to, in either direction.</p>
-        <.linhas lista={@h.degree} id="lista-grau">
+        <.linhas
+          organization_id={@organization_id}
+          selecao={@selecao}
+          lista={@h.degree}
+          id="lista-grau"
+        >
           <:valor :let={l}>
             <span class="block">linked to {pessoas(elem(l.value, 1))}</span>
             <span class="block text-xs opacity-70">
@@ -151,7 +156,12 @@ defmodule TheBandWeb.NetworkAnalysisLive.Hubs do
           How often someone lies on the shortest path between two other people: a bridge between
           groups.
         </p>
-        <.linhas lista={@h.betweenness} id="lista-intermediacao">
+        <.linhas
+          organization_id={@organization_id}
+          selecao={@selecao}
+          lista={@h.betweenness}
+          id="lista-intermediacao"
+        >
           <:valor :let={l}>{caminhos(elem(l.value, 1))}</:valor>
         </.linhas>
       </section>
@@ -161,7 +171,12 @@ defmodule TheBandWeb.NetworkAnalysisLive.Hubs do
         <p class="text-sm">
           How few steps someone needs to reach the people they can reach, and how many they reach.
         </p>
-        <.linhas lista={@h.closeness} id="lista-proximidade">
+        <.linhas
+          organization_id={@organization_id}
+          selecao={@selecao}
+          lista={@h.closeness}
+          id="lista-proximidade"
+        >
           <:valor :let={l}>
             <%= case l.detail do %>
               <% %{distance_mean: m, reaches: r} -> %>
@@ -196,7 +211,12 @@ defmodule TheBandWeb.NetworkAnalysisLive.Hubs do
                 and no one gets zero.
               </p>
             <% _ -> %>
-              <.linhas lista={g.rows} id={"lista-autovetor-#{g.component}"}>
+              <.linhas
+                organization_id={@organization_id}
+                selecao={@selecao}
+                lista={g.rows}
+                id={"lista-autovetor-#{g.component}"}
+              >
                 <:valor :let={l}>{duas_casas(elem(l.value, 1))}</:valor>
               </.linhas>
           <% end %>
@@ -217,6 +237,8 @@ defmodule TheBandWeb.NetworkAnalysisLive.Hubs do
   end
 
   attr :lista, :any, required: true
+  attr :organization_id, :string, required: true
+  attr :selecao, :map, required: true
   attr :id, :string, required: true
   slot :valor, required: true
 
@@ -239,7 +261,13 @@ defmodule TheBandWeb.NetworkAnalysisLive.Hubs do
         data-person={l.person_id}
       >
         <span>
-          <span data-nome>{l.name}</span>
+          <.link
+            navigate={Shared.profile_path(@organization_id, l.person_id, @selecao)}
+            class="link link-hover"
+            data-nome
+          >
+            {l.name}
+          </.link>
           <span :if={l.tied?} class="badge badge-ghost badge-xs ml-1">tied</span>
         </span>
         <span class="font-mono text-xs text-right">{render_slot(@valor, l)}</span>

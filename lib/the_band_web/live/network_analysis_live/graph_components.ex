@@ -446,7 +446,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
         <dt class="opacity-70">eigenvector</dt>
         <dd>{autovetor(Map.get(p, :eigenvector))}</dd>
         <dt class="opacity-70">position</dt>
-        <dd><.absent reason="not calculated by the platform yet" /></dd>
+        <dd>{posicao(Map.get(p, :role))}</dd>
       </dl>
     </div>
     <div
@@ -698,6 +698,17 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
     do: "reaches #{r} #{pessoas(r)}, in #{num(m)} steps on average"
 
   defp proximidade(_p), do: "not calculated in this reading"
+
+  # A posição em frase, da regra da base (T046); a de outra pessoa só com escopo concedido (DS1).
+  defp posicao({:ok, papel}), do: "#{papel.label}. #{papel.sentence}"
+
+  defp posicao({:recortado, _}),
+    do: "shown only to those granted a scope that reaches this person"
+
+  defp posicao({:ausente, :network_too_small_for_roles}),
+    do: "not described: the network is below the minimum size for positions"
+
+  defp posicao(_), do: "not calculated in this reading"
 
   # O autovetor como está na leitura, de 0 a 1 com duas casas: comparável só dentro do grupo
   # (componente). A escala 0–100 relativa ao maior do protótipo não é usada: com alcance

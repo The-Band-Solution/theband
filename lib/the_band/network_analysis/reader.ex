@@ -44,6 +44,7 @@ defmodule TheBand.NetworkAnalysis.Reader do
   """
 
   alias TheBand.NetworkAnalysis.Algorithms.Layout
+  alias TheBand.NetworkAnalysis.Algorithms.Position
   alias TheBand.NetworkAnalysis.Algorithms.Projection
   alias TheBand.NetworkAnalysis.Inputs
   alias TheBand.NetworkAnalysis.Parameters
@@ -150,6 +151,7 @@ defmodule TheBand.NetworkAnalysis.Reader do
 
       {:ok,
        visao
+       |> com_papeis(leitura, parametros, nomes)
        |> Map.drop([:granted, :viewer_person_id])
        |> nomear(nomes)
        |> nomear_comunidades(nomes, parametros)
@@ -168,6 +170,183 @@ defmodule TheBand.NetworkAnalysis.Reader do
          computed_at: leitura.computed_at,
          newer_collection: coleta_mais_nova(tenant, organizacao.id, leitura.computed_at)
        })}
+    end
+  end
+
+  # O papel e os percentis (T045, T046; R17, DS1): derivados AQUI, pela regra vigente, sobre a rede
+  # inteira, e nunca gravados. Entram só onde a visão permite: no nó do grafo e na lista de
+  # posições, para os alcançados cuja posição quem consulta pode ver; a própria pessoa sempre.
+  defp com_papeis(visao, leitura, parametros, nomes) do
+    papeis = papeis(leitura, parametros)
+
+    visao =
+      Map.put(
+        visao,
+        :position_rule,
+        Map.take(parametros.position, [
+          :min_people,
+          :high_above,
+          :median_above,
+          :low_below,
+          :labels
+        ])
+      )
+
+    papel_de = fn id ->
+      if View.ve_posicao_de?(visao, id),
+        do: Map.fetch!(papeis, id),
+        else: {:recortado, :positions_not_granted}
+    end
+
+    case visao.graph do
+      {:ok, grafo} ->
+        nos =
+          Enum.map(grafo.nodes, fn
+            %{kind: :person, id: id} = no -> Map.put(no, :role, papel_de.(id))
+            no -> no
+          end)
+
+        posicoes =
+          for %{kind: :person} = no <- nos do
+            %{
+              person_id: no.id,
+              name: Map.fetch!(nomes, no.id),
+              community: no.community,
+              degree: no.degree,
+              role: no.role
+            }
+          end
+          |> Enum.sort_by(&{String.downcase(&1.name), &1.person_id})
+
+        %{visao | graph: {:ok, %{grafo | nodes: nos}}}
+        |> Map.put(:positions, {:ok, posicoes})
+
+      {:recortado, :no_reach} ->
+        Map.put(visao, :positions, {:recortado, :no_reach})
+
+      {:ausente, motivo} ->
+        Map.put(visao, :positions, {:ausente, motivo})
+    end
+  end
+
+  defp papeis(leitura, parametros) do
+    leitura.nodes
+    |> Map.new(fn n ->
+      {n["id"], %{degree: n["degree"], betweenness: medida_lida(n["betweenness"])}}
+    end)
+    |> Position.roles(parametros.position)
+  end
+
+  defp medida_lida(%{"value" => v}) when is_number(v), do: {:ok, v}
+  defp medida_lida(_ausente), do: {:ausente, :not_computed}
+
+  @doc """
+  O perfil de uma pessoa nas duas redes, na janela escolhida (T047; FR-013, FR-014, FR-047 a
+  FR-049; DS1, DS3 (a); `contracts/network-analysis.md`, `profile/5`). É o que a fachada expõe.
+  """
+  @spec profile(Tenant.t(), User.t(), term(), term(), selection()) ::
+          {:ok, map()} | {:error, :not_found}
+  def profile(tenant, user, organization_id, person_id, selecao),
+    do: profile(tenant, user, organization_id, person_id, selecao, Parameters.fetch!())
+
+  @doc false
+  @spec profile(Tenant.t(), User.t(), term(), term(), selection(), Parameters.t()) ::
+          {:ok, map()} | {:error, :not_found}
+  def profile(%Tenant{} = tenant, %User{} = user, organization_id, person_id, selecao, parametros) do
+    viewer = pessoa_de(user)
+
+    # Abre se, e só se, a pessoa está no alcance DESTA chamada (`pessoas_alcancadas/2`) ou é a de
+    # quem consulta. `pode_ver/3` não decide nada aqui (FR-013, A10). Outro tenant, inexistente,
+    # fora do alcance e id que não é UUID dão o mesmo `:not_found` (FR-014).
+    with {:ok, organizacao} <- EO.fetch_organization(tenant, organization_id),
+         {:ok, id} <- uuid(person_id),
+         reach = Tenants.pessoas_alcancadas(tenant, user),
+         true <- id == viewer or alcanca?(reach, id),
+         %{^id => nome} <- EO.people_names(tenant, [id]) do
+      granted = Tenants.pessoas_alcancadas(tenant, user, origem: :concedida)
+      base = %{granted: granted, viewer_person_id: viewer}
+
+      redes =
+        Map.new(parametros.networks, fn rede ->
+          {rede,
+           perfil_na_rede(
+             tenant,
+             organizacao.id,
+             rede,
+             selecao.window,
+             id,
+             reach,
+             base,
+             parametros
+           )}
+        end)
+
+      {:ok, %{person_id: id, name: nome, networks: redes}}
+    else
+      _ -> {:error, :not_found}
+    end
+  end
+
+  defp uuid(id) when is_binary(id) do
+    case Ecto.UUID.cast(id) do
+      {:ok, uuid} -> {:ok, uuid}
+      :error -> :error
+    end
+  end
+
+  defp uuid(_id), do: :error
+
+  defp alcanca?(:todas, _id), do: true
+  defp alcanca?({:algumas, ids}, id), do: MapSet.member?(ids, id)
+
+  defp perfil_na_rede(tenant, organization_id, rede, dias, id, reach, base, parametros) do
+    with {:ok, leitura} <- vigente(tenant, organization_id, rede, dias, parametros),
+         %{} = no <- Enum.find(leitura.nodes, &(&1["id"] == id)) do
+      papel =
+        if View.ve_posicao_de?(base, id),
+          do: Map.fetch!(papeis(leitura, parametros), id),
+          else: {:recortado, :positions_not_granted}
+
+      nomes = EO.people_names(tenant, leitura.nodes |> Enum.map(& &1["id"]))
+      dentro? = fn outro -> Map.has_key?(nomes, outro) and alcanca?(reach, outro) end
+
+      para = for a <- leitura.edges, a["source"] == id, do: {a["target"], a["weight"]}
+      de = for a <- leitura.edges, a["target"] == id, do: {a["source"], a["weight"]}
+
+      {:ok,
+       %{
+         out_people: no["out_people"],
+         in_people: no["in_people"],
+         degree: {:ok, no["degree"]},
+         betweenness: medida_lida(no["betweenness"]),
+         role: papel,
+         community: no["community"],
+         to: pares(para, dentro?, nomes),
+         from: pares(de, dentro?, nomes),
+         to_outside_reach: fora(para, dentro?),
+         from_outside_reach: fora(de, dentro?),
+         to_total: para |> Enum.map(&elem(&1, 1)) |> Enum.sum(),
+         from_total: de |> Enum.map(&elem(&1, 1)) |> Enum.sum()
+       }}
+    else
+      nil -> {:ausente, :no_edges_in_window}
+      {:ausente, motivo} -> {:ausente, motivo}
+    end
+  end
+
+  # Os pares com alcançados, por nome, ordenados pelo peso (FR-048), empate pelo nome.
+  defp pares(lista, dentro?, nomes) do
+    for {outro, w} <- lista, dentro?.(outro) do
+      %{person_id: outro, name: Map.fetch!(nomes, outro), weight: w}
+    end
+    |> Enum.sort_by(&{-&1.weight, String.downcase(&1.name), &1.person_id})
+  end
+
+  # FR-049: os pares de fora só somados, sem nome e sem número por pessoa.
+  defp fora(lista, dentro?) do
+    case for({outro, w} <- lista, not dentro?.(outro), do: w) do
+      [] -> :nenhum
+      pesos -> {:agregado, Enum.sum(pesos)}
     end
   end
 
