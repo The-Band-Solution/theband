@@ -136,6 +136,13 @@ Sem função nova. `list_observed/2` com `organization_id:` (073).
 `end_observation/3`, na transação, chama `NetworkAnalysis.discard_organization/2` e
 `ReviewNetwork.discard_organization/2` com a organização encerrada (R18).
 
+**Emenda de 2026-10-05 (T052)**, feita no mesmo commit da implementação: a ferramenta conhece a
+organização pelo login, e por isso `end_observation/3` a busca por `EO.fetch_organization_by_login/2`
+(tenant e login) antes de chamar as duas. Organização que a coleta nunca gravou não tem leitura, e
+nada é apagado. As leituras saem depois de marcar as pessoas e antes de destruir as credenciais,
+dentro da mesma transação; o resultado ganha `readings_discarded: %{review_network: n,
+network_analysis: n}`, só contagens.
+
 ## `TheBandWeb`
 
 - `Layouts`: item **Network analysis** e `{"/network-analysis", :network_analysis}` em `@nav_areas`;

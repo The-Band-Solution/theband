@@ -272,6 +272,25 @@ defmodule TheBand.NetworkAnalysis.Commands do
     :sha256 |> :crypto.hash(:erlang.term_to_binary(canonico)) |> Base.encode16(case: :lower)
   end
 
+  @doc """
+  Apaga as leituras da organização, das duas redes e das três janelas — T052 (R18 da segurança;
+  `contracts/network-analysis.md`, `discard_organization/2`).
+
+  Chamada por `Sources.end_observation/3` dentro da transação do encerramento. Filtra por tenant
+  **e** organização: só o tenant apagaria as das outras organizações observadas (L19). Devolve
+  quantas apagou.
+  """
+  @spec discard_organization(Tenant.t(), Ecto.UUID.t()) :: {:ok, non_neg_integer()}
+  def discard_organization(%Tenant{id: tenant_id}, organization_id) do
+    {apagadas, _} =
+      Repo.delete_all(
+        from r in Reading,
+          where: r.tenant_id == ^tenant_id and r.organization_id == ^organization_id
+      )
+
+    {:ok, apagadas}
+  end
+
   # Uma transação para as seis combinações: ou todas as substituições ficam, ou nenhuma muda.
   defp aplicar(%Tenant{id: tenant_id}, organization_id, planos, agora) do
     Repo.transaction(fn ->

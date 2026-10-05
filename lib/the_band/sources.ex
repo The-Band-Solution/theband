@@ -13,8 +13,10 @@ defmodule TheBand.Sources do
   alias TheBand.Ingestion.Sync
   alias TheBand.Integrations.GitHub.Client
   alias TheBand.Ontology.SEON.CMPO.Schemas.ObservedRepository
+  alias TheBand.NetworkAnalysis
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Repo
+  alias TheBand.ReviewNetwork
   alias TheBand.Segredo
   alias TheBand.Sources.ConnectedTool
   alias TheBand.Sources.ObservationEvent
@@ -344,7 +346,8 @@ defmodule TheBand.Sources do
       3. numa única transação:
          a. grava o evento `ended`, com o impacto, o autor e o motivo
          b. marca equipes, vínculos e pessoas — nesta ordem
-         c. destrói as credenciais
+         c. apaga as leituras da rede de revisão e da análise de rede da organização
+         d. destrói as credenciais
       4. interrompe a coleta em curso, se houver
 
   **As pessoas são marcadas por último** porque a decisão depende dos vínculos já
@@ -390,6 +393,8 @@ defmodule TheBand.Sources do
 
       {:ok, marked} = EO.mark_organization_no_longer_observed(tenant, tool.organization_login)
 
+      readings = discard_readings(tenant, tool.organization_login)
+
       destroyed = destroy_all_credentials(tool)
 
       %{
@@ -397,6 +402,7 @@ defmodule TheBand.Sources do
         event: event,
         impact: impact,
         marked: marked,
+        readings_discarded: readings,
         credentials_destroyed: destroyed
       }
     end)
@@ -452,6 +458,21 @@ defmodule TheBand.Sources do
     case tenant_id |> credential_changeset(tool.id, attrs, verificacao) |> Repo.insert() do
       {:ok, credential} -> credential
       {:error, changeset} -> Repo.rollback(changeset)
+    end
+  end
+
+  # As leituras derivadas da organização encerrada saem junto, na mesma transação (076, T052;
+  # R18 da segurança): ids de pessoa de uma observação encerrada não ficam para trás, e o
+  # encerramento parcial não apaga nada. Organização que a coleta nunca gravou não tem leitura.
+  defp discard_readings(%Tenant{id: tenant_id} = tenant, organization_login) do
+    case EO.fetch_organization_by_login(tenant_id, organization_login) do
+      nil ->
+        %{review_network: 0, network_analysis: 0}
+
+      organization ->
+        {:ok, revisao} = ReviewNetwork.discard_organization(tenant, organization.id)
+        {:ok, analise} = NetworkAnalysis.discard_organization(tenant, organization.id)
+        %{review_network: revisao, network_analysis: analise}
     end
   end
 

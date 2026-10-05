@@ -178,6 +178,24 @@ defmodule TheBand.ReviewNetwork.Commands do
     |> Enum.map(&%{"id" => &1, "received_change_requests" => Map.get(rede.received, &1)})
   end
 
+  @doc """
+  Apaga as leituras da organização — 076, T052 (R18 da segurança; `contracts/fronteiras.md`).
+
+  Chamada por `Sources.end_observation/3` dentro da transação do encerramento: a observação
+  encerrada não deixa leitura com ids de pessoa para trás. Filtra por tenant **e** organização;
+  devolve quantas apagou.
+  """
+  @spec discard_organization(Tenant.t(), Ecto.UUID.t()) :: {:ok, non_neg_integer()}
+  def discard_organization(%Tenant{id: tenant_id}, organization_id) do
+    {apagadas, _} =
+      Repo.delete_all(
+        from r in Reading,
+          where: r.tenant_id == ^tenant_id and r.organization_id == ^organization_id
+      )
+
+    {:ok, apagadas}
+  end
+
   defp substituir(%Tenant{id: tenant_id}, organization_id, linhas) do
     Repo.transaction(fn ->
       Repo.delete_all(
