@@ -95,6 +95,27 @@ Componente `GraphComponents.graph/1`, SVG inline. Restrições, todas testáveis
 - `data-zoom` (`in`, `out`, `fit`) e `data-viewport` são os únicos `data-*` do desenho, e são
   nomes, não dado.
 
+**Emenda de 2026-10-05 (T037)**, feita no mesmo commit da implementação:
+
+- `NetworkAnalysisLive.Communities` em `/network-analysis/:organization_id/communities`, na ordem
+  de 3.3.1–3.3.4: os três blocos (número de comunidades, modularidade com o Q_rand ao lado e as
+  faixas **citadas** com a fonte, *"Not the declared teams — a reading"*), o grafo de comunidades,
+  o método dito (o guloso de Clauset, Newman e Moore, com peso — R21: o protótipo dizia Louvain) e
+  um cartão por comunidade com alguém alcançado;
+- **comunidades por letra** (`Shared.community_letter/1`: 1 → A, 27 → AA), decisão aprovada no
+  protótipo (3.3.2). O agregado passa a dizer *"People outside your reach — community B (4)"*;
+- `GraphComponents.graph/1` ganha `view` (`weighted` | `communities`). Na vista de comunidades,
+  as **mesmas posições**; cor da comunidade (oito classes da paleta do Tailwind, que se repetem
+  depois da oitava — a letra continua a distinguir), contorno tracejado (a envoltória convexa
+  dos nós da comunidade na visão, alargada, calculada no servidor) e a letra; o agregado de fora
+  entra no contorno da sua comunidade. O cartão e a lista do telefone dizem a comunidade em texto
+  (FR-021). `GraphComponents.community_mark/1` é a mesma marca fora do desenho;
+- a página **Graph** alterna as duas vistas por `?view=` (FR-026), sem recalcular; o seletor de
+  rede e de janela leva a vista junto quando é `communities`;
+- `NetworkAnalysisLive.Leitura` (`ler/3`, `para_o_cabecalho/1`, `motivo_da_ausencia/2`,
+  `sem_aresta/1`): a leitura comum das páginas de análise, na terceira cópia (§7.7). A página
+  Graph passou a usá-la.
+
 ## O que estas telas não oferecem
 
 Botão de exportar, `download`, `Content-Disposition`, *"copy as image"*, folha de impressão do

@@ -18,8 +18,12 @@ defmodule TheBand.NetworkAnalysis.View do
      dentro de um agregado; nada com quem ficou fora de qualquer agregado;
   4. **supressão complementar**: o número de pessoas da rede e o tamanho dos componentes só
      aparecem com alcance parcial se as pessoas de fora que eles contam forem 0 ou ≥ k;
-  5. a 7. — hubs, comunidades e papel — são chamados por T037, T040 e T046 a partir de
-     `ve_posicao_de?/2`;
+  5. hubs e 7. papel são chamados por T040 e T046 a partir de `ve_posicao_de?/2`;
+  6. **comunidades** (T037): um bloco por comunidade com ao menos um alcançado; membros
+     alcançados por id; os três mais centrais (`core_size` da base) entre os alcançados, pelo
+     grau interno da rede inteira, e só com escopo concedido (DS1); tamanho e ligações da
+     comunidade pela regra 4; os de fora agregados só se forem ≥ k. O número de comunidades
+     também segue a regra 4, pelas pessoas das comunidades sem nenhum alcançado;
   8. **DS1 (b)**: posição de **outra** pessoa só com escopo concedido que a alcança, ou com a
      administração; a própria pessoa vê a sua sempre;
   9. **DS5 (b)**: alcance vazio, ou só a própria pessoa: o grafo vem `{:recortado, :no_reach}`;
@@ -44,7 +48,8 @@ defmodule TheBand.NetworkAnalysis.View do
                components: {:ok, [pos_integer()]} | {:suprimido, :fewer_than_k_outside}
              }}
             | {:recortado, :no_reach}
-            | {:ausente, :no_edge_in_window}
+            | {:ausente, :no_edge_in_window},
+          communities: {:ok, map()} | {:recortado, :no_reach} | {:ausente, atom()}
         }
 
   @doc """
@@ -60,7 +65,8 @@ defmodule TheBand.NetworkAnalysis.View do
   """
   @spec build(map(), alcance(), alcance(), String.t() | nil, %{
           required(:min_group) => pos_integer(),
-          optional(:gone) => MapSet.t()
+          optional(:gone) => MapSet.t(),
+          optional(:core_size) => pos_integer()
         }) :: t()
   def build(leitura, reach, granted, viewer_person_id, %{min_group: k} = params) do
     nos = leitura_nos(leitura)
@@ -89,8 +95,114 @@ defmodule TheBand.NetworkAnalysis.View do
         corpo(alcance, leitura, nos, reach, k)
       end
 
-    Map.merge(base, corpo)
+    base
+    |> Map.merge(corpo)
+    |> Map.put(
+      :communities,
+      comunidades(leitura, nos, base, dentro_de(alcance, reach, gone), params)
+    )
   end
+
+  # Quem conta como alcançado nesta visão: com `:todas`, todos menos quem saiu de EO.
+  defp dentro_de(:nenhum, _reach, _gone), do: :nenhum
+  defp dentro_de(_alcance, :todas, gone), do: fn id -> not MapSet.member?(gone, id) end
+  defp dentro_de(_alcance, {:algumas, ids}, _gone), do: &MapSet.member?(ids, &1)
+
+  # Regra 6 (T037; FR-028, FR-029). A modularidade e o Q_rand são da rede inteira, e aparecem
+  # sempre que há leitura; o resto é por bloco.
+  defp comunidades(_leitura, _nos, _base, :nenhum, _params), do: {:recortado, :no_reach}
+  defp comunidades(_leitura, [], _base, _dentro?, _params), do: {:ausente, :no_edge_in_window}
+
+  defp comunidades(leitura, nos, base, dentro?, %{min_group: k} = params) do
+    case leitura_comunidades(leitura) do
+      [] ->
+        # Leitura gravada antes da T035: as comunidades não foram calculadas, e não são zero.
+        {:ausente, :not_computed}
+
+      gravadas ->
+        grau_interno = Map.new(nos, &{&1["id"], &1["internal_degree"]})
+        medidas = leitura_medidas(leitura)
+
+        blocos =
+          for c <- gravadas,
+              membros = c["members"],
+              alcancados = Enum.filter(membros, dentro?),
+              alcancados != [],
+              do: bloco(c, membros, alcancados, grau_interno, base, k, params)
+
+        escondidas =
+          for c <- gravadas, not Enum.any?(c["members"], dentro?), reduce: 0 do
+            n -> n + length(c["members"])
+          end
+
+        {:ok,
+         %{
+           count: contagem(length(gravadas), escondidas, k),
+           modularity: modularidade(medidas["modularity"]),
+           q_rand: aleatorio(medidas["random"]),
+           blocks: blocos
+         }}
+    end
+  end
+
+  defp bloco(c, membros, alcancados, grau_interno, base, k, params) do
+    fora = length(membros) - length(alcancados)
+    mostra? = fora == 0 or fora >= k
+    suprimido = {:suprimido, :fewer_than_k_outside}
+
+    %{
+      index: c["index"],
+      size: if(mostra?, do: {:ok, length(membros)}, else: suprimido),
+      internal_edges: if(mostra?, do: {:ok, c["internal_edges"]}, else: suprimido),
+      outside_edges: if(mostra?, do: {:ok, c["outside_edges"]}, else: suprimido),
+      core: nucleo(alcancados, grau_interno, base, Map.get(params, :core_size, 3)),
+      members: alcancados,
+      outside:
+        cond do
+          fora == 0 -> :nenhum
+          fora >= k -> {:agregado, fora}
+          true -> :sem_agregado
+        end
+    }
+  end
+
+  # DS1: os mais centrais são ordenação por medida, como os hubs; sem escopo concedido, não
+  # aparecem. Entre os alcançados, pelo grau interno da rede inteira, empate pelo id.
+  defp nucleo(_alcancados, _grau, %{sees_others_positions?: false}, _tamanho),
+    do: {:recortado, :positions_not_granted}
+
+  defp nucleo(alcancados, grau, base, tamanho) do
+    alcancados
+    |> Enum.filter(&ve_posicao_de?(base, &1))
+    |> Enum.sort_by(&{-(grau[&1] || 0), &1})
+    |> Enum.take(tamanho)
+    |> Enum.map(&%{person_id: &1, internal_degree: grau[&1]})
+  end
+
+  defp contagem(total, escondidas, k) do
+    if escondidas == 0 or escondidas >= k,
+      do: {:ok, total},
+      else: {:suprimido, :fewer_than_k_outside}
+  end
+
+  defp modularidade(%{"value" => q}) when is_number(q), do: {:ok, q}
+  defp modularidade(%{"absent" => "no_edge_in_window"}), do: {:ausente, :no_edge_in_window}
+  defp modularidade(_), do: {:ausente, :not_computed}
+
+  defp aleatorio(%{"modularity" => %{"value" => v, "graphs_defined" => n}}) when is_number(v),
+    do: {:ok, %{value: v, graphs_defined: n}}
+
+  defp aleatorio(%{"absent" => "network_too_large_for_platform"}),
+    do: {:ausente, :network_too_large_for_platform}
+
+  defp aleatorio(%{"absent" => "no_edge_in_window"}), do: {:ausente, :no_edge_in_window}
+  defp aleatorio(_), do: {:ausente, :not_computed}
+
+  defp leitura_comunidades(leitura),
+    do: Map.get(leitura, :communities) || Map.get(leitura, "communities") || []
+
+  defp leitura_medidas(leitura),
+    do: Map.get(leitura, :measures) || Map.get(leitura, "measures") || %{}
 
   @doc """
   Quem consulta pode ver a posição (papel, hubs, núcleo da comunidade) desta pessoa? DS1 (b): a

@@ -582,7 +582,22 @@ tarefas, e por quê:
 **Objetivo**: comunidades com peso e desempate, modularidade contra Q_rand. **Teste independente**:
 dois grupos densos com uma ponte dão duas comunidades e a modularidade da conta à mão.
 
-- [ ] T035 [P] [US4] Detectar comunidades pelo guloso com peso
+**Feita em 2026-10-05**, na branch `feature/1309-us4` (empilhada sobre `feature/1309-seguranca`,
+sprint 043), com a evidência de cada defeito injetado comentada na issue de cada tarefa. O que
+divergiu do texto das tarefas, e por quê:
+
+- **T035**: o ΔQ é comparado em inteiro (2W·w_ij − S_i·S_j), e o empate é de verdade; o desempate
+  declarado decide. O defeito *"desempatar pela ordem do mapa"* não reprova com a entrada
+  invertida, porque o mapa é o mesmo: o caso discriminante é o anel de 40 com ids de outra ordem
+  de mapa (acima de 32 chaves, a ordem do mapa segue o hash). Acrescentada `summary/2`;
+- **T036**: a impressão digital passou a levar a lista do que o código calcula (`@calculo`). Sem
+  isso, as leituras gravadas antes da T035 nunca seriam recalculadas, porque as arestas e a base
+  não mudaram (emenda em `contracts/network-analysis.md`);
+- **T037**: comunidades por letra (decisão do protótipo). O número de comunidades segue a regra 4
+  pelas pessoas das comunidades sem nenhum alcançado. A leitura comum das páginas foi para
+  `NetworkAnalysisLive.Leitura` (terceira cópia). A página Graph ganhou o seletor de vista.
+
+- [x] T035 [P] [US4] Detectar comunidades pelo guloso com peso
   - **Pronta quando**: T012; `contracts/algoritmos.md` `Algorithms.Communities`
   - **Descrição**: `lib/the_band/network_analysis/algorithms/communities.ex`: CNM com peso,
     desempate pelo par de menor índice, numeração por tamanho; `modularity/2`; `internal_degree/2`.
@@ -592,7 +607,7 @@ dois grupos densos com uma ponte dão duas comunidades e a modularidade da conta
   - **Teste**: `test/the_band/network_analysis/algorithms/communities_test.exs`. **Defeito a
     injetar**: desempatar pela ordem do mapa; o caso da entrada invertida reprova
 
-- [ ] T036 [US4] Comparar a modularidade com a dos aleatórios, com peso (A5)
+- [x] T036 [US4] Comparar a modularidade com a dos aleatórios, com peso (A5)
   - **Pronta quando**: T011, T035; R8
   - **Descrição**: `lib/the_band/network_analysis/algorithms/small_world.ex`, `random_battery/2`, com a
     parte de modularidade: 100 G(n, m) na sequência declarada, pesos reais embaralhados, o mesmo
@@ -602,7 +617,7 @@ dois grupos densos com uma ponte dão duas comunidades e a modularidade da conta
   - **Teste**: `test/the_band/network_analysis/algorithms/q_rand_test.exs`. **Defeito a injetar**: não
     passar os pesos aos aleatórios; o caso dos pesos concentrados reprova
 
-- [ ] T037 [US4] [security] Mostrar as comunidades com o recorte
+- [x] T037 [US4] [security] Mostrar as comunidades com o recorte
   - **Pronta quando**: T016, T033, T036; protótipo §3 Tela 3; decisões a confirmar R10 item 8 e R21
   - **Descrição**: `lib/the_band_web/live/network_analysis_live/communities.ex`: número de
     comunidades, modularidade com Q_rand e as faixas **citadas** com a fonte (FR-031), *"Not the

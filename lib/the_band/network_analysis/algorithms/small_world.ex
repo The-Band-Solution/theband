@@ -52,7 +52,7 @@ defmodule TheBand.NetworkAnalysis.Algorithms.SmallWorld do
         {medir(adjacencia_de(pares, sorteados)), estado}
       end)
 
-    # Todo aleatório tem as m ≥ 1 ligações da real, e a modularidade está definida em todos.
+    # Cada aleatório tem as m ≥ 1 ligações da real, e a modularidade está definida em todos.
     %{graphs: quantos, modularity: media(medidas, :modularity, :no_edge_in_window)}
   end
 
