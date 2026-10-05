@@ -12,8 +12,8 @@ defmodule TheBand.Sources do
 
   alias TheBand.Ingestion.Sync
   alias TheBand.Integrations.GitHub.Client
-  alias TheBand.Ontology.SEON.CMPO.Schemas.ObservedRepository
   alias TheBand.NetworkAnalysis
+  alias TheBand.Ontology.SEON.CMPO.Schemas.ObservedRepository
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Repo
   alias TheBand.ReviewNetwork
