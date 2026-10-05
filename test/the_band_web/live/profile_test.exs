@@ -54,7 +54,9 @@ defmodule TheBandWeb.ProfileTest do
       })
 
     assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "atual não confere"
-    assert {:ok, _} = Tenants.authenticate(ctx.member.email, @senha)
+
+    assert {:ok, _} =
+             Tenants.authenticate(ctx.member.email, @senha, origem: TheBand.OrigemDeTeste.nova())
 
     conn =
       post(ctx.conn, ~p"/profile/password", %{
@@ -63,7 +65,13 @@ defmodule TheBandWeb.ProfileTest do
       })
 
     assert redirected_to(conn) == ~p"/profile"
-    assert {:ok, _} = Tenants.authenticate(ctx.member.email, "novissima-comprida-1")
-    assert {:error, :invalid_credentials} = Tenants.authenticate(ctx.member.email, @senha)
+
+    assert {:ok, _} =
+             Tenants.authenticate(ctx.member.email, "novissima-comprida-1",
+               origem: TheBand.OrigemDeTeste.nova()
+             )
+
+    assert {:error, :invalid_credentials} =
+             Tenants.authenticate(ctx.member.email, @senha, origem: TheBand.OrigemDeTeste.nova())
   end
 end

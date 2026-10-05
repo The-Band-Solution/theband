@@ -127,7 +127,10 @@ defmodule TheBandWeb.LoginTest do
     em_espera = com_senha.(ctx.tenant)
 
     for _ <- 1..3 do
-      {:error, :invalid_credentials} = Tenants.authenticate(em_espera.email, "errada-e-longa-1")
+      {:error, :invalid_credentials} =
+        Tenants.authenticate(em_espera.email, "errada-e-longa-1",
+          origem: TheBand.OrigemDeTeste.nova()
+        )
     end
 
     tentativas = [
@@ -215,10 +218,13 @@ defmodule TheBandWeb.LoginTest do
     # E A ASSERÇÃO QUE IMPORTA, que não é o destino: o destino podia estar certo e
     # a senha ter mudado do mesmo jeito.
     assert {:error, :invalid_credentials} =
-             Tenants.authenticate(ctx.member.email, "tomada-de-conta-123456"),
+             Tenants.authenticate(ctx.member.email, "tomada-de-conta-123456",
+               origem: TheBand.OrigemDeTeste.nova()
+             ),
            "a senha nova passou a valer — a troca aconteceu apesar da recusa"
 
-    assert {:ok, _} = Tenants.authenticate(ctx.member.email, @senha),
+    assert {:ok, _} =
+             Tenants.authenticate(ctx.member.email, @senha, origem: TheBand.OrigemDeTeste.nova()),
            "a senha original deixou de valer — a conta foi tomada"
   end
 
@@ -249,7 +255,10 @@ defmodule TheBandWeb.LoginTest do
 
     assert redirected_to(conn) == ~p"/people", "o fluxo da temporária foi fechado pelo conserto"
 
-    assert {:ok, _} = Tenants.authenticate(ctx.member.email, "definitiva-bem-comprida-9")
+    assert {:ok, _} =
+             Tenants.authenticate(ctx.member.email, "definitiva-bem-comprida-9",
+               origem: TheBand.OrigemDeTeste.nova()
+             )
   end
 
   test "trocar a senha derruba a outra sessão na próxima ação (FR-015)", %{

@@ -142,7 +142,9 @@ defmodule TheBandWeb.SessaoPelaTabelaTest do
       })
 
     assert redirected_to(conn) == ~p"/sign-in"
-    assert {:ok, _} = Tenants.authenticate(alvo.email, @senha)
+
+    assert {:ok, _} =
+             Tenants.authenticate(alvo.email, @senha, origem: TheBand.OrigemDeTeste.nova())
   end
 
   test "S4 — um cookie só com user_id, assinado com a chave real, não abre nada", %{alvo: alvo} do
@@ -159,7 +161,9 @@ defmodule TheBandWeb.SessaoPelaTabelaTest do
       })
 
     assert redirected_to(conn) == ~p"/sign-in"
-    assert {:ok, _} = Tenants.authenticate(alvo.email, @senha)
+
+    assert {:ok, _} =
+             Tenants.authenticate(alvo.email, @senha, origem: TheBand.OrigemDeTeste.nova())
   end
 
   test "S1 — desativar e reativar não devolve a sessão", ctx do

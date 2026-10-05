@@ -159,7 +159,8 @@ defmodule TheBand.SegredoForaDoLogTest do
              Credentials.definir_senha(
                op.email,
                codigo,
-               Segredo.novo("fake-senha-1222-do-operador")
+               Segredo.novo("fake-senha-1222-do-operador"),
+               TheBand.OrigemDeTeste.nova()
              )}
           )
         end)

@@ -49,7 +49,12 @@ defmodule TheBand.Platform.EsperaPagaOHashTest do
 
     {resultado, custos} =
       contando(fn ->
-        Credentials.autenticar(op.email, Segredo.novo(senha_do_operador()), totp(segredo))
+        Credentials.autenticar(
+          op.email,
+          Segredo.novo(senha_do_operador()),
+          totp(segredo),
+          TheBand.OrigemDeTeste.nova()
+        )
       end)
 
     assert {:error, {:throttled, _}} = resultado
@@ -62,7 +67,8 @@ defmodule TheBand.Platform.EsperaPagaOHashTest do
         Credentials.autenticar(
           "ninguem@example.org",
           Segredo.novo("x-y-z-bem-comprida"),
-          Segredo.novo("123456")
+          Segredo.novo("123456"),
+          TheBand.OrigemDeTeste.nova()
         )
       end)
 

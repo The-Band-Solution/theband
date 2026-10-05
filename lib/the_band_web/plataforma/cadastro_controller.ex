@@ -33,7 +33,8 @@ defmodule TheBandWeb.Plataforma.CadastroController do
       case Credentials.definir_senha(
              email,
              Segredo.novo(texto(params, "setup_token")),
-             Segredo.novo(senha)
+             Segredo.novo(senha),
+             TheBandWeb.Origem.de(conn)
            ) do
         {:ok, {op, %{segredo: segredo, uri: uri, enrollment_token: cadastro}}} ->
           render(conn, :cadastro,
@@ -63,7 +64,8 @@ defmodule TheBandWeb.Plataforma.CadastroController do
     case Credentials.confirmar_segundo_fator(
            email,
            cadastro,
-           Segredo.novo(texto(params, "second_factor_token"))
+           Segredo.novo(texto(params, "second_factor_token")),
+           TheBandWeb.Origem.de(conn)
          ) do
       {:ok, {op, codigos, guarda}} ->
         render(conn, :codigos,
@@ -88,7 +90,7 @@ defmodule TheBandWeb.Plataforma.CadastroController do
     # A caixa é conferida ANTES do contexto: sem ela, nada é consumido nem conta como falha, e os
     # códigos não reaparecem.
     if params["codes_stored"] == "true" do
-      case Credentials.concluir_cadastro(email, guarda) do
+      case Credentials.concluir_cadastro(email, guarda, TheBandWeb.Origem.de(conn)) do
         {:ok, _op} -> render(conn, :concluido, concluido: true)
         {:error, _} -> recusar(conn, :concluido, concluido: false)
       end
