@@ -91,10 +91,18 @@ defmodule TheBand.NetworkAnalysis.Algorithms.SmallWorld do
   (`random_battery/2`) e do número de pessoas. Devolve também as duas razões.
   """
   @spec sigma(
-          %{clustering: medida(), average_distance: medida()},
-          %{clustering: com_contagem(), average_distance: com_contagem()},
+          %{
+            required(:clustering) => medida(),
+            required(:average_distance) => medida(),
+            optional(atom()) => term()
+          },
+          %{
+            required(:clustering) => com_contagem(),
+            required(:average_distance) => com_contagem(),
+            optional(atom()) => term()
+          },
           non_neg_integer(),
-          %{required(:min_people) => pos_integer()}
+          %{required(:min_people) => pos_integer(), optional(atom()) => term()}
         ) ::
           {:ok, %{value: float(), clustering_ratio: float(), distance_ratio: float()}}
           | {:ausente,
