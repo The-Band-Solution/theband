@@ -107,6 +107,94 @@ gravação, como hoje. Ele deixa de ser a fonte da idade assim que `secret_set_a
 `em_uso_desde/1`, no `validated_at`, que é a data em que aquela chave foi gravada — preencher
 copiaria o mesmo valor e esconderia que a data é inferida.
 
+## Quem pôs a chave, e o rastro de cada ato (#1221)
+
+**Emendado em 2026-10-05, antes do código.** Esta seção fecha o R1 de
+[seguranca-c1-mesma-chave.md](../seguranca-c1-mesma-chave.md) e cumpre as nove condições do
+parecer [docs/seguranca/2026-10-05-1221-troca-da-chave-do-modelo.md](../../../docs/seguranca/2026-10-05-1221-troca-da-chave-do-modelo.md).
+Até aqui, `put/3` sobrescrevia `declared_by_user_id` a cada gravação, mesmo quando a chave era a
+mesma, e nem `put/3` nem `delete` deixavam evento. Depois de um incidente, não havia como saber
+quem trocou nem quem removeu a chave do tenant.
+
+### A classificação é uma só
+
+`put/3` classifica o ato **uma vez**, depois de `verify/2` aceitar. Essa classificação decide as
+datas da tabela acima, o declarante e o evento (condição 7):
+
+| ato | quando | `declared_by_user_id` | evento |
+|---|---|---|---|
+| `:primeira` | o tenant não tem linha deste provedor | o ator (`nil` se o ator não vier) | `tipo=:primeira` |
+| `:troca` | `mesma_chave?/2` é falso | o ator | `tipo=:troca` |
+| `:mesma_chave` | `mesma_chave?/2` (`secure_compare`) é verdadeiro | **o anterior, mantido** | `tipo=:mesma_chave`, com o ator que regravou |
+
+O declarante sai do `cast` e é posto por `Ecto.Changeset.change/2`, como as datas. É `change/2`,
+**nunca** `force_change/3`. Na mesma chave, o valor é igual ao do registro lido, e o Ecto descarta
+a mudança. Por isso, sob concorrência, uma `:mesma_chave` obsoleta não regrava o declarante
+antigo por cima de uma troca recém-commitada (condição 9, S4).
+
+### A remoção recebe o ator
+
+```elixir
+@spec delete(Tenant.t(), Ecto.UUID.t() | nil, String.t()) :: :ok | {:error, :not_found}
+def delete(tenant, actor_user_id \\ nil, provider \\ "openai")
+```
+
+**A assinatura muda.** Antes era `delete(tenant, provider \\ "openai")`. Os dois chamadores,
+`AILive.Index` e `test/the_band/ai_test.exs`, passam só o tenant, e nenhum passa o provedor. A
+tela passa a mandar `current_user.id`. Sem linha a remover, `delete` devolve
+`{:error, :not_found}` e **não** emite evento, porque nada foi removido (condição 1, S1).
+
+### O evento
+
+```elixir
+@spec TheBand.Tenants.AccessEvents.chave_do_modelo(
+        :primeira | :troca | :mesma_chave | :removida,
+        Ecto.UUID.t(),
+        Ecto.UUID.t() | nil
+      ) :: :ok
+```
+
+A linha sai em `:warning`, pela mesma via de `conta_da_organizacao/5`:
+
+```text
+acesso: ato administrativo · ato=:chave_do_modelo tipo=:troca tenant_id="…" actor_user_id="…"
+```
+
+- **Guardas fechadas, sem `extra`** (condição 2, S2): `tipo` precisa estar na lista dos quatro
+  átomos, `tenant_id` é binário e `actor_user_id` é binário ou `nil`. Qualquer outra forma levanta
+  `FunctionClauseError`.
+- **Só depois do commit** (condição 4): a linha sai quando `insert_or_update` devolve `{:ok, _}`
+  ou quando `Repo.delete` conclui. Recusa do provedor, modelo desconhecido e erro de changeset não
+  emitem.
+- **Ator nulo não suprime a linha** (condição 8): ela sai com `actor_user_id=nil`.
+- **O `tenant_id` é o do tenant que agiu**, e a classificação só lê a linha dele (condição 6).
+
+### O que o evento não carrega, e por quê
+
+| ausência | por quê |
+|---|---|
+| a chave, qualquer trecho dela, hash, prefixo ou `last_four` | a assinatura não aceita, só átomo e ids (condição 5). `last_four` aparece na tela, mas no log seria parte do segredo copiada para um lugar que quem opera `/ai` não controla |
+| o modelo escolhido | não é segredo, mas ninguém pediu. Se for preciso, é a R-c do parecer, em issue própria |
+| o motivo da recusa do provedor | a recusa não emite evento nesta correção. É a R-b do parecer, em issue própria, e a string do provedor nunca entra |
+
+### Como se prova
+
+Os casos ficam em `test/the_band/ai_test.exs`, com `capture_log` no nível padrão do teste
+(`:warning`). Cada um é visto reprovando com o defeito injetado:
+
+1. as três classificações e o declarante de cada uma. Defeitos a injetar: tirar a chamada do
+   evento; devolver o declarante ao `cast`, para que seja sobrescrito na mesma chave;
+2. a remoção emite com o ator, e a remoção sem linha não emite. Defeito: tirar a chamada em
+   `delete`;
+3. a recusa do provedor e o erro de changeset não emitem. Defeito: emitir antes do
+   `insert_or_update`;
+4. em `:debug`, nenhuma parte do segredo aparece na linha nem no log. A chave de teste termina fora
+   do hexadecimal. Defeito: `last_four` nos campos do evento;
+5. com dois tenants, o evento de A não cita B, e a linha de B não muda;
+6. a mesma classificação decide as datas e o evento;
+7. com ator nulo, a linha sai com `actor_user_id=nil`;
+8. as guardas de `AccessEvents.chave_do_modelo/3` recusam átomo fora da lista, string e struct.
+
 ## O que não muda
 
 - **A coleta.** Nenhum caminho de coleta, nem de geração, consulta `estado/2`. Credencial vencida
