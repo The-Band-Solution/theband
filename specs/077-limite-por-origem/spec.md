@@ -225,8 +225,8 @@ cabeçalho; um valor forjado à esquerda não muda nada.
   de onde foi lido (socket ou cabeçalho do proxy).
 - **Limite por origem**: quantas tentativas uma origem faz numa janela, por entrada; regra da
   base de conhecimento.
-- **Confiança no proxy**: configuração de ambiente — desligada por padrão; ligada, nomeia o
-  cabeçalho e os proxies.
+- **Estado da origem**: configuração de ambiente — `socket`, `proxy` (com o cabeçalho e os proxies
+  de rede local) ou não declarada; a confiança no cabeçalho nunca liga sem as duas variáveis.
 
 ## Success Criteria *(mandatory)*
 
