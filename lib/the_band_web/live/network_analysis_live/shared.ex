@@ -84,6 +84,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.Shared do
   """
   @spec page_path(atom(), Ecto.UUID.t(), %{
           optional(:network) => String.t(),
+          optional(:view) => String.t(),
           window: pos_integer()
         }) ::
           String.t()

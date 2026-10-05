@@ -303,7 +303,14 @@ defmodule TheBand.NetworkAnalysis.View do
   Quem consulta pode ver a posição (papel, hubs, núcleo da comunidade) desta pessoa? DS1 (b): a
   própria pessoa sempre; outra, só com escopo concedido que a alcança, ou administração.
   """
-  @spec ve_posicao_de?(t(), String.t()) :: boolean()
+  @spec ve_posicao_de?(
+          %{
+            required(:granted) => alcance(),
+            required(:viewer_person_id) => String.t() | nil,
+            optional(atom()) => term()
+          },
+          String.t()
+        ) :: boolean()
   def ve_posicao_de?(%{viewer_person_id: viewer}, person_id) when viewer == person_id, do: true
   def ve_posicao_de?(%{granted: :todas}, _person_id), do: true
   def ve_posicao_de?(%{granted: {:algumas, ids}}, person_id), do: MapSet.member?(ids, person_id)
