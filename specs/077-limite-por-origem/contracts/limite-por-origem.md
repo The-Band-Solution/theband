@@ -14,8 +14,14 @@ Depende de: nenhuma ontologia. Domínio puro: não conhece `Plug.Conn`.
 @spec de_endereco(term(), estado()) :: t()
 @spec normalizar(term()) :: :inet.ip_address() | :sem_endereco
 @spec analisar_estrito(String.t()) :: {:ok, :inet.ip_address()} | :error
-@spec pertence?(:inet.ip_address(), cidr()) :: boolean()
+@spec pertence?(term(), cidr()) :: boolean()
+@spec analisar_cidr(String.t()) :: {:ok, cidr()} | :error
 ```
+
+*Emendado na implementação (T003)*: `analisar_cidr/1` entrou no contrato porque a configuração
+(§2) precisa ler os blocos com a mesma análise estrita dos endereços, e uma segunda análise de
+endereço em outro módulo seria a cópia que diverge. `pertence?/2` aceita `term()` porque normaliza
+os dois lados antes de comparar.
 
 - `de_endereco/2` recebe o que o socket (ou o cabeçalho) deu e o estado da configuração.
   **Normaliza antes de tudo** (L2): IPv4 mapeado em IPv6 (`::ffff:0:0/96`) vira o IPv4; o que não é
@@ -128,6 +134,9 @@ e antes de `TheBandWeb.Endpoint`.
   `registrar_falha/1`, **sem** a linha de log por recusa; emite o passo `entrar_com_senha` /
   `falhou` / `limite_por_origem`, sem conta e sem organização (FR-010).
 - `{:segue, f}` e `{:observado, _, f}` → a decisão de sempre; em `{:ok, _}`, `devolver(f)`.
+- Cada custo de hash da entrada (`no_user_verify/0` e `verify_pass/2`) emite
+  `[:the_band, :tenants, :custo_do_hash]` com o motivo, como a porta do operador já fazia: é o que
+  permite ao teste contar **zero** hashes na recusa por limite (Q5), sem cronômetro.
 
 ### `TheBand.Platform.Credentials` (balde `:operador`)
 
