@@ -130,6 +130,19 @@ Componente `GraphComponents.graph/1`, SVG inline. Restrições, todas testáveis
 - sem escopo concedido, a página diz que os hubs com nome de outras pessoas não estão
   disponíveis e mostra a frase de não-avaliação; sem alcance (DS5), nenhuma lista.
 
+**Emenda de 2026-10-05 (T042, T044)**, feita no mesmo commit da implementação:
+
+- `NetworkAnalysisLive.Distance` em `/network-analysis/:organization_id/distance` (3.5.1–3.5.5):
+  a conectividade dita, as três medidas com o valor médio dos aleatórios ao lado, a fração de
+  pares que se alcançam quando não são todos, a distribuição dos comprimentos em barras
+  hachuradas; e o mundo pequeno: a tabela real × aleatórios com as razões, σ com uma casa, o
+  critério dito como critério, a frase de Telesford et al. (2011), quantos aleatórios, a semente,
+  o gerador e quantas pessoas ficaram fora do clustering;
+- **a distribuição dos comprimentos segue a regra 4**: o total de pares revela o número de
+  pessoas, e por isso some junto com ele quando o número de pessoas é suprimido;
+- o protótipo dizia 50 aleatórios e σ *"not tested"* em rede partida; vale a base (100, e σ pelos
+  pares que se alcançam; R21). As medidas aparecem para todo alcance, inclusive DS5.
+
 ## O que estas telas não oferecem
 
 Botão de exportar, `download`, `Content-Disposition`, *"copy as image"*, folha de impressão do

@@ -154,6 +154,7 @@ defmodule TheBand.NetworkAnalysis.Reader do
        |> nomear(nomes)
        |> nomear_comunidades(nomes, parametros)
        |> nomear_hubs(nomes)
+       |> criterio(parametros)
        |> desenhar(leitura, parametros)
        |> Map.merge(%{
          counts: contagens(leitura, visao),
@@ -275,6 +276,19 @@ defmodule TheBand.NetworkAnalysis.Reader do
   end
 
   defp nomear_hubs(visao, _nomes), do: visao
+
+  # FR-043: o critério σ > limiar da base, dito como critério; σ ausente não decide nada.
+  defp criterio(%{small_world: sw} = visao, parametros) do
+    limiar = parametros.small_world.criterion_threshold
+
+    criterio =
+      case sw.sigma do
+        {:ok, %{value: v}} -> if v > limiar, do: :meets, else: :does_not_meet
+        _ -> nil
+      end
+
+    %{visao | small_world: Map.merge(sw, %{criterion: criterio, threshold: limiar})}
+  end
 
   # O que o desenho precisa, decidido aqui e não na tela (T031, T033; R9, R16):
   #
@@ -418,7 +432,15 @@ defmodule TheBand.NetworkAnalysis.Reader do
 
   # Só o que a tela diz da proveniência nesta fatia: quantas designações tinham conta de tipo não
   # gravado (R13), e só para quem alcança todos — é contagem sobre a organização inteira.
-  defp proveniencia(leitura, :total) do
+  defp proveniencia(leitura, alcance) do
+    Map.merge(proveniencia_de_contas(leitura, alcance), %{
+      seed: Map.get(leitura.provenance, "seed"),
+      generator: Map.get(leitura.provenance, "generator"),
+      random_graphs: Map.get(leitura.provenance, "random_graphs")
+    })
+  end
+
+  defp proveniencia_de_contas(leitura, :total) do
     %{
       knowledge_versions: Map.get(leitura.provenance, "knowledge_versions", %{}),
       account_type_unknown: Map.get(leitura.provenance, "account_type_unknown"),
@@ -426,7 +448,7 @@ defmodule TheBand.NetworkAnalysis.Reader do
     }
   end
 
-  defp proveniencia(leitura, _alcance) do
+  defp proveniencia_de_contas(leitura, _alcance) do
     %{
       knowledge_versions: Map.get(leitura.provenance, "knowledge_versions", %{}),
       account_type_unknown: nil,

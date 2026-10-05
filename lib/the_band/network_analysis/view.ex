@@ -45,7 +45,10 @@ defmodule TheBand.NetworkAnalysis.View do
     "no_reachable_person" => :no_reachable_person,
     "component_too_small" => :component_too_small,
     "no_edge_in_window" => :no_edge_in_window,
-    "network_too_large_for_platform" => :network_too_large_for_platform
+    "network_too_large_for_platform" => :network_too_large_for_platform,
+    "no_person_with_two_neighbours" => :no_person_with_two_neighbours,
+    "random_clustering_undefined" => :random_clustering_undefined,
+    "clustering_undefined" => :clustering_undefined
   }
 
   @type t :: %{
@@ -64,7 +67,9 @@ defmodule TheBand.NetworkAnalysis.View do
             | {:recortado, :no_reach}
             | {:ausente, :no_edge_in_window},
           communities: {:ok, map()} | {:recortado, :no_reach} | {:ausente, atom()},
-          hubs: {:ok, map()} | {:recortado, atom()} | {:ausente, atom()}
+          hubs: {:ok, map()} | {:recortado, atom()} | {:ausente, atom()},
+          distance: map(),
+          small_world: map()
         }
 
   @doc """
@@ -118,7 +123,59 @@ defmodule TheBand.NetworkAnalysis.View do
       comunidades(leitura, nos, base, dentro_de(alcance, reach, gone), params)
     )
     |> Map.put(:hubs, hubs(nos, base, dentro_de(alcance, reach, gone), params))
+    |> distancia_e_mundo_pequeno(leitura)
   end
+
+  # As medidas da rede (T042, T044; FR-037 a FR-043): são da rede inteira, e aparecem para todo
+  # alcance, inclusive DS5. A distribuição dos comprimentos conta pares, e o total de pares
+  # revela o número de pessoas: segue a regra 4, junto do número de pessoas.
+  defp distancia_e_mundo_pequeno(visao, leitura) do
+    m = leitura_medidas(leitura)
+    aleatorios = m["random"] || %{}
+    suprimido? = match?({:suprimido, _}, visao.people)
+
+    Map.merge(visao, %{
+      distance: %{
+        average: medida(m["average_distance"]),
+        reachable_share: get_in(m, ["average_distance", "reachable_share"]),
+        diameter: medida(m["diameter"]),
+        efficiency: medida(m["global_efficiency"]),
+        lengths:
+          cond do
+            suprimido? -> {:suprimido, :fewer_than_k_outside}
+            is_list(m["path_lengths"]) -> {:ok, Enum.map(m["path_lengths"], &List.to_tuple/1)}
+            true -> {:ausente, :not_computed}
+          end,
+        random: %{
+          graphs: aleatorios["graphs"],
+          absent: if(aleatorios["absent"], do: medida(aleatorios)),
+          average: com_contagem(aleatorios["average_distance"]),
+          reachable_share: get_in(aleatorios, ["average_distance", "reachable_share"]),
+          diameter: com_contagem(aleatorios["diameter"]),
+          efficiency: com_contagem(aleatorios["global_efficiency"])
+        }
+      },
+      small_world: %{
+        clustering: medida(m["clustering"]),
+        excluded_degree_below_two:
+          if(suprimido?, do: nil, else: get_in(m, ["clustering", "excluded_degree_below_two"])),
+        random_clustering: com_contagem(aleatorios["clustering"]),
+        random_average: com_contagem(aleatorios["average_distance"]),
+        sigma: sigma(m["sigma"]),
+        graphs: aleatorios["graphs"]
+      }
+    })
+  end
+
+  defp com_contagem(%{"value" => v, "graphs_defined" => n}) when is_number(v),
+    do: {:ok, %{value: v, graphs_defined: n}}
+
+  defp com_contagem(outra), do: medida(outra)
+
+  defp sigma(%{"value" => v, "clustering_ratio" => rc, "distance_ratio" => rl}),
+    do: {:ok, %{value: v, clustering_ratio: rc, distance_ratio: rl}}
+
+  defp sigma(outra), do: medida(outra)
 
   # Regra 5 (T040; FR-032 a FR-036; R1 da segurança, A3, A11).
   defp hubs(_nos, _base, :nenhum, _params), do: {:recortado, :no_reach}
@@ -423,6 +480,7 @@ defmodule TheBand.NetworkAnalysis.View do
     do: {:ausente, @motivos[motivo]}
 
   defp medida(nil), do: {:ausente, :not_computed}
+  defp medida(map) when map == %{}, do: {:ausente, :not_computed}
 
   defp distancia(%{"value" => m, "reaches" => r}), do: {:ok, %{mean: m, reaches: r}}
   defp distancia(nil), do: {:ausente, :not_computed}

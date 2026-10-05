@@ -694,7 +694,19 @@ evidência de cada defeito injetado comentada na issue de cada tarefa. O que div
 **Objetivo**: distância média, diâmetro e eficiência ao lado dos aleatórios. **Teste independente**:
 caminho de 4 — 5/3, 3 e 13/18.
 
-- [ ] T041 [US6] Calcular distância média, diâmetro e eficiência, e as dos aleatórios
+**Feita em 2026-10-05**, na branch `feature/1309-us6-us7` (empilhada sobre `feature/1309-us5`),
+junto com a US7, com a evidência de cada defeito injetado comentada na issue de cada tarefa. O que
+divergiu, e por quê:
+
+- **T041**: `Algorithms.Clustering` e o σ entraram no mesmo commit da T041, porque o laço dos
+  aleatórios mede tudo de uma vez; os testes deles são da T043. `Paths.network/2` devolve também
+  a distribuição dos comprimentos (3.5.2);
+- **T042**: a distribuição dos comprimentos segue a regra 4 (o total de pares revela o número de
+  pessoas);
+- **T043**: os três defeitos da tarefa reprovam, cada um o seu caso;
+- **T044**: a frase de σ ausente não diz nada sobre ser ou não mundo pequeno, nem usa a expressão.
+
+- [x] T041 [US6] Calcular distância média, diâmetro e eficiência, e as dos aleatórios
   - **Pronta quando**: T036, T038
   - **Descrição**: `Paths.network/2` e, em `random_battery/2`, as mesmas medidas sobre os 100
     aleatórios pela mesma regra de pares que se alcançam, com `reachable_share` dos dois lados (A6);
@@ -706,7 +718,7 @@ caminho de 4 — 5/3, 3 e 13/18.
     injetar**: média simples das médias por componente (a referência, `:139-149`); o caso desconexo
     reprova
 
-- [ ] T042 [US6] Mostrar distância, diâmetro e eficiência
+- [x] T042 [US6] Mostrar distância, diâmetro e eficiência
   - **Pronta quando**: T017, T041; protótipo §3 Tela 5 (3.5.1, 3.5.2, 3.5.5)
   - **Descrição**: `lib/the_band_web/live/network_analysis_live/distance.ex`, primeira metade: as três
     medidas com o valor médio dos aleatórios ao lado, a fração de pares que se alcançam, *"the longest
@@ -724,7 +736,7 @@ caminho de 4 — 5/3, 3 e 13/18.
 **Objetivo**: clustering, σ e o critério escrito como critério. **Teste independente**: o mesmo dado
 dá o mesmo σ, com semente e número de aleatórios na proveniência.
 
-- [ ] T043 [US7] Calcular o clustering e o σ
+- [x] T043 [US7] Calcular o clustering e o σ
   - **Pronta quando**: T041; `contracts/algoritmos.md` `Algorithms.Clustering`, `SmallWorld.sigma/4`
   - **Descrição**: `lib/the_band/network_analysis/algorithms/clustering.ex` (grau < 2 fora e
     contado) e `SmallWorld.sigma/4`; os aleatórios com a mesma regra; média sobre os grafos em que a
@@ -736,7 +748,7 @@ dá o mesmo σ, com semente e número de aleatórios na proveniência.
     injetar**: descartar os aleatórios desconexos; dividir sempre por 100; contar 0 para grau < 2.
     Cada um reprova o seu caso
 
-- [ ] T044 [US7] Mostrar o mundo pequeno como critério
+- [x] T044 [US7] Mostrar o mundo pequeno como critério
   - **Pronta quando**: T042, T043; protótipo 3.5.3, 3.5.4
   - **Descrição**: `distance.ex`, segunda metade: a tabela clustering e distância média, real ×
     aleatório, com as razões; σ com uma casa; *"meets the σ > 1 criterion"* (ou *"does not meet"*) e a

@@ -67,7 +67,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.Shared do
 
   # As páginas que já existem nesta fatia. As outras entram com a user story que as constrói
   # (tasks.md, fases 4 a 11); até lá aparecem na ordem, sem link, e nunca como link quebrado.
-  @disponiveis [:review, :graph, :communities, :hubs]
+  @disponiveis [:review, :graph, :communities, :hubs, :distance]
 
   @doc "As seis páginas da área, na ordem do protótipo (3.0.1)."
   @spec pages() :: [map()]
@@ -101,6 +101,9 @@ defmodule TheBandWeb.NetworkAnalysisLive.Shared do
 
   def page_path(:hubs, organization_id, selecao),
     do: ~p"/network-analysis/#{organization_id}/hubs?#{consulta(selecao)}"
+
+  def page_path(:distance, organization_id, selecao),
+    do: ~p"/network-analysis/#{organization_id}/distance?#{consulta(selecao)}"
 
   # A vista de comunidades do grafo (FR-026) acompanha a troca de rede e de janela; a ponderada é
   # o padrão, e não vai no endereço.

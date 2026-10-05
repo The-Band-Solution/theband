@@ -328,6 +328,8 @@ defmodule TheBandWeb.Router do
 
       live "/network-analysis/:organization_id/hubs", NetworkAnalysisLive.Hubs, :show
 
+      live "/network-analysis/:organization_id/distance", NetworkAnalysisLive.Distance, :show
+
       # O endereço antigo da 073 leva à área, com o id validado e só a janela da lista (R13, A13).
       live "/organizations/:id/review-network", ReviewNetworkLive.Show, :legacy
       live "/profile", ProfileLive.Index, :index

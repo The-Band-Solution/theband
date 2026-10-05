@@ -383,6 +383,14 @@ visão é `{:ok, %{count, modularity, q_rand, blocks, thresholds}} | {:recortado
 o motivo da base. Acima do teto, `random` e `sigma` ausentes com `network_too_large_for_platform`;
 sem aresta, com `no_edge_in_window`.
 
+**Emenda de 2026-10-05 (T042, T044)**, feita no mesmo commit da implementação: a visão traz
+`distance` (`average`, `reachable_share`, `diameter`, `efficiency`, `lengths` — `{:ok, [{passos,
+pares}]}` ou `{:suprimido, :fewer_than_k_outside}` —, e `random` com `graphs`, `absent`, `average`,
+`reachable_share`, `diameter`, `efficiency`) e `small_world` (`clustering`,
+`excluded_degree_below_two`, `random_clustering`, `random_average`, `sigma` com as razões,
+`graphs`, `criterion` — `:meets | :does_not_meet | nil` — e `threshold`, o limiar da base). A
+`provenance` ganha `seed`, `generator` e `random_graphs`.
+
 ## `discard_organization/2`
 
 ```elixir
