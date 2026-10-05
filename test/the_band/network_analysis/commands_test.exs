@@ -105,6 +105,30 @@ defmodule TheBand.NetworkAnalysis.CommandsTest do
     assert l.people_without_edges == 2
   end
 
+  test "T045: a leitura gravada não tem papel nem percentil (R17)", ctx do
+    e = arestas(ctx.ids)
+
+    {:ok, _, [_ | _]} =
+      Commands.compute(
+        ctx.tenant,
+        ctx.org,
+        @agora,
+        ctx.parametros,
+        todas(%{"review" => e, "assignment" => e})
+      )
+
+    # Mediu: as leituras estão gravadas, com nós.
+    leituras = leituras(ctx.tenant)
+    assert length(leituras) == 6
+    nos = Enum.flat_map(leituras, & &1.nodes)
+    assert nos != []
+
+    for no <- nos,
+        chave <- ~w(role percentile degree_percentile betweenness_percentile position) do
+      refute Map.has_key?(no, chave), "o nó gravado tem #{chave}: o papel deriva-se na leitura"
+    end
+  end
+
   test "A15: as mesmas arestas não regravam; só checked_at avança", ctx do
     e = arestas(ctx.ids)
     entradas = todas(%{"review" => e, "assignment" => e})

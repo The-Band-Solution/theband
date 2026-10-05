@@ -176,6 +176,23 @@ mesma saída.
 Chamado só por `View`/`Reader`, nunca gravado (R17). Abaixo de `min_people`, `{:ausente,
 :network_too_small}` para todos (FR-046).
 
+**Emenda de 2026-10-05 (T045)**, no mesmo commit da implementação:
+
+- o motivo da ausência é o da base, `network_too_small_for_roles`
+  (`network.position_percentile.percentage`), e não `network_too_small`;
+- acrescentadas `order/0` (a ordem dos cortes que o código implementa, conferida contra a de
+  `network.position_role.cuts.order`: diferente, levanta) e `roles/2`:
+
+```elixir
+@spec roles(%{id => %{degree: number, betweenness: measure}}, rule) ::
+        %{id => {:ok, role} | {:ausente, :network_too_small_for_roles}}
+```
+
+  que calcula os percentis sobre todas as pessoas e o papel de cada uma; abaixo do mínimo, ou com
+  a intermediação ausente, todas ausentes;
+- `role/2` devolve `%{code, label, sentence, degree_percentile, betweenness_percentile, cut}`, com o
+  rótulo e a frase de `network.position_role.labels` e o corte escrito com os limiares da base.
+
 ## `AssignmentClassification` (T024; acrescentado em 2026-10-04, antes do código)
 
 ```elixir
