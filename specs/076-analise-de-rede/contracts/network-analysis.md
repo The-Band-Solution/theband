@@ -375,6 +375,14 @@ visão é `{:ok, %{count, modularity, q_rand, blocks, thresholds}} | {:recortado
   alcançados cuja posição quem consulta pode ver (DS1). `tied?` marca o valor repetido na lista,
   ou o último da lista empatado com quem ficou de fora dela. `View.build/5` recebe `hubs_size`.
 
+**Emenda de 2026-10-05 (T041, T043)**, feita no mesmo commit da implementação: a leitura grava
+`measures.average_distance` (com `reachable_share`), `diameter`, `global_efficiency`,
+`path_lengths` (`[[passos, pares]]`), `clustering` (com `excluded_degree_below_two`),
+`random.clustering`, `random.average_distance` (com `reachable_share`), `random.diameter`,
+`random.global_efficiency` e `sigma` (com `clustering_ratio` e `distance_ratio`), ou a ausência com
+o motivo da base. Acima do teto, `random` e `sigma` ausentes com `network_too_large_for_platform`;
+sem aresta, com `no_edge_in_window`.
+
 ## `discard_organization/2`
 
 ```elixir
