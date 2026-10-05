@@ -5,7 +5,7 @@
 **Created**: 2026-10-05
 
 **Status**: Draft — emendada em 2026-10-05 com a [avaliação de segurança](seguranca.md), anotada
-*(seguranca.md, Sn)* em cada requisito que ela mudou.
+*(seguranca.md, Ln)* em cada requisito que ela mudou. A M1 (o que a produção faz antes da #1063) segue a decisão 2 da 070, já tomada pela pessoa mantenedora em 2026-10-01, e pode ser revista por configuração, sem código.
 
 **Input**: o defeito de segurança [#1229](https://github.com/The-Band-Solution/theband/issues/1229)
 (*a entrada aceita tentativas sem limite para identificador que não resolve*, achado S12 e
@@ -39,10 +39,11 @@ entrar na frente. Esta spec não usa `Plug.RewriteOn` para o endereço.
 
 **Quem tenta adivinhar** identificadores ou senhas, de um mesmo endereço, passa a receber a
 **mesma recusa de sempre** a partir da tentativa que passa do limite, sem nenhuma diferença de
-frase, de status, de cabeçalho ou de tempo que diga que o limite foi atingido. **Quem entra
-certo** não vê nada de novo. **Quem opera** vê no painel da 074 o motivo novo,
+frase, de status ou de cabeçalho que diga que o limite foi atingido. **Quem entra certo** não
+vê nada de novo. **Quem opera** vê no painel da 074 o motivo novo,
 `limite_por_origem`, e lê no log de subida de onde a plataforma está tirando o endereço — do
-socket, ou do cabeçalho do proxy —, porque a diferença muda o que o limite protege.
+socket, do cabeçalho do proxy, ou de lugar nenhum declarado (produção antes da #1063, quando o
+limite só observa) —, porque a diferença muda o que o limite protege.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -50,7 +51,9 @@ socket, ou do cabeçalho do proxy —, porque a diferença muda o que o limite p
 
 Quem manda tentativas de entrada em `POST /session`, de um mesmo endereço de origem, a partir da
 tentativa que passa do limite recebe a recusa única, e a plataforma não verifica senha nenhuma
-para ela — mas paga o mesmo custo de hash, para que o tempo não diga que o limite agiu. Vale para
+para ela, nem lê conta nem paga hash: o limite é por origem e é conferido antes de qualquer
+leitura que dependa do identificador, então o tempo não diz nada sobre conta *(seguranca.md, L5)*.
+Vale para
 identificador que não resolve, que é o defeito da #1229, e para qualquer outro.
 
 **Why this priority**: é o defeito de segurança aberto (#1229). Hoje a campanha de adivinhação de
@@ -70,8 +73,8 @@ inexistentes, e mais uma. A última recebe a mesma resposta das anteriores, byte
    certa não se distingue).
 3. **Given** um endereço no limite, **When** outro endereço tenta entrar com a senha certa,
    **Then** entra.
-4. **Given** a recusa por limite, **When** se mede o tempo da resposta, **Then** ele não se
-   distingue do de uma recusa por identificador que não resolve (o custo do hash é pago).
+4. **Given** a recusa por limite, **When** se contam os hashes e as consultas, **Then** são zero:
+   o limite não verifica nada e não lê conta *(seguranca.md, L5)*.
 5. **Given** a recusa por limite, **When** quem opera procura, **Then** o passo chega com
    `falhou` e `limite_por_origem`, sem identificador de conta, sem o que foi digitado, e sem o
    endereço.
@@ -100,17 +103,19 @@ endereço também é recusado com a recusa daquela porta. De outro endereço, o 
    errada, e nenhum segredo é verificado.
 2. **Given** um `X-Forwarded-For` forjado pelo cliente, **When** a confiança no cabeçalho está
    desligada (o padrão), **Then** o endereço contado não muda.
-3. **Given** a recusa por limite numa porta do operador, **When** se mede o tempo, **Then** o
-   custo do hash é pago, como em toda recusa daquela porta.
+3. **Given** a recusa por limite numa porta do operador, **When** se contam os eventos de custo
+   de hash, **Then** são zero *(seguranca.md, L5)*.
 
 ---
 
 ### User Story 3 - Quem opera sabe de onde vem o endereço, e só confia no proxy depois de medir (Priority: P1)
 
-A plataforma tira o endereço de origem do **socket**, por padrão, e diz isso no log de subida.
-Ela só passa a ler o cabeçalho do proxy quando a configuração o liga **e** nomeia os proxies em
-que confia; e mesmo ligada, só lê o cabeçalho quando a requisição chega de um desses proxies, e
-lê o valor que **o proxy** escreveu, o último, e nunca o que o cliente escreveu.
+A plataforma nunca confia num cabeçalho por padrão. Declarado o **socket**, conta por ele; sem
+declaração em produção, conta pelo socket e só **observa**; e só passa a ler o cabeçalho do proxy
+quando a configuração o liga **e** nomeia os proxies de rede local em que confia. Mesmo ligada, só
+lê o cabeçalho quando a requisição chega de um desses proxies, e usa o valor mais à direita que não
+é de proxy confiável — o que **o proxy** escreveu, e nunca o que o cliente escreveu. O estado vai
+para o log de subida.
 
 **Why this priority**: sem isto, as US1 e US2 ou confiam num cabeçalho forjável — e quem ataca
 escolhe o próprio endereço, o que é pior que não ter limite —, ou contam todo mundo como um
@@ -123,8 +128,9 @@ cabeçalho; um valor forjado à esquerda não muda nada.
 
 **Acceptance Scenarios**:
 
-1. **Given** nenhuma configuração, **When** a aplicação sobe, **Then** o log diz que o endereço
-   vem do socket, e que atrás de proxy todo visitante é uma origem só.
+1. **Given** produção sem declaração, **When** a aplicação sobe, **Then** o log diz que o limite
+   está só observado, porque a origem é o proxy; e 11 falhas de um endereço não são recusadas,
+   mas a transição fica registrada.
 2. **Given** nenhuma configuração, **When** chega um `X-Forwarded-For` qualquer, **Then** ele
    é ignorado.
 3. **Given** a confiança ligada com uma lista de proxies, **When** a requisição vem de fora da
@@ -138,49 +144,79 @@ cabeçalho; um valor forjado à esquerda não muda nada.
 ### Edge Cases
 
 - **Vários usuários atrás de um mesmo endereço (NAT, escritório, rede da universidade)**: dividem
-  o limite. O limite conta tentativas, e a decisão de como não punir a entrada certa é da
-  avaliação de segurança *(seguranca.md)*.
-- **Produção antes da #1063**: o socket é o proxy, e todo visitante é a mesma origem. O limite
-  vira um teto global da entrada, e quem ataca pode usá-lo para negar a entrada a todos. O que
-  fazer neste estado é decisão desta spec, tomada com a avaliação *(seguranca.md)*.
+  o limite, mas o limite conta **falhas**: uma turma que entra certa não o gasta *(seguranca.md,
+  L8)*. Enquanto uma campanha durar, a senha certa dos vizinhos é recusada — risco declarado.
+- **Produção antes da #1063**: o socket é o proxy, e todo visitante é a mesma origem. Recusar ali
+  seria um teto global, que nega a entrada a todos a ~0,04 requisição por segundo. Por isso o
+  estado **não declarado** conta e registra, e não recusa (FR-005; *seguranca.md*, L1, M1). A
+  #1229 e a A4 continuam abertas em produção até a #1063, declaradas.
 - **IPv6**: uma pessoa controla, em geral, um prefixo `/64` inteiro. Contar por endereço completo
   deixaria cada tentativa vir de um endereço novo.
 - **Reinício da aplicação**: o estado do limite pode se perder; a espera por conta, que está no
   banco, continua.
 - **Mais de uma instância**: cada uma conta sozinha, se o estado for local.
-- **Requisição sem o formulário completo** (campo ausente): conta como tentativa, como conta
-  hoje para a espera.
+- **Requisição sem o formulário completo**: em `POST /session` é `400` do Phoenix antes de
+  qualquer código desta spec, e não conta; nas portas do operador o campo ausente vira `""` e conta
+  *(seguranca.md, L7)*.
+- **Requisição sem token de CSRF**: recusada antes, e não conta — senão qualquer site gastaria a
+  cota de quem o visita *(seguranca.md, L7)*.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
 - **FR-001**: As cinco portas — `POST /session` e os quatro `POST` públicos de `/platform` —
-  MUST contar as tentativas por **origem**, dentro de uma janela, e recusar a tentativa que passa
-  do limite.
+  MUST contar, por **origem** e dentro de uma janela, as tentativas que chegariam a verificar um
+  segredo, e recusar a que passa do limite. A contagem acontece **depois** do CSRF e das
+  pré-conferências que não verificam segredo (a confirmação diferente e a caixa desmarcada do
+  cadastro), e **dentro do contexto, antes de resolver** conta ou operador, numa função só para as
+  cinco portas. Dois baldes: `contas` (`POST /session`) e `operador` (as quatro portas de
+  `/platform`) *(seguranca.md, L7)*.
 - **FR-002**: A recusa por limite MUST ser idêntica à recusa por credencial errada da mesma
-  porta: frase, status, destino e cabeçalhos (salvo o token de CSRF, que muda a cada resposta).
-- **FR-003**: A recusa por limite MUST pagar o custo de hash que a porta paga numa recusa
-  comum, e MUST NOT verificar a senha, o código ou o segundo fator que veio.
-- **FR-004**: A recusa por limite MUST NOT registrar falha em conta nem em operador: quem ataca
-  não pode usar o limite para pôr a conta de outra pessoa em espera.
-- **FR-005**: A origem MUST ser o endereço do socket, a menos que a configuração ligue a
-  confiança no cabeçalho do proxy **e** nomeie os proxies confiáveis. O padrão é desligado, em
-  todo ambiente.
-- **FR-006**: Ligada a confiança, o cabeçalho MUST ser lido só quando o socket é um proxy da
-  lista, e o valor usado MUST ser o **último** do cabeçalho; ausente, vazio ou malformado, vale o
-  socket.
-- **FR-007**: Endereços IPv6 MUST ser contados pelo prefixo `/64`; IPv4, pelo endereço inteiro.
-- **FR-008**: O limite, a janela e o comportamento sob NAT MUST morar na base de conhecimento,
-  numa regra própria, e não em constante de módulo.
-- **FR-009**: A aplicação MUST dizer no log de subida de onde lê a origem (socket ou cabeçalho, e
-  os proxies), sem nenhum segredo.
+  porta: frase, status, destino e **conjunto de cabeçalhos** (salvo o token de CSRF). Sem `429`,
+  sem `retry-after`, sem `x-ratelimit-*` *(seguranca.md, L9)*.
+- **FR-003**: A recusa por limite MUST NOT verificar a senha, o código ou o segundo fator, MUST
+  NOT consultar conta ou operador, e MUST NOT pagar o custo de hash: o tempo dela pode ser menor,
+  e isso não distingue nada que dependa de conta, porque o limite é conferido antes de qualquer
+  leitura que dependa do identificador *(seguranca.md, L5)*.
+- **FR-004**: A recusa por limite MUST NOT registrar falha em conta nem em operador, e a senha
+  certa no limite MUST NOT zerar a espera da conta *(seguranca.md, L9)*.
+- **FR-005**: A origem tem **três estados**, e nenhum liga por ausência de configuração *(seguranca.md,
+  L1, L3)*:
+  - **socket declarado** (desenvolvimento, teste, ou produção exposta diretamente, por variável):
+    conta pelo endereço do socket, e **recusa**;
+  - **proxy** (produção depois da #1063, por variável): cabeçalho nomeado e lista de proxies
+    confiáveis; conta pela origem lida, e **recusa**;
+  - **não declarada** (produção hoje): conta pelo socket, **registra** a transição para o limite,
+    e **não recusa** — a decisão 2 da 070 (2026-10-01), *"sem a medição, o limite por IP não
+    entra"*, aplicada.
+
+  A aplicação MUST recusar subir com lista de proxies malformada, com `/0`, ou com faixa que não
+  seja de rede local (RFC 1918, `100.64.0.0/10`, laço local, `fc00::/7`), e com estado
+  desconhecido.
+- **FR-006**: Em `proxy`, o cabeçalho MUST ser lido só quando o socket pertence à lista; as linhas
+  dele são juntadas na ordem, e a origem é o valor **mais à direita que não pertence à lista**.
+  Valor ausente, vazio ou que não é endereço estrito (`127.1`, porta, zona, colchetes) faz valer o
+  socket. Nenhum outro cabeçalho (`Forwarded`, `X-Real-IP`, `CF-Connecting-IP`) é lido
+  *(seguranca.md, L4, L12)*.
+- **FR-007**: O endereço MUST ser normalizado antes de tudo: IPv4 mapeado em IPv6
+  (`::ffff:0:0/96`) vira IPv4, **antes** da lista e do prefixo; IPv6 conta pelo `/64`; IPv4 pelo
+  endereço inteiro; socket que não é endereço tem uma origem fixa nomeada *(seguranca.md, L2)*.
+- **FR-008**: O limite conta **falhas**: o incremento é atômico, incondicional e **anterior** a
+  qualquer verificação; no sucesso, e só nele, devolve **exatamente um**, na fatia em que
+  incrementou, com piso zero e sem criar chave. O limite, a janela e o teto de memória MUST morar
+  na base de conhecimento, numa regra própria *(seguranca.md, L8)*.
+- **FR-009**: A aplicação MUST dizer no log de subida o estado da origem, o cabeçalho e a lista,
+  sem nenhum segredo.
 - **FR-010**: A recusa por limite em `POST /session` MUST emitir o passo `entrar_com_senha` com
   `falhou` e o motivo novo `limite_por_origem`, declarado na taxonomia da 074; o passo MUST NOT
   levar o endereço, o identificador digitado, nem identificador de conta.
-- **FR-011**: O endereço de origem MUST NOT ir para a telemetria, e no log MUST ir só na forma
-  que a avaliação de segurança decidir *(seguranca.md)*.
-- **FR-012**: O estado do limite MUST ter teto de memória: o que saiu da janela é podado.
+- **FR-011**: O endereço MUST NOT ir para a telemetria nem para `Logger.metadata`. No log, uma
+  linha por **transição** para o limite (não por recusa), com o balde, o estado e o **prefixo
+  truncado** (IPv4 `/24`, IPv6 `/48`), nunca o endereço inteiro *(seguranca.md, L10)*.
+- **FR-012**: O estado do limite MUST ter um processo dono supervisionado, que a cada fatia apaga
+  **todas** as fatias fora da janela e registra quando passa do teto de tamanho; a tabela que
+  renasce vazia é registrada *(seguranca.md, L6, L11)*.
 - **FR-013**: A espera por conta (045 FR-016) e a do operador MUST continuar como estão.
 
 ### Key Entities
@@ -199,8 +235,8 @@ cabeçalho; um valor forjado à esquerda não muda nada.
 - **SC-001**: De um mesmo endereço, a tentativa que passa do limite é recusada nas cinco portas,
   e nenhuma senha, código ou segundo fator é verificado para ela.
 - **SC-002**: A resposta da recusa por limite é idêntica, byte a byte (salvo o token de CSRF), à
-  da recusa por credencial errada da mesma porta, e o tempo dela não se distingue do de uma
-  recusa por identificador que não resolve.
+  da recusa por credencial errada da mesma porta, e nenhuma consulta de conta nem hash é feito
+  para ela.
 - **SC-003**: Com a configuração padrão, nenhum valor de `X-Forwarded-For` muda o endereço
   contado; com a confiança ligada, um valor forjado à esquerda também não.
 - **SC-004**: Outro endereço continua entrando enquanto um está no limite.
@@ -210,8 +246,9 @@ cabeçalho; um valor forjado à esquerda não muda nada.
 
 ## Assumptions
 
-- Uma instância da aplicação em produção (Dokploy, um contêiner). Estado em memória é aceitável
-  enquanto isso valer; a avaliação de segurança diz o custo do reinício.
+- Uma instância da aplicação em produção (Dokploy, um contêiner). Com N instâncias o limite
+  efetivo é N × o declarado, e a segunda instância é a condição de revisão *(seguranca.md, L11)*.
+  Deploy reinicia a contagem; a espera por conta, no banco, continua.
 - A medição #1063 é da pessoa mantenedora, em produção; esta spec entrega o mecanismo e o
   procedimento, e **não** liga a confiança no cabeçalho.
 - Sem dependência nova: o mecanismo de ETS da `ApiRateLimit` já resolve o mesmo problema.
@@ -222,3 +259,7 @@ cabeçalho; um valor forjado à esquerda não muda nada.
   operador): só faz sentido com o endereço real, e fica como tarefa aberta até a #1063.
 - Lista de endereços permitidos para `/platform` no Traefik (P2 (b) da 070): fora do repositório.
 - Ligar a confiança no proxy em produção: depois da #1063, por configuração, sem código.
+- A troca de senha (`POST /profile/password`) verifica a senha atual sem espera nem contador
+  (*seguranca.md*, L14): issue própria, porque o freio ali é por conta.
+- A fila de telemetria continua recebendo os passos da campanha (*seguranca.md*, L13): a defesa é o
+  contador anterior ao descarte da S12 da 074.
