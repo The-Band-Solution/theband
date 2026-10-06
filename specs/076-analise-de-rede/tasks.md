@@ -849,7 +849,7 @@ US4–US9: desde a T028 as leituras são gravadas, e as duas protegem uma superf
   falha dentro da transação é provada com um gatilho em `tool_credentials`, o passo que vem depois
   das leituras; um segundo defeito injetado (apagar antes da transação) reprova esse caso.
 
-- [ ] T049 Provar as cinco redes conhecidas e a reprodutibilidade
+- [x] T049 Provar as cinco redes conhecidas e a reprodutibilidade
   - **Pronta quando**: T030, T035, T038, T039, T041, T043
   - **Descrição**: `test/the_band/network_analysis/redes_conhecidas_test.exs`: `compute/4` sobre
     estrela, caminho, dois grupos com ponte, bipartida e desconexa, cada valor com a conta à mão ao
@@ -862,7 +862,7 @@ US4–US9: desde a T028 as leituras são gravadas, e as duas protegem uma superf
     chaves em `Communities`; a igualdade das dez reprova se a ordem mudar (se não reprovar, escrever
     na issue por que a ordem do mapa não muda o resultado)
 
-- [ ] T050 Medir o teto e o tempo do job
+- [x] T050 Medir o teto e o tempo do job
   - **Pronta quando**: T043, T036, T031
   - **Descrição**: medir `compute/4` para G(n, m) de 300 pessoas e 3 000 arestas nas duas redes e três
     janelas; escrever em `research.md` R5 e ajustar `size_limit` e o `timeout/1` se preciso (a mudança
@@ -892,6 +892,18 @@ US4–US9: desde a T028 as leituras são gravadas, e as duas protegem uma superf
   - **Teste**: `test/the_band/sources/end_observation_leituras_test.exs`, dois tenants. **Defeito a
     injetar**: apagar por `tenant_id` só; a leitura de outra organização do mesmo tenant some e o teste
     reprova
+
+**T049 e T050 feitas em 2026-10-05/06**, na branch `feature/1309-acabamento`:
+
+- **T049**: o defeito do texto (somar os pesos do mapa sem ordenar as chaves) **não** reprova, e a
+  razão está no commit e na #1374: as somas são de inteiros, e a ordem não muda o resultado. Um
+  sorteio fora da semente reprova a igualdade das dez;
+- **T050**: a medida dos aleatórios em sequência dava 105,6 s para as seis combinações, a 15 s do
+  `timeout/1`. A medida de cada aleatório passou a rodar em paralelo, e o sorteio continua
+  sequencial (o resultado é o mesmo, número por número; a T049 confere). Medido 32,9 s a 50,2 s;
+  teto do teste 90 s; o defeito injetado foi tirar o paralelismo (108,2 s, reprova). O teto da base
+  (300 / 3 000) e o `timeout/1` não mudam. **Fica aberto**: confirmar com os núcleos de produção e a
+  medida da T003 (👤).
 
 - [ ] T053 Conferir a tela contra o protótipo aprovado — QA e Design
   - **Pronta quando**: T020, T029, T033, T037, T040, T042, T044, T046, T048

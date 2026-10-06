@@ -31,7 +31,17 @@ defmodule TheBand.NetworkAnalysis.Algorithms.SmallWorld do
   clustering ou distância na rede real, ou com C_rand zero ou indefinido. A ausência **não** diz
   que a rede não é mundo pequeno (FR-042).
 
-  Puro: sem `Repo`, relógio, `Logger` nem processo. Depende de: nenhuma ontologia.
+  ## O custo, e o paralelismo (T050)
+
+  Num G(300, 3 000), o teto da base, medir um aleatório custa cerca de 150 ms (o guloso e a busca
+  em largura de todos os pares), e os 100 de uma rede e janela, cerca de 16 s: as seis
+  combinações de um job passavam de 105 s, perto do `timeout/1` de 120 s. A medida de cada
+  aleatório não depende das outras, e por isso roda em paralelo (`Task.async_stream/3`, na ordem
+  em que foram gerados). O **sorteio** continua sequencial, e o resultado é o mesmo: o paralelismo
+  não muda número nenhum. Medida e decisão em research.md R5.
+
+  Sem `Repo`, relógio nem `Logger`; os processos são só os da medida paralela, sem estado.
+  Depende de: nenhuma ontologia.
   """
 
   alias TheBand.NetworkAnalysis.Algorithms.Clustering
@@ -66,12 +76,23 @@ defmodule TheBand.NetworkAnalysis.Algorithms.SmallWorld do
     pesos = pesos_por_par(adjacencia)
     m = length(pesos)
 
-    {medidas, _estado} =
+    # O sorteio é sequencial (a sequência é a declarada); a medida de cada aleatório não depende
+    # das outras, e roda em paralelo, na ordem em que foram gerados (T050, research.md R5).
+    {grafos, _estado} =
       Enum.map_reduce(1..quantos, Random.new(semente), fn _i, estado ->
         {pares, estado} = Random.gnm(estado, n, m)
         {sorteados, estado} = Random.shuffle(estado, pesos)
-        {medir(adjacencia_de(pares, sorteados), n), estado}
+        {adjacencia_de(pares, sorteados), estado}
       end)
+
+    medidas =
+      grafos
+      |> Task.async_stream(&medir(&1, n),
+        ordered: true,
+        timeout: :infinity,
+        max_concurrency: System.schedulers_online()
+      )
+      |> Enum.map(fn {:ok, medida} -> medida end)
 
     # Cada aleatório tem as m ≥ 1 ligações da real: a modularidade, a distância e a eficiência
     # estão definidas em todos. O clustering pode não estar (nenhuma pessoa com dois vizinhos).

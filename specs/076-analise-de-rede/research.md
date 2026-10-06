@@ -89,6 +89,32 @@ traz o número de produção. Acima do teto: σ, Q_rand e layout **ausentes** co
 **Alternativas**: sem teto (laço sem fim é negação de serviço, R14 da segurança); teto em constante
 de módulo (a regra de `review.network.parameters` recusa).
 
+**Medida (T050, 2026-10-05)**: `Commands.compute/5` sobre um G(300, 3 000) sorteado com semente 76,
+as duas redes e as três janelas com as mesmas arestas (o pior caso: nenhuma combinação fica abaixo
+do teto), parâmetros da base. Máquina: Apple M4, 10 núcleos, 16 GB, Elixir 1.20.2 / OTP 29,
+`MIX_ENV=test`, em `test/the_band/network_analysis/teto_test.exs` (tag `:slow`).
+
+| | as 6 combinações |
+|---|---|
+| medida dos 100 aleatórios em sequência | **105,6 s** |
+| medida dos 100 aleatórios em paralelo | **32,9 s** |
+
+Por partes, num G(300, 3 000): o guloso 77 ms e a busca em largura de todos os pares 70 ms por
+aleatório — cerca de 16 s para os 100 de uma combinação, que é quase todo o custo; intermediação
+358 ms, layout 443 ms, autovetor 9 ms e clustering 3 ms sobre a rede real. Em sequência, o job
+ficava a 15 s do `timeout/1` de 120 s **nesta** máquina, e passaria dele numa mais lenta.
+
+**Decisão**: a medida de cada aleatório roda em paralelo (`Task.async_stream/3`, na ordem em que
+foram gerados); o sorteio continua sequencial, e o resultado é o mesmo, número por número (a
+reprodutibilidade da T049 continua passando). O teto (300 / 3 000) e o `timeout/1` (120 s) **não
+mudam**: com 2 núcleos, a estimativa é de cerca de 55 s. **Fica aberto** confirmar com o número de
+núcleos de produção e com a medida da #1190 / T003 (a pessoa mantenedora).
+
+**A guarda, provada (2026-10-06)**: o teste tem teto de 90 s. Medido de novo, com a máquina sob
+carga: **50,2 s** em paralelo. Com o defeito — a medida em sequência —, **108,2 s**, e o teste
+reprova pelo assert. 300 aleatórios em paralelo ficaram em 89,8 s: o teto não distingue um
+aumento de 3× nos aleatórios, e não é para isso que ele existe; ele guarda o tempo do job.
+
 ## R6 — Os algoritmos, em Elixir puro
 
 Todos em `lib/the_band/network_analysis/algorithms/`, puros: sem `Repo`, sem relógio, sem `Logger`,
