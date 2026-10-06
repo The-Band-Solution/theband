@@ -22,6 +22,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.HubsTest do
   import Phoenix.LiveViewTest
   import TheBand.ReviewNetworkFixtures
 
+  alias TheBand.NetworkAnalysis
   alias TheBand.NetworkAnalysis.Commands
   alias TheBand.NetworkAnalysis.Parameters
   alias TheBand.Ontology.KnowledgeBase
@@ -130,7 +131,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.HubsTest do
   # 3.4.4 (T053): o estado sem valor diz o número de rodadas e a razão, e ninguém recebe zero.
   # Uma rodada só não assenta com a tolerância da base: o cálculo é forçado a não convergir.
   test "o autovetor que não assentou diz as rodadas e a razão, e não dá valor a ninguém", ctx do
-    tenant = ctx.admin |> Map.fetch!(:tenant_id) |> TheBand.Tenants.fetch() |> elem(1)
+    tenant = ctx.admin |> Map.fetch!(:tenant_id) |> Tenants.fetch() |> elem(1)
     %{organization: org} = organizacao_com_repositorio(tenant)
     [a, b, c] = for n <- ~w(A B C), do: pessoa(tenant, "#{n} Instavel")
 
@@ -161,7 +162,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.HubsTest do
 
     bloco = texto(html, "#autovetor-grupo-1")
     assert bloco =~ "not computed: the calculation did not settle"
-    assert bloco =~ "After #{TheBand.NetworkAnalysis.options().eigenvector.max_iterations} rounds"
+    assert bloco =~ "After #{NetworkAnalysis.options().eigenvector.max_iterations} rounds"
     assert bloco =~ "by more than 0.000001 per person"
     assert bloco =~ "no one gets zero"
     assert q(html, "#autovetor-grupo-1 [data-nome]") |> Enum.count() == 0

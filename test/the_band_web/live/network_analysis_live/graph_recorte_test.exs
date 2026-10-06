@@ -31,6 +31,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphRecorteTest do
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Repo
   alias TheBand.Tenants
+  alias TheBandWeb.NetworkAnalysisLive.GraphComponents
 
   # Uma organização com Ana, Bia e Lia (alcançadas por Lia) e `fora` pessoas de fora, todas na
   # comunidade 2, ligadas a Ana numa cadeia. Calculada, e com as comunidades escritas na leitura
@@ -166,7 +167,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphRecorteTest do
       |> Enum.filter(&is_number(&1["x"]))
       |> Map.new(&{&1["id"], {&1["x"], &1["y"]}})
 
-    {x_ana, _} = TheBandWeb.NetworkAnalysisLive.GraphComponents.fit_to_frame(gravadas)[ctx.ana.id]
+    {x_ana, _} = GraphComponents.fit_to_frame(gravadas)[ctx.ana.id]
 
     assert q(html, "#grafo-ponderado-n-#{ctx.ana.id}") |> LazyHTML.attribute("cx") == [
              :erlang.float_to_binary(x_ana, decimals: 1)
