@@ -68,7 +68,8 @@ defmodule TheBand.NetworkAnalysis.Reader do
   @spec options() :: %{
           networks: %{allowed: [String.t()], default: String.t()},
           windows: %{allowed: [pos_integer()], default: pos_integer()},
-          views: %{allowed: [String.t()], default: String.t()}
+          views: %{allowed: [String.t()], default: String.t()},
+          eigenvector: %{max_iterations: pos_integer(), tolerance_per_node: float()}
         }
   def options, do: options(Parameters.fetch!())
 

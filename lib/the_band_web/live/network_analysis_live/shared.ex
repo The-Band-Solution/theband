@@ -84,7 +84,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.Shared do
   por ela só para voltar às outras páginas.
   """
   @spec page_path(atom(), Ecto.UUID.t(), %{
-          optional(:network) => String.t(),
+          optional(:network) => String.t() | nil,
           optional(:view) => String.t(),
           window: pos_integer()
         }) ::
