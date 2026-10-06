@@ -144,14 +144,18 @@ defmodule TheBandWeb.NetworkAnalysisLive.Positions do
           <td data-label="position in this network">
             <%= case l.role do %>
               <% {:ok, p} -> %>
-                <span class="block">
-                  <span class="font-semibold">{p.label}.</span> {p.sentence}
-                </span>
-                <span class="block text-xs opacity-70">
-                  links: percentile {inteiro(p.degree_percentile)} · paths through them: percentile {inteiro(
-                    p.betweenness_percentile
-                  )} · cut: {p.cut}
-                </span>
+                <%!-- Um item só no flex da célula empilhada: os dois blocos soltos viravam duas
+                     colunas, e no telefone o critério saía do cartão (T053). --%>
+                <div class="min-w-0">
+                  <span class="block">
+                    <span class="font-semibold">{p.label}.</span> {p.sentence}
+                  </span>
+                  <span class="block text-xs opacity-70">
+                    links: percentile {inteiro(p.degree_percentile)} · paths through them: percentile {inteiro(
+                      p.betweenness_percentile
+                    )} · cut: {p.cut}
+                  </span>
+                </div>
               <% {:ausente, :network_too_small_for_roles} -> %>
                 <.absent reason={"not described: the network has fewer than #{@v.position_rule.min_people} people"} />
               <% {:recortado, :positions_not_granted} -> %>
