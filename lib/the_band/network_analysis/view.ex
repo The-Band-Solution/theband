@@ -148,6 +148,9 @@ defmodule TheBand.NetworkAnalysis.View do
           end,
         random: %{
           graphs: aleatorios["graphs"],
+          # Leitura gravada antes da T053 não traz a contagem: `nil`, e a tela diz que não está
+          # registrada, nunca zero.
+          not_linked: aleatorios["graphs_not_linked"],
           absent: if(aleatorios["absent"], do: medida(aleatorios)),
           average: com_contagem(aleatorios["average_distance"]),
           reachable_share: get_in(aleatorios, ["average_distance", "reachable_share"]),
@@ -162,7 +165,8 @@ defmodule TheBand.NetworkAnalysis.View do
         random_clustering: com_contagem(aleatorios["clustering"]),
         random_average: com_contagem(aleatorios["average_distance"]),
         sigma: sigma(m["sigma"]),
-        graphs: aleatorios["graphs"]
+        graphs: aleatorios["graphs"],
+        not_linked: aleatorios["graphs_not_linked"]
       }
     })
   end
@@ -324,12 +328,22 @@ defmodule TheBand.NetworkAnalysis.View do
   defp nucleo(_alcancados, _grau, %{sees_others_positions?: false}, _tamanho),
     do: {:recortado, :positions_not_granted}
 
+  # `tied?` como nos hubs: outro elegível com o mesmo grau interno, dentro ou fora da lista — o
+  # empate foi decidido pelo id, e a tela diz isso (3.3.4, T053).
   defp nucleo(alcancados, grau, base, tamanho) do
-    alcancados
-    |> Enum.filter(&ve_posicao_de?(base, &1))
+    elegiveis = Enum.filter(alcancados, &ve_posicao_de?(base, &1))
+    graus = Enum.map(elegiveis, &grau[&1])
+
+    elegiveis
     |> Enum.sort_by(&{-(grau[&1] || 0), &1})
     |> Enum.take(tamanho)
-    |> Enum.map(&%{person_id: &1, internal_degree: grau[&1]})
+    |> Enum.map(
+      &%{
+        person_id: &1,
+        internal_degree: grau[&1],
+        tied?: Enum.count(graus, fn g -> g == grau[&1] end) > 1
+      }
+    )
   end
 
   defp contagem(total, escondidas, k) do

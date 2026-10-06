@@ -76,7 +76,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.SmallWorldTest do
     assert sigma =~ "meets the σ > 1 criterion"
     assert texto(html, "#o-que-o-criterio-nao-prova") =~ "Telesford et al., 2011"
     assert texto(html, "#aleatorios") =~ "100 random networks"
-    assert texto(html, "#aleatorios") =~ "seed 42"
+    assert texto(html, "#aleatorios") =~ "Seed 42"
     refute html =~ ~r/is a small world/i
   end
 

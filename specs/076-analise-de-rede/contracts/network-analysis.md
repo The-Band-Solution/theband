@@ -47,11 +47,16 @@ dariam a mesma impressão. Sem a regra, `from_rules!/2` levanta dizendo o id.
 @spec options() :: %{
         networks: %{allowed: [String.t()], default: String.t()},   # ["review", "assignment"], "review"
         windows: %{allowed: [pos_integer()], default: pos_integer()}, # [30, 90, 180], 90
-        views: %{allowed: [String.t()], default: String.t()}        # ["weighted", "communities"]
+        views: %{allowed: [String.t()], default: String.t()},       # ["weighted", "communities"]
+        eigenvector: %{max_iterations: pos_integer(), tolerance_per_node: float()} # 1000, 1.0e-6
       }
 ```
 
 As listas fechadas para a tela desenhar os seletores. A tela nunca as escreve.
+
+**Emenda (T053, 2026-10-06)**: `eigenvector` entra para a frase do estado sem valor dizer o número
+de rodadas e a tolerância (PROMPT §3, 3.4.4). Antes a tela dizia só "after the rounds the base
+allows", e ler `Parameters` da tela furaria a fronteira.
 
 ## `selection/1`
 
@@ -212,7 +217,7 @@ Número de consultas fixo, independente do tamanho da rede; guardado por teste d
                detail: map()}     # closeness: %{distance_mean, reaches}; degree: %{out_people, in_people}
 @type community_block :: %{index: pos_integer(), size: {:ok, pos_integer()} | {:suprimido, atom()},
                            internal_edges: {:ok, non_neg_integer()} | {:suprimido, atom()},
-                           core: [%{person_id: Ecto.UUID.t(), name: String.t(), internal_degree: pos_integer()}]
+                           core: [%{person_id: Ecto.UUID.t(), name: String.t(), internal_degree: pos_integer(), tied?: boolean()}]  # tied?: emenda T053
                                  | {:recortado, :positions_not_granted},
                            members: [%{person_id: Ecto.UUID.t(), name: String.t()}],
                            outside: {:agregado, pos_integer()} | :sem_agregado}
@@ -245,7 +250,9 @@ chamado (FR-013, A10). Pessoa de outro tenant, inexistente, fora do alcance e id
         from: [%{person_id: Ecto.UUID.t(), name: String.t(), weight: pos_integer()}],
         to_outside_reach: {:agregado, pos_integer()} | :nenhum,   # "N issues with people outside your reach"
         from_outside_reach: {:agregado, pos_integer()} | :nenhum,
-        to_total: pos_integer(), from_total: pos_integer()        # DS3 (a): o total verdadeiro
+        to_total: pos_integer(), from_total: pos_integer(),       # DS3 (a): o total verdadeiro
+        computed_at: DateTime.t(), window_start: DateTime.t(),    # emenda T053: a linha da
+        window_end: DateTime.t(), window_days: pos_integer()      # leitura de cada rede (3.0.5)
       }}
       | {:ausente, :no_edges_in_window}       # só para pessoa alcançada (FR-014)
       | {:ausente, :not_computed | :stale}
@@ -379,16 +386,18 @@ visão é `{:ok, %{count, modularity, q_rand, blocks, thresholds}} | {:recortado
 `measures.average_distance` (com `reachable_share`), `diameter`, `global_efficiency`,
 `path_lengths` (`[[passos, pares]]`), `clustering` (com `excluded_degree_below_two`),
 `random.clustering`, `random.average_distance` (com `reachable_share`), `random.diameter`,
-`random.global_efficiency` e `sigma` (com `clustering_ratio` e `distance_ratio`), ou a ausência com
+`random.global_efficiency`, `random.graphs_not_linked` (emenda da T053, 2026-10-06; ausente nas
+leituras anteriores) e `sigma` (com `clustering_ratio` e `distance_ratio`), ou a ausência com
 o motivo da base. Acima do teto, `random` e `sigma` ausentes com `network_too_large_for_platform`;
 sem aresta, com `no_edge_in_window`.
 
 **Emenda de 2026-10-05 (T042, T044)**, feita no mesmo commit da implementação: a visão traz
 `distance` (`average`, `reachable_share`, `diameter`, `efficiency`, `lengths` — `{:ok, [{passos,
-pares}]}` ou `{:suprimido, :fewer_than_k_outside}` —, e `random` com `graphs`, `absent`, `average`,
+pares}]}` ou `{:suprimido, :fewer_than_k_outside}` —, e `random` com `graphs`, `not_linked` (T053;
+`nil` em leitura anterior), `absent`, `average`,
 `reachable_share`, `diameter`, `efficiency`) e `small_world` (`clustering`,
 `excluded_degree_below_two`, `random_clustering`, `random_average`, `sigma` com as razões,
-`graphs`, `criterion` — `:meets | :does_not_meet | nil` — e `threshold`, o limiar da base). A
+`graphs`, `not_linked` (T053), `criterion` — `:meets | :does_not_meet | nil` — e `threshold`, o limiar da base). A
 `provenance` ganha `seed`, `generator` e `random_graphs`.
 
 **Emenda de 2026-10-05 (T046, T047)**, feita no mesmo commit da implementação:

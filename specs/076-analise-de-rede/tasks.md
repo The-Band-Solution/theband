@@ -905,7 +905,7 @@ US4–US9: desde a T028 as leituras são gravadas, e as duas protegem uma superf
   (300 / 3 000) e o `timeout/1` não mudam. **Fica aberto**: confirmar com os núcleos de produção e a
   medida da T003 (👤).
 
-- [ ] T053 Conferir a tela contra o protótipo aprovado — QA e Design
+- [x] T053 Conferir a tela contra o protótipo aprovado — QA e Design
   - **Pronta quando**: T020, T029, T033, T037, T040, T042, T044, T046, T048
   - **Descrição**: o QA, em par com o agente `design`, lê cada página entregue contra
     `prototipo/PROMPT.md` §3, item a item, com as divergências de `research.md` R21; telefone incluído
@@ -914,13 +914,23 @@ US4–US9: desde a T028 as leituras são gravadas, e as duas protegem uma superf
     captura; defeito vira tarefa antes do merge
   - **Teste**: a tabela item a item, com as imagens (L73: a prova de tela é a imagem)
 
+**T053 feita em 2026-10-06**: [prototipo/conferencia.md](prototipo/conferencia.md) e
+`docs/sprints/043-analise-de-rede-completa/aceitacao.md`. Foram 19 defeitos, todos consertados na
+branch, cada um com guarda vista reprovando (o arrasto e a roda, medidos no navegador). Dez divergências seguem a spec, mas não estavam em
+R21: entraram nela como **propostas**, e a decisão é da T054. Continuam abertos: o 3.9.1 (o Design
+republica o protótipo com *Decided*, depois da T054) e o núcleo denso do grafo, que é a forma do
+dado real com o layout da base.
+
 - [ ] T054 👤 Aceitar contra a origem (SC-001, SC-006)
   - **Pronta quando**: T053; uma organização real com leitura
   - **Descrição**: a pessoa mantenedora conta à mão, na origem, as issues abertas na janela, as
     designações e as exclusões por motivo, e compara com a tela; e responde, a partir da tela, *"quais
     grupos se formam e quem os liga?"* em menos de dois minutos
+  - **Também (T053)**: decidir as propostas da R21 (frase da posição, listas do perfil por peso,
+    escala do autovetor, Tela 1 pulada com uma organização, textos do alcance, estilo). O que voltar
+    ao protótipo volta ao código antes do merge
   - **Feita quando**: as contagens batem sem diferença, ou a diferença está explicada e aceita por
-    escrito; o tempo da pergunta está registrado
+    escrito; o tempo da pergunta está registrado; cada proposta da R21 tem decisão com data
   - **Teste**: o registro na issue, com os números dos dois lados
 
 - [ ] T055 Rodar os gates e abrir o PR

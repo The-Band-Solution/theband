@@ -207,7 +207,9 @@ defmodule TheBandWeb.NetworkAnalysisLive.Hubs do
             <% {:ausente, :did_not_converge} -> %>
               <p class="text-sm">
                 <.absent reason="not computed: the calculation did not settle" />
-                After the rounds the base allows, the values were still moving. No one gets a value,
+                After {rodadas()} rounds, the most the base allows, the values were still changing
+                by more than {tolerancia()} per person between rounds: in a group whose links run
+                mostly one way, the calculation can circle without settling. No one gets a value,
                 and no one gets zero.
               </p>
             <% _ -> %>
@@ -217,7 +219,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.Hubs do
                 lista={g.rows}
                 id={"lista-autovetor-#{g.component}"}
               >
-                <:valor :let={l}>{duas_casas(elem(l.value, 1))}</:valor>
+                <:valor :let={l}>{Shared.autovetor_texto(elem(l.value, 1))}</:valor>
               </.linhas>
           <% end %>
         </div>
@@ -299,8 +301,18 @@ defmodule TheBandWeb.NetworkAnalysisLive.Hubs do
   defp caminhos(v), do: "#{round(v * 100)}% of paths"
 
   defp passos(m), do: "#{:erlang.float_to_binary(m * 1.0, decimals: 1)} steps"
-  defp duas_casas(v), do: :erlang.float_to_binary(v * 1.0, decimals: 2)
 
   defp pessoas(1), do: "1 person"
   defp pessoas(n), do: "#{n} people"
+
+  # 3.4.4: o número de rodadas e a razão, da base (`network.analysis.parameters`), lidos aqui
+  # para a frase não envelhecer quando a base mudar (T053).
+  defp rodadas, do: NetworkAnalysis.options().eigenvector.max_iterations
+
+  defp tolerancia,
+    do:
+      :erlang.float_to_binary(NetworkAnalysis.options().eigenvector.tolerance_per_node, [
+        :compact,
+        decimals: 10
+      ])
 end

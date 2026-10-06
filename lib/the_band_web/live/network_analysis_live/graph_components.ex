@@ -135,6 +135,9 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
   end
 
   defp render_desenho(assigns) do
+    posicoes = fit_to_frame(assigns.posicoes)
+    assigns = assign(assigns, posicoes: posicoes, rotulos: rotulos(assigns.pessoas, posicoes))
+
     ~H"""
     <div class="hidden sm:grid gap-4 sm:grid-cols-2">
       <div
@@ -163,7 +166,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
         </span>
         <svg
           id={@svg_id}
-          viewBox="0 0 1000 1000"
+          viewBox="0 0 1000 625"
           role="group"
           aria-label={rotulo_do_svg(@network, length(@pessoas), length(@graph.edges))}
           class="block w-full h-auto max-h-[80vh] cursor-grab select-none"
@@ -183,12 +186,14 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
             </marker>
           </defs>
           <g data-viewport>
+            <%!-- A tinta do contorno é propriedade arbitrária: `fill-opacity-10` não é utilitário do
+                 Tailwind, não gerava regra, e o contorno saía opaco cobrindo os nós (T053, D1). --%>
             <g :if={@view == "communities"} aria-hidden="true">
               <g :for={{c, pontos, {lx, ly}} <- contornos(@graph.nodes, @posicoes)}>
                 <polygon
                   points={pontos}
                   class={[
-                    "fill-opacity-10 stroke-[1.5] [stroke-dasharray:6_4]",
+                    "[fill-opacity:0.1] stroke-[1.5] [stroke-dasharray:6_4]",
                     cor_da_comunidade(c)
                   ]}
                 />
@@ -241,7 +246,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
                 class={[
                   "nd stroke-base-content/60 [stroke-dasharray:4_3] outline-none focus:[stroke-width:2.5]",
                   if(@view == "communities" and is_integer(g.community),
-                    do: [cor_da_comunidade(g.community), "fill-opacity-30"],
+                    do: [cor_da_comunidade(g.community), "[fill-opacity:0.3]"],
                     else: "fill-base-200"
                   ),
                   classes_de_vizinho(g.id, @vizinhos)
@@ -253,9 +258,9 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
             <g class="pointer-events-none">
               <text
                 :for={p <- @pessoas}
-                x={x(@posicoes, p.id)}
-                y={num(coord(@posicoes, p.id, 1) - raio(p) - 4)}
-                text-anchor="middle"
+                x={num(rotulo(@rotulos, p, @posicoes) |> elem(0))}
+                y={num(rotulo(@rotulos, p, @posicoes) |> elem(1))}
+                text-anchor={rotulo(@rotulos, p, @posicoes) |> elem(2)}
                 class={[
                   "lb text-[14px] font-semibold fill-base-content [paint-order:stroke] stroke-base-100 [stroke-width:3px] [stroke-linejoin:round]",
                   if(p.labelled?, do: "major", else: "minor hidden"),
@@ -302,11 +307,14 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
         mounted() {
           this.t = {s: 1, x: 0, y: 0}
           this.svg = this.el.querySelector("svg")
+          // O ponto em coordenadas do viewBox. Dividir pela caixa do elemento errava na horizontal:
+          // o viewBox se ajusta pela altura (meet), e sobra faixa dos lados (T053, D3).
           const ponto = (e) => {
-            const r = this.svg.getBoundingClientRect()
-            return [(e.clientX - r.left) / r.width * 1000, (e.clientY - r.top) / r.height * 1000]
+            const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(this.svg.getScreenCTM().inverse())
+            return [p.x, p.y]
           }
-          const zoom = (f, cx = 500, cy = 500) => {
+          const vb = this.svg.viewBox.baseVal
+          const zoom = (f, cx = vb.x + vb.width / 2, cy = vb.y + vb.height / 2) => {
             const s = Math.min(8, Math.max(1, this.t.s * f))
             const k = s / this.t.s
             this.t = {s, x: cx - (cx - this.t.x) * k, y: cy - (cy - this.t.y) * k}
@@ -354,6 +362,41 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
     """
   end
 
+  # A escala do tamanho, como no protótipo (3.2.1): o menor, o mediano e o maior grau desenhados,
+  # com o número de pessoas ao lado. Sem ela, o tamanho só se lê por comparação (T053).
+  defp render_escala(assigns) do
+    graus = assigns.pessoas |> Enum.map(& &1.degree) |> Enum.sort()
+
+    assigns =
+      assign(assigns,
+        exemplos:
+          case graus do
+            [] -> []
+            _ -> Enum.uniq([hd(graus), Enum.at(graus, div(length(graus), 2)), List.last(graus)])
+          end
+      )
+
+    ~H"""
+    <ul :if={@exemplos != []} class="flex flex-wrap items-end gap-3 pt-1" aria-label="node size">
+      <li :for={d <- @exemplos} class="inline-flex items-center gap-1">
+        <svg
+          viewBox={"0 0 #{num(2 * raio(%{kind: :person, degree: d}) + 2)} #{num(2 * raio(%{kind: :person, degree: d}) + 2)}"}
+          width={num((2 * raio(%{kind: :person, degree: d}) + 2) * 0.8)}
+          aria-hidden="true"
+        >
+          <circle
+            cx={num(raio(%{kind: :person, degree: d}) + 1)}
+            cy={num(raio(%{kind: :person, degree: d}) + 1)}
+            r={num(raio(%{kind: :person, degree: d}))}
+            class="fill-base-300 stroke-base-content"
+          />
+        </svg>
+        {d}
+      </li>
+    </ul>
+    """
+  end
+
   defp render_legenda(%{view: "communities"} = assigns) do
     assigns = assign(assigns, comunidades: comunidades_da_visao(assigns.graph.nodes))
 
@@ -361,7 +404,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
     <div id={"#{@id}-legenda"} class="flex flex-col gap-2 text-xs opacity-90 min-w-0">
       <p>
         <b>Colour, dashed outline and letter</b>
-        the community of each person <span class="opacity-70">(derived)</span>; the letter follows
+        the community of each person <Shared.marca tipo={:derivado} />; the letter follows
         size, A the largest, so the picture reads in greyscale.
       </p>
       <ul class="flex flex-wrap gap-x-3 gap-y-1" aria-label="communities">
@@ -372,7 +415,10 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
           Community {letra(c)}
         </li>
       </ul>
-      <p><b>Size</b> people linked, in either direction.</p>
+      <div>
+        <p><b>Size</b> people linked, in either direction.</p>
+        {render_escala(assigns)}
+      </div>
       <p>
         <b>Width</b> how many {unidade(@network)} on that link. <b>Arrow</b> its direction.
       </p>
@@ -387,13 +433,14 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
   defp render_legenda(assigns) do
     ~H"""
     <div id={"#{@id}-legenda"} class="flex flex-col gap-2 text-xs opacity-90 min-w-0">
-      <p>
-        <b>Size</b> people linked, in either direction.
-      </p>
+      <div>
+        <p><b>Size</b> people linked, in either direction.</p>
+        {render_escala(assigns)}
+      </div>
       <p>
         <b>Colour</b>
         betweenness, share of shortest paths between others that pass through the person
-        <span class="opacity-70">(derived)</span>
+        <Shared.marca tipo={:derivado} />
       </p>
       <ul class="flex flex-wrap gap-x-3 gap-y-1" aria-label="betweenness bands">
         <li :for={b <- @graph.bands} class="inline-flex items-center gap-1">
@@ -402,7 +449,9 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
           </svg>
           {b.label}
         </li>
-        <li class="inline-flex items-center gap-1">
+        <%!-- Só quando algum nó ficou sem faixa: sempre presente, numa rede de 44 pessoas,
+             dizia de um estado que não acontecia (T053). --%>
+        <li :if={Enum.any?(@pessoas, &is_nil(&1.band))} class="inline-flex items-center gap-1">
           <svg viewBox="0 0 10 10" class="size-3" aria-hidden="true">
             <circle cx="5" cy="5" r="4.5" class={["stroke-base-content", cor(nil)]} />
           </svg>
@@ -487,7 +536,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
           </td>
           <td data-label="community">{comunidade_na_lista(p.community)}</td>
           <td data-label="linked to">{p.degree} {pessoas(p.degree)}</td>
-          <td data-label="links">{p.out_people} links out, {p.in_people} in</td>
+          <td data-label="links">{ligacoes_saida(p.out_people)}, {p.in_people} in</td>
           <td data-label="betweenness">{intermediacao(p.betweenness)}</td>
           <td data-label="links to">{ligacoes(p.id, @graph.edges, @nos)}</td>
         </tr>
@@ -548,6 +597,80 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
 
   defp raio(%{kind: :person, degree: d}), do: 5 + 3 * :math.sqrt(d)
   defp raio(%{kind: :outside, size: n}), do: 8 + 4 * :math.sqrt(n)
+
+  # As posições ajustadas ao quadro, 1000 × 625 (a proporção do protótipo), em cada eixo. O
+  # layout reescala preservando a proporção, e a rede real é mais alta que larga: num quadro
+  # largo, o núcleo ficava espremido no meio, com faixas vazias dos lados (T053, D2). Esticar um
+  # eixo não muda o que o desenho diz: a posição não é medida (`Algorithms.Layout`), e a mesma
+  # leitura continua dando a mesma figura.
+  @quadro {1000.0, 625.0}
+  @margem_x 90.0
+  @margem_y 40.0
+  @doc """
+  As posições enquadradas no quadro de 1000 × 625, eixo a eixo (T053, D2). Pública para o teste
+  conferir que o desenho é o enquadramento das posições gravadas, e não outras.
+  """
+  @spec fit_to_frame(%{String.t() => {number(), number()}}) :: %{String.t() => {float(), float()}}
+  def fit_to_frame(posicoes) when map_size(posicoes) == 0, do: posicoes
+
+  def fit_to_frame(posicoes) do
+    {xs, ys} = posicoes |> Map.values() |> Enum.unzip()
+    {largura, altura} = @quadro
+    fx = eixo(Enum.min_max(xs), @margem_x, largura - @margem_x)
+    fy = eixo(Enum.min_max(ys), @margem_y, altura - @margem_y)
+    Map.new(posicoes, fn {id, {x, y}} -> {id, {fx.(x), fy.(y)}} end)
+  end
+
+  defp eixo({a, a}, de, ate), do: fn _ -> (de + ate) / 2 end
+  defp eixo({a, b}, de, ate), do: fn v -> de + (v - a) / (b - a) * (ate - de) end
+
+  # Os rótulos permanentes (os mais ligados, `labelled?`), colocados sem colisão: do mais ligado
+  # para o menos, cada um tenta acima, abaixo, à direita e à esquerda do nó, e fica no primeiro
+  # lugar que não cobre um rótulo já posto; sem lugar livre, no de menor sobreposição. Os nomes
+  # sobrepostos refaziam o novelo que o protótipo foi aprovado para evitar (T053, D2). Determinístico:
+  # a mesma leitura põe os nomes nos mesmos lugares. A largura é estimada pela fonte de 14 px.
+  @largura_por_letra 7.8
+  @altura_do_rotulo 16.0
+  defp rotulos(pessoas, posicoes) do
+    pessoas
+    |> Enum.filter(& &1.labelled?)
+    |> Enum.sort_by(&{-&1.degree, &1.name, &1.id})
+    |> Enum.reduce({%{}, []}, fn p, {lugares, caixas} ->
+      {lugar, caixa} = melhor_lugar(p, posicoes, caixas)
+      {Map.put(lugares, p.id, lugar), [caixa | caixas]}
+    end)
+    |> elem(0)
+  end
+
+  defp melhor_lugar(p, posicoes, postas) do
+    {cx, cy} = Map.fetch!(posicoes, p.id)
+    r = raio(p)
+    w = String.length(p.name) * @largura_por_letra
+    h = @altura_do_rotulo
+
+    [
+      {{cx, cy - r - 4, "middle"}, {cx - w / 2, cy - r - 4 - h, w, h}},
+      {{cx, cy + r + 14, "middle"}, {cx - w / 2, cy + r + 14 - h, w, h}},
+      {{cx + r + 4, cy + 5, "start"}, {cx + r + 4, cy + 5 - h, w, h}},
+      {{cx - r - 4, cy + 5, "end"}, {cx - r - 4 - w, cy + 5 - h, w, h}}
+    ]
+    |> Enum.with_index()
+    |> Enum.min_by(fn {{_lugar, caixa}, i} ->
+      {Enum.reduce(postas, 0.0, &(&2 + sobreposicao(caixa, &1))), i}
+    end)
+    |> elem(0)
+  end
+
+  defp sobreposicao({ax, ay, aw, ah}, {bx, by, bw, bh}) do
+    max(0.0, min(ax + aw, bx + bw) - max(ax, bx)) * max(0.0, min(ay + ah, by + bh) - max(ay, by))
+  end
+
+  # O rótulo de quem não é permanente fica acima do nó, como antes: só aparece ao apontar.
+  defp rotulo(rotulos, p, posicoes) do
+    Map.get_lazy(rotulos, p.id, fn ->
+      {coord(posicoes, p.id, 0), coord(posicoes, p.id, 1) - raio(p) - 4, "middle"}
+    end)
+  end
 
   defp coord(posicoes, id, i), do: posicoes |> Map.fetch!(id) |> elem(i)
   defp x(posicoes, id), do: num(coord(posicoes, id, 0))
@@ -660,11 +783,11 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
 
   defp titulo(%{community: c} = p) when is_integer(c) do
     "#{p.name} · community #{letra(c)} · linked to #{p.degree} #{pessoas(p.degree)} · " <>
-      "#{p.out_people} links out, #{p.in_people} in · #{intermediacao(p.betweenness)}"
+      "#{ligacoes_saida(p.out_people)}, #{p.in_people} in · #{intermediacao(p.betweenness)}"
   end
 
   defp titulo(p) do
-    "#{p.name} · linked to #{p.degree} #{pessoas(p.degree)} · #{p.out_people} links out, " <>
+    "#{p.name} · linked to #{p.degree} #{pessoas(p.degree)} · #{ligacoes_saida(p.out_people)}, " <>
       "#{p.in_people} in · #{intermediacao(p.betweenness)}"
   end
 
@@ -714,7 +837,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
   # (componente). A escala 0–100 relativa ao maior do protótipo não é usada: com alcance
   # parcial, o 100 poderia ser de alguém de fora, e diria onde ele está (R1).
   defp autovetor({:ok, v}),
-    do: "#{:erlang.float_to_binary(v * 1.0, decimals: 2)} (comparable only within its group)"
+    do: "#{Shared.autovetor_texto(v)} (comparable only within its group)"
 
   defp autovetor({:ausente, :did_not_converge}),
     do: "not calculated: the calculation did not settle"
@@ -735,22 +858,30 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
       "#{plural(p.out_weight, "change request", "change requests")} of " <>
         "#{p.out_people} #{pessoas(p.out_people)}"
 
+  # O peso de saída da designação soma uma vez por responsável: uma issue com três responsáveis
+  # conta três (limitação de `assignment.network.edge_weight.count`). Por isso "vezes", e não
+  # "issues", que diria um número de issues maior que o que a pessoa abriu (T053).
   defp saida(p, "assignment"),
     do:
-      "#{plural(p.out_weight, "issue", "issues")} assigned to " <>
+      "issues assigned #{plural(p.out_weight, "time", "times")} to " <>
         "#{p.out_people} #{pessoas(p.out_people)}"
 
   defp entrada(%{in_people: 0}, _rede), do: "none in this window"
 
+  # O peso de entrada da revisão soma uma vez por revisor: uma solicitação revista por dois conta
+  # duas. São revisões, e não solicitações distintas — a 073 conta as distintas, e os dois
+  # números lado a lado pareciam divergir (T053).
   defp entrada(p, "review"),
     do:
-      "on #{plural(p.in_weight, "change request", "change requests")}, by " <>
+      "#{plural(p.in_weight, "time", "times")} on their change requests, by " <>
         "#{p.in_people} #{pessoas(p.in_people)}"
 
   defp entrada(p, "assignment"),
     do:
       "#{plural(p.in_weight, "issue", "issues")} opened by " <>
         "#{p.in_people} #{pessoas(p.in_people)}"
+
+  defp ligacoes_saida(n), do: "#{plural(n, "link", "links")} out"
 
   defp unidade("review"), do: "reviews"
   defp unidade("assignment"), do: "issues"

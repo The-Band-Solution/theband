@@ -133,6 +133,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.Profile do
     assigns = assign(assigns, r: r)
 
     ~H"""
+    <Shared.linha_da_leitura id={"leitura-#{@rede}"} reading={@r} network={@rede} />
     <dl class="grid grid-cols-[8rem_1fr] gap-x-3 gap-y-1 text-sm">
       <dt class="opacity-70">{rotulo_saida(@rede)}</dt>
       <dd data-contagem="saida">{saida(@rede, @r.out_people)}</dd>
@@ -168,6 +169,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.Profile do
       {render_lista(
         assign(assigns,
           id: "#{@rede}-para",
+          sentido: :para,
           titulo: titulo_para(@rede),
           linhas: @r.to,
           fora: @r.to_outside_reach,
@@ -177,6 +179,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.Profile do
       {render_lista(
         assign(assigns,
           id: "#{@rede}-de",
+          sentido: :de,
           titulo: titulo_de(@rede),
           linhas: @r.from,
           fora: @r.from_outside_reach,
@@ -190,12 +193,14 @@ defmodule TheBandWeb.NetworkAnalysisLive.Profile do
   defp render_lista(assigns) do
     ~H"""
     <div id={@id} class="flex flex-col gap-1">
-      <h3 class="font-mono text-xs uppercase">
-        {@titulo} · {unidades(@rede, @total)}
-      </h3>
       <%= if @linhas == [] and @fora == :nenhum do %>
+        <%!-- Lista vazia: só a ausência, sem "· 0 issues" ao lado (3.6.4, T053). --%>
+        <h3 class="font-mono text-xs uppercase">{@titulo}</h3>
         <.absent reason="no one in this window" />
       <% else %>
+        <h3 class="font-mono text-xs uppercase">
+          {@titulo} · {total(@rede, @sentido, @total)}
+        </h3>
         <ul class="flex flex-col divide-y divide-base-300 text-sm">
           <li :for={l <- @linhas} class="flex justify-between gap-3 py-1">
             <.link
@@ -236,10 +241,23 @@ defmodule TheBandWeb.NetworkAnalysisLive.Profile do
   defp titulo_de("assignment"), do: "Issues they are assigned on, opened by"
   defp titulo_de("review"), do: "Reviewed by"
 
+  # Cada linha é o peso de um par: issues ou solicitações DISTINTAS daquele par (T053; antes a
+  # revisão dizia "reviews", que não é o que o peso conta).
   defp unidades("assignment", 1), do: "1 issue"
   defp unidades("assignment", n), do: "#{n} issues"
-  defp unidades("review", 1), do: "1 review"
-  defp unidades("review", n), do: "#{n} reviews"
+  defp unidades("review", 1), do: "1 change request"
+  defp unidades("review", n), do: "#{n} change requests"
+
+  # O total soma os pares. Nos dois lados em que cada item tem um dono só — as solicitações que a
+  # pessoa revisou (um autor cada) e as issues em que está designada (um autor cada) —, a soma
+  # é de itens distintos. Nos outros dois, um item conta uma vez por par: a solicitação revista
+  # por dois é revista duas vezes, e a issue com três responsáveis é designada três vezes
+  # (limitação de `assignment.network.edge_weight.count`). Chamar esses de itens os inflaria.
+  defp total("review", :de, 1), do: "reviewed 1 time"
+  defp total("review", :de, n), do: "reviewed #{n} times"
+  defp total("assignment", :para, 1), do: "1 assignment"
+  defp total("assignment", :para, n), do: "#{n} assignments"
+  defp total(rede, _sentido, n), do: unidades(rede, n)
 
   defp intermediacao({:ok, v}) when v == 0, do: "on no shortest path between others"
 

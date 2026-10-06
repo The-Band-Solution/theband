@@ -34,6 +34,18 @@ defmodule TheBandWeb.DesignTokensTest do
     File.read!(@compilado)
   end
 
+  describe "a análise de rede (076)" do
+    # T053, D1: o contorno da comunidade usava `fill-opacity-10`, que não é utilitário do
+    # Tailwind. Nenhuma regra era gerada, o preenchimento valia 1, e o contorno cobria os nós.
+    # A pergunta é sobre o build: a tinta translúcida chega ao CSS compilado?
+    test "a tinta translúcida dos contornos de comunidade chega ao CSS compilado" do
+      css = compilado!()
+
+      assert css =~ ~r/fill-opacity:\s?0\.1;/, "o contorno da comunidade sai opaco"
+      assert css =~ ~r/fill-opacity:\s?0\.3;/, "o agregado de fora do alcance sai opaco"
+    end
+  end
+
   describe "a paleta" do
     test "o verdete é a primária dos dois temas, no fonte" do
       fonte = File.read!(@fonte)

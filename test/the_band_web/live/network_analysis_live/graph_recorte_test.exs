@@ -159,10 +159,17 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphRecorteTest do
             r.organization_id == ^org.id and r.network == "assignment" and r.window_days == 90
       )
 
-    ana = Enum.find(leitura.nodes, &(&1["id"] == ctx.ana.id))
+    # O desenho enquadra as posições gravadas no quadro (T053, D2): o cx de Ana é o dela depois
+    # do enquadramento de TODAS as gravadas, e não o de posições recalculadas.
+    gravadas =
+      leitura.nodes
+      |> Enum.filter(&is_number(&1["x"]))
+      |> Map.new(&{&1["id"], {&1["x"], &1["y"]}})
+
+    {x_ana, _} = TheBandWeb.NetworkAnalysisLive.GraphComponents.fit_to_frame(gravadas)[ctx.ana.id]
 
     assert q(html, "#grafo-ponderado-n-#{ctx.ana.id}") |> LazyHTML.attribute("cx") == [
-             :erlang.float_to_binary(ana["x"] * 1.0, decimals: 1)
+             :erlang.float_to_binary(x_ana, decimals: 1)
            ]
   end
 

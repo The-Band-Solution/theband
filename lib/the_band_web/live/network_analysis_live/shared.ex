@@ -80,7 +80,8 @@ defmodule TheBandWeb.NetworkAnalysisLive.Shared do
   @doc """
   O caminho de uma página da área, levando a rede e a janela escolhidas (3.0.3).
 
-  A rede de revisão da 073 só lê janela: a rede dela é sempre a de revisão.
+  A rede de revisão da 073 só lê janela: a rede dela é sempre a de revisão, e a escolhida passa
+  por ela só para voltar às outras páginas.
   """
   @spec page_path(atom(), Ecto.UUID.t(), %{
           optional(:network) => String.t(),
@@ -88,8 +89,10 @@ defmodule TheBandWeb.NetworkAnalysisLive.Shared do
           window: pos_integer()
         }) ::
           String.t()
-  def page_path(:review, organization_id, %{window: janela}),
-    do: ~p"/network-analysis/#{organization_id}?#{[window: janela]}"
+  # A rede vai junto quando foi escolhida: a página da 073 não a lê, mas a devolve às abas, e
+  # quem passa por ela volta à rede que tinha (T053).
+  def page_path(:review, organization_id, selecao),
+    do: ~p"/network-analysis/#{organization_id}?#{consulta(Map.delete(selecao, :view))}"
 
   # A rede só vai no endereço quando foi escolhida: da página da 073, que só lê janela, o link
   # leva a janela, e a página de análise abre na rede padrão.
@@ -301,22 +304,49 @@ defmodule TheBandWeb.NetworkAnalysisLive.Shared do
           reading was not refreshed. The numbers below are from {dia(@reading.computed_at)}.
         </div>
 
-        <%!-- 3.0.5 --%>
-        <div id="leitura" class="text-sm flex flex-col gap-1">
-          <p>
-            Reading of {instante(@reading.computed_at)} ({idade(@reading.computed_at)}). Window: {dia(
-              @reading.window_start
-            )} – {dia(@reading.window_end)}, {@reading.window_days} days.
-          </p>
-          <p>
-            <.marca tipo={:derivado} /> Every number on this page is derived from
-            <.marca tipo={:observado} /> {origem(@selection.network)}.
-          </p>
-        </div>
+        <.linha_da_leitura id="leitura" reading={@reading} network={@selection.network} />
       <% end %>
     </div>
     """
   end
+
+  attr :id, :string, required: true
+
+  attr :reading, :map,
+    required: true,
+    doc: "com `computed_at`, `window_start`, `window_end`, `window_days`"
+
+  attr :network, :string, required: true
+
+  @doc """
+  A linha da leitura (3.0.5): o instante, há quanto tempo, a janela, e as marcas *derived* junto
+  dos números e *observed* junto da origem. No cabeçalho das páginas e em cada rede do perfil,
+  que lê duas leituras (T053).
+  """
+  def linha_da_leitura(assigns) do
+    ~H"""
+    <div id={@id} class="text-sm flex flex-col gap-1">
+      <p>
+        Reading of {instante(@reading.computed_at)} ({idade(@reading.computed_at)}). Window: {dia(
+          @reading.window_start
+        )} – {dia(@reading.window_end)}, {@reading.window_days} days.
+      </p>
+      <p>
+        <.marca tipo={:derivado} /> Every number here is derived from
+        <.marca tipo={:observado} /> {origem(@network)}.
+      </p>
+    </div>
+    """
+  end
+
+  @doc """
+  O autovetor como está na leitura, de 0 a 1 com duas casas. Abaixo de 0,005 a conta de duas
+  casas daria "0.00", e o valor é estritamente positivo (A + I, por componente): o zero seria
+  afirmado sem existir (3.0.6, T053).
+  """
+  @spec autovetor_texto(number()) :: String.t()
+  def autovetor_texto(v) when v < 0.005, do: "under 0.01"
+  def autovetor_texto(v), do: :erlang.float_to_binary(v * 1.0, decimals: 2)
 
   attr :tipo, :atom, values: [:observado, :derivado, :alcance], required: true
 

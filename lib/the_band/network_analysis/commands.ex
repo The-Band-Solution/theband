@@ -317,6 +317,7 @@ defmodule TheBand.NetworkAnalysis.Commands do
     %{
       "random" => %{
         "graphs" => bateria.graphs,
+        "graphs_not_linked" => bateria.not_linked,
         "modularity" => com_contagem(bateria.modularity),
         "clustering" => com_contagem(bateria.clustering),
         "average_distance" =>

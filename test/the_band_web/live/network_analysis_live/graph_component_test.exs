@@ -166,6 +166,87 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponentTest do
     for rotulo <- ["none", "<2%", "2–5%", "5–10%", "≥10%"], do: assert(legenda =~ rotulo)
   end
 
+  describe "a conferência da tela (T053)" do
+    test "a legenda leva a marca derived, a escala do tamanho, e o 'not calculated' só se houver" do
+      html = render_grafo()
+
+      assert html |> q("#g-legenda [data-marca=derivado]") |> Enum.count() >= 1
+      refute html |> q("#g-legenda") |> LazyHTML.text() =~ "(derived)"
+      assert textos(html, ~s(#g-legenda ul[aria-label="node size"] li)) == ["1", "3"]
+      assert html |> q("#g-legenda") |> LazyHTML.text() =~ "not calculated: fewer than 3 people"
+
+      com_faixa =
+        Enum.map(grafo().nodes, fn n ->
+          if n[:band] == nil and n.kind == :person, do: %{n | band: "none"}, else: n
+        end)
+
+      refute render_grafo(%{grafo() | nodes: com_faixa}) |> q("#g-legenda") |> LazyHTML.text() =~
+               "not calculated"
+    end
+
+    test "o cartão conta revisões recebidas como vezes, e o autovetor pequeno não vira 0.00" do
+      g =
+        Enum.map(grafo().nodes, fn
+          %{id: "p-ana"} = n -> Map.merge(n, %{in_weight: 7, eigenvector: {:ok, 0.001}})
+          n -> n
+        end)
+
+      texto = render_grafo(%{grafo() | nodes: g}) |> doc() |> LazyHTML.text()
+      assert texto =~ "7 times on their change requests"
+      refute texto =~ "on 7 change requests"
+      assert texto =~ "under 0.01 (comparable only within its group)"
+      refute texto =~ "0.00 (comparable"
+    end
+
+    test "nomes marcados próximos não se sobrepõem: o segundo vai para outro lado do nó" do
+      g = grafo()
+
+      perto = %{
+        g
+        | nodes: [
+            pessoa("p-a", "Alessandra Longname", 3, "none", true),
+            pessoa("p-b", "Bernardo Longname", 2, "none", true),
+            # Dois nós distantes, sem rótulo, fixam a extensão: o enquadramento não afasta os dois.
+            pessoa("p-c", "C", 1, "none", false),
+            pessoa("p-d", "D", 1, "none", false)
+          ],
+          edges: [%{from: "p-a", to: "p-b", weight: 1}],
+          layout:
+            {:ok,
+             %{
+               "p-a" => {500.0, 500.0},
+               "p-b" => {505.0, 502.0},
+               "p-c" => {0.0, 0.0},
+               "p-d" => {1000.0, 1000.0}
+             }}
+      }
+
+      html = render_grafo(perto)
+
+      # A caixa de cada rótulo pela mesma estimativa do componente (7,8 px por letra, 16 de altura).
+      caixa = fn nome ->
+        el = html |> q("svg text.major") |> Enum.find(&(LazyHTML.text(&1) =~ nome))
+        [x] = el |> LazyHTML.attribute("x") |> Enum.map(&String.to_float/1)
+        [y] = el |> LazyHTML.attribute("y") |> Enum.map(&String.to_float/1)
+        w = String.length(LazyHTML.text(el) |> String.trim()) * 7.8
+
+        x0 =
+          case LazyHTML.attribute(el, "text-anchor") do
+            ["middle"] -> x - w / 2
+            ["start"] -> x
+            ["end"] -> x - w
+          end
+
+        {x0, y - 16, w, 16}
+      end
+
+      {ax, ay, aw, ah} = caixa.("Alessandra")
+      {bx, by, bw, bh} = caixa.("Bernardo")
+      sobrepoe? = ax < bx + bw and bx < ax + aw and ay < by + bh and by < ay + ah
+      refute sobrepoe?
+    end
+  end
+
   test "nomes escritos só nos marcados; o agregado diz só quantos contém" do
     html = render_grafo()
 
@@ -193,7 +274,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponentTest do
     html = render_grafo()
     assert Enum.count(q(html, "#g-lista tbody tr")) == 4
     assert html |> q("#g-lista td") |> LazyHTML.attribute("data-label") |> Enum.all?(&(&1 != ""))
-    assert textos(html, "#g-lista td[data-label=links]") |> hd() =~ "links out"
+    assert textos(html, "#g-lista td[data-label=links]") |> hd() =~ ~r"\d+ links? out"
 
     sem = render_grafo(%{grafo() | layout: {:ausente, :network_too_large_for_platform}})
     assert Enum.empty?(q(sem, "svg circle"))

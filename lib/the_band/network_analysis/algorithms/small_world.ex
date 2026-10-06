@@ -68,7 +68,8 @@ defmodule TheBand.NetworkAnalysis.Algorithms.SmallWorld do
           average_distance: com_contagem(),
           diameter: com_contagem(),
           global_efficiency: com_contagem(),
-          reachable_share: float()
+          reachable_share: float(),
+          not_linked: non_neg_integer()
         }
   def random_battery(adjacencia, %{random_graphs: quantos, seed: semente})
       when map_size(adjacencia) > 0 do
@@ -103,7 +104,10 @@ defmodule TheBand.NetworkAnalysis.Algorithms.SmallWorld do
       average_distance: media(medidas, :average_distance, :no_edge_in_window),
       diameter: media(medidas, :diameter, :no_edge_in_window),
       global_efficiency: media(medidas, :global_efficiency, :no_edge_in_window),
-      reachable_share: Enum.sum(Enum.map(medidas, & &1.reachable_share)) / length(medidas)
+      reachable_share: Enum.sum(Enum.map(medidas, & &1.reachable_share)) / length(medidas),
+      # Quantos aleatórios não ficaram inteiramente ligados: neles, a distância é a média entre os
+      # pares que se alcançam (`Paths.network/2`). A tela diz quantos e como (3.5.4, T053).
+      not_linked: Enum.count(medidas, &(&1.reachable_share < 1))
     }
   end
 
