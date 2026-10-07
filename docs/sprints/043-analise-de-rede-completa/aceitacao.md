@@ -13,7 +13,7 @@ A tabela item a item, com as capturas, está em
 |---|---|
 | defeitos encontrados | 19, um deles grave (o contorno das comunidades saía opaco e cobria os nós) |
 | defeitos consertados nesta branch, cada um com guarda vista reprovando ou medida no navegador | 19 |
-| divergências que seguem a spec mas não estavam em R21 | 10, registradas em R21 como **propostas** |
+| divergências que seguem a spec mas não estavam em R21 | 10, registradas em R21 e **aprovadas** pela pessoa mantenedora em 2026-10-06 (ficam como estão) |
 | itens só verificáveis por teste (alcance parcial, estados que o dado real não produz) | 6 linhas, marcadas *"conforme por teste"* |
 | abertos | 3.9.1 (republicar o protótipo com as decisões) e o núcleo denso do grafo |
 

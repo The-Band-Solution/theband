@@ -18,8 +18,8 @@ organização, e os estados que o dado real não produz (3.4.4, 3.5.5). Esses it
 
 As capturas finais, já depois dos consertos, estão em [`conferencia/`](conferencia/).
 
-Legenda: **conforme** · **R21** (divergência aprovada) · **R21 proposta** (segue a spec, aguarda a
-pessoa mantenedora) · **defeito → consertado** · **conforme por teste** · **aberto**.
+Legenda: **conforme** · **R21** (divergência aprovada) · **R21 aprovada em 2026-10-06** (segue a spec;
+a pessoa mantenedora decidiu manter) · **defeito → consertado** · **conforme por teste** · **aberto**.
 
 ## Em toda página
 
@@ -29,7 +29,7 @@ pessoa mantenedora) · **defeito → consertado** · **conforme por teste** · *
 | 3.0.2 duas arestas, sem *collaboration* | R21 (*delegation* → *assignment*) | busca por `collaborat` e `delegat` nas 18 capturas: nenhuma ocorrência |
 | 3.0.3 a aresta acompanha a navegação | **defeito → consertado** | a passagem pela Review network perdia `network`. Agora a página da 073 aceita a rede, conferida contra a lista da base, e a devolve às abas. Guarda: `review_network_live/area_test.exs`, que com o defeito reprova |
 | 3.0.4 janela 30/90/180 lê outra leitura | conforme | "Switching the window reads another stored reading. It computes nothing." |
-| 3.0.5 linha da leitura com *derived* e *observed* | conforme nas cinco páginas de análise; **defeito → consertado** no perfil; R21 proposta na 073 | o perfil não tinha linha nenhuma. Agora tem uma por rede (`Shared.linha_da_leitura/1`), como em [desk-profile](conferencia/desk-profile.png) |
+| 3.0.5 linha da leitura com *derived* e *observed* | conforme nas cinco páginas de análise; **defeito → consertado** no perfil; R21 aprovada em 2026-10-06 na 073 | o perfil não tinha linha nenhuma. Agora tem uma por rede (`Shared.linha_da_leitura/1`), como em [desk-profile](conferencia/desk-profile.png) |
 | 3.0.6 até duas casas; nenhum zero no lugar de ausência | **defeito → consertado** | o autovetor positivo saía *"0.00"*. Agora sai *"under 0.01"* (`Shared.autovetor_texto/1`). Guarda: `graph_component_test.exs`. Os *"0"* de exclusão são contagens, e por isso fatos |
 
 ## Tela 1 — a área
@@ -37,19 +37,19 @@ pessoa mantenedora) · **defeito → consertado** · **conforme por teste** · *
 | item | veredito | evidência |
 |---|---|---|
 | 3.1.1–3.1.4 | conforme por teste | `index_test.exs:41-54` |
-| a Tela 1 aparece | R21 proposta | com uma organização só, `/network-analysis` leva direto a ela (`contracts/tela.md`) |
+| a Tela 1 aparece | R21 aprovada em 2026-10-06 | com uma organização só, `/network-analysis` leva direto a ela (`contracts/tela.md`) |
 
 ## Tela 2 — o grafo ponderado
 
 | item | veredito | evidência |
 |---|---|---|
 | 3.2.1 tamanho, cor, espessura e seta | conforme na regra; **defeito → consertado** na legenda | a legenda não tinha a escala do tamanho e escrevia *"(derived)"* sem a marca. Agora tem três círculos (o menor, o mediano e o maior grau) e `Shared.marca`. O item *"not calculated"* só aparece se algum nó estiver sem faixa. Guarda: `graph_component_test.exs` |
-| 3.2.1 cor em barra segmentada | R21 proposta | cinco círculos rotulados: a mesma regra, outra forma |
+| 3.2.1 cor em barra segmentada | R21 aprovada em 2026-10-06 | cinco círculos rotulados: a mesma regra, outra forma |
 | 3.2.2 só sete nomes | conforme; **defeito → consertado** na sobreposição | os sete nomes se sobrepunham. Agora são postos sem colisão, de forma determinística (`rotulos/2`). Guarda: `graph_component_test.exs`, que com a colocação desligada reprova |
 | 3.2.3 zoom, arrasto e destaque | **defeito → consertado** (arrasto e roda) | o ponteiro era dividido pela caixa do elemento, e o `viewBox` se ajusta pela altura. Agora usa `getScreenCTM().inverse()`. Medido no navegador: arrasto de (−200, −100) moveu o nó (−200,0, −100,0), e a roda manteve o ponto sob o cursor (606,3 contra os 606,3 esperados) |
 | 3.2.4 mesma leitura, mesma figura | conforme | `cx` e `cy` dos 44 nós iguais depois de recarregar |
 | desenho contra o protótipo | **defeito → consertado** | o `viewBox` quadrado num quadro largo espremia o núcleo. As posições do servidor passam a ser enquadradas eixo a eixo em 1000 × 625, a proporção do protótipo (`fit_to_frame/1`). A posição não é medida, e a mesma leitura dá a mesma figura. Veja [desk-graph](conferencia/desk-graph.png). **Aberto**: o núcleo continua denso, porque é a forma do dado real com o layout de Fruchterman e Reingold. Mudar o layout é mudança na base, e não foi feita |
-| 3.2.5 o cartão | **defeito → consertado** (três) | (a) *"was reviewed on 55 change requests"* somava revisões e as chamava de solicitações, enquanto a 073 contava 49 distintas. Agora diz *"55 times on their change requests"*. A designação aberta, que conta uma vez por responsável, diz *"issues assigned N times"*. (b) O autovetor: ver 3.0.6, e a escala em R21 proposta. (c) *"1 links out"* passa a *"1 link out"* |
+| 3.2.5 o cartão | **defeito → consertado** (três) | (a) *"was reviewed on 55 change requests"* somava revisões e as chamava de solicitações, enquanto a 073 contava 49 distintas. Agora diz *"55 times on their change requests"*. A designação aberta, que conta uma vez por responsável, diz *"issues assigned N times"*. (b) O autovetor: ver 3.0.6, e a escala em R21 aprovada em 2026-10-06. (c) *"1 links out"* passa a *"1 link out"* |
 | 3.2.6 contados e não desenhados | conforme | "bot or app 18 / organisation account 0 / not linked to a person 67 / self-reviews 21" |
 | 3.2.7 sem ligação, escrito | conforme; **defeito → consertado** na marca | a frase vinha sem a marca tracejada. Agora vem com `<.absent reason="not drawn">`. Guarda: `graph_counts_test.exs` |
 | 3.2.8 conectividade | conforme; **defeito → consertado** no resumo | *"1173 reviews"* incluía as excluídas e contradizia a soma desenhada (1067). Agora diz *"in this window, including those counted below and not drawn"* |
@@ -85,16 +85,16 @@ pessoa mantenedora) · **defeito → consertado** · **conforme por teste** · *
 
 | item | veredito | evidência |
 |---|---|---|
-| 3.6.1 tabela por nome | conforme; R21 proposta na frase | a frase vem da regra da base (FR-044) |
+| 3.6.1 tabela por nome | conforme; R21 aprovada em 2026-10-06 na frase | a frase vem da regra da base (FR-044) |
 | 3.6.2, 3.6.3 | conforme | a regra a um clique, e a frase de não avaliação |
-| 3.6.4 perfil | conforme nas seções; R21 proposta (listas por peso, sem proximidade nem autovetor: FR-048); **defeito → consertado** em duas coisas | (a) a lista vazia levava *"· 0 issues"* ao lado da ausência; agora fica só a ausência. (b) As unidades: cada linha é o peso do par (solicitações ou issues distintas), e o total diz *"reviewed N times"* ou *"N assignments"* onde a soma conta uma vez por par |
+| 3.6.4 perfil | conforme nas seções; R21 aprovada em 2026-10-06 (listas por peso, sem proximidade nem autovetor: FR-048); **defeito → consertado** em duas coisas | (a) a lista vazia levava *"· 0 issues"* ao lado da ausência; agora fica só a ausência. (b) As unidades: cada linha é o peso do par (solicitações ou issues distintas), e o total diz *"reviewed N times"* ou *"N assignments"* onde a soma conta uma vez por par |
 
 ## Tela 7 — alcance parcial
 
 | item | veredito | evidência |
 |---|---|---|
-| 3.7.1 | conforme por teste; R21 proposta no texto | `index_test.exs:140`: o texto é o da spec (US1, cen. 5) |
-| 3.7.2 | conforme por teste; R21 proposta no rótulo | `graph_recorte_test.exs:169-184`: *"People outside your reach — community B (4)"* (US3, cen. 5) |
+| 3.7.1 | conforme por teste; R21 aprovada em 2026-10-06 no texto | `index_test.exs:140`: o texto é o da spec (US1, cen. 5) |
+| 3.7.2 | conforme por teste; R21 aprovada em 2026-10-06 no rótulo | `graph_recorte_test.exs:169-184`: *"People outside your reach — community B (4)"* (US3, cen. 5) |
 | 3.7.3 | conforme por teste | `graph_recorte_test.exs:177-179` |
 | 3.7.4 | R21 (só alcançados) | `hubs_test.exs`, `communities_test.exs` |
 

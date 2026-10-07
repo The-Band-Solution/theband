@@ -926,6 +926,8 @@ dado real com o layout da base.
   - **Descrição**: a pessoa mantenedora conta à mão, na origem, as issues abertas na janela, as
     designações e as exclusões por motivo, e compara com a tela; e responde, a partir da tela, *"quais
     grupos se formam e quem os liga?"* em menos de dois minutos
+  - **Decidido em 2026-10-06**: as dez propostas da R21 ficam como estão no código ("não faça
+    igual ao protótipo"). Falta desta tarefa só a contagem contra a origem e o tempo da pergunta
   - **Também (T053)**: decidir as propostas da R21 (frase da posição, listas do perfil por peso,
     escala do autovetor, Tela 1 pulada com uma organização, textos do alcance, estilo). O que voltar
     ao protótipo volta ao código antes do merge

@@ -467,23 +467,22 @@ contagem da designação.
 | comunidades por **letra** (A, B, …) | letra, como aprovado (3.3.2): é o identificador em texto que a FR-021 pede; a spec usa *"Community 1"* como exemplo | a confirmar com a pessoa mantenedora (baixo) |
 | rotas `/organizations/:id/network/...` | `/network-analysis/...` | R15 |
 
-**Encontradas na conferência da T053 (2026-10-06), e propostas: aguardam a pessoa mantenedora.** A
-tela segue a spec aprovada, mas a linha não estava aqui. Até a decisão, nenhuma é *divergência
-aprovada*; a aceitação (T054) é o lugar de decidir. Se a decisão for o protótipo, o código volta a
-ele.
+**Encontradas na conferência da T053 (2026-10-06), e aprovadas pela pessoa mantenedora no mesmo
+dia (T054): "não faça igual ao protótipo".** As dez valem como estão no código, e são divergências
+aprovadas como as de cima.
 
 | protótipo | vale hoje | por quê | estado |
 |---|---|---|---|
-| posição em frase sobre as ligações (*"Linked to many people, and on many paths…"*) | rótulo e frase da regra `network.position_role` (*"Central position. Among the top fifth…"*) | FR-044, D2 | proposta |
-| listas do perfil por nome | por peso, empate pelo nome | FR-048 | proposta |
-| perfil com proximidade e autovetor | sem eles | FR-048 | proposta |
-| autovetor de 0 a 100, relativo ao maior | 0 a 1, comparável só dentro do grupo; abaixo de 0,005, *"under 0.01"* | R1 da segurança: com alcance parcial, o 100 poderia ser de alguém de fora; `contracts/tela.md` | proposta (recomendada pelo Design) |
-| a Tela 1 sempre | com uma organização só, `/network-analysis` vai direto a ela | `contracts/tela.md` | proposta |
-| aviso de alcance explicando o que é o alcance | o texto da spec, sem a explicação | US1, cen. 5 | proposta |
-| agregado *"N outside your reach · B"* | *"People outside your reach — community B (4)"* | US3, cen. 5; `contracts/tela.md` | proposta |
-| linha da leitura com *derived* na página da 073 | a da 073, como aprovada | Q4 (a) da aprovação | proposta |
-| seletores em preto; menu lateral; perfil em 2×2 | primária verdete; abas no topo; uma coluna por rede | design system; o menu da área | proposta |
-| cor da intermediação em barra segmentada | cinco círculos com o rótulo de cada faixa | a mesma regra, outra forma | proposta |
+| posição em frase sobre as ligações (*"Linked to many people, and on many paths…"*) | rótulo e frase da regra `network.position_role` (*"Central position. Among the top fifth…"*) | FR-044, D2 | aprovada em 2026-10-06 |
+| listas do perfil por nome | por peso, empate pelo nome | FR-048 | aprovada em 2026-10-06 |
+| perfil com proximidade e autovetor | sem eles | FR-048 | aprovada em 2026-10-06 |
+| autovetor de 0 a 100, relativo ao maior | 0 a 1, comparável só dentro do grupo; abaixo de 0,005, *"under 0.01"* | R1 da segurança: com alcance parcial, o 100 poderia ser de alguém de fora; `contracts/tela.md` | aprovada em 2026-10-06 |
+| a Tela 1 sempre | com uma organização só, `/network-analysis` vai direto a ela | `contracts/tela.md` | aprovada em 2026-10-06 |
+| aviso de alcance explicando o que é o alcance | o texto da spec, sem a explicação | US1, cen. 5 | aprovada em 2026-10-06 |
+| agregado *"N outside your reach · B"* | *"People outside your reach — community B (4)"* | US3, cen. 5; `contracts/tela.md` | aprovada em 2026-10-06 |
+| linha da leitura com *derived* na página da 073 | a da 073, como aprovada | Q4 (a) da aprovação | aprovada em 2026-10-06 |
+| seletores em preto; menu lateral; perfil em 2×2 | primária verdete; abas no topo; uma coluna por rede | design system; o menu da área | aprovada em 2026-10-06 |
+| cor da intermediação em barra segmentada | cinco círculos com o rótulo de cada faixa | a mesma regra, outra forma | aprovada em 2026-10-06 |
 | grafo na proporção do quadro | as posições do servidor enquadradas eixo a eixo em 1000 × 625, e os sete nomes postos sem colisão | defeito D2 da T053: o viewBox quadrado espremia o núcleo; a posição não é medida (`Algorithms.Layout`) | feito na T053 |
 
 ## R22 — Nenhuma dependência nova (R14 da segurança)
