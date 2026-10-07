@@ -1,7 +1,8 @@
 defmodule TheBand.CloakModosInalcancaveisTest do
   @moduledoc """
-  A GUARDA da exceção proposta em `mix.exs` para `EEF-CVE-2026-95105` (`cloak` 1.1.4) e
-  `EEF-CVE-2026-94206` (`cloak_ecto` 1.3.0) — issue #1418.
+  A GUARDA da exceção registrada em `mix.exs` para `EEF-CVE-2026-95105` (`cloak` 1.1.4) e
+  `EEF-CVE-2026-94206` (`cloak_ecto` 1.3.0) — issue #1418, decidida pela pessoa mantenedora em
+  2026-10-06.
 
   As duas advisories atingem modos que esta aplicação não usa:
 

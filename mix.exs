@@ -44,7 +44,7 @@ defmodule TheBand.MixProject do
       # E sai sozinha quando a `ex_mcp` tornar o Cowboy opcional (anunciado para a 2.0): o
       # `hex.audit` avisa que a entrada ficou obsoleta — foi assim que o H11 apareceu.
       #
-      # PROPOSTA, issue #1418 — só entra com a decisão da pessoa mantenedora (§14.0).
+      # RISCO RESIDUAL ACEITO — decisão da pessoa mantenedora em 2026-10-06, issue #1418 (§14.0).
       #
       # `cloak 1.1.4` (EEF-CVE-2026-95105, HIGH: o cipher AES-CTR não autentica) e `cloak_ecto
       # 1.3.0` (EEF-CVE-2026-94206, MEDIUM: o campo PBKDF2 ignora as iterações), avisos de
