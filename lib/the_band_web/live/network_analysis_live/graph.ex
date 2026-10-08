@@ -24,8 +24,8 @@ defmodule TheBandWeb.NetworkAnalysisLive.Graph do
   use TheBandWeb, :live_view
 
   alias TheBand.NetworkAnalysis
-  alias TheBand.Ontology.SEON.EO
   alias TheBandWeb.NetworkAnalysisLive.GraphComponents
+  alias TheBandWeb.NetworkAnalysisLive.Leitura
   alias TheBandWeb.NetworkAnalysisLive.Shared
 
   @impl true
@@ -37,7 +37,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.Graph do
 
   @impl true
   def handle_params(%{"organization_id" => id} = params, _uri, socket) do
-    {:noreply, ler(socket, id, NetworkAnalysis.selection(params))}
+    {:noreply, Leitura.ler(socket, id, NetworkAnalysis.selection(params))}
   end
 
   # A leitura é refeita pela função de domínio, com o alcance de AGORA (A22), e nunca a partir
@@ -45,32 +45,8 @@ defmodule TheBandWeb.NetworkAnalysisLive.Graph do
   @impl true
   def handle_info({:network_analysis_ready, organization_id, _ids}, socket) do
     if organization_id == socket.assigns[:organization_id],
-      do: {:noreply, ler(socket, organization_id, socket.assigns.selecao)},
+      do: {:noreply, Leitura.ler(socket, organization_id, socket.assigns.selecao)},
       else: {:noreply, socket}
-  end
-
-  defp ler(socket, id, selecao) do
-    %{current_tenant: tenant, current_user: user} = socket.assigns
-
-    case NetworkAnalysis.read(tenant, user, id, selecao) do
-      # O mesmo texto para outro tenant, inexistente e id malformado (FR-014; §11.1).
-      {:error, :not_found} ->
-        socket
-        |> put_flash(:error, dgettext("errors", "Not found."))
-        |> push_navigate(to: ~p"/network-analysis")
-
-      {:ausente, motivo} ->
-        socket |> com_organizacao(id) |> assign(selecao: selecao, visao: {:ausente, motivo})
-
-      {:ok, visao} ->
-        socket |> com_organizacao(id) |> assign(selecao: selecao, visao: visao)
-    end
-  end
-
-  # A organização já foi conferida por `read/4` (id e tenant): aqui só se busca o nome.
-  defp com_organizacao(socket, id) do
-    {:ok, organizacao} = EO.fetch_organization(socket.assigns.current_tenant, id)
-    assign(socket, organization_id: organizacao.id, organizacao: organizacao)
   end
 
   @impl true
@@ -97,7 +73,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.Graph do
           organization={@organizacao}
           selection={@selecao}
           options={@opcoes}
-          reading={leitura_para_o_cabecalho(@visao)}
+          reading={Leitura.para_o_cabecalho(@visao)}
         />
 
         <%!-- US2, cen. 5: o que a aresta liga, e o que não diz --%>
@@ -106,7 +82,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.Graph do
         <%= case @visao do %>
           <% {:ausente, motivo} -> %>
             <div id="sem-leitura" class="rounded border border-dashed border-base-content/40 p-4">
-              <.absent reason={motivo_da_ausencia(motivo, @selecao.network)} />
+              <.absent reason={Leitura.motivo_da_ausencia(motivo, @selecao.network)} />
             </div>
           <% visao -> %>
             {render_contagens(assign(assigns, v: visao))}
@@ -123,18 +99,36 @@ defmodule TheBandWeb.NetworkAnalysisLive.Graph do
     <%!-- US3: o grafo ponderado da visão (3.2.1 a 3.2.5; 3.7.2, 3.7.3; 3.8.1) --%>
     <section id="grafo" class="flex flex-col gap-2">
       <h2 class="font-semibold">
-        Weighted graph <Shared.marca tipo={:derivado} />
+        {if @selecao.view == "communities", do: "Community graph", else: "Weighted graph"}
+        <Shared.marca tipo={:derivado} />
       </h2>
+      <%!-- FR-026: as duas vistas na mesma página, com as mesmas posições, sem recalcular --%>
+      <div id="vistas" class="flex flex-wrap gap-2" role="group" aria-label="view">
+        <.link
+          :for={{vista, rotulo} <- [{"weighted", "weighted"}, {"communities", "communities"}]}
+          patch={Shared.page_path(:graph, @organization_id, %{@selecao | view: vista})}
+          class={["btn btn-sm", if(vista == @selecao.view, do: "btn-primary", else: "btn-ghost")]}
+          aria-current={vista == @selecao.view && "true"}
+          data-view={vista}
+        >
+          {rotulo}
+        </.link>
+      </div>
       <%= case @v.graph do %>
         <% {:ok, grafo} -> %>
-          <GraphComponents.graph id="grafo-ponderado" graph={grafo} network={@rede} />
+          <GraphComponents.graph
+            id="grafo-ponderado"
+            graph={grafo}
+            network={@rede}
+            view={@selecao.view}
+          />
         <% {:recortado, :no_reach} -> %>
           <p class="text-sm">
             You reach no one else in this network, so the graph is not drawn here. The measures of
             the network, and your own, are on the other pages.
           </p>
         <% {:ausente, :no_edge_in_window} -> %>
-          <.absent reason={"not drawn: " <> sem_aresta(@rede)} />
+          <.absent reason={"not drawn: " <> Leitura.sem_aresta(@rede)} />
       <% end %>
     </section>
 
@@ -276,10 +270,6 @@ defmodule TheBandWeb.NetworkAnalysisLive.Graph do
     """
   end
 
-  # A linha da leitura só existe quando há leitura (3.0.5).
-  defp leitura_para_o_cabecalho({:ausente, _}), do: nil
-  defp leitura_para_o_cabecalho(visao), do: visao
-
   # US2, cen. 5. Frases da tela, em inglês: não traduzir de volta.
   defp frase_da_aresta("assignment"),
     do:
@@ -289,27 +279,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.Graph do
   defp frase_da_aresta("review"),
     do: "Each arrow goes from the person who reviewed to the author of the change request."
 
-  defp motivo_da_ausencia(:not_computed, "review"),
-    do:
-      "not calculated: the review network of this organisation has no reading for this window " <>
-        "yet, or the analysis has not run since"
-
-  defp motivo_da_ausencia(:not_computed, _rede),
-    do: "not calculated: the platform has not computed this reading yet"
-
-  # E4 da revisão semântica do PR #1383: a leitura da 073 não sabe das contas declaradas
-  # vigentes, e a conta declarada seria nó aqui e não na rede de designação.
-  defp motivo_da_ausencia(:review_reading_outdated, _rede),
-    do:
-      "not shown: the review network reading was calculated before the latest change to the " <>
-        "accounts declared as the organisation's, so it does not know about it; it is " <>
-        "recalculated at the next synchronization of this organisation"
-
-  defp motivo_da_ausencia(:stale, _rede),
-    do: "not shown: this reading is older than the longest window, and was not recalculated"
-
-  defp sem_aresta("assignment"), do: "no assignment between people in this window"
-  defp sem_aresta("review"), do: "no review between people in this window"
+  defp sem_aresta(rede), do: Leitura.sem_aresta(rede)
 
   defp ato("assignment"), do: "assignment"
   defp ato("review"), do: "review"

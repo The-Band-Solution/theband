@@ -52,6 +52,7 @@ defmodule TheBand.NetworkAnalysis.Parameters do
           size_limit: %{max_people: pos_integer(), max_undirected_edges: pos_integer()},
           hubs_size: pos_integer(),
           community_core_size: pos_integer(),
+          modularity_thresholds: [number()],
           betweenness_min_people: pos_integer(),
           clustering_min_neighbours: pos_integer(),
           eigenvector: %{
@@ -147,6 +148,8 @@ defmodule TheBand.NetworkAnalysis.Parameters do
       },
       hubs_size: positivo!(a, ~w(hubs_list_size values size)),
       community_core_size: positivo!(a, ~w(community_core_size values size)),
+      # As faixas CITADAS da modularidade (FR-031): a tela as diz com a fonte, e nunca como adjetivo.
+      modularity_thresholds: numeros!(a, ~w(modularity_reading values cited_thresholds)),
       betweenness_min_people: positivo!(a, ~w(betweenness values min_people)),
       clustering_min_neighbours: positivo!(a, ~w(clustering values min_neighbours)),
       eigenvector: %{
@@ -235,6 +238,18 @@ defmodule TheBand.NetworkAnalysis.Parameters do
     case valor!(regra, id, caminho) do
       [_ | _] = v -> v
       _ -> falha!(id, "#{Enum.join(caminho, ".")} não é lista")
+    end
+  end
+
+  defp numeros!(regra, caminho) do
+    case valor!(regra, @analise, caminho) do
+      [_ | _] = v ->
+        if Enum.all?(v, &is_number/1),
+          do: v,
+          else: falha!(@analise, "#{Enum.join(caminho, ".")} não é lista de números")
+
+      _ ->
+        falha!(@analise, "#{Enum.join(caminho, ".")} não é lista")
     end
   end
 

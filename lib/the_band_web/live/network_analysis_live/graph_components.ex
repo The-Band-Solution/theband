@@ -29,6 +29,14 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
   mais ligados **entre os alcançados** (O1 da revisão semântica 3); os demais no `<title>`, no
   foco e na lista.
 
+  ## A vista de comunidades (T037; FR-021, FR-026; protótipo 3.3.2)
+
+  As **mesmas posições**, sem recalcular nada: cada pessoa com a cor da comunidade, e cada
+  comunidade com um contorno tracejado e a **letra** (A a maior), para ler em escala de cinza —
+  a cor nunca é o único sinal (WCAG 1.4.1). O contorno é a envoltória convexa dos nós da
+  comunidade na visão, alargada, calculada aqui. O agregado de pessoas de fora entra no
+  contorno da comunidade dele.
+
   A interface fala inglês (§11.1): as frases nasceram no protótipo aprovado.
   """
   use Phoenix.Component
@@ -37,6 +45,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
 
   alias Phoenix.LiveView.ColocatedHook
   alias Phoenix.LiveView.JS
+  alias TheBandWeb.NetworkAnalysisLive.Shared
 
   # A cor de cada faixa da base (`betweenness_color_bands`), em classes da paleta. Uma faixa nova
   # na base sem cor aqui levanta: cor inventada seria leitura sem razão (FR-031).
@@ -48,6 +57,19 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
     "10_or_more" => "fill-warning"
   }
 
+  # A cor de cada comunidade, por posição; depois da oitava, as cores se repetem, e a letra
+  # continua a distinguir. Classes inteiras, para o Tailwind encontrá-las no markup.
+  @cor_da_comunidade {
+    "fill-indigo-500 stroke-indigo-600",
+    "fill-teal-600 stroke-teal-700",
+    "fill-amber-600 stroke-amber-700",
+    "fill-rose-700 stroke-rose-800",
+    "fill-slate-500 stroke-slate-600",
+    "fill-cyan-800 stroke-cyan-900",
+    "fill-violet-600 stroke-violet-700",
+    "fill-lime-700 stroke-lime-800"
+  }
+
   @doc """
   O grafo da visão: o SVG (`hidden sm:block`), a legenda, o cartão do nó apontado e a lista
   empilhada do telefone (`sm:hidden`). Sem posições (acima do teto), só a lista, em qualquer
@@ -56,6 +78,10 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
   attr :id, :string, required: true
   attr :graph, :map, required: true, doc: "o `graph` de `NetworkAnalysis.read/4`, em `{:ok, _}`"
   attr :network, :string, required: true
+
+  attr :view, :string,
+    default: "weighted",
+    doc: "`weighted` (cor pela intermediação) ou `communities` (cor e letra pela comunidade)"
 
   def graph(assigns) do
     vizinhos = vizinhos(assigns.graph.edges)
@@ -88,6 +114,23 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
           {render_lista(assigns)}
       <% end %>
     </div>
+    """
+  end
+
+  attr :community, :integer, required: true
+
+  @doc """
+  A marca de uma comunidade fora do desenho (os cartões da página Communities): a cor da
+  comunidade **e** a letra, para a cor nunca ser o único sinal.
+  """
+  def community_mark(assigns) do
+    ~H"""
+    <span class="inline-flex items-center gap-1 font-mono font-bold">
+      <svg viewBox="0 0 10 10" class="size-3" aria-hidden="true">
+        <circle cx="5" cy="5" r="4.5" class={cor_da_comunidade(@community)} />
+      </svg>
+      {letra(@community)}
+    </span>
     """
   end
 
@@ -140,6 +183,25 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
             </marker>
           </defs>
           <g data-viewport>
+            <g :if={@view == "communities"} aria-hidden="true">
+              <g :for={{c, pontos, {lx, ly}} <- contornos(@graph.nodes, @posicoes)}>
+                <polygon
+                  points={pontos}
+                  class={[
+                    "fill-opacity-10 stroke-[1.5] [stroke-dasharray:6_4]",
+                    cor_da_comunidade(c)
+                  ]}
+                />
+                <text
+                  x={num(lx)}
+                  y={num(ly - 6)}
+                  text-anchor="middle"
+                  class={["font-mono font-bold text-[22px] stroke-none", cor_da_comunidade(c)]}
+                >
+                  {letra(c)}
+                </text>
+              </g>
+            </g>
             <g>
               <path
                 :for={a <- @graph.edges}
@@ -161,7 +223,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
                 phx-blur={soltar(@svg_id)}
                 class={[
                   "nd stroke-base-content outline-none focus:[stroke-width:2.5]",
-                  cor(p.band),
+                  cor_do_no(p, @view),
                   classes_de_vizinho(p.id, @vizinhos)
                 ]}
               >
@@ -177,7 +239,11 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
                 phx-focus={focar(@svg_id, @side_id, g.id)}
                 phx-blur={soltar(@svg_id)}
                 class={[
-                  "nd fill-base-200 stroke-base-content/60 [stroke-dasharray:4_3] outline-none focus:[stroke-width:2.5]",
+                  "nd stroke-base-content/60 [stroke-dasharray:4_3] outline-none focus:[stroke-width:2.5]",
+                  if(@view == "communities" and is_integer(g.community),
+                    do: [cor_da_comunidade(g.community), "fill-opacity-30"],
+                    else: "fill-base-200"
+                  ),
                   classes_de_vizinho(g.id, @vizinhos)
                 ]}
               >
@@ -288,6 +354,36 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
     """
   end
 
+  defp render_legenda(%{view: "communities"} = assigns) do
+    assigns = assign(assigns, comunidades: comunidades_da_visao(assigns.graph.nodes))
+
+    ~H"""
+    <div id={"#{@id}-legenda"} class="flex flex-col gap-2 text-xs opacity-90 min-w-0">
+      <p>
+        <b>Colour, dashed outline and letter</b>
+        the community of each person <span class="opacity-70">(derived)</span>; the letter follows
+        size, A the largest, so the picture reads in greyscale.
+      </p>
+      <ul class="flex flex-wrap gap-x-3 gap-y-1" aria-label="communities">
+        <li :for={c <- @comunidades} class="inline-flex items-center gap-1">
+          <svg viewBox="0 0 10 10" class="size-3" aria-hidden="true">
+            <circle cx="5" cy="5" r="4.5" class={cor_da_comunidade(c)} />
+          </svg>
+          Community {letra(c)}
+        </li>
+      </ul>
+      <p><b>Size</b> people linked, in either direction.</p>
+      <p>
+        <b>Width</b> how many {unidade(@network)} on that link. <b>Arrow</b> its direction.
+      </p>
+      <p :if={@agregados != []}>
+        <b>Dashed</b> people outside your reach, grouped and unnamed; links between people of the
+        same group are not drawn.
+      </p>
+    </div>
+    """
+  end
+
   defp render_legenda(assigns) do
     ~H"""
     <div id={"#{@id}-legenda"} class="flex flex-col gap-2 text-xs opacity-90 min-w-0">
@@ -334,6 +430,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
       class="hidden card border border-base-300 p-3 flex-col gap-2"
     >
       <h3 class="font-semibold">{p.name}</h3>
+      <span :if={is_integer(p.community)} class="text-xs">community {letra(p.community)}</span>
       <span :if={p.links_outside_reach?} class="text-xs">has links outside your reach</span>
       <dl class="grid grid-cols-[7rem_1fr] gap-x-3 gap-y-1 text-sm">
         <dt class="opacity-70">{verbo_saida(@network)}</dt>
@@ -373,6 +470,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
       <thead>
         <tr>
           <th>person</th>
+          <th>community</th>
           <th>linked to</th>
           <th>links</th>
           <th>betweenness</th>
@@ -387,6 +485,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
               has links outside your reach
             </span>
           </td>
+          <td data-label="community">{comunidade_na_lista(p.community)}</td>
           <td data-label="linked to">{p.degree} {pessoas(p.degree)}</td>
           <td data-label="links">{p.out_people} links out, {p.in_people} in</td>
           <td data-label="betweenness">{intermediacao(p.betweenness)}</td>
@@ -394,6 +493,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
         </tr>
         <tr :for={g <- @agregados}>
           <td data-label="person">{rotulo_do_agregado(g)}</td>
+          <td data-label="community">{comunidade_na_lista(g.community)}</td>
           <td data-label="linked to">
             <.absent reason="not shown for people outside your reach" />
           </td>
@@ -474,6 +574,81 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
   defp cor(nil), do: "fill-base-100 [stroke-dasharray:3_2]"
   defp cor(codigo), do: Map.fetch!(@cor_da_faixa, codigo)
 
+  defp cor_do_no(p, "communities") when is_integer(p.community),
+    do: cor_da_comunidade(p.community)
+
+  defp cor_do_no(_p, "communities"), do: "fill-base-100 [stroke-dasharray:3_2]"
+  defp cor_do_no(p, _vista), do: cor(p.band)
+
+  defp cor_da_comunidade(c) when is_integer(c),
+    do: elem(@cor_da_comunidade, rem(c - 1, tuple_size(@cor_da_comunidade)))
+
+  defp letra(c), do: Shared.community_letter(c)
+
+  defp comunidades_da_visao(nos),
+    do:
+      nos |> Enum.map(& &1.community) |> Enum.filter(&is_integer/1) |> Enum.uniq() |> Enum.sort()
+
+  defp comunidade_na_lista(c) when is_integer(c), do: letra(c)
+
+  defp comunidade_na_lista(_c),
+    do: assigns_absent("not calculated in this reading")
+
+  defp assigns_absent(motivo) do
+    assigns = %{motivo: motivo}
+
+    ~H"""
+    <.absent reason={@motivo} />
+    """
+  end
+
+  # O contorno de cada comunidade: a envoltória convexa dos seus nós na visão, cada nó alargado
+  # por oito pontos à volta dele, para o contorno não passar por cima do círculo.
+  defp contornos(nos, posicoes) do
+    nos
+    |> Enum.filter(&is_integer(&1.community))
+    |> Enum.group_by(& &1.community)
+    |> Enum.sort()
+    |> Enum.map(fn {c, membros} ->
+      pontos =
+        for n <- membros,
+            {x, y} = Map.fetch!(posicoes, n.id),
+            r = raio(n) + 10,
+            k <- 0..7 do
+          a = k * :math.pi() / 4
+          {x + r * :math.cos(a), y + r * :math.sin(a)}
+        end
+
+      casca = envoltoria(pontos)
+
+      # A letra fica acima do ponto mais alto do contorno.
+      {c, Enum.map_join(casca, " ", fn {x, y} -> "#{num(x)},#{num(y)}" end),
+       Enum.min_by(casca, &elem(&1, 1))}
+    end)
+  end
+
+  # Andrew (monotone chain): a envoltória no sentido anti-horário.
+  defp envoltoria(pontos) do
+    ordenados = pontos |> Enum.uniq() |> Enum.sort()
+    inferior = metade(ordenados)
+    superior = metade(Enum.reverse(ordenados))
+    Enum.drop(inferior, -1) ++ Enum.drop(superior, -1)
+  end
+
+  defp metade(pontos) do
+    pontos
+    |> Enum.reduce([], fn p, pilha -> [p | podar(pilha, p)] end)
+    |> Enum.reverse()
+  end
+
+  defp podar([b, a | resto] = pilha, p) do
+    if giro(a, b, p) <= 0, do: podar([a | resto], p), else: pilha
+  end
+
+  defp podar(pilha, _p), do: pilha
+
+  defp giro({ax, ay}, {bx, by}, {px, py}), do: (bx - ax) * (py - ay) - (by - ay) * (px - ax)
+
   # ── textos da tela, em inglês: não traduzir de volta ────────────────────────
 
   defp por_nome(pessoas), do: Enum.sort_by(pessoas, &{String.downcase(&1.name), &1.id})
@@ -482,6 +657,11 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
     do:
       "Weighted graph of the #{rede} network: #{pessoas} #{pessoas(pessoas)} named, " <>
         "#{arestas} links drawn. The same content is in the list."
+
+  defp titulo(%{community: c} = p) when is_integer(c) do
+    "#{p.name} · community #{letra(c)} · linked to #{p.degree} #{pessoas(p.degree)} · " <>
+      "#{p.out_people} links out, #{p.in_people} in · #{intermediacao(p.betweenness)}"
+  end
 
   defp titulo(p) do
     "#{p.name} · linked to #{p.degree} #{pessoas(p.degree)} · #{p.out_people} links out, " <>
@@ -492,7 +672,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponents do
   defp titulo_do_agregado(g), do: "#{g.size} people outside your reach. No names."
 
   defp rotulo_do_agregado(%{community: c, size: n}) when is_integer(c),
-    do: "People outside your reach — community #{c} (#{n})"
+    do: "People outside your reach — community #{letra(c)} (#{n})"
 
   defp rotulo_do_agregado(%{community: :other, size: n}),
     do: "People outside your reach — other communities (#{n})"

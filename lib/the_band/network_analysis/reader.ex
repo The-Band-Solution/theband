@@ -141,12 +141,17 @@ defmodule TheBand.NetworkAnalysis.Reader do
       viewer = pessoa_de(user)
 
       visao =
-        View.build(leitura, reach, granted, viewer, %{min_group: parametros.min_group, gone: gone})
+        View.build(leitura, reach, granted, viewer, %{
+          min_group: parametros.min_group,
+          gone: gone,
+          core_size: parametros.community_core_size
+        })
 
       {:ok,
        visao
        |> Map.drop([:granted, :viewer_person_id])
        |> nomear(nomes)
+       |> nomear_comunidades(nomes, parametros)
        |> desenhar(leitura, parametros)
        |> Map.merge(%{
          counts: contagens(leitura, visao),
@@ -213,6 +218,35 @@ defmodule TheBand.NetworkAnalysis.Reader do
   end
 
   defp nomear(visao, _nomes), do: visao
+
+  # Os membros alcançados por nome, na ordem do nome (FR-034: a lista é por nome, e nunca por
+  # medida); os mais centrais na ordem da medida, que é a deles. As faixas citadas da
+  # modularidade vêm da base, com a fonte que a tela escreve (FR-031).
+  defp nomear_comunidades(%{communities: {:ok, c}} = visao, nomes, parametros) do
+    blocos =
+      Enum.map(c.blocks, fn b ->
+        membros =
+          b.members
+          |> Enum.map(&%{person_id: &1, name: Map.fetch!(nomes, &1)})
+          |> Enum.sort_by(&{String.downcase(&1.name), &1.person_id})
+
+        nucleo =
+          case b.core do
+            {:recortado, _} = r -> r
+            lista -> Enum.map(lista, &Map.put(&1, :name, Map.fetch!(nomes, &1.person_id)))
+          end
+
+        %{b | members: membros, core: nucleo}
+      end)
+
+    %{
+      visao
+      | communities:
+          {:ok, Map.merge(c, %{blocks: blocos, thresholds: parametros.modularity_thresholds})}
+    }
+  end
+
+  defp nomear_comunidades(visao, _nomes, _parametros), do: visao
 
   # O que o desenho precisa, decidido aqui e não na tela (T031, T033; R9, R16):
   #

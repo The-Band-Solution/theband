@@ -333,6 +333,35 @@ quando se declara ou revoga. Opção (b) da revisão:
   sincronização seguinte (`sync_github_eo` → `ComputeReviewNetwork` → `ComputeNetworkAnalysis`);
 - a rede de designação não muda: ela não depende da 073.
 
+**Emenda de 2026-10-05 (T035, T036)**, feita no mesmo commit da implementação:
+
+- a leitura grava `nodes[].community` e `nodes[].internal_degree`, `communities` (`index`,
+  `members`, `internal_edges`, `outside_edges`), `measures.modularity` (`value` e `communities`) e
+  `measures.random` (`graphs` e `modularity` com `graphs_defined`). Sem aresta, `modularity` e
+  `random` são `{"absent": "no_edge_in_window"}`; acima do teto, `random` é
+  `network_too_large_for_platform`;
+- **a impressão digital leva também a lista do que o código calcula** (`@calculo` em
+  `Commands`). Sem ela, a leitura gravada antes de uma medida existir teria a mesma impressão da
+  nova — as arestas e a base não mudaram — e nunca seria recalculada: ficaria para sempre sem a
+  medida. A lista cresce com cada tarefa que acrescenta medida à leitura.
+
+**Emenda de 2026-10-05 (T037)**, feita no mesmo commit da implementação: `communities` da
+visão é `{:ok, %{count, modularity, q_rand, blocks, thresholds}} | {:recortado, :no_reach} |
+{:ausente, :no_edge_in_window | :not_computed}`:
+
+- `count` é `{:ok, n}`, ou `{:suprimido, :fewer_than_k_outside}` quando as comunidades sem
+  ninguém alcançado somam entre 1 e k − 1 pessoas (regra 4: o número revelaria quantas);
+- `modularity` é medida; `q_rand` é `{:ok, %{value, graphs_defined}}` ou ausente
+  (`network_too_large_for_platform`, `no_edge_in_window`, `not_computed`);
+- `thresholds` são as faixas citadas da base (`modularity_reading.values.cited_thresholds`, nova
+  chave lida por `Parameters`, `modularity_thresholds`);
+- cada bloco tem também `outside_edges` (as ligações para outras comunidades, 3.3.4), e
+  `outside` pode ser `:nenhum` (nenhum de fora), `{:agregado, n}` (n ≥ k) ou `:sem_agregado`
+  (entre 1 e k − 1). `core` é a lista, possivelmente vazia, ou `{:recortado,
+  :positions_not_granted}` quando quem consulta não tem escopo concedido (DS1); com escopo, os
+  candidatos são os alcançados cuja posição quem consulta pode ver (`View.ve_posicao_de?/2`);
+- `View.build/5` recebe `core_size` nos parâmetros (`community_core_size` da base).
+
 ## `discard_organization/2`
 
 ```elixir

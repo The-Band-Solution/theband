@@ -75,6 +75,24 @@ Sem peso. Grau < 2 fora da média e contado (D5).
 Clauset–Newman–Moore com peso, resolução 1, desempate pelo par de menor índice, numeração por
 tamanho decrescente (FR-027). O mesmo dado dá a mesma partição.
 
+**Emenda de 2026-10-05 (T035)**, no mesmo commit da implementação:
+
+- a comparação do ΔQ é feita no **inteiro** ΔQ·2W² = 2W·w_ij − S_i·S_j (os pesos são contagens):
+  dois pares de mesmo ΔQ empatam de verdade, e o desempate declarado decide, nunca o
+  arredondamento. A modularidade soma os numeradores inteiros e divide uma vez;
+- a comunidade juntada fica com o menor índice, que é sempre o do seu membro de menor id;
+- `greedy/1` e `modularity/2` exigem ao menos uma aresta: sem aresta não há comunidade, e quem
+  chama grava a ausência (`no_edge_in_window`);
+- acrescentada `summary/2`, para a leitura gravar o que a tela mostra de cada comunidade:
+
+```elixir
+@spec summary(adjacency, partition) ::
+        [%{index: pos_integer, members: [id], internal_edges: non_neg_integer, outside_edges: non_neg_integer}]
+```
+
+  `internal_edges` são os pares sem direção dentro da comunidade; `outside_edges`, os que saem
+  para outra (protótipo 3.3.4, *"links inside · to other communities"*).
+
 ## `Algorithms.Random`
 
 ```elixir
@@ -98,6 +116,15 @@ Nunca o dicionário do processo. Duas chamadas com o mesmo estado dão a mesma s
 
 Os 100 grafos G(n, m) na mesma sequência; os pesos reais sorteados para o Q_rand (R8). Toda média
 divide pelo número de grafos em que a medida está definida, que é devolvido.
+
+**Emenda de 2026-10-05 (T036)**, no mesmo commit da implementação: `random_battery/2` devolve
+também `graphs` (quantos foram gerados), e cada medida com contagem é `{:ok, %{value, graphs_defined}}`
+ou `{:ausente, motivo}`. Nesta tarefa ela calcula só `modularity`; `clustering`,
+`average_distance`, `diameter`, `global_efficiency` e `reachable_share` entram com T041 e T043,
+no mesmo laço e na mesma sequência — nenhuma delas consome o gerador, e o Q_rand não muda quando
+elas entram. Os pesos de cada aleatório são os da projeção real em ordem crescente do par,
+embaralhados por `Random.shuffle/2` depois dos pares do mesmo grafo, e dados aos pares na ordem
+do sorteio. Exige ao menos uma ligação: sem ela, quem chama grava `no_edge_in_window`.
 
 ## `Algorithms.Layout`
 
