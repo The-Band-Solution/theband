@@ -19,6 +19,12 @@ defmodule TheBand.CloakModosInalcancaveisTest do
   3. as versões são as medidas: `cloak` 1.1.4 e `cloak_ecto` 1.3.0. Versão nova pode trazer o
      conserto (e a exceção sai) ou outro defeito (e a medição não vale mais).
 
+  As premissas 1 e 2 são medidas duas vezes. **Em execução**, o que vale: os ciphers que
+  `TheBand.Vault.init/1` devolve, o mesmo caminho do boot, e o `@behaviour` de cada módulo
+  compilado da aplicação. Isso pega alias, átomo, `Module.concat` e configuração, qualquer que
+  seja a forma escrita (revisão de segurança do #1420, achado B). **No texto**, a varredura da
+  AST, que prova também que leu a árvore (achado A).
+
   ## Por que a varredura lê a AST, e não o texto
 
   Como na guarda do `cowlib`: a varredura parte de `Code.string_to_quoted/1`, que descarta
@@ -48,6 +54,39 @@ defmodule TheBand.CloakModosInalcancaveisTest do
 
     A exceção de EEF-CVE-2026-94206 em `mix.exs` vale só enquanto o campo não é usado (#1418).
     """
+  end
+
+  test "1a. em execução, todo cipher do Vault é o AES.GCM" do
+    {:ok, config} = TheBand.Vault.init([])
+    modulos = config |> Keyword.fetch!(:ciphers) |> Enum.map(fn {_rotulo, {m, _opts}} -> m end)
+
+    assert modulos != []
+    assert Enum.uniq(modulos) == [Cloak.Ciphers.AES.GCM]
+  end
+
+  test "2a. em execução, nenhum módulo da aplicação é um campo Cloak.Ecto.PBKDF2" do
+    {:ok, modulos} = :application.get_key(:the_band, :modules)
+
+    com_pbkdf2 =
+      for m <- modulos,
+          Code.ensure_loaded?(m),
+          # O valor de cada `@behaviour` é uma lista: sem o flatten, nada casaria nunca.
+          Cloak.Ecto.PBKDF2 in List.flatten(
+            Keyword.get_values(m.module_info(:attributes), :behaviour)
+          ),
+          do: m
+
+    assert length(modulos) > 100
+    assert com_pbkdf2 == []
+  end
+
+  test "a varredura leu a árvore, e acha o cipher que existe" do
+    # Achado A da revisão: sem isto, um glob que não acha arquivo nenhum deixa 1 e 2 verdes.
+    assert length(Path.wildcard("{lib,config}/**/*.{ex,exs}")) > 100
+
+    assert {"lib/the_band/vault.ex", Cloak.Ciphers.AES.GCM} in varrer(
+             &(&1 == [:Cloak, :Ciphers, :AES, :GCM])
+           )
   end
 
   test "3. as versões são as medidas" do
