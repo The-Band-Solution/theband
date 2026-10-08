@@ -32,6 +32,7 @@ defmodule TheBand.NetworkAnalysis.Commands do
   import Ecto.Query
 
   alias TheBand.NetworkAnalysis.Algorithms.Betweenness
+  alias TheBand.NetworkAnalysis.Algorithms.Clustering
   alias TheBand.NetworkAnalysis.Algorithms.Communities
   alias TheBand.NetworkAnalysis.Algorithms.Eigenvector
   alias TheBand.NetworkAnalysis.Algorithms.Layout
@@ -57,7 +58,8 @@ defmodule TheBand.NetworkAnalysis.Commands do
   # base não mudaram, mas o que se grava sobre elas mudou. Cresce com cada tarefa que acrescenta
   # medida à leitura.
   @calculo ~w(degrees components betweenness layout communities modularity q_rand closeness
-              person_distance eigenvector)
+              person_distance eigenvector network_distances random_distances clustering
+              random_clustering sigma)
 
   @type entrada :: %{
           edges: [%{source: Ecto.UUID.t(), target: Ecto.UUID.t(), weight: pos_integer()}],
@@ -228,6 +230,8 @@ defmodule TheBand.NetworkAnalysis.Commands do
         "components" => Enum.map(componentes, &length/1)
       }
       |> Map.merge(modularidade(comunidades))
+      |> Map.merge(distancias_da_rede(distancias, length(projecao.nodes)))
+      |> Map.merge(clustering(projecao, parametros))
       |> Map.merge(aleatorios(projecao, acima?, parametros))
       |> Map.merge(if acima?, do: ausentes_por_teto(), else: %{})
 
@@ -298,7 +302,10 @@ defmodule TheBand.NetworkAnalysis.Commands do
   defp aleatorios(_projecao, true, _parametros), do: %{}
 
   defp aleatorios(%{nodes: []}, false, _parametros),
-    do: %{"random" => %{"absent" => "no_edge_in_window"}}
+    do: %{
+      "random" => %{"absent" => "no_edge_in_window"},
+      "sigma" => %{"absent" => "no_edge_in_window"}
+    }
 
   defp aleatorios(projecao, false, parametros) do
     bateria =
@@ -310,9 +317,70 @@ defmodule TheBand.NetworkAnalysis.Commands do
     %{
       "random" => %{
         "graphs" => bateria.graphs,
-        "modularity" => com_contagem(bateria.modularity)
-      }
+        "modularity" => com_contagem(bateria.modularity),
+        "clustering" => com_contagem(bateria.clustering),
+        "average_distance" =>
+          bateria.average_distance
+          |> com_contagem()
+          |> Map.put("reachable_share", bateria.reachable_share),
+        "diameter" => com_contagem(bateria.diameter),
+        "global_efficiency" => com_contagem(bateria.global_efficiency)
+      },
+      "sigma" => sigma_gravado(projecao, bateria, parametros)
     }
+  end
+
+  # σ pelas medidas da rede real e dos aleatórios (T043). Os motivos de ausência são os da base.
+  defp sigma_gravado(projecao, bateria, parametros) do
+    distancias = projecao.adjacency |> Paths.all_pairs() |> Paths.network(length(projecao.nodes))
+
+    real = %{
+      clustering:
+        case Clustering.average(projecao.adjacency, parametros.clustering_min_neighbours) do
+          {:ok, %{value: c}} -> {:ok, c}
+          ausente -> ausente
+        end,
+      average_distance: distancias.average
+    }
+
+    case SmallWorld.sigma(real, bateria, length(projecao.nodes), parametros.small_world) do
+      {:ok, %{value: v, clustering_ratio: rc, distance_ratio: rl}} ->
+        %{"value" => v, "clustering_ratio" => rc, "distance_ratio" => rl}
+
+      {:ausente, motivo} ->
+        %{"absent" => Atom.to_string(motivo)}
+    end
+  end
+
+  # As distâncias da rede (T041): média sobre os pares que se alcançam com a fração, diâmetro,
+  # eficiência e a distribuição dos comprimentos. Sem par, as três ausentes.
+  defp distancias_da_rede(distancias, n) do
+    r = Paths.network(distancias, n)
+
+    %{
+      "average_distance" =>
+        case r.average do
+          {:ok, v} -> %{"value" => v, "reachable_share" => r.reachable_share}
+          {:ausente, m} -> %{"absent" => Atom.to_string(m)}
+        end,
+      "diameter" => medida_gravada(r.diameter),
+      "global_efficiency" => medida_gravada(r.efficiency),
+      "path_lengths" => Enum.map(r.lengths, fn {d, c} -> [d, c] end)
+    }
+  end
+
+  # O clustering médio (T043), com quantos ficaram fora da média por terem menos de dois vizinhos.
+  defp clustering(%{nodes: []}, _parametros),
+    do: %{"clustering" => %{"absent" => "no_edge_in_window"}}
+
+  defp clustering(projecao, parametros) do
+    case Clustering.average(projecao.adjacency, parametros.clustering_min_neighbours) do
+      {:ok, %{value: v, excluded_degree_below_two: fora}} ->
+        %{"clustering" => %{"value" => v, "excluded_degree_below_two" => fora}}
+
+      {:ausente, m} ->
+        %{"clustering" => %{"absent" => Atom.to_string(m)}}
+    end
   end
 
   defp com_contagem({:ok, %{value: v, graphs_defined: n}}),

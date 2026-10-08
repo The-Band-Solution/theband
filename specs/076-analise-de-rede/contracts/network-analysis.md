@@ -375,6 +375,22 @@ visão é `{:ok, %{count, modularity, q_rand, blocks, thresholds}} | {:recortado
   alcançados cuja posição quem consulta pode ver (DS1). `tied?` marca o valor repetido na lista,
   ou o último da lista empatado com quem ficou de fora dela. `View.build/5` recebe `hubs_size`.
 
+**Emenda de 2026-10-05 (T041, T043)**, feita no mesmo commit da implementação: a leitura grava
+`measures.average_distance` (com `reachable_share`), `diameter`, `global_efficiency`,
+`path_lengths` (`[[passos, pares]]`), `clustering` (com `excluded_degree_below_two`),
+`random.clustering`, `random.average_distance` (com `reachable_share`), `random.diameter`,
+`random.global_efficiency` e `sigma` (com `clustering_ratio` e `distance_ratio`), ou a ausência com
+o motivo da base. Acima do teto, `random` e `sigma` ausentes com `network_too_large_for_platform`;
+sem aresta, com `no_edge_in_window`.
+
+**Emenda de 2026-10-05 (T042, T044)**, feita no mesmo commit da implementação: a visão traz
+`distance` (`average`, `reachable_share`, `diameter`, `efficiency`, `lengths` — `{:ok, [{passos,
+pares}]}` ou `{:suprimido, :fewer_than_k_outside}` —, e `random` com `graphs`, `absent`, `average`,
+`reachable_share`, `diameter`, `efficiency`) e `small_world` (`clustering`,
+`excluded_degree_below_two`, `random_clustering`, `random_average`, `sigma` com as razões,
+`graphs`, `criterion` — `:meets | :does_not_meet | nil` — e `threshold`, o limiar da base). A
+`provenance` ganha `seed`, `generator` e `random_graphs`.
+
 ## `discard_organization/2`
 
 ```elixir
