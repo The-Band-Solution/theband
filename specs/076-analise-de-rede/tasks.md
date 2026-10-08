@@ -582,7 +582,22 @@ tarefas, e por quê:
 **Objetivo**: comunidades com peso e desempate, modularidade contra Q_rand. **Teste independente**:
 dois grupos densos com uma ponte dão duas comunidades e a modularidade da conta à mão.
 
-- [ ] T035 [P] [US4] Detectar comunidades pelo guloso com peso
+**Feita em 2026-10-05**, na branch `feature/1309-us4` (empilhada sobre `feature/1309-seguranca`,
+sprint 043), com a evidência de cada defeito injetado comentada na issue de cada tarefa. O que
+divergiu do texto das tarefas, e por quê:
+
+- **T035**: o ΔQ é comparado em inteiro (2W·w_ij − S_i·S_j), e o empate é de verdade; o desempate
+  declarado decide. O defeito *"desempatar pela ordem do mapa"* não reprova com a entrada
+  invertida, porque o mapa é o mesmo: o caso discriminante é o anel de 40 com ids de outra ordem
+  de mapa (acima de 32 chaves, a ordem do mapa segue o hash). Acrescentada `summary/2`;
+- **T036**: a impressão digital passou a levar a lista do que o código calcula (`@calculo`). Sem
+  isso, as leituras gravadas antes da T035 nunca seriam recalculadas, porque as arestas e a base
+  não mudaram (emenda em `contracts/network-analysis.md`);
+- **T037**: comunidades por letra (decisão do protótipo). O número de comunidades segue a regra 4
+  pelas pessoas das comunidades sem nenhum alcançado. A leitura comum das páginas foi para
+  `NetworkAnalysisLive.Leitura` (terceira cópia). A página Graph ganhou o seletor de vista.
+
+- [x] T035 [P] [US4] Detectar comunidades pelo guloso com peso
   - **Pronta quando**: T012; `contracts/algoritmos.md` `Algorithms.Communities`
   - **Descrição**: `lib/the_band/network_analysis/algorithms/communities.ex`: CNM com peso,
     desempate pelo par de menor índice, numeração por tamanho; `modularity/2`; `internal_degree/2`.
@@ -592,7 +607,7 @@ dois grupos densos com uma ponte dão duas comunidades e a modularidade da conta
   - **Teste**: `test/the_band/network_analysis/algorithms/communities_test.exs`. **Defeito a
     injetar**: desempatar pela ordem do mapa; o caso da entrada invertida reprova
 
-- [ ] T036 [US4] Comparar a modularidade com a dos aleatórios, com peso (A5)
+- [x] T036 [US4] Comparar a modularidade com a dos aleatórios, com peso (A5)
   - **Pronta quando**: T011, T035; R8
   - **Descrição**: `lib/the_band/network_analysis/algorithms/small_world.ex`, `random_battery/2`, com a
     parte de modularidade: 100 G(n, m) na sequência declarada, pesos reais embaralhados, o mesmo
@@ -602,7 +617,7 @@ dois grupos densos com uma ponte dão duas comunidades e a modularidade da conta
   - **Teste**: `test/the_band/network_analysis/algorithms/q_rand_test.exs`. **Defeito a injetar**: não
     passar os pesos aos aleatórios; o caso dos pesos concentrados reprova
 
-- [ ] T037 [US4] [security] Mostrar as comunidades com o recorte
+- [x] T037 [US4] [security] Mostrar as comunidades com o recorte
   - **Pronta quando**: T016, T033, T036; protótipo §3 Tela 3; decisões a confirmar R10 item 8 e R21
   - **Descrição**: `lib/the_band_web/live/network_analysis_live/communities.ex`: número de
     comunidades, modularidade com Q_rand e as faixas **citadas** com a fonte (FR-031), *"Not the
@@ -625,7 +640,16 @@ dois grupos densos com uma ponte dão duas comunidades e a modularidade da conta
 **Objetivo**: as quatro centralidades em listas, com frase correta. **Teste independente**: estrela
 de 6 — o centro lidera grau, intermediação e proximidade.
 
-- [ ] T038 [P] [US5] Calcular distâncias de cada pessoa e a proximidade
+**Feita em 2026-10-05**, na branch `feature/1309-us5` (empilhada sobre `feature/1309-us4`), com a
+evidência de cada defeito injetado comentada na issue de cada tarefa. O que divergiu, e por quê:
+
+- **T039**: o autovetor parte de x = 1 sem normalizar, como a base declara; com uma iteração só,
+  nenhum componente converge, e com duas o de 2 pessoas converge e a estrela não — é o caso do
+  teste de não convergência. Os dois defeitos da tarefa foram injetados;
+- **T040**: o autovetor aparece de 0 a 1, e não na escala 0–100 relativa ao maior do protótipo
+  (o 100 poderia ser de alguém de fora, R1): divergência a confirmar com a pessoa mantenedora.
+
+- [x] T038 [P] [US5] Calcular distâncias de cada pessoa e a proximidade
   - **Pronta quando**: T012; `contracts/algoritmos.md` `Algorithms.Paths`
   - **Descrição**: `lib/the_band/network_analysis/algorithms/paths.ex`: `all_pairs/1`, `closeness/2`
     (Wasserman–Faust), `person_distance/1`; ligado em `Commands` (`closeness`, `distance_mean`,
@@ -636,7 +660,7 @@ de 6 — o centro lidera grau, intermediação e proximidade.
     injetar**: devolver 1/proximidade como distância média (a referência, `:318`); o caso desconexo
     reprova
 
-- [ ] T039 [P] [US5] Calcular o autovetor por componente
+- [x] T039 [P] [US5] Calcular o autovetor por componente
   - **Pronta quando**: T012; `contracts/algoritmos.md` `Algorithms.Eigenvector`
   - **Descrição**: `lib/the_band/network_analysis/algorithms/eigenvector.ex` (A + I, com peso, por
     componente, tolerância e teto da base); ligado em `Commands`
@@ -646,7 +670,7 @@ de 6 — o centro lidera grau, intermediação e proximidade.
     **Defeito a injetar**: iterar sobre A sem I; a bipartida reprova; e devolver o grau como reserva;
     o caso de não convergência reprova
 
-- [ ] T040 [US5] [security] Mostrar os hubs só entre alcançados
+- [x] T040 [US5] [security] Mostrar os hubs só entre alcançados
   - **Pronta quando**: T016, T030, T038, T039; protótipo §3 Tela 4
   - **Descrição**: `lib/the_band_web/live/network_analysis_live/hubs.ex`: quatro listas do tamanho da
     base, ordenadas pela medida, empate pelo id marcado *"tied"*; grau por sentido com os rótulos de
@@ -670,7 +694,19 @@ de 6 — o centro lidera grau, intermediação e proximidade.
 **Objetivo**: distância média, diâmetro e eficiência ao lado dos aleatórios. **Teste independente**:
 caminho de 4 — 5/3, 3 e 13/18.
 
-- [ ] T041 [US6] Calcular distância média, diâmetro e eficiência, e as dos aleatórios
+**Feita em 2026-10-05**, na branch `feature/1309-us6-us7` (empilhada sobre `feature/1309-us5`),
+junto com a US7, com a evidência de cada defeito injetado comentada na issue de cada tarefa. O que
+divergiu, e por quê:
+
+- **T041**: `Algorithms.Clustering` e o σ entraram no mesmo commit da T041, porque o laço dos
+  aleatórios mede tudo de uma vez; os testes deles são da T043. `Paths.network/2` devolve também
+  a distribuição dos comprimentos (3.5.2);
+- **T042**: a distribuição dos comprimentos segue a regra 4 (o total de pares revela o número de
+  pessoas);
+- **T043**: os três defeitos da tarefa reprovam, cada um o seu caso;
+- **T044**: a frase de σ ausente não diz nada sobre ser ou não mundo pequeno, nem usa a expressão.
+
+- [x] T041 [US6] Calcular distância média, diâmetro e eficiência, e as dos aleatórios
   - **Pronta quando**: T036, T038
   - **Descrição**: `Paths.network/2` e, em `random_battery/2`, as mesmas medidas sobre os 100
     aleatórios pela mesma regra de pares que se alcançam, com `reachable_share` dos dois lados (A6);
@@ -682,7 +718,7 @@ caminho de 4 — 5/3, 3 e 13/18.
     injetar**: média simples das médias por componente (a referência, `:139-149`); o caso desconexo
     reprova
 
-- [ ] T042 [US6] Mostrar distância, diâmetro e eficiência
+- [x] T042 [US6] Mostrar distância, diâmetro e eficiência
   - **Pronta quando**: T017, T041; protótipo §3 Tela 5 (3.5.1, 3.5.2, 3.5.5)
   - **Descrição**: `lib/the_band_web/live/network_analysis_live/distance.ex`, primeira metade: as três
     medidas com o valor médio dos aleatórios ao lado, a fração de pares que se alcançam, *"the longest
@@ -700,7 +736,7 @@ caminho de 4 — 5/3, 3 e 13/18.
 **Objetivo**: clustering, σ e o critério escrito como critério. **Teste independente**: o mesmo dado
 dá o mesmo σ, com semente e número de aleatórios na proveniência.
 
-- [ ] T043 [US7] Calcular o clustering e o σ
+- [x] T043 [US7] Calcular o clustering e o σ
   - **Pronta quando**: T041; `contracts/algoritmos.md` `Algorithms.Clustering`, `SmallWorld.sigma/4`
   - **Descrição**: `lib/the_band/network_analysis/algorithms/clustering.ex` (grau < 2 fora e
     contado) e `SmallWorld.sigma/4`; os aleatórios com a mesma regra; média sobre os grafos em que a
@@ -712,7 +748,7 @@ dá o mesmo σ, com semente e número de aleatórios na proveniência.
     injetar**: descartar os aleatórios desconexos; dividir sempre por 100; contar 0 para grau < 2.
     Cada um reprova o seu caso
 
-- [ ] T044 [US7] Mostrar o mundo pequeno como critério
+- [x] T044 [US7] Mostrar o mundo pequeno como critério
   - **Pronta quando**: T042, T043; protótipo 3.5.3, 3.5.4
   - **Descrição**: `distance.ex`, segunda metade: a tabela clustering e distância média, real ×
     aleatório, com as razões; σ com uma casa; *"meets the σ > 1 criterion"* (ou *"does not meet"*) e a
@@ -789,6 +825,18 @@ batem com as arestas da leitura.
 
 ## Fase 12: Acabamento
 
+**T051 e T052 feitas em 2026-10-05**, na branch `feature/1309-seguranca` (sprint 043), **antes** das
+US4–US9: desde a T028 as leituras são gravadas, e as duas protegem uma superfície que já existe
+(§14.0). O que divergiu do texto das tarefas, e por quê:
+
+- **T051**: além do roteador, do MCP, de `controllers/api/` e de `profiles/`, o teste abre cada
+  página disponível da área com uma leitura gravada e lê o HTML; e lê o código das páginas sem
+  comentários, procurando `send_download`, `Content-Disposition` e `download=`;
+- **T052**: a ferramenta conhece a organização pelo login, e por isso `end_observation/3` a busca
+  por `EO.fetch_organization_by_login/2` antes de apagar (emenda em `contracts/fronteiras.md`). A
+  falha dentro da transação é provada com um gatilho em `tool_credentials`, o passo que vem depois
+  das leituras; um segundo defeito injetado (apagar antes da transação) reprova esse caso.
+
 - [ ] T049 Provar as cinco redes conhecidas e a reprodutibilidade
   - **Pronta quando**: T030, T035, T038, T039, T041, T043
   - **Descrição**: `test/the_band/network_analysis/redes_conhecidas_test.exs`: `compute/4` sobre
@@ -811,7 +859,7 @@ batem com as arestas da leitura.
   - **Teste**: `test/the_band/network_analysis/teto_test.exs`, tag `:slow`, com o teto de tempo
     (L53). **Defeito a injetar**: 1 000 grafos aleatórios; o teto reprova
 
-- [ ] T051 [P] [security] Guardar a análise fora da API, do MCP e do perfil
+- [x] T051 [P] [security] Guardar a análise fora da API, do MCP e do perfil
   - **Pronta quando**: T020
   - **Descrição**: `test/the_band/network_analysis/exposicao_test.exs` lê o roteador, o registro de
     ferramentas MCP (`lib/the_band/mcp/`), `lib/the_band_web/controllers/api/` e `lib/the_band/profiles/`
@@ -822,7 +870,7 @@ batem com as arestas da leitura.
   - **Teste**: o próprio arquivo. **Defeito a injetar**: uma rota `get "/network-analysis/:id/graph.svg"`;
     o teste reprova
 
-- [ ] T052 [P] [security] Apagar as leituras ao encerrar a observação
+- [x] T052 [P] [security] Apagar as leituras ao encerrar a observação
   - **Pronta quando**: T014; `contracts/fronteiras.md` `Sources`
   - **Descrição**: `NetworkAnalysis.discard_organization/2` e `ReviewNetwork.discard_organization/2`,
     chamadas por `Sources.end_observation/3` dentro da transação (R18); o `Reader` já recusa leitura

@@ -12,7 +12,8 @@ defmodule TheBand.Telemetria.TaxonomiaTest do
   @motivos %{
     "abrir_a_entrada" => [],
     "entrar_com_senha" => ~w(senha_errada identificador_nao_resolveu conta_sem_senha
-                             conta_desativada organizacao_suspensa em_espera),
+                             conta_desativada organizacao_suspensa em_espera
+                             limite_por_origem),
     "sair" => ~w(sessao_ja_nao_existia),
     "sessao_derrubada" => ~w(malformado inexistente resumo_errado encerrada vencida epoca_velha
                              organizacao_suspensa conta_desativada),
@@ -116,7 +117,7 @@ defmodule TheBand.Telemetria.TaxonomiaGateTest do
     # abrir_a_entrada
     {:ok, _, _} = build_conn() |> get(~p"/sign-in") |> live()
 
-    # entrar_com_senha: concluiu e os seis motivos
+    # entrar_com_senha: concluiu e os sete motivos
     u = conta(t)
     entrar(u.email, @senha)
     entrar(u.email, "errada-e-comprida-1")
@@ -131,6 +132,13 @@ defmodule TheBand.Telemetria.TaxonomiaGateTest do
     s = conta(outra)
     mudar(Tenants.Tenant, outra.id, status: "suspended")
     entrar(s.email, @senha)
+
+    # limite_por_origem (spec 077): onze falhas da MESMA origem; a décima primeira é recusada
+    # pelo limite, antes de resolver o identificador.
+    mesma = build_conn()
+
+    for _ <- 1..11,
+        do: entrar(%{build_conn() | remote_ip: mesma.remote_ip}, "ninguem@example.test", @senha)
 
     # sair: concluiu, e o cookie velho
     {_, c} = sessao(t)

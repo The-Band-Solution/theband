@@ -49,7 +49,13 @@ defmodule TheBand.Platform.CredentialsAutenticarTest do
   end
 
   defp entrar(op, senha, segundo_fator),
-    do: Credentials.autenticar(op.email, Segredo.novo(senha), segundo_fator)
+    do:
+      Credentials.autenticar(
+        op.email,
+        Segredo.novo(senha),
+        segundo_fator,
+        TheBand.OrigemDeTeste.nova()
+      )
 
   defp com_log(fun) do
     ref = make_ref()
@@ -92,7 +98,12 @@ defmodule TheBand.Platform.CredentialsAutenticarTest do
 
   defp caso(:identificador_nao_resolveu),
     do:
-      Credentials.autenticar("ninguem@example.org", Segredo.novo(@senha), Segredo.novo("123456"))
+      Credentials.autenticar(
+        "ninguem@example.org",
+        Segredo.novo(@senha),
+        Segredo.novo("123456"),
+        TheBand.OrigemDeTeste.nova()
+      )
 
   defp caso(:sem_concessao) do
     {op, segredo} = operador(concessao: false)

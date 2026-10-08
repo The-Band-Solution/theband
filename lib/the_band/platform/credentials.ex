@@ -28,6 +28,8 @@ defmodule TheBand.Platform.Credentials do
 
   import Ecto.Query
 
+  alias TheBand.LimitePorOrigem
+  alias TheBand.Origem
   alias TheBand.Platform.{Grant, Operator, RecoveryCode, SegundoFator, Sessions}
   alias TheBand.Repo
   alias TheBand.Segredo
@@ -49,11 +51,15 @@ defmodule TheBand.Platform.Credentials do
   Todo caso de falha é `{:error, :invalid_credentials}`, ou `{:error, {:throttled, s}}` na espera,
   que a tela mostra igual à primeira (A3, T008).
   """
-  @spec autenticar(String.t(), Segredo.t(), Segredo.t()) ::
+  @spec autenticar(String.t(), Segredo.t(), Segredo.t(), Origem.t()) ::
           {:ok, Operator.t()}
           | {:error, :invalid_credentials}
           | {:error, {:throttled, pos_integer()}}
-  def autenticar(email, senha, segundo_fator) when is_binary(email) do
+  def autenticar(email, senha, segundo_fator, %Origem{} = origem) when is_binary(email) do
+    com_limite(origem, fn -> autenticar_sem_limite(email, senha, segundo_fator) end)
+  end
+
+  defp autenticar_sem_limite(email, senha, segundo_fator) do
     case operador_por_email(email) do
       nil ->
         custo_do_hash(:sem_senha_a_conferir)
@@ -262,15 +268,15 @@ defmodule TheBand.Platform.Credentials do
   O primeiro passo: confere o código de definição, define a senha e entrega o segredo TOTP
   pendente, a URI e o código de cadastro. **Não habilita a entrada.**
   """
-  @spec definir_senha(String.t(), Segredo.t(), Segredo.t()) ::
+  @spec definir_senha(String.t(), Segredo.t(), Segredo.t(), Origem.t()) ::
           {:ok,
            {Operator.t(),
             %{segredo: Segredo.t(), uri: Segredo.t(), enrollment_token: Segredo.t()}}}
           | {:error, :invalid_credentials}
           | {:error, {:throttled, pos_integer()}}
           | {:error, Ecto.Changeset.t()}
-  def definir_senha(email, setup_token, senha) when is_binary(email) do
-    passo(email, &AccessEvents.operador_definicao_recusada/2, fn op ->
+  def definir_senha(email, setup_token, senha, %Origem{} = origem) when is_binary(email) do
+    passo(email, origem, &AccessEvents.operador_definicao_recusada/2, fn op ->
       with :ok <-
              codigo_vale(
                op,
@@ -344,12 +350,13 @@ defmodule TheBand.Platform.Credentials do
   dez códigos de recuperação e o código de guarda. **Não habilita a entrada**: `totp_confirmed_at`
   continua nulo, e só `concluir_cadastro/2` o grava.
   """
-  @spec confirmar_segundo_fator(String.t(), Segredo.t(), Segredo.t()) ::
+  @spec confirmar_segundo_fator(String.t(), Segredo.t(), Segredo.t(), Origem.t()) ::
           {:ok, {Operator.t(), [Segredo.t()], Segredo.t()}}
           | {:error, :invalid_credentials}
           | {:error, {:throttled, pos_integer()}}
-  def confirmar_segundo_fator(email, enrollment_token, codigo) when is_binary(email) do
-    passo(email, &AccessEvents.operador_cadastro_recusado/2, fn op ->
+  def confirmar_segundo_fator(email, enrollment_token, codigo, %Origem{} = origem)
+      when is_binary(email) do
+    passo(email, origem, &AccessEvents.operador_cadastro_recusado/2, fn op ->
       with :ok <-
              codigo_vale(
                op,
@@ -410,12 +417,12 @@ defmodule TheBand.Platform.Credentials do
   controller confere). Consome o código de guarda, grava `totp_confirmed_at`, sobe a época e encerra
   as sessões. **É a única função que habilita a entrada.** Nunca devolve os códigos.
   """
-  @spec concluir_cadastro(String.t(), Segredo.t()) ::
+  @spec concluir_cadastro(String.t(), Segredo.t(), Origem.t()) ::
           {:ok, Operator.t()}
           | {:error, :invalid_credentials}
           | {:error, {:throttled, pos_integer()}}
-  def concluir_cadastro(email, acknowledgement_token) when is_binary(email) do
-    passo(email, &AccessEvents.operador_cadastro_recusado/2, fn op ->
+  def concluir_cadastro(email, acknowledgement_token, %Origem{} = origem) when is_binary(email) do
+    passo(email, origem, &AccessEvents.operador_cadastro_recusado/2, fn op ->
       with :ok <-
              codigo_vale(
                op,
@@ -470,7 +477,31 @@ defmodule TheBand.Platform.Credentials do
 
   # O esqueleto dos três passos: o e-mail resolve, a linha é travada, a espera e a concessão são
   # conferidas, e só então o passo roda. A recusa volta de dentro da transação (A1).
-  defp passo(email, evento, fun) do
+  defp passo(email, origem, evento, fun),
+    do: com_limite(origem, fn -> passo_sem_limite(email, evento, fun) end)
+
+  # O LIMITE POR ORIGEM NAS QUATRO PORTAS — spec 077, FR-001 e FR-003; seguranca.md, L5 e L7.
+  #
+  # Antes de `operador_por_email/1`: a recusa por limite não lê o operador, não paga
+  # `custo_do_hash/1` e não registra evento por requisição (a transição vai para o log pelo
+  # contador). As quatro portas dividem o balde `:operador`: protegem a mesma conta. O sucesso
+  # devolve a falha que `conferir/2` contou, e só ela (L8).
+  defp com_limite(%Origem{} = origem, fun) do
+    case LimitePorOrigem.conferir(:operador, origem) do
+      {:recusa, _momento} -> {:error, :invalid_credentials}
+      {:segue, ficha} -> devolver_no_sucesso(fun.(), ficha)
+      {:observado, _momento, ficha} -> devolver_no_sucesso(fun.(), ficha)
+    end
+  end
+
+  defp devolver_no_sucesso({:ok, _} = resultado, ficha) do
+    LimitePorOrigem.devolver(ficha)
+    resultado
+  end
+
+  defp devolver_no_sucesso(resultado, _ficha), do: resultado
+
+  defp passo_sem_limite(email, evento, fun) do
     case operador_por_email(email) do
       nil ->
         custo_do_hash(:sem_senha_a_conferir)

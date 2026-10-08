@@ -44,15 +44,43 @@ defmodule TheBand.Platform.CredentialsDefinirTest do
   defp totp(segredo), do: Segredo.novo(NimbleTOTP.verification_code(Segredo.expor(segredo)))
 
   defp entrar(op, segundo_fator),
-    do: quieto(fn -> Credentials.autenticar(op.email, Segredo.novo(@senha), segundo_fator) end)
+    do:
+      quieto(fn ->
+        Credentials.autenticar(
+          op.email,
+          Segredo.novo(@senha),
+          segundo_fator,
+          TheBand.OrigemDeTeste.nova()
+        )
+      end)
 
   defp passo1(op, codigo),
-    do: quieto(fn -> Credentials.definir_senha(op.email, codigo, Segredo.novo(@senha)) end)
+    do:
+      quieto(fn ->
+        Credentials.definir_senha(
+          op.email,
+          codigo,
+          Segredo.novo(@senha),
+          TheBand.OrigemDeTeste.nova()
+        )
+      end)
 
   defp passo2(op, token, segredo),
-    do: quieto(fn -> Credentials.confirmar_segundo_fator(op.email, token, totp(segredo)) end)
+    do:
+      quieto(fn ->
+        Credentials.confirmar_segundo_fator(
+          op.email,
+          token,
+          totp(segredo),
+          TheBand.OrigemDeTeste.nova()
+        )
+      end)
 
-  defp passo3(op, guarda), do: quieto(fn -> Credentials.concluir_cadastro(op.email, guarda) end)
+  defp passo3(op, guarda),
+    do:
+      quieto(fn ->
+        Credentials.concluir_cadastro(op.email, guarda, TheBand.OrigemDeTeste.nova())
+      end)
 
   test "depois só do primeiro passo, a entrada recusa" do
     {op, codigo} = operador_novo()
@@ -134,7 +162,8 @@ defmodule TheBand.Platform.CredentialsDefinirTest do
         assert Credentials.definir_senha(
                  op.email,
                  Segredo.novo("codigo-errado-de-fixture"),
-                 Segredo.novo(@senha)
+                 Segredo.novo(@senha),
+                 TheBand.OrigemDeTeste.nova()
                ) ==
                  {:error, :invalid_credentials}
       end)
@@ -147,7 +176,14 @@ defmodule TheBand.Platform.CredentialsDefinirTest do
     {op, codigo} = operador_novo()
 
     assert {:error, %Ecto.Changeset{}} =
-             quieto(fn -> Credentials.definir_senha(op.email, codigo, Segredo.novo("curta")) end)
+             quieto(fn ->
+               Credentials.definir_senha(
+                 op.email,
+                 codigo,
+                 Segredo.novo("curta"),
+                 TheBand.OrigemDeTeste.nova()
+               )
+             end)
 
     assert {:ok, _} = passo1(op, codigo)
   end
@@ -186,7 +222,14 @@ defmodule TheBand.Platform.CredentialsDefinirTest do
         NimbleTOTP.verification_code(Segredo.expor(segredo), time: System.os_time(:second) + 600)
       )
 
-    assert quieto(fn -> Credentials.confirmar_segundo_fator(op.email, cadastro, errado) end) ==
+    assert quieto(fn ->
+             Credentials.confirmar_segundo_fator(
+               op.email,
+               cadastro,
+               errado,
+               TheBand.OrigemDeTeste.nova()
+             )
+           end) ==
              {:error, :invalid_credentials}
 
     assert {:ok, {_, codigos, _guarda}} = passo2(op, cadastro, segredo)

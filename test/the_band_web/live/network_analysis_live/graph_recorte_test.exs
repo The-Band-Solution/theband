@@ -8,7 +8,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphRecorteTest do
   com 4, com 2 e com 1 de fora.
 
   - administração vê as 4 de fora por nome, nas posições gravadas;
-  - Lia vê **um** nó *"People outside your reach — community 2 (4)"*, sem nome, sem id, sem
+  - Lia vê **um** nó *"People outside your reach — community B (4)"*, sem nome, sem id, sem
     hash do id; com 1 ou 2 de fora, nenhum nó, só a marca *"has links outside your reach"*;
   - as posições da visão parcial são recalculadas sobre ela, e não as da rede inteira;
   - o id do agregado não depende de quem ele contém (A6): `outside-1` em leituras com pessoas de
@@ -174,7 +174,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphRecorteTest do
     pessoas = textos(html, "#grafo-ponderado-lista td[data-label=person]")
     assert Enum.any?(pessoas, &String.starts_with?(&1, "Ana Alcance"))
     assert agregados(html) == 1
-    assert "People outside your reach — community 2 (4)" in textos(html, "svg text")
+    assert "People outside your reach — community B (4)" in textos(html, "svg text")
 
     assert textos(html, "#grafo-ponderado-n-outside-1 title") == [
              "4 people outside your reach. No names."

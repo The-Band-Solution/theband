@@ -83,7 +83,7 @@ defmodule TheBand.Tenants.PasswordEpochTest do
     {:ok, _} = Auth.set_password(tenant, user.id, @senha)
     antes = epoca(user)
 
-    {:ok, _} = Auth.authenticate(user.email, @senha)
+    {:ok, _} = Auth.authenticate(user.email, @senha, origem: TheBand.OrigemDeTeste.nova())
     assert epoca(user) == antes
   end
 

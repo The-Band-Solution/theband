@@ -14,7 +14,8 @@ defmodule TheBandWeb.ConnCase do
     quote do
       use TheBandWeb, :verified_routes
 
-      import Phoenix.ConnTest
+      # O `build_conn/0` é o da casa (spec 077, T007): cada conexão com origem própria.
+      import Phoenix.ConnTest, except: [build_conn: 0]
       import Phoenix.LiveViewTest
       import Plug.Conn
 
@@ -41,7 +42,19 @@ defmodule TheBandWeb.ConnCase do
   setup tags do
     pid = Sandbox.start_owner!(TheBand.Repo, shared: not tags[:async])
     on_exit(fn -> Sandbox.stop_owner(pid) end)
-    {:ok, conn: Phoenix.ConnTest.build_conn()}
+    {:ok, conn: build_conn()}
+  end
+
+  @doc """
+  `Phoenix.ConnTest.build_conn/0` com uma origem própria — spec 077, T007.
+
+  O de fábrica dá `127.0.0.1` a toda conexão, e com o limite por origem os testes assíncronos que
+  entram e erram dividiriam um contador. Aqui cada conexão nova é um visitante novo, de um `/64`
+  de documentação; `recycle/1` preserva o endereço, então as requisições seguintes da mesma
+  conversa contam juntas, como as de um navegador.
+  """
+  def build_conn do
+    %{Phoenix.ConnTest.build_conn() | remote_ip: TheBand.OrigemDeTeste.endereco()}
   end
 
   @doc """

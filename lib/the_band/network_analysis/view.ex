@@ -18,8 +18,15 @@ defmodule TheBand.NetworkAnalysis.View do
      dentro de um agregado; nada com quem ficou fora de qualquer agregado;
   4. **supressão complementar**: o número de pessoas da rede e o tamanho dos componentes só
      aparecem com alcance parcial se as pessoas de fora que eles contam forem 0 ou ≥ k;
-  5. a 7. — hubs, comunidades e papel — são chamados por T037, T040 e T046 a partir de
-     `ve_posicao_de?/2`;
+  5. **hubs** (T040): só pessoas alcançadas cuja posição quem consulta pode ver (DS1), ordenadas
+     pela medida da rede inteira, empate pelo id e marcado; nunca a posição na rede inteira, nem
+     linha de pessoa de fora. Sem escopo concedido, `{:recortado, :positions_not_granted}`;
+  7. papel é chamado por T046 a partir de `ve_posicao_de?/2`;
+  6. **comunidades** (T037): um bloco por comunidade com ao menos um alcançado; membros
+     alcançados por id; os três mais centrais (`core_size` da base) entre os alcançados, pelo
+     grau interno da rede inteira, e só com escopo concedido (DS1); tamanho e ligações da
+     comunidade pela regra 4; os de fora agregados só se forem ≥ k. O número de comunidades
+     também segue a regra 4, pelas pessoas das comunidades sem nenhum alcançado;
   8. **DS1 (b)**: posição de **outra** pessoa só com escopo concedido que a alcança, ou com a
      administração; a própria pessoa vê a sua sempre;
   9. **DS5 (b)**: alcance vazio, ou só a própria pessoa: o grafo vem `{:recortado, :no_reach}`;
@@ -29,6 +36,20 @@ defmodule TheBand.NetworkAnalysis.View do
   """
 
   @type alcance :: :todas | {:algumas, MapSet.t()}
+
+  # Os motivos de ausência que a leitura grava, como átomos conhecidos: o texto da leitura nunca
+  # vira átomo (A12, L54). Motivo fora desta lista levanta, e não vira ausência genérica.
+  @motivos %{
+    "network_too_small" => :network_too_small,
+    "did_not_converge" => :did_not_converge,
+    "no_reachable_person" => :no_reachable_person,
+    "component_too_small" => :component_too_small,
+    "no_edge_in_window" => :no_edge_in_window,
+    "network_too_large_for_platform" => :network_too_large_for_platform,
+    "no_person_with_two_neighbours" => :no_person_with_two_neighbours,
+    "random_clustering_undefined" => :random_clustering_undefined,
+    "clustering_undefined" => :clustering_undefined
+  }
 
   @type t :: %{
           reach: :total | :parcial | :nenhum,
@@ -44,7 +65,11 @@ defmodule TheBand.NetworkAnalysis.View do
                components: {:ok, [pos_integer()]} | {:suprimido, :fewer_than_k_outside}
              }}
             | {:recortado, :no_reach}
-            | {:ausente, :no_edge_in_window}
+            | {:ausente, :no_edge_in_window},
+          communities: {:ok, map()} | {:recortado, :no_reach} | {:ausente, atom()},
+          hubs: {:ok, map()} | {:recortado, atom()} | {:ausente, atom()},
+          distance: map(),
+          small_world: map()
         }
 
   @doc """
@@ -60,7 +85,9 @@ defmodule TheBand.NetworkAnalysis.View do
   """
   @spec build(map(), alcance(), alcance(), String.t() | nil, %{
           required(:min_group) => pos_integer(),
-          optional(:gone) => MapSet.t()
+          optional(:gone) => MapSet.t(),
+          optional(:core_size) => pos_integer(),
+          optional(:hubs_size) => pos_integer()
         }) :: t()
   def build(leitura, reach, granted, viewer_person_id, %{min_group: k} = params) do
     nos = leitura_nos(leitura)
@@ -89,14 +116,259 @@ defmodule TheBand.NetworkAnalysis.View do
         corpo(alcance, leitura, nos, reach, k)
       end
 
-    Map.merge(base, corpo)
+    base
+    |> Map.merge(corpo)
+    |> Map.put(
+      :communities,
+      comunidades(leitura, nos, base, dentro_de(alcance, reach, gone), params)
+    )
+    |> Map.put(:hubs, hubs(nos, base, dentro_de(alcance, reach, gone), params))
+    |> distancia_e_mundo_pequeno(leitura)
   end
+
+  # As medidas da rede (T042, T044; FR-037 a FR-043): são da rede inteira, e aparecem para todo
+  # alcance, inclusive DS5. A distribuição dos comprimentos conta pares, e o total de pares
+  # revela o número de pessoas: segue a regra 4, junto do número de pessoas.
+  defp distancia_e_mundo_pequeno(visao, leitura) do
+    m = leitura_medidas(leitura)
+    aleatorios = m["random"] || %{}
+    suprimido? = match?({:suprimido, _}, visao.people)
+
+    Map.merge(visao, %{
+      distance: %{
+        average: medida(m["average_distance"]),
+        reachable_share: get_in(m, ["average_distance", "reachable_share"]),
+        diameter: medida(m["diameter"]),
+        efficiency: medida(m["global_efficiency"]),
+        lengths:
+          cond do
+            suprimido? -> {:suprimido, :fewer_than_k_outside}
+            is_list(m["path_lengths"]) -> {:ok, Enum.map(m["path_lengths"], &List.to_tuple/1)}
+            true -> {:ausente, :not_computed}
+          end,
+        random: %{
+          graphs: aleatorios["graphs"],
+          absent: if(aleatorios["absent"], do: medida(aleatorios)),
+          average: com_contagem(aleatorios["average_distance"]),
+          reachable_share: get_in(aleatorios, ["average_distance", "reachable_share"]),
+          diameter: com_contagem(aleatorios["diameter"]),
+          efficiency: com_contagem(aleatorios["global_efficiency"])
+        }
+      },
+      small_world: %{
+        clustering: medida(m["clustering"]),
+        excluded_degree_below_two:
+          if(suprimido?, do: nil, else: get_in(m, ["clustering", "excluded_degree_below_two"])),
+        random_clustering: com_contagem(aleatorios["clustering"]),
+        random_average: com_contagem(aleatorios["average_distance"]),
+        sigma: sigma(m["sigma"]),
+        graphs: aleatorios["graphs"]
+      }
+    })
+  end
+
+  defp com_contagem(%{"value" => v, "graphs_defined" => n}) when is_number(v),
+    do: {:ok, %{value: v, graphs_defined: n}}
+
+  defp com_contagem(outra), do: medida(outra)
+
+  defp sigma(%{"value" => v, "clustering_ratio" => rc, "distance_ratio" => rl}),
+    do: {:ok, %{value: v, clustering_ratio: rc, distance_ratio: rl}}
+
+  defp sigma(outra), do: medida(outra)
+
+  # Regra 5 (T040; FR-032 a FR-036; R1 da segurança, A3, A11).
+  defp hubs(_nos, _base, :nenhum, _params), do: {:recortado, :no_reach}
+  defp hubs([], _base, _dentro?, _params), do: {:ausente, :no_edge_in_window}
+
+  defp hubs(_nos, %{sees_others_positions?: false}, _dentro?, _params),
+    do: {:recortado, :positions_not_granted}
+
+  defp hubs(nos, base, dentro?, params) do
+    tamanho = Map.get(params, :hubs_size, 5)
+    candidatos = Enum.filter(nos, &(dentro?.(&1["id"]) and ve_posicao_de?(base, &1["id"])))
+
+    {:ok,
+     %{
+       degree:
+         lista(candidatos, tamanho, &{:ok, &1["degree"]}, fn n ->
+           %{out_people: n["out_people"], in_people: n["in_people"]}
+         end),
+       betweenness: lista(candidatos, tamanho, &medida(&1["betweenness"]), fn _ -> %{} end),
+       closeness:
+         lista(candidatos, tamanho, &medida(&1["closeness"]), fn n ->
+           case n["distance_mean"] do
+             %{"value" => m, "reaches" => r} -> %{distance_mean: m, reaches: r}
+             _ -> %{}
+           end
+         end),
+       eigenvector:
+         candidatos
+         |> Enum.group_by(& &1["component"])
+         |> Enum.sort()
+         |> Enum.map(fn {c, membros} ->
+           %{
+             component: c,
+             rows: lista(membros, tamanho, &medida(&1["eigenvector"]), fn _ -> %{} end)
+           }
+         end)
+     }}
+  end
+
+  # Uma lista de hubs: as pessoas com valor, pela medida decrescente, empate pelo id; `tied?`
+  # marca quem tem o mesmo valor de um vizinho da lista. Sem ninguém com valor, a ausência com o
+  # motivo de quem a tem.
+  defp lista(candidatos, tamanho, valor, detalhe) do
+    com_valor = for n <- candidatos, {:ok, v} <- [valor.(n)], do: {n, v}
+
+    case com_valor do
+      [] ->
+        {:ausente, Enum.find_value(candidatos, :no_edge_in_window, &motivo_de(valor.(&1)))}
+
+      _ ->
+        linhas =
+          com_valor
+          |> Enum.sort_by(fn {n, v} -> {-v, n["id"]} end)
+          |> Enum.take(tamanho)
+
+        valores = Enum.map(linhas, &elem(&1, 1))
+
+        {:ok,
+         Enum.map(linhas, fn {n, v} ->
+           %{
+             person_id: n["id"],
+             value: {:ok, v},
+             tied?: Enum.count(valores, &(&1 == v)) > 1 or empatado_fora?(com_valor, v, linhas),
+             detail: detalhe.(n)
+           }
+         end)}
+    end
+  end
+
+  defp motivo_de({:ausente, motivo}), do: motivo
+  defp motivo_de(_valor), do: nil
+
+  # O último da lista empatado com quem ficou de fora dela também é marcado: o corte não decidiu.
+  defp empatado_fora?(com_valor, v, linhas) do
+    fora = length(com_valor) - length(linhas)
+
+    fora > 0 and
+      Enum.count(com_valor, fn {_n, x} -> x == v end) > Enum.count(linhas, &(elem(&1, 1) == v))
+  end
+
+  # Quem conta como alcançado nesta visão: com `:todas`, todos menos quem saiu de EO.
+  defp dentro_de(:nenhum, _reach, _gone), do: :nenhum
+  defp dentro_de(_alcance, :todas, gone), do: fn id -> not MapSet.member?(gone, id) end
+  defp dentro_de(_alcance, {:algumas, ids}, _gone), do: &MapSet.member?(ids, &1)
+
+  # Regra 6 (T037; FR-028, FR-029). A modularidade e o Q_rand são da rede inteira, e aparecem
+  # sempre que há leitura; o resto é por bloco.
+  defp comunidades(_leitura, _nos, _base, :nenhum, _params), do: {:recortado, :no_reach}
+  defp comunidades(_leitura, [], _base, _dentro?, _params), do: {:ausente, :no_edge_in_window}
+
+  defp comunidades(leitura, nos, base, dentro?, %{min_group: k} = params) do
+    case leitura_comunidades(leitura) do
+      [] ->
+        # Leitura gravada antes da T035: as comunidades não foram calculadas, e não são zero.
+        {:ausente, :not_computed}
+
+      gravadas ->
+        grau_interno = Map.new(nos, &{&1["id"], &1["internal_degree"]})
+        medidas = leitura_medidas(leitura)
+
+        blocos =
+          for c <- gravadas,
+              membros = c["members"],
+              alcancados = Enum.filter(membros, dentro?),
+              alcancados != [],
+              do: bloco(c, membros, alcancados, grau_interno, base, k, params)
+
+        escondidas =
+          for c <- gravadas, not Enum.any?(c["members"], dentro?), reduce: 0 do
+            n -> n + length(c["members"])
+          end
+
+        {:ok,
+         %{
+           count: contagem(length(gravadas), escondidas, k),
+           modularity: modularidade(medidas["modularity"]),
+           q_rand: aleatorio(medidas["random"]),
+           blocks: blocos
+         }}
+    end
+  end
+
+  defp bloco(c, membros, alcancados, grau_interno, base, k, params) do
+    fora = length(membros) - length(alcancados)
+    mostra? = fora == 0 or fora >= k
+    suprimido = {:suprimido, :fewer_than_k_outside}
+
+    %{
+      index: c["index"],
+      size: if(mostra?, do: {:ok, length(membros)}, else: suprimido),
+      internal_edges: if(mostra?, do: {:ok, c["internal_edges"]}, else: suprimido),
+      outside_edges: if(mostra?, do: {:ok, c["outside_edges"]}, else: suprimido),
+      core: nucleo(alcancados, grau_interno, base, Map.get(params, :core_size, 3)),
+      members: alcancados,
+      outside:
+        cond do
+          fora == 0 -> :nenhum
+          fora >= k -> {:agregado, fora}
+          true -> :sem_agregado
+        end
+    }
+  end
+
+  # DS1: os mais centrais são ordenação por medida, como os hubs; sem escopo concedido, não
+  # aparecem. Entre os alcançados, pelo grau interno da rede inteira, empate pelo id.
+  defp nucleo(_alcancados, _grau, %{sees_others_positions?: false}, _tamanho),
+    do: {:recortado, :positions_not_granted}
+
+  defp nucleo(alcancados, grau, base, tamanho) do
+    alcancados
+    |> Enum.filter(&ve_posicao_de?(base, &1))
+    |> Enum.sort_by(&{-(grau[&1] || 0), &1})
+    |> Enum.take(tamanho)
+    |> Enum.map(&%{person_id: &1, internal_degree: grau[&1]})
+  end
+
+  defp contagem(total, escondidas, k) do
+    if escondidas == 0 or escondidas >= k,
+      do: {:ok, total},
+      else: {:suprimido, :fewer_than_k_outside}
+  end
+
+  defp modularidade(%{"value" => q}) when is_number(q), do: {:ok, q}
+  defp modularidade(%{"absent" => "no_edge_in_window"}), do: {:ausente, :no_edge_in_window}
+  defp modularidade(_), do: {:ausente, :not_computed}
+
+  defp aleatorio(%{"modularity" => %{"value" => v, "graphs_defined" => n}}) when is_number(v),
+    do: {:ok, %{value: v, graphs_defined: n}}
+
+  defp aleatorio(%{"absent" => "network_too_large_for_platform"}),
+    do: {:ausente, :network_too_large_for_platform}
+
+  defp aleatorio(%{"absent" => "no_edge_in_window"}), do: {:ausente, :no_edge_in_window}
+  defp aleatorio(_), do: {:ausente, :not_computed}
+
+  defp leitura_comunidades(leitura),
+    do: Map.get(leitura, :communities) || Map.get(leitura, "communities") || []
+
+  defp leitura_medidas(leitura),
+    do: Map.get(leitura, :measures) || Map.get(leitura, "measures") || %{}
 
   @doc """
   Quem consulta pode ver a posição (papel, hubs, núcleo da comunidade) desta pessoa? DS1 (b): a
   própria pessoa sempre; outra, só com escopo concedido que a alcança, ou administração.
   """
-  @spec ve_posicao_de?(t(), String.t()) :: boolean()
+  @spec ve_posicao_de?(
+          %{
+            required(:granted) => alcance(),
+            required(:viewer_person_id) => String.t() | nil,
+            optional(atom()) => term()
+          },
+          String.t()
+        ) :: boolean()
   def ve_posicao_de?(%{viewer_person_id: viewer}, person_id) when viewer == person_id, do: true
   def ve_posicao_de?(%{granted: :todas}, _person_id), do: true
   def ve_posicao_de?(%{granted: {:algumas, ids}}, person_id), do: MapSet.member?(ids, person_id)
@@ -192,6 +464,9 @@ defmodule TheBand.NetworkAnalysis.View do
       out_weight: no["out_weight"],
       in_weight: no["in_weight"],
       betweenness: medida(no["betweenness"]),
+      closeness: medida(no["closeness"]),
+      distance_mean: distancia(no["distance_mean"]),
+      eigenvector: medida(no["eigenvector"]),
       community: no["community"],
       links_outside_reach?: ligado_fora?
     }
@@ -200,8 +475,16 @@ defmodule TheBand.NetworkAnalysis.View do
   # A medida gravada (data-model §1.2), com o motivo da ausência como átomo conhecido — nunca
   # criado a partir do dado. Leitura gravada antes da medida existir: não calculada, e não 0.
   defp medida(%{"value" => v}) when is_number(v), do: {:ok, v}
-  defp medida(%{"absent" => "network_too_small"}), do: {:ausente, :network_too_small}
+
+  defp medida(%{"absent" => motivo}) when is_map_key(@motivos, motivo),
+    do: {:ausente, @motivos[motivo]}
+
   defp medida(nil), do: {:ausente, :not_computed}
+  defp medida(map) when map == %{}, do: {:ausente, :not_computed}
+
+  defp distancia(%{"value" => m, "reaches" => r}), do: {:ok, %{mean: m, reaches: r}}
+  defp distancia(nil), do: {:ausente, :not_computed}
+  defp distancia(outra), do: medida(outra)
 
   defp aresta(a), do: %{from: a["source"], to: a["target"], weight: a["weight"]}
 

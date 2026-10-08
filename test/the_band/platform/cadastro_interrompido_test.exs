@@ -22,14 +22,24 @@ defmodule TheBand.Platform.CadastroInterrompidoTest do
     quieto(fn -> {:ok, _} = Grants.revogar(r.email, "quem", nil) end)
 
     assert quieto(fn ->
-             Credentials.confirmar_segundo_fator(r.email, r.cadastro, totp(r.segredo))
+             Credentials.confirmar_segundo_fator(
+               r.email,
+               r.cadastro,
+               totp(r.segredo),
+               TheBand.OrigemDeTeste.nova()
+             )
            end) ==
              {:error, :invalid_credentials}
 
     quieto(fn -> {:ok, _} = Grants.conceder(r.email, "Op", "quem") end)
 
     assert quieto(fn ->
-             Credentials.confirmar_segundo_fator(r.email, r.cadastro, totp(r.segredo))
+             Credentials.confirmar_segundo_fator(
+               r.email,
+               r.cadastro,
+               totp(r.segredo),
+               TheBand.OrigemDeTeste.nova()
+             )
            end) ==
              {:error, :invalid_credentials}
 
@@ -43,7 +53,12 @@ defmodule TheBand.Platform.CadastroInterrompidoTest do
     {:ok, _} = quieto(fn -> Grants.reiniciar_credencial(r.email, "quem") end)
 
     assert quieto(fn ->
-             Credentials.confirmar_segundo_fator(r.email, r.cadastro, totp(r.segredo))
+             Credentials.confirmar_segundo_fator(
+               r.email,
+               r.cadastro,
+               totp(r.segredo),
+               TheBand.OrigemDeTeste.nova()
+             )
            end) ==
              {:error, :invalid_credentials}
 
@@ -57,7 +72,9 @@ defmodule TheBand.Platform.CadastroInterrompidoTest do
       set: [ack_code_expires_at: DateTime.add(DateTime.utc_now(:second), -1, :second)]
     )
 
-    assert quieto(fn -> Credentials.concluir_cadastro(r.email, r.guarda) end) ==
+    assert quieto(fn ->
+             Credentials.concluir_cadastro(r.email, r.guarda, TheBand.OrigemDeTeste.nova())
+           end) ==
              {:error, :invalid_credentials}
 
     refute Repo.get!(Operator, r.op.id).totp_confirmed_at
@@ -66,14 +83,28 @@ defmodule TheBand.Platform.CadastroInterrompidoTest do
 
     {:ok, {_, %{segredo: segredo, enrollment_token: cadastro}}} =
       quieto(fn ->
-        Credentials.definir_senha(r.email, definicao, Segredo.novo(senha_do_operador()))
+        Credentials.definir_senha(
+          r.email,
+          definicao,
+          Segredo.novo(senha_do_operador()),
+          TheBand.OrigemDeTeste.nova()
+        )
       end)
 
     {:ok, {_, _, guarda}} =
-      quieto(fn -> Credentials.confirmar_segundo_fator(r.email, cadastro, totp(segredo)) end)
+      quieto(fn ->
+        Credentials.confirmar_segundo_fator(
+          r.email,
+          cadastro,
+          totp(segredo),
+          TheBand.OrigemDeTeste.nova()
+        )
+      end)
 
     assert {:ok, %Operator{totp_confirmed_at: confirmado}} =
-             quieto(fn -> Credentials.concluir_cadastro(r.email, guarda) end)
+             quieto(fn ->
+               Credentials.concluir_cadastro(r.email, guarda, TheBand.OrigemDeTeste.nova())
+             end)
 
     assert confirmado
   end
@@ -92,7 +123,9 @@ defmodule TheBand.Platform.CadastroInterrompidoTest do
 
       assert Repo.get!(Operator, r.op.id).ack_code_hash == nil
 
-      assert quieto(fn -> Credentials.concluir_cadastro(r.email, r.guarda) end) ==
+      assert quieto(fn ->
+               Credentials.concluir_cadastro(r.email, r.guarda, TheBand.OrigemDeTeste.nova())
+             end) ==
                {:error, :invalid_credentials}
 
       refute Repo.get!(Operator, r.op.id).totp_confirmed_at
@@ -102,7 +135,12 @@ defmodule TheBand.Platform.CadastroInterrompidoTest do
       for c <- r.codigos do
         assert {:error, _} =
                  quieto(fn ->
-                   Credentials.autenticar(r.email, Segredo.novo(senha_do_operador()), c)
+                   Credentials.autenticar(
+                     r.email,
+                     Segredo.novo(senha_do_operador()),
+                     c,
+                     TheBand.OrigemDeTeste.nova()
+                   )
                  end)
       end
 

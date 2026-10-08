@@ -20,7 +20,14 @@ defmodule TheBand.Platform.EsperaParalelaTest do
   defp rajada(op, senha, segundo_fator) do
     1..10
     |> Task.async_stream(
-      fn _ -> Credentials.autenticar(op.email, Segredo.novo(senha), segundo_fator) end,
+      fn _ ->
+        Credentials.autenticar(
+          op.email,
+          Segredo.novo(senha),
+          segundo_fator,
+          TheBand.OrigemDeTeste.nova()
+        )
+      end,
       max_concurrency: 10,
       ordered: false
     )
@@ -72,7 +79,12 @@ defmodule TheBand.Platform.EsperaParalelaTest do
     )
 
     capture_log(fn ->
-      Credentials.autenticar(op.email, Segredo.novo("errada-e-comprida"), totp(segredo))
+      Credentials.autenticar(
+        op.email,
+        Segredo.novo("errada-e-comprida"),
+        totp(segredo),
+        TheBand.OrigemDeTeste.nova()
+      )
     end)
 
     :telemetry.detach(id)

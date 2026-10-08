@@ -42,6 +42,7 @@ defmodule TheBand.NetworkAnalysis.ParametersTest do
     {@analise, ~w(small_world values generator)},
     {@analise, ~w(small_world values random_model)},
     {@analise, ~w(modularity_reading values random_weights)},
+    {@analise, ~w(modularity_reading values cited_thresholds)},
     {@analise, ~w(layout values seed)},
     {@analise, ~w(layout values iterations)},
     {@analise, ~w(layout values labelled_nodes)},

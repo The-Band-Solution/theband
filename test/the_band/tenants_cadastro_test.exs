@@ -65,7 +65,11 @@ defmodule TheBand.TenantsCadastroTest do
       assert is_binary(temporaria) and byte_size(temporaria) >= 12
 
       # A temporária autentica — o mesmo contrato da 045.
-      assert {:ok, autenticada} = Tenants.authenticate("nova@example.test", temporaria)
+      assert {:ok, autenticada} =
+               Tenants.authenticate("nova@example.test", temporaria,
+                 origem: TheBand.OrigemDeTeste.nova()
+               )
+
       assert autenticada.id == user.id
       assert autenticada.must_change_password
     end

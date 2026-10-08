@@ -15,7 +15,8 @@ defmodule TheBand.ReviewNetwork do
   - `compute/3` — só o job chama;
   - `windows/0` — as janelas permitidas e a padrão, para a tela desenhar a escolha;
   - `subscribe/1` — o aviso de leitura pronta, só com ids;
-  - `current_edges/2` — as arestas vigentes por janela, só com ids, para a análise de rede (076).
+  - `current_edges/2` — as arestas vigentes por janela, só com ids, para a análise de rede (076);
+  - `discard_organization/2` — apaga as leituras da organização ao encerrar a observação (076).
 
   Depende de: EO, CMPO, Quality, Changes, Tenants, KnowledgeBase, sempre pela API pública.
   """
@@ -30,4 +31,7 @@ defmodule TheBand.ReviewNetwork do
   # A entrada da rede de revisão da análise de rede (076, T028): só ids, sem alcance, para o
   # cálculo. Nenhuma tela a chama.
   defdelegate current_edges(tenant, organization_id), to: Queries
+
+  # Só `Sources.end_observation/3` chama, dentro da transação do encerramento (076, T052, R18).
+  defdelegate discard_organization(tenant, organization_id), to: Commands
 end

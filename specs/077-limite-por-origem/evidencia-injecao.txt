@@ -1,0 +1,22 @@
+T002 | test/the_band/telemetria/taxonomia_test.exs | exit=2 | Result: 4/6 passed Failed: 2 tests | restaurado=True
+T003a sem desmapear | test/the_band/origem_test.exs | exit=2 | Result: 8/12 passed Failed: 4 tests | restaurado=True
+T003b parse_address | test/the_band/origem_test.exs | exit=2 | Result: 11/12 passed Failed: 1 test | restaurado=True
+T004 aceita faixa não local | test/the_band/origem/configuracao_test.exs | exit=2 | Result: 7/9 passed Failed: 2 tests | restaurado=True
+T005a sem conferir o socket | test/the_band_web/origem_test.exs | exit=2 | Result: 8/9 passed Failed: 1 test | restaurado=True
+T005b o primeiro valor | test/the_band_web/origem_test.exs | exit=2 | Result: 5/9 passed Failed: 4 tests | restaurado=True
+T005c só a primeira linha | test/the_band_web/origem_test.exs | exit=2 | Result: 8/9 passed Failed: 1 test | restaurado=True
+T005d sem desmapear o socket | test/the_band_web/origem_test.exs | exit=2 | Result: 8/9 passed Failed: 1 test | restaurado=True
+T006a ler antes de incrementar | test/the_band/limite_por_origem_test.exs | exit=2 | Result: 11/12 passed Failed: 1 test | restaurado=True
+T006b zerar no sucesso | test/the_band/limite_por_origem_test.exs | exit=2 | Result: 11/12 passed Failed: 1 test | restaurado=True
+T006c devolver com valor padrão | test/the_band/limite_por_origem_test.exs | exit=2 | Result: 10/12 passed Failed: 2 tests | restaurado=True
+T006d varrer só a chave tocada | test/the_band/limite_por_origem_test.exs | exit=2 | Result: 10/12 passed Failed: 2 tests | restaurado=True
+T006e logar a chave | test/the_band/limite_por_origem_test.exs | exit=2 | Result: 11/12 passed Failed: 1 test | restaurado=True
+T008a conferir depois de resolver | test/the_band_web/limite_por_origem_na_entrada_test.exs | exit=2 | Result: 5/7 passed Failed: 2 tests | restaurado=True
+T008b pagar o hash na recusa | test/the_band_web/limite_por_origem_na_entrada_test.exs | exit=2 | Result: 6/7 passed Failed: 1 test | restaurado=True
+T008d a senha certa passa no limite | test/the_band_web/limite_por_origem_na_entrada_test.exs | exit=2 | Result: 1/7 passed Failed: 6 tests | restaurado=True
+T008e chave sem a origem | test/the_band_web/limite_por_origem_na_entrada_test.exs | exit=2 | Result: 4/7 passed Failed: 3 tests | restaurado=True
+T009a conferir depois de operador_por_email | test/the_band_web/plataforma/limite_por_ip_test.exs | exit=2 | Result: 4/7 passed Failed: 3 tests | restaurado=True
+T009b conferir no controller antes da confirmação | test/the_band_web/plataforma/limite_por_ip_test.exs | exit=2 | Result: 6/7 passed Failed: 1 test | restaurado=True
+T009c o primeiro valor de x-forwarded-for | test/the_band_web/plataforma/limite_por_ip_test.exs | exit=2 | Result: 6/7 passed Failed: 1 test | restaurado=True
+T010 o não declarado diz ligado | test/the_band/origem/configuracao_test.exs | exit=2 | Result: 8/9 passed Failed: 1 test | restaurado=True
+FIM

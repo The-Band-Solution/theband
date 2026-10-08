@@ -333,6 +333,64 @@ quando se declara ou revoga. Opção (b) da revisão:
   sincronização seguinte (`sync_github_eo` → `ComputeReviewNetwork` → `ComputeNetworkAnalysis`);
 - a rede de designação não muda: ela não depende da 073.
 
+**Emenda de 2026-10-05 (T035, T036)**, feita no mesmo commit da implementação:
+
+- a leitura grava `nodes[].community` e `nodes[].internal_degree`, `communities` (`index`,
+  `members`, `internal_edges`, `outside_edges`), `measures.modularity` (`value` e `communities`) e
+  `measures.random` (`graphs` e `modularity` com `graphs_defined`). Sem aresta, `modularity` e
+  `random` são `{"absent": "no_edge_in_window"}`; acima do teto, `random` é
+  `network_too_large_for_platform`;
+- **a impressão digital leva também a lista do que o código calcula** (`@calculo` em
+  `Commands`). Sem ela, a leitura gravada antes de uma medida existir teria a mesma impressão da
+  nova — as arestas e a base não mudaram — e nunca seria recalculada: ficaria para sempre sem a
+  medida. A lista cresce com cada tarefa que acrescenta medida à leitura.
+
+**Emenda de 2026-10-05 (T037)**, feita no mesmo commit da implementação: `communities` da
+visão é `{:ok, %{count, modularity, q_rand, blocks, thresholds}} | {:recortado, :no_reach} |
+{:ausente, :no_edge_in_window | :not_computed}`:
+
+- `count` é `{:ok, n}`, ou `{:suprimido, :fewer_than_k_outside}` quando as comunidades sem
+  ninguém alcançado somam entre 1 e k − 1 pessoas (regra 4: o número revelaria quantas);
+- `modularity` é medida; `q_rand` é `{:ok, %{value, graphs_defined}}` ou ausente
+  (`network_too_large_for_platform`, `no_edge_in_window`, `not_computed`);
+- `thresholds` são as faixas citadas da base (`modularity_reading.values.cited_thresholds`, nova
+  chave lida por `Parameters`, `modularity_thresholds`);
+- cada bloco tem também `outside_edges` (as ligações para outras comunidades, 3.3.4), e
+  `outside` pode ser `:nenhum` (nenhum de fora), `{:agregado, n}` (n ≥ k) ou `:sem_agregado`
+  (entre 1 e k − 1). `core` é a lista, possivelmente vazia, ou `{:recortado,
+  :positions_not_granted}` quando quem consulta não tem escopo concedido (DS1); com escopo, os
+  candidatos são os alcançados cuja posição quem consulta pode ver (`View.ve_posicao_de?/2`);
+- `View.build/5` recebe `core_size` nos parâmetros (`community_core_size` da base).
+
+**Emenda de 2026-10-05 (T038–T040)**, feita no mesmo commit da implementação:
+
+- a leitura grava, por nó, `closeness`, `distance_mean` (`value` e `reaches`) e `eigenvector`
+  (`value` ou `absent: did_not_converge`); o nó da visão os carrega como `closeness`,
+  `distance_mean` (`{:ok, %{mean, reaches}}`) e `eigenvector`;
+- os motivos de ausência gravados viram átomo por uma lista fechada em `View` (`@motivos`), e
+  nunca a partir do texto (A12);
+- `hubs` da visão é `{:ok, %{degree, betweenness, closeness, eigenvector}}`; cada lista é
+  `{:ok, [hub]}` ou `{:ausente, motivo}` (nenhuma pessoa com valor: o motivo de quem não tem), e
+  `eigenvector` é `[%{component, rows}]`, com `rows` no mesmo formato. Os candidatos são os
+  alcançados cuja posição quem consulta pode ver (DS1). `tied?` marca o valor repetido na lista,
+  ou o último da lista empatado com quem ficou de fora dela. `View.build/5` recebe `hubs_size`.
+
+**Emenda de 2026-10-05 (T041, T043)**, feita no mesmo commit da implementação: a leitura grava
+`measures.average_distance` (com `reachable_share`), `diameter`, `global_efficiency`,
+`path_lengths` (`[[passos, pares]]`), `clustering` (com `excluded_degree_below_two`),
+`random.clustering`, `random.average_distance` (com `reachable_share`), `random.diameter`,
+`random.global_efficiency` e `sigma` (com `clustering_ratio` e `distance_ratio`), ou a ausência com
+o motivo da base. Acima do teto, `random` e `sigma` ausentes com `network_too_large_for_platform`;
+sem aresta, com `no_edge_in_window`.
+
+**Emenda de 2026-10-05 (T042, T044)**, feita no mesmo commit da implementação: a visão traz
+`distance` (`average`, `reachable_share`, `diameter`, `efficiency`, `lengths` — `{:ok, [{passos,
+pares}]}` ou `{:suprimido, :fewer_than_k_outside}` —, e `random` com `graphs`, `absent`, `average`,
+`reachable_share`, `diameter`, `efficiency`) e `small_world` (`clustering`,
+`excluded_degree_below_two`, `random_clustering`, `random_average`, `sigma` com as razões,
+`graphs`, `criterion` — `:meets | :does_not_meet | nil` — e `threshold`, o limiar da base). A
+`provenance` ganha `seed`, `generator` e `random_graphs`.
+
 ## `discard_organization/2`
 
 ```elixir

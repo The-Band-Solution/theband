@@ -141,12 +141,20 @@ defmodule TheBand.NetworkAnalysis.Reader do
       viewer = pessoa_de(user)
 
       visao =
-        View.build(leitura, reach, granted, viewer, %{min_group: parametros.min_group, gone: gone})
+        View.build(leitura, reach, granted, viewer, %{
+          min_group: parametros.min_group,
+          gone: gone,
+          core_size: parametros.community_core_size,
+          hubs_size: parametros.hubs_size
+        })
 
       {:ok,
        visao
        |> Map.drop([:granted, :viewer_person_id])
        |> nomear(nomes)
+       |> nomear_comunidades(nomes, parametros)
+       |> nomear_hubs(nomes)
+       |> criterio(parametros)
        |> desenhar(leitura, parametros)
        |> Map.merge(%{
          counts: contagens(leitura, visao),
@@ -213,6 +221,74 @@ defmodule TheBand.NetworkAnalysis.Reader do
   end
 
   defp nomear(visao, _nomes), do: visao
+
+  # Os membros alcançados por nome, na ordem do nome (FR-034: a lista é por nome, e nunca por
+  # medida); os mais centrais na ordem da medida, que é a deles. As faixas citadas da
+  # modularidade vêm da base, com a fonte que a tela escreve (FR-031).
+  defp nomear_comunidades(%{communities: {:ok, c}} = visao, nomes, parametros) do
+    blocos =
+      Enum.map(c.blocks, fn b ->
+        membros =
+          b.members
+          |> Enum.map(&%{person_id: &1, name: Map.fetch!(nomes, &1)})
+          |> Enum.sort_by(&{String.downcase(&1.name), &1.person_id})
+
+        nucleo =
+          case b.core do
+            {:recortado, _} = r -> r
+            lista -> Enum.map(lista, &Map.put(&1, :name, Map.fetch!(nomes, &1.person_id)))
+          end
+
+        %{b | members: membros, core: nucleo}
+      end)
+
+    %{
+      visao
+      | communities:
+          {:ok, Map.merge(c, %{blocks: blocos, thresholds: parametros.modularity_thresholds})}
+    }
+  end
+
+  defp nomear_comunidades(visao, _nomes, _parametros), do: visao
+
+  # As listas de hubs ficam na ordem da medida (FR-034: são o único ranking, por terem sido
+  # pedidas); aqui só ganham o nome.
+  defp nomear_hubs(%{hubs: {:ok, h}} = visao, nomes) do
+    com_nome = fn
+      {:ok, linhas} ->
+        {:ok, Enum.map(linhas, &Map.put(&1, :name, Map.fetch!(nomes, &1.person_id)))}
+
+      ausente ->
+        ausente
+    end
+
+    %{
+      visao
+      | hubs:
+          {:ok,
+           %{
+             degree: com_nome.(h.degree),
+             betweenness: com_nome.(h.betweenness),
+             closeness: com_nome.(h.closeness),
+             eigenvector: Enum.map(h.eigenvector, &%{&1 | rows: com_nome.(&1.rows)})
+           }}
+    }
+  end
+
+  defp nomear_hubs(visao, _nomes), do: visao
+
+  # FR-043: o critério σ > limiar da base, dito como critério; σ ausente não decide nada.
+  defp criterio(%{small_world: sw} = visao, parametros) do
+    limiar = parametros.small_world.criterion_threshold
+
+    criterio =
+      case sw.sigma do
+        {:ok, %{value: v}} -> if v > limiar, do: :meets, else: :does_not_meet
+        _ -> nil
+      end
+
+    %{visao | small_world: Map.merge(sw, %{criterion: criterio, threshold: limiar})}
+  end
 
   # O que o desenho precisa, decidido aqui e não na tela (T031, T033; R9, R16):
   #
@@ -356,7 +432,15 @@ defmodule TheBand.NetworkAnalysis.Reader do
 
   # Só o que a tela diz da proveniência nesta fatia: quantas designações tinham conta de tipo não
   # gravado (R13), e só para quem alcança todos — é contagem sobre a organização inteira.
-  defp proveniencia(leitura, :total) do
+  defp proveniencia(leitura, alcance) do
+    Map.merge(proveniencia_de_contas(leitura, alcance), %{
+      seed: Map.get(leitura.provenance, "seed"),
+      generator: Map.get(leitura.provenance, "generator"),
+      random_graphs: Map.get(leitura.provenance, "random_graphs")
+    })
+  end
+
+  defp proveniencia_de_contas(leitura, :total) do
     %{
       knowledge_versions: Map.get(leitura.provenance, "knowledge_versions", %{}),
       account_type_unknown: Map.get(leitura.provenance, "account_type_unknown"),
@@ -364,7 +448,7 @@ defmodule TheBand.NetworkAnalysis.Reader do
     }
   end
 
-  defp proveniencia(leitura, _alcance) do
+  defp proveniencia_de_contas(leitura, _alcance) do
     %{
       knowledge_versions: Map.get(leitura.provenance, "knowledge_versions", %{}),
       account_type_unknown: nil,

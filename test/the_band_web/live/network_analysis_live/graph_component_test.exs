@@ -175,7 +175,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphComponentTest do
     refute @fo in escritos
 
     assert textos(html, "#g-n-outside-1 title") == ["4 people outside your reach. No names."]
-    assert "People outside your reach — community 2 (4)" in textos(html, "svg text")
+    assert "People outside your reach — community B (4)" in textos(html, "svg text")
   end
 
   test "o destaque é JS sobre classes, e a aresta leva as classes das duas pontas" do
