@@ -103,6 +103,11 @@ if config_env() == :dev do
 end
 
 if config_env() == :prod do
+  # A ORIGEM DO LIMITE POR IP — spec 077, FR-005. Sem `THE_BAND_ORIGEM`, o limite só observa: atrás
+  # do Traefik o socket é o proxy, e recusar por ele negaria a entrada a todos (seguranca.md, L1).
+  # Configuração errada levanta aqui, e a aplicação não sobe (L3). Ver runbook §15.
+  config :the_band, :origem, TheBand.Origem.Configuracao.ler!(System.get_env())
+
   database_url =
     System.get_env("DATABASE_URL") ||
       raise """

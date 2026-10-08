@@ -26,7 +26,9 @@ defmodule TheBand.Tenants.Auth do
 
   import Ecto.Query
 
+  alias TheBand.LimitePorOrigem
   alias TheBand.Ontology.SEON.EO.Schemas.Person
+  alias TheBand.Origem
   alias TheBand.Repo
   alias TheBand.Tenants.AccessEvents
   alias TheBand.Tenants.PapelDeAdministrador
@@ -40,6 +42,10 @@ defmodule TheBand.Tenants.Auth do
   @doc """
   Autentica pelo identificador e pela senha.
 
+  `opts[:origem]` é **obrigatória** (spec 077, contrato §5): a `TheBand.Origem` de quem tenta.
+  Sem ela a chamada quebra, de propósito — uma porta de entrada sem o limite por origem é bug, e
+  não caso de negócio.
+
   `opts[:jornada_id]` é o correlator da jornada (spec 074, FR-011), lido da sessão pelo
   controller; vai para o passo `entrar_com_senha`, e para nada mais. O retorno é o mesmo de
   sempre: o controller **nunca** vê o motivo (seguranca.md, S4).
@@ -48,10 +54,35 @@ defmodule TheBand.Tenants.Auth do
           {:ok, User.t()}
           | {:error, :invalid_credentials}
           | {:error, {:throttled, pos_integer()}}
-  def authenticate(identificador, senha, opts \\ [])
+  def authenticate(identificador, senha, opts)
       when is_binary(identificador) and is_binary(senha) and is_list(opts) do
+    %Origem{} = origem = Keyword.fetch!(opts, :origem)
+    jornada_id = Keyword.get(opts, :jornada_id)
+
+    # O LIMITE POR ORIGEM VEM ANTES DE TUDO — spec 077, FR-001 e FR-003; seguranca.md, L5 e L7.
+    #
+    # Antes de `resolver/1`: a recusa por limite não lê conta, não paga hash e não registra falha.
+    # O tempo dela é menor, e isso não diz nada sobre conta, porque nada aqui dependeu do
+    # identificador. Se esta conferência fosse para depois de `resolver/1`, a recusa rápida
+    # passaria a dizer "esta conta existe" — a #1047 de volta.
+    case LimitePorOrigem.conferir(:contas, origem) do
+      {:recusa, _momento} ->
+        emitir_entrada({:error, :invalid_credentials}, :limite_por_origem, nil, jornada_id)
+        {:error, :invalid_credentials}
+
+      {:segue, ficha} ->
+        decidir_e_devolver(identificador, senha, jornada_id, ficha)
+
+      {:observado, _momento, ficha} ->
+        decidir_e_devolver(identificador, senha, jornada_id, ficha)
+    end
+  end
+
+  # A falha já foi contada pelo `conferir/2`; o sucesso devolve a dele, e só a dele (L8).
+  defp decidir_e_devolver(identificador, senha, jornada_id, ficha) do
     {resultado, motivo, conta} = decidir(identificador, senha)
-    emitir_entrada(resultado, motivo, conta, Keyword.get(opts, :jornada_id))
+    emitir_entrada(resultado, motivo, conta, jornada_id)
+    if match?({:ok, _}, resultado), do: LimitePorOrigem.devolver(ficha)
     resultado
   end
 
@@ -66,7 +97,7 @@ defmodule TheBand.Tenants.Auth do
     case resolver(String.trim(identificador)) do
       nil ->
         # O custo do hash roda mesmo sem conta — tempo constante.
-        Bcrypt.no_user_verify()
+        custo_do_hash(:sem_conta)
         {recusar(nil, :identificador_nao_resolveu), :identificador_nao_resolveu, nil}
 
       %User{} = user ->
@@ -175,7 +206,7 @@ defmodule TheBand.Tenants.Auth do
       # falha aqui afirmaria algo falso sobre a senha, e deixaria a conta em espera
       # crescente no dia em que a organização voltasse.
       not organizacao_ativa?(user.tenant_id) ->
-        Bcrypt.no_user_verify()
+        custo_do_hash(:organizacao_suspensa)
         recusada(user, :organizacao_suspensa)
 
       # A CONTA DESATIVADA NÃO AUTENTICA — achado H3, parte B, 2026-09-09.
@@ -190,17 +221,17 @@ defmodule TheBand.Tenants.Auth do
       # tentativa falha registrada** — a credencial pode estar correta, e é a conta que
       # está desativada.
       not User.ativa?(user) ->
-        Bcrypt.no_user_verify()
+        custo_do_hash(:conta_desativada)
         recusada(user, :conta_desativada)
 
       is_nil(user.password_hash) ->
         # Conta pré-feature (FR-014): recusa idêntica; a tela orienta em texto
         # público, nunca na resposta do formulário.
-        Bcrypt.no_user_verify()
+        custo_do_hash(:conta_sem_senha)
         registrar_falha(user)
         recusada(user, :conta_sem_senha)
 
-      Bcrypt.verify_pass(senha, user.password_hash) ->
+      senha_confere?(senha, user.password_hash) ->
         {{:ok, registrar_sucesso(user)}, nil, user}
 
       true ->
@@ -210,6 +241,21 @@ defmodule TheBand.Tenants.Auth do
   end
 
   defp recusada(%User{} = user, motivo), do: {recusar(user, motivo), motivo, user}
+
+  # CADA CUSTO DE HASH DA ENTRADA PASSA POR AQUI, e emite um evento — spec 077, T008 (seguranca.md,
+  # L5, Q5). É o desenho de `Platform.Credentials.custo_do_hash/1`: permite ao teste CONTAR que a
+  # recusa por limite pagou zero hashes, sem cronômetro, que seria instável com o custo baixo do
+  # teste.
+  defp custo_do_hash(motivo) do
+    Bcrypt.no_user_verify()
+    :telemetry.execute([:the_band, :tenants, :custo_do_hash], %{}, %{motivo: motivo})
+  end
+
+  defp senha_confere?(senha, hash) do
+    certa? = Bcrypt.verify_pass(senha, hash)
+    :telemetry.execute([:the_band, :tenants, :custo_do_hash], %{}, %{motivo: :senha_conferida})
+    certa?
+  end
 
   # Uma consulta, e só quando o identificador resolveu para uma conta. `resolver/1` não
   # pré-carrega o tenant — e pré-carregá-lo mudaria o custo de toda tentativa,
@@ -238,7 +284,7 @@ defmodule TheBand.Tenants.Auth do
         # isto, a conta em espera respondia sem o Bcrypt, e o identificador que não existe
         # pagava o `no_user_verify` e nunca entrava em espera: o tempo dizia que o e-mail
         # existia e estava em espera, embora a mensagem fosse a mesma.
-        Bcrypt.no_user_verify()
+        custo_do_hash(:em_espera)
         {:error, {:throttled, restante}}
       else
         :ok

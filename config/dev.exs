@@ -72,3 +72,8 @@ config :phoenix_live_view,
   debug_attributes: true,
   # Enable helpful, but potentially expensive runtime checks
   enable_expensive_runtime_checks: true
+
+# A ORIGEM DO LIMITE POR IP — spec 077. Em desenvolvimento o socket é quem chama: declarado, para
+# que o limite recuse como em produção depois da #1063. Nenhum ambiente confia num cabeçalho sem
+# declarar (contracts/limite-por-origem.md §2).
+config :the_band, :origem, %{estado: :socket}

@@ -58,19 +58,27 @@ defmodule TheBand.Tenants.ContaDesativadaTest do
 
   describe "a porta da entrada" do
     test "conta desativada não autentica, e a recusa é IDÊNTICA", ctx do
-      assert {:ok, _} = Tenants.authenticate(ctx.alvo.email, @senha), """
-      A conta autentica ANTES de ser desativada. Sem esta asserção, o teste abaixo poderia
-      passar por a senha estar errada.
-      """
+      assert {:ok, _} =
+               Tenants.authenticate(ctx.alvo.email, @senha, origem: TheBand.OrigemDeTeste.nova()),
+             """
+             A conta autentica ANTES de ser desativada. Sem esta asserção, o teste abaixo poderia
+             passar por a senha estar errada.
+             """
 
       {:ok, desativada} =
         Tenants.disable_user(ctx.tenant, ctx.alvo.id, ctx.admin.id, @razao_de_saida)
 
       refute User.ativa?(desativada), "a guarda do cenário: a conta foi de facto desativada"
 
-      recusa = Tenants.authenticate(ctx.alvo.email, @senha)
-      senha_errada = Tenants.authenticate(ctx.alvo.email, "outra-senha-comprida-9")
-      inexistente = Tenants.authenticate("ninguem@example.test", @senha)
+      recusa = Tenants.authenticate(ctx.alvo.email, @senha, origem: TheBand.OrigemDeTeste.nova())
+
+      senha_errada =
+        Tenants.authenticate(ctx.alvo.email, "outra-senha-comprida-9",
+          origem: TheBand.OrigemDeTeste.nova()
+        )
+
+      inexistente =
+        Tenants.authenticate("ninguem@example.test", @senha, origem: TheBand.OrigemDeTeste.nova())
 
       assert recusa == senha_errada
       assert recusa == inexistente
@@ -83,7 +91,9 @@ defmodule TheBand.Tenants.ContaDesativadaTest do
 
     test "não registra tentativa falha — a credencial pode estar correta", ctx do
       {:ok, _} = Tenants.disable_user(ctx.tenant, ctx.alvo.id, ctx.admin.id, @razao_de_saida)
-      {:error, :invalid_credentials} = Tenants.authenticate(ctx.alvo.email, @senha)
+
+      {:error, :invalid_credentials} =
+        Tenants.authenticate(ctx.alvo.email, @senha, origem: TheBand.OrigemDeTeste.nova())
 
       {:ok, recarregada} = Tenants.fetch_user(ctx.alvo.id)
 
@@ -168,11 +178,13 @@ defmodule TheBand.Tenants.ContaDesativadaTest do
       assert User.ativa?(reativada)
       assert is_nil(reativada.disabled_by_user_id), "a marca sai inteira, e não pela metade"
 
-      assert {:ok, _} = Tenants.authenticate(ctx.alvo.email, @senha), """
-      A senha desta conta não foi tocada pela desativação, então reativar a devolve. O
-      caso que importa é o outro: se a desativação tiver sido feita JUNTO de um reinício,
-      a senha continua sendo a temporária que ninguém entregou — e é o teste seguinte.
-      """
+      assert {:ok, _} =
+               Tenants.authenticate(ctx.alvo.email, @senha, origem: TheBand.OrigemDeTeste.nova()),
+             """
+             A senha desta conta não foi tocada pela desativação, então reativar a devolve. O
+             caso que importa é o outro: se a desativação tiver sido feita JUNTO de um reinício,
+             a senha continua sendo a temporária que ninguém entregou — e é o teste seguinte.
+             """
     end
 
     test "reativar depois de reiniciar a senha não devolve a senha antiga", ctx do
@@ -180,11 +192,13 @@ defmodule TheBand.Tenants.ContaDesativadaTest do
       {:ok, _} = Tenants.disable_user(ctx.tenant, ctx.alvo.id, ctx.admin.id, @razao_de_saida)
       {:ok, _} = Tenants.enable_user(ctx.tenant, ctx.alvo.id, ctx.admin.id, @razao_de_volta)
 
-      assert {:error, :invalid_credentials} = Tenants.authenticate(ctx.alvo.email, @senha), """
-      Reativar é dizer "esta conta entra de novo", e não "esta conta lembra a senha".
-      Juntar as duas coisas num ato só faria quem reativa devolver acesso com uma
-      credencial que ele não escolheu.
-      """
+      assert {:error, :invalid_credentials} =
+               Tenants.authenticate(ctx.alvo.email, @senha, origem: TheBand.OrigemDeTeste.nova()),
+             """
+             Reativar é dizer "esta conta entra de novo", e não "esta conta lembra a senha".
+             Juntar as duas coisas num ato só faria quem reativa devolver acesso com uma
+             credencial que ele não escolheu.
+             """
     end
 
     test "reativar conta ativa é recusado", ctx do

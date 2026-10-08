@@ -72,6 +72,9 @@ derivation_rule:
         - id: em_espera
           origin: "045 FR-016"
           action: "campanha, se repetido"
+        - id: limite_por_origem
+          origin: "077 FR-010"
+          action: "campanha de uma origem; ver a linha da transição no log, com o prefixo"
 
     - id: sair
       outcomes: [concluiu, falhou]

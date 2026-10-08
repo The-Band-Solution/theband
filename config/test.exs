@@ -95,3 +95,8 @@ config :bcrypt_elixir, log_rounds: 4
 config :opentelemetry,
   traces_exporter: :none,
   processors: [{:otel_simple_processor, %{}}]
+
+# A ORIGEM DO LIMITE POR IP — spec 077. Declarada como socket, para que os testes vejam a recusa.
+# Cada conexão de teste tem origem própria (`TheBandWeb.ConnCase.build_conn/0`), e os testes do
+# limite fixam a que querem.
+config :the_band, :origem, %{estado: :socket}

@@ -34,7 +34,11 @@ defmodule TheBandWeb.SessionController do
     jornada_id = get_session(conn, :jornada_id)
     conn = delete_session(conn, :jornada_id)
 
-    case Tenants.authenticate(identificador, senha, jornada_id: jornada_id) do
+    # A ORIGEM DE QUEM TENTA — spec 077, FR-001. A recusa pelo limite sai pelo mesmo
+    # `{:error, _}` de baixo: a resposta não muda em nada (FR-002).
+    origem = TheBandWeb.Origem.de(conn)
+
+    case Tenants.authenticate(identificador, senha, jornada_id: jornada_id, origem: origem) do
       {:ok, user} ->
         destino = get_session(conn, :redirect_to) || ~p"/people"
 

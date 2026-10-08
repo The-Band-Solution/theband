@@ -102,7 +102,9 @@ defmodule TheBandWeb.AccountsEloTest do
       assert html =~ "achavel"
 
       # A associação vale na entrada: username + a temporária do reset.
-      assert {:ok, autenticada} = Tenants.authenticate("achavel", senha)
+      assert {:ok, autenticada} =
+               Tenants.authenticate("achavel", senha, origem: TheBand.OrigemDeTeste.nova())
+
       assert autenticada.id == nova.id
     end
 
@@ -191,7 +193,8 @@ defmodule TheBandWeb.AccountsEloTest do
       {:ok, senha} = Tenants.reset_password(ctx.tenant, user.id, ctx.admin.id)
       {:ok, _} = Tenants.declare_person(ctx.tenant, user.id, alvo.id, ctx.admin.id)
 
-      assert {:ok, _} = Tenants.authenticate("revogavel", senha)
+      assert {:ok, _} =
+               Tenants.authenticate("revogavel", senha, origem: TheBand.OrigemDeTeste.nova())
 
       {:ok, view, _} = live(ctx.conn, ~p"/accounts")
       html = render_click(view, "revogar_elo", %{"user-id" => user.id})
@@ -204,8 +207,13 @@ defmodule TheBandWeb.AccountsEloTest do
       assert depois.person_revoked_at
 
       # Username recusa com a recusa única; e-mail continua entrando.
-      assert {:error, _} = Tenants.authenticate("revogavel", senha)
-      assert {:ok, _} = Tenants.authenticate("revogavel@example.test", senha)
+      assert {:error, _} =
+               Tenants.authenticate("revogavel", senha, origem: TheBand.OrigemDeTeste.nova())
+
+      assert {:ok, _} =
+               Tenants.authenticate("revogavel@example.test", senha,
+                 origem: TheBand.OrigemDeTeste.nova()
+               )
     end
   end
 end

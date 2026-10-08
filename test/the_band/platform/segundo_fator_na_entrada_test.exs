@@ -18,7 +18,13 @@ defmodule TheBand.Platform.SegundoFatorNaEntradaTest do
   end
 
   defp entrar(op, segundo_fator, senha \\ senha_do_operador()),
-    do: Credentials.autenticar(op.email, Segredo.novo(senha), segundo_fator)
+    do:
+      Credentials.autenticar(
+        op.email,
+        Segredo.novo(senha),
+        segundo_fator,
+        TheBand.OrigemDeTeste.nova()
+      )
 
   defp codigos(op, n) do
     for c <- Enum.take(SegundoFator.gerar_codigos_de_recuperacao(), n) do
