@@ -43,7 +43,28 @@ defmodule TheBand.MixProject do
       #   4. a `ex_mcp` mudar de versão (fixada em `== 1.5.0`): a medição vale para ela.
       # E sai sozinha quando a `ex_mcp` tornar o Cowboy opcional (anunciado para a 2.0): o
       # `hex.audit` avisa que a entrada ficou obsoleta — foi assim que o H11 apareceu.
-      hex: [ignore_advisories: ["EEF-CVE-2026-43966", "EEF-CVE-2026-43969"]]
+      #
+      # RISCO RESIDUAL ACEITO — decisão da pessoa mantenedora em 2026-10-06, issue #1418 (§14.0).
+      #
+      # `cloak 1.1.4` (EEF-CVE-2026-95105, HIGH: o cipher AES-CTR não autentica) e `cloak_ecto
+      # 1.3.0` (EEF-CVE-2026-94206, MEDIUM: o campo PBKDF2 ignora as iterações), avisos de
+      # 2026-10-06, SEM versão consertada (as duas são as últimas publicadas, de 2024-04-06).
+      # Não alcançáveis aqui, medido: o `TheBand.Vault` configura só `Cloak.Ciphers.AES.GCM`,
+      # que autentica, e o único tipo Ecto cifrado é `Cloak.Ecto.Binary`.
+      #
+      # A proteção é `test/the_band/cloak_modos_inalcancaveis_test.exs`. ESTA EXCEÇÃO CAI se:
+      #   1. aparecer em `lib/` ou `config/` um cipher do Cloak que não seja o AES.GCM;
+      #   2. aparecer `Cloak.Ecto.PBKDF2`;
+      #   3. `cloak` ou `cloak_ecto` mudarem de versão — com o conserto, a entrada fica obsoleta e
+      #      o `hex.audit` avisa.
+      hex: [
+        ignore_advisories: [
+          "EEF-CVE-2026-43966",
+          "EEF-CVE-2026-43969",
+          "EEF-CVE-2026-95105",
+          "EEF-CVE-2026-94206"
+        ]
+      ]
       # A exceção de `CVE-2026-32686` viveu aqui de 2026-09-08 a 2026-09-20, e saiu **pelo
       # sinal que ela mesma declarava**: `mix hex.audit` passou a dizer que a entrada não
       # casa com nenhum aviso das dependências travadas.
