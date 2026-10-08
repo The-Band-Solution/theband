@@ -15,7 +15,8 @@ defmodule TheBand.NetworkAnalysis do
   - `selection/1` — os parâmetros do endereço, por texto exato, sem criar átomo (A12);
   - `options/0` — as listas fechadas para a tela desenhar os seletores;
   - `compute/3` — só o job chama;
-  - `subscribe/1` — o aviso de leitura pronta, só com ids.
+  - `subscribe/1` — o aviso de leitura pronta, só com ids;
+  - `discard_organization/2` — apaga as leituras da organização ao encerrar a observação.
 
   Depende de: Tenants, EO, CMPO, WorkItems, ReviewNetwork, KnowledgeBase, sempre pela API pública.
   """
@@ -27,4 +28,7 @@ defmodule TheBand.NetworkAnalysis do
   defdelegate options(), to: Reader
   defdelegate compute(tenant, organization, now), to: Commands
   defdelegate subscribe(tenant), to: Notices
+
+  # Só `Sources.end_observation/3` chama, dentro da transação do encerramento (T052, R18).
+  defdelegate discard_organization(tenant, organization_id), to: Commands
 end

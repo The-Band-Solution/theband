@@ -789,6 +789,18 @@ batem com as arestas da leitura.
 
 ## Fase 12: Acabamento
 
+**T051 e T052 feitas em 2026-10-05**, na branch `feature/1309-seguranca` (sprint 043), **antes** das
+US4–US9: desde a T028 as leituras são gravadas, e as duas protegem uma superfície que já existe
+(§14.0). O que divergiu do texto das tarefas, e por quê:
+
+- **T051**: além do roteador, do MCP, de `controllers/api/` e de `profiles/`, o teste abre cada
+  página disponível da área com uma leitura gravada e lê o HTML; e lê o código das páginas sem
+  comentários, procurando `send_download`, `Content-Disposition` e `download=`;
+- **T052**: a ferramenta conhece a organização pelo login, e por isso `end_observation/3` a busca
+  por `EO.fetch_organization_by_login/2` antes de apagar (emenda em `contracts/fronteiras.md`). A
+  falha dentro da transação é provada com um gatilho em `tool_credentials`, o passo que vem depois
+  das leituras; um segundo defeito injetado (apagar antes da transação) reprova esse caso.
+
 - [ ] T049 Provar as cinco redes conhecidas e a reprodutibilidade
   - **Pronta quando**: T030, T035, T038, T039, T041, T043
   - **Descrição**: `test/the_band/network_analysis/redes_conhecidas_test.exs`: `compute/4` sobre
@@ -811,7 +823,7 @@ batem com as arestas da leitura.
   - **Teste**: `test/the_band/network_analysis/teto_test.exs`, tag `:slow`, com o teto de tempo
     (L53). **Defeito a injetar**: 1 000 grafos aleatórios; o teto reprova
 
-- [ ] T051 [P] [security] Guardar a análise fora da API, do MCP e do perfil
+- [x] T051 [P] [security] Guardar a análise fora da API, do MCP e do perfil
   - **Pronta quando**: T020
   - **Descrição**: `test/the_band/network_analysis/exposicao_test.exs` lê o roteador, o registro de
     ferramentas MCP (`lib/the_band/mcp/`), `lib/the_band_web/controllers/api/` e `lib/the_band/profiles/`
@@ -822,7 +834,7 @@ batem com as arestas da leitura.
   - **Teste**: o próprio arquivo. **Defeito a injetar**: uma rota `get "/network-analysis/:id/graph.svg"`;
     o teste reprova
 
-- [ ] T052 [P] [security] Apagar as leituras ao encerrar a observação
+- [x] T052 [P] [security] Apagar as leituras ao encerrar a observação
   - **Pronta quando**: T014; `contracts/fronteiras.md` `Sources`
   - **Descrição**: `NetworkAnalysis.discard_organization/2` e `ReviewNetwork.discard_organization/2`,
     chamadas por `Sources.end_observation/3` dentro da transação (R18); o `Reader` já recusa leitura
