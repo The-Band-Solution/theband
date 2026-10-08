@@ -104,7 +104,8 @@ defmodule Mix.Tasks.Dev.SenhaTest do
       refute saida =~ @senha
       assert saida =~ "sessões"
 
-      assert {:ok, _} = Auth.authenticate(user.email, @senha)
+      assert {:ok, _} =
+               Auth.authenticate(user.email, @senha, origem: TheBand.OrigemDeTeste.nova())
     end
 
     test "na senha recusada pela validação, nem a saída nem o log a mostram", %{user: user} do
@@ -134,7 +135,8 @@ defmodule Mix.Tasks.Dev.SenhaTest do
         assert motivo =~ "não coincidem"
       end)
 
-      assert {:error, :invalid_credentials} = Auth.authenticate(user.email, @senha)
+      assert {:error, :invalid_credentials} =
+               Auth.authenticate(user.email, @senha, origem: TheBand.OrigemDeTeste.nova())
     end
 
     test "conta inexistente não pede a senha" do
