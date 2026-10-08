@@ -151,7 +151,10 @@ defmodule TheBand.WorkItems.TeamWork do
     |> join(:inner, [i, a], m in TeamMembership, on: m.person_id == a.person_id)
     |> where([i, _a, m], i.tenant_id == ^tenant_id and m.team_id in ^equipes)
     |> where([i], not is_nil(field(i, ^campo)))
-    |> where([i], field(i, ^campo) >= ^desde and field(i, ^campo) <= ^ate)
+    # `> desde`, e não `>=`: o instante `desde` já pertence à linha de base, que `open_at/4` e
+    # `open_at_by_team/3` avaliam com `criada <= desde` e `fechada > desde`. Contá-lo aqui
+    # também punha o mesmo evento nos dois lados da identidade do burn (#1268, como o #1228).
+    |> where([i], field(i, ^campo) > ^desde and field(i, ^campo) <= ^ate)
     |> where(
       [i, _a, m],
       is_nil(m.invalidated_at) and
@@ -373,7 +376,10 @@ defmodule TheBand.WorkItems.TeamWork do
     |> join(:inner, [i, a], m in TeamMembership, on: m.person_id == a.person_id)
     |> where([i, _a, m], i.tenant_id == ^tenant_id and m.team_id in ^equipes)
     |> where([i], not is_nil(field(i, ^campo)))
-    |> where([i], field(i, ^campo) >= ^desde and field(i, ^campo) <= ^ate)
+    # `> desde`, e não `>=`: o instante `desde` já pertence à linha de base, que `open_at/4` e
+    # `open_at_by_team/3` avaliam com `criada <= desde` e `fechada > desde`. Contá-lo aqui
+    # também punha o mesmo evento nos dois lados da identidade do burn (#1268, como o #1228).
+    |> where([i], field(i, ^campo) > ^desde and field(i, ^campo) <= ^ate)
     |> where(
       [i, _a, m],
       is_nil(m.invalidated_at) and

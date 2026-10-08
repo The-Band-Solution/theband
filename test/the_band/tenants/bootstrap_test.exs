@@ -73,7 +73,10 @@ defmodule TheBand.Tenants.BootstrapTest do
     test "a senha criada abre a sessão" do
       {:ok, :criada, _} = Bootstrap.criar_primeira_conta(ambiente_completo())
 
-      assert {:ok, %User{}} = Auth.authenticate("ensaio@exemplo.test", @senha)
+      assert {:ok, %User{}} =
+               Auth.authenticate("ensaio@exemplo.test", @senha,
+                 origem: TheBand.OrigemDeTeste.nova()
+               )
     end
 
     test "o nome é opcional — sem ele a conta nasce mesmo assim" do
@@ -124,9 +127,16 @@ defmodule TheBand.Tenants.BootstrapTest do
       end
 
       # A que a pessoa escolheu continua valendo…
-      assert {:ok, %User{}} = Auth.authenticate("ensaio@exemplo.test", nova)
+      assert {:ok, %User{}} =
+               Auth.authenticate("ensaio@exemplo.test", nova,
+                 origem: TheBand.OrigemDeTeste.nova()
+               )
+
       # …e a do ambiente NÃO voltou.
-      assert {:error, _} = Auth.authenticate("ensaio@exemplo.test", @senha)
+      assert {:error, _} =
+               Auth.authenticate("ensaio@exemplo.test", @senha,
+                 origem: TheBand.OrigemDeTeste.nova()
+               )
     end
   end
 

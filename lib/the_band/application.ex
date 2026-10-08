@@ -5,6 +5,7 @@ defmodule TheBand.Application do
 
   use Application
 
+  alias TheBand.Origem.Configuracao
   alias TheBand.Repo.LogDaConsulta
   alias TheBand.Telemetria.Contadores
   alias TheBand.Telemetria.Jornada
@@ -38,12 +39,16 @@ defmodule TheBand.Application do
     :ok = Contadores.preparar()
     :ok = Jornada.anexar()
     dizer_o_estado_da_telemetria()
+    dizer_o_estado_da_origem()
 
     children = [
       TheBandWeb.Telemetry,
       TheBand.Repo,
       TheBand.Vault,
       TheBand.Ontology.KnowledgeBase,
+      # O contador do limite por origem — spec 077. Depois da base de conhecimento, de onde lê os
+      # números, e antes do endpoint, para que nenhuma entrada chegue sem a tabela.
+      TheBand.LimitePorOrigem,
       {Oban, Application.fetch_env!(:the_band, Oban)},
       {DNSCluster, query: Application.get_env(:the_band, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: TheBand.PubSub},
@@ -92,6 +97,15 @@ defmodule TheBand.Application do
       {:desligada, motivo} -> Logger.warning("telemetria desligada: #{motivo}")
       nil -> Logger.warning("telemetria desligada: configuração ausente")
     end
+  end
+
+  # O ESTADO DA ORIGEM É DITO A CADA SUBIDA — spec 077, FR-009. O não declarado é `warning`: o
+  # limite está no ar e não recusa, e quem lê o log do deploy precisa saber disso sem procurar.
+  defp dizer_o_estado_da_origem do
+    config = Application.get_env(:the_band, :origem, %{estado: :nao_declarada})
+    frase = Configuracao.frase(config)
+
+    if config.estado == :nao_declarada, do: Logger.warning(frase), else: Logger.info(frase)
   end
 
   # Spec 071, FR-008: a linha dos papéis se repete a cada subida, porque o log do deploy some.

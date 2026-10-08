@@ -62,7 +62,14 @@ defmodule TheBand.Platform.CodigoDeUsoUnicoTest do
     resultados =
       em_paralelo(
         Enum.map(senhas, fn s ->
-          fn -> Credentials.definir_senha(op.email, codigo, Segredo.novo(s)) end
+          fn ->
+            Credentials.definir_senha(
+              op.email,
+              codigo,
+              Segredo.novo(s),
+              TheBand.OrigemDeTeste.nova()
+            )
+          end
         end)
       )
 
@@ -80,14 +87,27 @@ defmodule TheBand.Platform.CodigoDeUsoUnicoTest do
 
     {:ok, {_, %{segredo: segredo, enrollment_token: token}}} =
       quieto(fn ->
-        Credentials.definir_senha(op.email, codigo, Segredo.novo("a-senha-do-operador-1"))
+        Credentials.definir_senha(
+          op.email,
+          codigo,
+          Segredo.novo("a-senha-do-operador-1"),
+          TheBand.OrigemDeTeste.nova()
+        )
       end)
 
     c = Segredo.novo(NimbleTOTP.verification_code(Segredo.expor(segredo)))
 
     cadastros =
       em_paralelo(
-        for _ <- 1..2, do: fn -> Credentials.confirmar_segundo_fator(op.email, token, c) end
+        for _ <- 1..2,
+            do: fn ->
+              Credentials.confirmar_segundo_fator(
+                op.email,
+                token,
+                c,
+                TheBand.OrigemDeTeste.nova()
+              )
+            end
       )
 
     assert contar(cadastros) == {1, 1}
@@ -95,7 +115,12 @@ defmodule TheBand.Platform.CodigoDeUsoUnicoTest do
     [{:ok, {_, _, guarda}}] = Enum.filter(cadastros, &match?({:ok, _}, &1))
 
     conclusoes =
-      em_paralelo(for _ <- 1..2, do: fn -> Credentials.concluir_cadastro(op.email, guarda) end)
+      em_paralelo(
+        for _ <- 1..2,
+            do: fn ->
+              Credentials.concluir_cadastro(op.email, guarda, TheBand.OrigemDeTeste.nova())
+            end
+      )
 
     assert contar(conclusoes) == {1, 1}
   end

@@ -16,6 +16,8 @@ defmodule TheBand.ContadorDeConsultasUnicoTest do
 
   # Os que CAPTURAM uma consulta, e não CONTAM. Não sofrem com o tick do Oban, porque filtram.
   @capturas %{
+    "test/the_band_web/limite_por_origem_na_entrada_test.exs" =>
+      "captura, na mesma requisição, o evento de hash e os SELECT em users, pelo source, para provar que a recusa por limite não paga hash nem consulta a conta (077, L5)",
     "test/the_band/platform/espera_paralela_test.exs" =>
       "captura o SELECT … FOR UPDATE da linha do operador (070/T024), pelo conteúdo",
     "test/the_band/tenants/resumos_para_a_plataforma_test.exs" =>

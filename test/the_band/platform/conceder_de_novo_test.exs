@@ -22,7 +22,14 @@ defmodule TheBand.Platform.ConcederDeNovoTest do
     [usado | _] = r.codigos
 
     {:ok, _} =
-      quieto(fn -> Credentials.autenticar(r.email, Segredo.novo(senha_do_operador()), usado) end)
+      quieto(fn ->
+        Credentials.autenticar(
+          r.email,
+          Segredo.novo(senha_do_operador()),
+          usado,
+          TheBand.OrigemDeTeste.nova()
+        )
+      end)
 
     {:ok, {sessao, segredo_da_sessao}} = Sessions.abrir(Repo.get!(Operator, r.op.id))
 
@@ -37,7 +44,8 @@ defmodule TheBand.Platform.ConcederDeNovoTest do
              Credentials.autenticar(
                r.email,
                Segredo.novo(senha_do_operador()),
-               totp(r.segredo, System.os_time(:second) + 30)
+               totp(r.segredo, System.os_time(:second) + 30),
+               TheBand.OrigemDeTeste.nova()
              )
            end) ==
              {:error, :invalid_credentials}

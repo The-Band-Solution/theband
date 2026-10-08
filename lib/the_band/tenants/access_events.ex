@@ -263,6 +263,34 @@ defmodule TheBand.Tenants.AccessEvents do
     )
   end
 
+  @doc """
+  A chave do provedor de modelos gravada ou removida — #1221 (R1 do parecer C.1).
+
+  `tipo` é a classificação que `AI.put/3` já fez: `:primeira`, `:troca` ou `:mesma_chave`. Ou é
+  `:removida`, vinda de `AI.delete/3`. A coluna `declared_by_user_id` guarda só quem pôs a chave
+  em uso. Esta linha é o que responde **quem trocou e quando**.
+
+  As guardas são a proteção, como em `conta_da_organizacao/5`. Só cabem átomo da lista e ids, e
+  não há `extra`. Nenhum trecho da chave, nem `last_four`, cabe na assinatura (parecer
+  `docs/seguranca/2026-10-05-1221-troca-da-chave-do-modelo.md`, condições 2 e 5). Ator `nil`
+  passa: omitir a linha quando falta o ator apagaria o rastro justo no caso anômalo.
+  """
+  @spec chave_do_modelo(
+          :primeira | :troca | :mesma_chave | :removida,
+          Ecto.UUID.t(),
+          Ecto.UUID.t() | nil
+        ) :: :ok
+  def chave_do_modelo(tipo, tenant_id, actor_user_id)
+      when tipo in [:primeira, :troca, :mesma_chave, :removida] and is_binary(tenant_id) and
+             (is_binary(actor_user_id) or is_nil(actor_user_id)) do
+    registrar("ato administrativo",
+      ato: :chave_do_modelo,
+      tipo: tipo,
+      tenant_id: tenant_id,
+      actor_user_id: actor_user_id
+    )
+  end
+
   # ------------------------------------------------- o operador da plataforma (spec 070)
   #
   # Contrato em `specs/070-operador-da-plataforma/contracts/eventos-de-acesso.md` (FR-010, O14,

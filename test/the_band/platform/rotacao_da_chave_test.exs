@@ -47,7 +47,13 @@ defmodule TheBand.Platform.RotacaoDaChaveTest do
       capture_log(fn ->
         send(
           self(),
-          {:r, Credentials.autenticar(op.email, Segredo.novo(senha_do_operador()), totp(segredo))}
+          {:r,
+           Credentials.autenticar(
+             op.email,
+             Segredo.novo(senha_do_operador()),
+             totp(segredo),
+             TheBand.OrigemDeTeste.nova()
+           )}
         )
       end)
       |> then(fn _ -> receive(do: ({:r, r} -> r)) end)

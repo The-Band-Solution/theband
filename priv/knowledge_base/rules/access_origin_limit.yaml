@@ -1,0 +1,89 @@
+derivation_rule:
+  id: access.origin_limit
+  version: 1
+  provider: platform
+  status: proposed
+  confidence: medium
+
+  name:
+    pt-BR: "O limite de tentativas por origem nas portas que verificam segredo sem sessão"
+
+  description:
+    pt-BR: >
+      Quantas falhas uma mesma origem faz numa janela, nas cinco portas que verificam segredo sem
+      sessão — `POST /session` (balde `contas`) e os quatro `POST` públicos de `/platform` (balde
+      `operador`) —, e o que a plataforma guarda e diz sobre isso. Spec 077, defeito #1229 e
+      tarefa #1106.
+
+      Moram aqui, e não em constante de módulo, pela razão de `api.access.thresholds`: limiar de
+      segurança em constante muda num diff e ninguém percebe.
+
+      **Estes números são proposta.** Não há medida de quantas falhas legítimas uma rede
+      compartilhada produz: a telemetria da 074 não leva endereço, por decisão. A primeira
+      medida virá do estado não declarado da origem (`seguranca.md` da 077, L1), em que o limite
+      conta e registra a transição sem recusar.
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: >
+      spec 077 (`specs/077-limite-por-origem/spec.md`, FR-008, FR-011, FR-012) e a avaliação de
+      segurança (`seguranca.md`, L6, L8, L10)
+
+  rules:
+    failure_limit:
+      name:
+        pt-BR: "Dez falhas por cinco minutos, por origem e por balde"
+      statement:
+        pt-BR: >
+          Uma origem faz no máximo **10 falhas** em **300 segundos** em cada balde. A janela
+          desliza em **10 fatias de 30 segundos**: a soma cobre entre 270 e 300 segundos, mais
+          estrita que a declarada, nunca mais frouxa.
+      note:
+        pt-BR: >
+          Conta **falhas**, e não tentativas (L8): o incremento é anterior a qualquer verificação,
+          e o sucesso devolve exatamente um. Sob NAT, uma turma que entra certa não gasta a cota;
+          uma campanha, sim. A espera por conta (045 FR-016) continua por baixo.
+
+          Dez é folgado para quem erra a própria senha algumas vezes e estreito para quem
+          adivinha: 2 880 falhas por dia por origem, contra nenhum limite antes.
+      applied: true
+      values:
+        failures: 10
+        window_seconds: 300
+        slices: 10
+
+    table_ceiling:
+      name:
+        pt-BR: "O teto da tabela, acima do qual a varredura registra"
+      statement:
+        pt-BR: >
+          A cada fatia, a varredura apaga as fatias fora da janela de **todas** as origens. Acima
+          de **200 000** entradas, registra.
+      note:
+        pt-BR: >
+          Origens não voltam como tokens voltam (L6): sem varredura global, cada endereço que
+          tentou uma vez ficaria na tabela para sempre. O teto não recusa ninguém: ele avisa que
+          uma campanha distribuída está enchendo a memória.
+      applied: true
+      values:
+        entries: 200000
+
+    origin_key:
+      name:
+        pt-BR: "A forma do endereço que conta, e a que pode ir para o log"
+      statement:
+        pt-BR: >
+          Conta-se o IPv4 inteiro e o IPv6 pelo prefixo `/64`. No log vai só o prefixo truncado:
+          `/24` no IPv4 e `/48` no IPv6. Na telemetria, nada.
+      note:
+        pt-BR: >
+          Uma pessoa controla, em geral, um `/64` inteiro; contar o IPv6 inteiro deixaria cada
+          tentativa vir de um endereço novo. O endereço é dado pessoal (LGPD), e o prefixo diz se é
+          uma campanha ou muitas sem identificar a pessoa (L10). Bloquear é ato do proxy, com o
+          log dele.
+      applied: true
+      values:
+        ipv6_key_bits: 64
+        ipv4_log_bits: 24
+        ipv6_log_bits: 48

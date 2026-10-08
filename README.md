@@ -226,6 +226,16 @@ Dialyzer · Sobelow · Docker Compose · Phoenix Releases
 Monólito modular multitenant. Sem microserviços, broker externo, banco de grafos ou
 frontend separado na fundação — ver [ADR 0001](docs/adr/0001-monolito-modular-elixir.md).
 
+## Desenvolvimento local
+
+```bash
+docker compose up -d && mix setup && mix phx.server   # http://localhost:4000
+mix dev.senha pessoa@exemplo.dev                      # define a senha de uma conta do banco local
+```
+
+`mix dev.senha` pede a senha sem eco (nunca por argumento), recusa fora de `MIX_ENV=dev` ou
+com banco que não seja o local, e encerra as sessões abertas da conta.
+
 ## Contribuindo
 
 Leia [AGENTS.md](AGENTS.md) antes de qualquer alteração. Toda mudança passa pelo ciclo

@@ -566,8 +566,8 @@ definitiva: para devolver o papel, concede-se de novo (§13.2).
 
 ### §13.7 O que este roteiro não cobre
 
-- **O limite por endereço de origem (A4).** Ainda não existe: depende de medir se o proxy do
-  Dokploy sobrescreve `x-forwarded-for` (T004). Até lá, a espera é só por conta.
+- **O limite por endereço de origem (A4).** Existe desde a spec 077, e em produção **só observa**
+  até a medição #1063: ver o §15. Até ligar o estado `proxy`, a espera do operador é só por conta.
 - **Aviso ao operador.** A plataforma não avisa a pessoa quando o segundo fator é trocado ou quando
   um código é reusado (T9). O registro fica no log de acesso, com o prefixo `acesso: operador`.
 - **Phishing em tempo real.** O TOTP não resiste a ele (T10). O endereço da área do operador é o
@@ -677,3 +677,96 @@ Como root, no terminal do contêiner. O `eval` não abre distribuição, e por i
   impede **desligar as guardas**, e não o acesso a dado.
 - **Uma tabela criada à mão por outro papel** nasce sem privilégio para quem serve, e falha alto
   na primeira escrita.
+
+## §15 A origem do visitante e o limite por origem — spec 077 (#1229, #1106)
+
+As cinco portas que verificam segredo sem sessão — `POST /session` e os quatro `POST` públicos de
+`/platform` — contam as **falhas por origem**: 10 em 300 s (`access.origin_limit` na base de
+conhecimento). A 11.ª recebe a recusa de sempre daquela porta, sem verificar nada. O que é
+"origem" depende de uma declaração no ambiente, e **nenhum estado liga por ausência**.
+
+### §15.1 Os três estados
+
+| variáveis no painel do Dokploy | estado | o que acontece |
+|---|---|---|
+| nenhuma (o de hoje) | não declarado | conta pelo socket, que atrás do Traefik é **o proxy**: todo visitante é uma origem só. Por isso **não recusa**: registra a transição no log e segue. A #1229 e a A4 continuam abertas, declaradas |
+| `THE_BAND_ORIGEM=socket` | socket | conta pelo socket e recusa. **Só** para a aplicação exposta sem proxy: atrás do Traefik, nega a entrada a todos a ~0,04 requisição por segundo (`specs/077-limite-por-origem/seguranca.md`, L1) |
+| `THE_BAND_ORIGEM=proxy`, `THE_BAND_ORIGEM_CABECALHO=x-forwarded-for`, `THE_BAND_ORIGEM_PROXIES=<sub-rede medida>` | proxy | lê o cabeçalho **só** quando o socket é um proxy da lista, e conta pelo valor mais à direita que não é proxy. Recusa |
+
+A linha do log de subida diz o estado: `limite por origem: só observado — …` (`warning`), ou
+`limite por origem: ligado, pelo cabeçalho x-forwarded-for vindo de <lista>` (`info`).
+
+**A aplicação não sobe** com `THE_BAND_ORIGEM` desconhecido, cabeçalho fora de `[a-z0-9-]+`, lista
+vazia, bloco malformado, `/0`, ou bloco que não seja de rede local (RFC 1918, `100.64.0.0/10`,
+laço local, `fc00::/7`). A mensagem nomeia a variável, nunca o valor. Isso é de propósito: um bloco
+público na lista deixaria qualquer cliente escolher a própria origem (L3).
+
+A linha da transição — `limite por origem: contas passou do limite · estado=… prefixo=… falhas=11`
+— leva só o prefixo (`/24` do IPv4, `/48` do IPv6). O endereço inteiro não vai para o log nem para
+a telemetria; quem precisa bloquear um endereço usa o log do Traefik.
+
+### §15.2 A medição #1063 — 👤 pessoa mantenedora
+
+Mede o que **um contêiner atrás do mesmo Traefik recebe**, sem tocar a aplicação, sem credencial e
+com endereços de documentação (`seguranca.md` da 077, *Procedimento seguro da medição #1063*):
+
+1. **Ponto de partida.** Data, versão do Traefik (`docker exec <contêiner do traefik> traefik
+   version`) e só o bloco `entryPoints.*.forwardedHeaders` (`trustedIPs`, `insecure`) da
+   configuração estática do Traefik do Dokploy.
+2. **Um eco temporário.** No Dokploy, uma aplicação com a imagem `traefik/whoami` **fixada por
+   digest**, na mesma rede da aplicação, com um domínio **temporário de `sslip.io`** — nunca um
+   subdomínio de `theband.dev`, para que nenhum cookie da plataforma seja enviado a ele.
+3. **Medir sem credencial**, da sua máquina, sem cookie e sem `Authorization`:
+
+   ```bash
+   E=https://<eco>.sslip.io
+   curl -s "$E" -H 'X-Forwarded-For: 203.0.113.7'
+   curl -s "$E" -H 'X-Forwarded-For: 203.0.113.7' -H 'X-Forwarded-For: 198.51.100.9'
+   curl -s "$E" -H 'Forwarded: for=192.0.2.60' -H 'X-Real-IP: 192.0.2.61'
+   curl -s -6 "$E" -H 'X-Forwarded-For: 203.0.113.7'   # se o servidor tiver IPv6
+   ```
+
+   Para cada um, anote o `X-Forwarded-For` que chegou e **em que posição** está o seu endereço —
+   comparado, e **não transcrito**: no registro ele aparece como `<endereço de quem mediu>`.
+4. **O `RemoteAddr`** que o eco mostra é o Traefik **na rede do Docker**. Anote a sub-rede
+   (`docker network inspect <rede> --format '{{json .IPAM.Config}}'`) e se outros serviços a usam.
+5. **Pelo Cloudflare**, se a nuvem laranja estiver ligada em `app.theband.dev`: um nome temporário
+   com a nuvem laranja apontando para o eco, e os mesmos casos. Diz se há um salto ou dois.
+6. **Derrubar o eco e o domínio temporário**, e anotar que foram derrubados.
+7. **A porta 4000 da aplicação está publicada no host?** `docker ps`, coluna de portas, no
+   contêiner da aplicação.
+8. **Registrar na #1063**: data, método, versão do Traefik; para cada caso, "sobrescreve" ou
+   "acrescenta"; o que houve com as duas linhas, com `Forwarded` e com `X-Real-IP`; a sub-rede;
+   se há Cloudflare; e a porta. Só endereços de documentação e `<endereço de quem mediu>`.
+
+**Como ler o resultado.** Com um salto (cliente → Traefik → aplicação), o estado `proxy` está
+certo **nos dois** comportamentos — "sobrescreve" e "acrescenta" —, porque ele usa o valor mais à
+direita, que é o que o Traefik escreveu. O que muda a configuração é a sub-rede (a lista) e o
+Cloudflare: com ele na frente, o valor mais à direita é a borda do Cloudflare, e confiar nas faixas
+dele é decisão posterior, com medição própria. Porta 4000 publicada é um caminho direto que não
+passa pelo Traefik: fechar antes de ligar.
+
+### §15.3 Ligar o estado `proxy` — 👤, depois da #1063 (077/T012, #1407)
+
+1. No painel do Dokploy, na aplicação: `THE_BAND_ORIGEM=proxy`,
+   `THE_BAND_ORIGEM_CABECALHO=x-forwarded-for` e `THE_BAND_ORIGEM_PROXIES=<a sub-rede do passo 4>`.
+   **Só a sub-rede do proxy**, e não uma faixa maior "para garantir": quem estiver na lista escolhe
+   a origem que quiser. Se a sub-rede é compartilhada com outros serviços, confiar nela é confiar
+   neles — risco declarado até a rede dedicada (074, S7).
+2. Redeploy, e conferir a linha do log de subida: `ligado, pelo cabeçalho x-forwarded-for vindo de
+   <lista>`. Se a aplicação não subiu, a mensagem nomeia a variável errada.
+3. **Conferir de fora**, porque "ligado" é afirmação sobre a configuração, e não sobre o
+   comportamento: da sua máquina, 11 entradas com um e-mail inexistente em `/sign-in` — a 11.ª dá a
+   mesma frase, e o log mostra a transição com o **seu** prefixo, e não o do Traefik; da rede do
+   celular, a entrada certa entra.
+4. Registrar na #1229 e na #1106 a linha do log de subida e o resultado de fora. **Só então** as
+   duas fecham.
+
+### §15.4 O que isto não faz
+
+- **Quem tem muitas origens** (rede de bots, um `/48` de IPv6) não é contido pelo limite por
+  origem; só pela espera por conta.
+- **Vizinhos sob NAT** dividem a cota com quem ataca: a senha certa deles é recusada enquanto a
+  campanha durar. O limite conta falhas, e não entradas certas, o que poupa uma turma que entra junto.
+- **Deploy zera a contagem**, e com mais de uma instância o limite efetivo é N × 10.
+- **A fila de telemetria** continua recebendo os passos da campanha (`limite_por_origem`).

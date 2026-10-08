@@ -61,20 +61,30 @@ defmodule TheBand.OperadorFixtures do
 
   defp passo(:passo1, r) do
     {:ok, {_, %{segredo: segredo, enrollment_token: cadastro}}} =
-      Credentials.definir_senha(r.email, r.definicao, Segredo.novo(@senha))
+      Credentials.definir_senha(
+        r.email,
+        r.definicao,
+        Segredo.novo(@senha),
+        TheBand.OrigemDeTeste.nova()
+      )
 
     Map.merge(r, %{segredo: segredo, cadastro: cadastro})
   end
 
   defp passo(:passo2, r) do
     {:ok, {_, codigos, guarda}} =
-      Credentials.confirmar_segundo_fator(r.email, r.cadastro, totp(r.segredo))
+      Credentials.confirmar_segundo_fator(
+        r.email,
+        r.cadastro,
+        totp(r.segredo),
+        TheBand.OrigemDeTeste.nova()
+      )
 
     Map.merge(r, %{codigos: codigos, guarda: guarda})
   end
 
   defp passo(:completo, r) do
-    {:ok, op} = Credentials.concluir_cadastro(r.email, r.guarda)
+    {:ok, op} = Credentials.concluir_cadastro(r.email, r.guarda, TheBand.OrigemDeTeste.nova())
     Map.put(r, :op, op)
   end
 
