@@ -149,7 +149,9 @@ defmodule TheBandWeb.NetworkAnalysisLive.Graph do
             <span :if={match?({:ok, _}, @c.people)} class="font-mono tabular-nums">
               {pessoas(elem(@c.people, 1))},
             </span>
-            <span class="font-mono tabular-nums">{plural(arestas, "directed link", "directed links")}</span>, <span class="font-mono tabular-nums">{itens(@c.items, @rede)}</span>.
+            <span class="font-mono tabular-nums">{plural(arestas, "directed link", "directed links")}</span>,
+            <span class="font-mono tabular-nums">{itens(@c.items, @rede)}</span>
+            in this window, including those counted below and not drawn.
           </p>
           <p :if={match?({:suprimido, _}, @c.people)} class="text-xs opacity-70">
             The number of people is not shown: it would count fewer than 3 people outside your
@@ -164,6 +166,8 @@ defmodule TheBandWeb.NetworkAnalysisLive.Graph do
           <% {:ok, 0} -> %>
             Every observed person of this organisation has a link in this window.
           <% {:ok, n} -> %>
+            <%!-- 3.2.7 (T053): a ausência no desenho leva a marca tracejada, como no protótipo --%>
+            <.absent reason="not drawn" />
             {pessoas_observadas(n)} of this organisation had no {ato(@rede)} in this window and {if n ==
                                                                                                       1,
                                                                                                     do:
@@ -284,6 +288,8 @@ defmodule TheBandWeb.NetworkAnalysisLive.Graph do
   defp ato("assignment"), do: "assignment"
   defp ato("review"), do: "review"
 
+  # O total da janela inclui as excluídas (bot, conta da organização, sem pessoa, a própria): a
+  # frase diz isso, ou ele parece contradizer a soma das ligações desenhadas e a 073 (T053).
   defp itens({:ok, n}, "assignment"), do: plural(n, "issue", "issues") <> " opened"
   defp itens({:ok, n}, "review"), do: plural(n, "review", "reviews")
   defp itens({:ausente, _}, "assignment"), do: "no issue opened"

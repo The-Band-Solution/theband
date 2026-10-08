@@ -68,7 +68,8 @@ defmodule TheBand.NetworkAnalysis.Reader do
   @spec options() :: %{
           networks: %{allowed: [String.t()], default: String.t()},
           windows: %{allowed: [pos_integer()], default: pos_integer()},
-          views: %{allowed: [String.t()], default: String.t()}
+          views: %{allowed: [String.t()], default: String.t()},
+          eigenvector: %{max_iterations: pos_integer(), tolerance_per_node: float()}
         }
   def options, do: options(Parameters.fetch!())
 
@@ -78,7 +79,9 @@ defmodule TheBand.NetworkAnalysis.Reader do
     %{
       networks: %{allowed: parametros.networks, default: parametros.default_network},
       windows: %{allowed: parametros.windows, default: parametros.default_window},
-      views: %{allowed: @vistas, default: hd(@vistas)}
+      views: %{allowed: @vistas, default: hd(@vistas)},
+      # Para a frase do autovetor que não assentou dizer as rodadas e a tolerância (3.4.4, T053).
+      eigenvector: Map.take(parametros.eigenvector, [:max_iterations, :tolerance_per_node])
     }
   end
 
@@ -326,7 +329,12 @@ defmodule TheBand.NetworkAnalysis.Reader do
          to_outside_reach: fora(para, dentro?),
          from_outside_reach: fora(de, dentro?),
          to_total: para |> Enum.map(&elem(&1, 1)) |> Enum.sum(),
-         from_total: de |> Enum.map(&elem(&1, 1)) |> Enum.sum()
+         from_total: de |> Enum.map(&elem(&1, 1)) |> Enum.sum(),
+         # A linha da leitura de cada rede no perfil (3.0.5, T053).
+         computed_at: leitura.computed_at,
+         window_start: leitura.window_start,
+         window_end: leitura.window_end,
+         window_days: dias
        }}
     else
       nil -> {:ausente, :no_edges_in_window}

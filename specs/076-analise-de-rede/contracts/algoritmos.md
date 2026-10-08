@@ -143,6 +143,11 @@ distance_ratio}}`; a ordem das ausências é: abaixo do mínimo (`network_too_sm
 real (`no_edge_in_window`), sem clustering real (`clustering_undefined`), C_rand ausente ou zero
 (`random_clustering_undefined`).
 
+**Emenda de 2026-10-06 (T053)**, no mesmo commit da implementação: `random_battery/2` devolve
+também `not_linked`, quantos aleatórios ficaram com algum par sem caminho (`reachable_share < 1`).
+Neles, a distância média é a dos pares que se alcançam. A tela da Distance diz quantos e como
+(PROMPT §3, 3.5.4), o que antes não dizia.
+
 ## `Algorithms.Layout`
 
 ```elixir

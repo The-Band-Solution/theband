@@ -849,7 +849,7 @@ US4–US9: desde a T028 as leituras são gravadas, e as duas protegem uma superf
   falha dentro da transação é provada com um gatilho em `tool_credentials`, o passo que vem depois
   das leituras; um segundo defeito injetado (apagar antes da transação) reprova esse caso.
 
-- [ ] T049 Provar as cinco redes conhecidas e a reprodutibilidade
+- [x] T049 Provar as cinco redes conhecidas e a reprodutibilidade
   - **Pronta quando**: T030, T035, T038, T039, T041, T043
   - **Descrição**: `test/the_band/network_analysis/redes_conhecidas_test.exs`: `compute/4` sobre
     estrela, caminho, dois grupos com ponte, bipartida e desconexa, cada valor com a conta à mão ao
@@ -862,7 +862,7 @@ US4–US9: desde a T028 as leituras são gravadas, e as duas protegem uma superf
     chaves em `Communities`; a igualdade das dez reprova se a ordem mudar (se não reprovar, escrever
     na issue por que a ordem do mapa não muda o resultado)
 
-- [ ] T050 Medir o teto e o tempo do job
+- [x] T050 Medir o teto e o tempo do job
   - **Pronta quando**: T043, T036, T031
   - **Descrição**: medir `compute/4` para G(n, m) de 300 pessoas e 3 000 arestas nas duas redes e três
     janelas; escrever em `research.md` R5 e ajustar `size_limit` e o `timeout/1` se preciso (a mudança
@@ -893,7 +893,19 @@ US4–US9: desde a T028 as leituras são gravadas, e as duas protegem uma superf
     injetar**: apagar por `tenant_id` só; a leitura de outra organização do mesmo tenant some e o teste
     reprova
 
-- [ ] T053 Conferir a tela contra o protótipo aprovado — QA e Design
+**T049 e T050 feitas em 2026-10-05/06**, na branch `feature/1309-acabamento`:
+
+- **T049**: o defeito do texto (somar os pesos do mapa sem ordenar as chaves) **não** reprova, e a
+  razão está no commit e na #1374: as somas são de inteiros, e a ordem não muda o resultado. Um
+  sorteio fora da semente reprova a igualdade das dez;
+- **T050**: a medida dos aleatórios em sequência dava 105,6 s para as seis combinações, a 15 s do
+  `timeout/1`. A medida de cada aleatório passou a rodar em paralelo, e o sorteio continua
+  sequencial (o resultado é o mesmo, número por número; a T049 confere). Medido 32,9 s a 50,2 s;
+  teto do teste 90 s; o defeito injetado foi tirar o paralelismo (108,2 s, reprova). O teto da base
+  (300 / 3 000) e o `timeout/1` não mudam. **Fica aberto**: confirmar com os núcleos de produção e a
+  medida da T003 (👤).
+
+- [x] T053 Conferir a tela contra o protótipo aprovado — QA e Design
   - **Pronta quando**: T020, T029, T033, T037, T040, T042, T044, T046, T048
   - **Descrição**: o QA, em par com o agente `design`, lê cada página entregue contra
     `prototipo/PROMPT.md` §3, item a item, com as divergências de `research.md` R21; telefone incluído
@@ -902,13 +914,25 @@ US4–US9: desde a T028 as leituras são gravadas, e as duas protegem uma superf
     captura; defeito vira tarefa antes do merge
   - **Teste**: a tabela item a item, com as imagens (L73: a prova de tela é a imagem)
 
+**T053 feita em 2026-10-06**: [prototipo/conferencia.md](prototipo/conferencia.md) e
+`docs/sprints/043-analise-de-rede-completa/aceitacao.md`. Foram 19 defeitos, todos consertados na
+branch, cada um com guarda vista reprovando (o arrasto e a roda, medidos no navegador). Dez divergências seguem a spec, mas não estavam em
+R21: entraram nela como **propostas**, e a decisão é da T054. Continuam abertos: o 3.9.1 (o Design
+republica o protótipo com *Decided*, depois da T054) e o núcleo denso do grafo, que é a forma do
+dado real com o layout da base.
+
 - [ ] T054 👤 Aceitar contra a origem (SC-001, SC-006)
   - **Pronta quando**: T053; uma organização real com leitura
   - **Descrição**: a pessoa mantenedora conta à mão, na origem, as issues abertas na janela, as
     designações e as exclusões por motivo, e compara com a tela; e responde, a partir da tela, *"quais
     grupos se formam e quem os liga?"* em menos de dois minutos
+  - **Decidido em 2026-10-06**: as dez propostas da R21 ficam como estão no código ("não faça
+    igual ao protótipo"). Falta desta tarefa só a contagem contra a origem e o tempo da pergunta
+  - **Também (T053)**: decidir as propostas da R21 (frase da posição, listas do perfil por peso,
+    escala do autovetor, Tela 1 pulada com uma organização, textos do alcance, estilo). O que voltar
+    ao protótipo volta ao código antes do merge
   - **Feita quando**: as contagens batem sem diferença, ou a diferença está explicada e aceita por
-    escrito; o tempo da pergunta está registrado
+    escrito; o tempo da pergunta está registrado; cada proposta da R21 tem decisão com data
   - **Teste**: o registro na issue, com os números dos dois lados
 
 - [ ] T055 Rodar os gates e abrir o PR

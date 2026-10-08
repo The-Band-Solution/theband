@@ -76,7 +76,8 @@ defmodule TheBandWeb.NetworkAnalysisLive.ProfileTest do
 
     assert designacao =~ "opened issues assigned to 2 people"
     assert designacao =~ "assigned on issues opened by 3 people"
-    assert texto(html, "#assignment-para") =~ "5 issues"
+    # O total da designação aberta soma uma vez por responsável: são designações (T053).
+    assert texto(html, "#assignment-para") =~ "5 assignments"
     assert texto(html, "#assignment-para") =~ ~r/R1 Perfil 4 issues.*R2 Perfil 1 issue/
     assert texto(html, "#assignment-de") =~ "6 issues"
     refute html =~ ~r/assigns to/i

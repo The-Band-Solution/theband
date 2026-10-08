@@ -310,6 +310,18 @@ defmodule TheBandWeb.NetworkAnalysisLive.Distance do
   defp razao({:ok, r}, chave), do: "#{uma_casa(Map.fetch!(r, chave))}×"
   defp razao(_sigma, _chave), do: "not calculated"
 
+  # 3.5.4 (T053): quantos aleatórios não ficaram ligados, e como a distância foi medida neles.
+  # Leitura anterior à contagem não a traz, e a frase diz isso em vez de um zero.
+  defp nao_ligados(0, _n), do: "All of them came out linked."
+
+  defp nao_ligados(k, n) when is_integer(k),
+    do:
+      "#{k} of #{n} came out not fully linked; in those, the distance is the average over " <>
+        "the pairs that reach each other."
+
+  defp nao_ligados(nil, _n),
+    do: "How many came out not fully linked is not recorded in this reading."
+
   defp aleatorios(sw, proveniencia) do
     case sw.graphs do
       n when is_integer(n) ->
@@ -322,8 +334,9 @@ defmodule TheBandWeb.NetworkAnalysisLive.Distance do
               ""
           end
 
-        "#{n} random networks, every one generated included, linked or not; seed " <>
-          "#{proveniencia.seed}, generator #{proveniencia.generator}.#{definidos}"
+        "#{n} random networks, every one generated included, linked or not. " <>
+          "#{nao_ligados(sw.not_linked, n)} Seed #{proveniencia.seed}, generator " <>
+          "#{proveniencia.generator}.#{definidos}"
 
       _ ->
         "No random networks in this reading."

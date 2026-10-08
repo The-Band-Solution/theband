@@ -120,6 +120,17 @@ defmodule TheBandWeb.NetworkAnalysisLive.PositionsTest do
     assert texto(html, "#regra-da-posicao") =~ "How the position is decided"
   end
 
+  # T053: a célula empilhada é flex (`table.stacked td`); cada filho vira uma coluna ao lado do
+  # rótulo. Com a frase e o critério soltos, no telefone o critério saía do cartão.
+  test "a posição é um bloco só na célula, e no telefone não vira duas colunas", ctx do
+    html = abrir(ctx, ctx.admin)
+    celula = ~s(#posicoes td[data-label="position in this network"])
+    celulas = html |> q(celula) |> Enum.count()
+
+    assert celulas > 0
+    assert html |> q(celula <> " > *") |> Enum.count() == celulas
+  end
+
   test "A11: só com vínculo de equipe, vê a própria posição e não a do colega", ctx do
     html = abrir(ctx, ctx.lia_conta)
 

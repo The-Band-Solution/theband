@@ -89,6 +89,32 @@ traz o número de produção. Acima do teto: σ, Q_rand e layout **ausentes** co
 **Alternativas**: sem teto (laço sem fim é negação de serviço, R14 da segurança); teto em constante
 de módulo (a regra de `review.network.parameters` recusa).
 
+**Medida (T050, 2026-10-05)**: `Commands.compute/5` sobre um G(300, 3 000) sorteado com semente 76,
+as duas redes e as três janelas com as mesmas arestas (o pior caso: nenhuma combinação fica abaixo
+do teto), parâmetros da base. Máquina: Apple M4, 10 núcleos, 16 GB, Elixir 1.20.2 / OTP 29,
+`MIX_ENV=test`, em `test/the_band/network_analysis/teto_test.exs` (tag `:slow`).
+
+| | as 6 combinações |
+|---|---|
+| medida dos 100 aleatórios em sequência | **105,6 s** |
+| medida dos 100 aleatórios em paralelo | **32,9 s** |
+
+Por partes, num G(300, 3 000): o guloso 77 ms e a busca em largura de todos os pares 70 ms por
+aleatório — cerca de 16 s para os 100 de uma combinação, que é quase todo o custo; intermediação
+358 ms, layout 443 ms, autovetor 9 ms e clustering 3 ms sobre a rede real. Em sequência, o job
+ficava a 15 s do `timeout/1` de 120 s **nesta** máquina, e passaria dele numa mais lenta.
+
+**Decisão**: a medida de cada aleatório roda em paralelo (`Task.async_stream/3`, na ordem em que
+foram gerados); o sorteio continua sequencial, e o resultado é o mesmo, número por número (a
+reprodutibilidade da T049 continua passando). O teto (300 / 3 000) e o `timeout/1` (120 s) **não
+mudam**: com 2 núcleos, a estimativa é de cerca de 55 s. **Fica aberto** confirmar com o número de
+núcleos de produção e com a medida da #1190 / T003 (a pessoa mantenedora).
+
+**A guarda, provada (2026-10-06)**: o teste tem teto de 90 s. Medido de novo, com a máquina sob
+carga: **50,2 s** em paralelo. Com o defeito — a medida em sequência —, **108,2 s**, e o teste
+reprova pelo assert. 300 aleatórios em paralelo ficaram em 89,8 s: o teto não distingue um
+aumento de 3× nos aleatórios, e não é para isso que ele existe; ele guarda o tempo do job.
+
 ## R6 — Os algoritmos, em Elixir puro
 
 Todos em `lib/the_band/network_analysis/algorithms/`, puros: sem `Repo`, sem relógio, sem `Logger`,
@@ -440,6 +466,24 @@ contagem da designação.
 | conta sem alcance vê o grafo agregado | só medidas e o próprio perfil | DS5 (b) |
 | comunidades por **letra** (A, B, …) | letra, como aprovado (3.3.2): é o identificador em texto que a FR-021 pede; a spec usa *"Community 1"* como exemplo | a confirmar com a pessoa mantenedora (baixo) |
 | rotas `/organizations/:id/network/...` | `/network-analysis/...` | R15 |
+
+**Encontradas na conferência da T053 (2026-10-06), e aprovadas pela pessoa mantenedora no mesmo
+dia (T054): "não faça igual ao protótipo".** As dez valem como estão no código, e são divergências
+aprovadas como as de cima.
+
+| protótipo | vale hoje | por quê | estado |
+|---|---|---|---|
+| posição em frase sobre as ligações (*"Linked to many people, and on many paths…"*) | rótulo e frase da regra `network.position_role` (*"Central position. Among the top fifth…"*) | FR-044, D2 | aprovada em 2026-10-06 |
+| listas do perfil por nome | por peso, empate pelo nome | FR-048 | aprovada em 2026-10-06 |
+| perfil com proximidade e autovetor | sem eles | FR-048 | aprovada em 2026-10-06 |
+| autovetor de 0 a 100, relativo ao maior | 0 a 1, comparável só dentro do grupo; abaixo de 0,005, *"under 0.01"* | R1 da segurança: com alcance parcial, o 100 poderia ser de alguém de fora; `contracts/tela.md` | aprovada em 2026-10-06 |
+| a Tela 1 sempre | com uma organização só, `/network-analysis` vai direto a ela | `contracts/tela.md` | aprovada em 2026-10-06 |
+| aviso de alcance explicando o que é o alcance | o texto da spec, sem a explicação | US1, cen. 5 | aprovada em 2026-10-06 |
+| agregado *"N outside your reach · B"* | *"People outside your reach — community B (4)"* | US3, cen. 5; `contracts/tela.md` | aprovada em 2026-10-06 |
+| linha da leitura com *derived* na página da 073 | a da 073, como aprovada | Q4 (a) da aprovação | aprovada em 2026-10-06 |
+| seletores em preto; menu lateral; perfil em 2×2 | primária verdete; abas no topo; uma coluna por rede | design system; o menu da área | aprovada em 2026-10-06 |
+| cor da intermediação em barra segmentada | cinco círculos com o rótulo de cada faixa | a mesma regra, outra forma | aprovada em 2026-10-06 |
+| grafo na proporção do quadro | as posições do servidor enquadradas eixo a eixo em 1000 × 625, e os sete nomes postos sem colisão | defeito D2 da T053: o viewBox quadrado espremia o núcleo; a posição não é medida (`Algorithms.Layout`) | feito na T053 |
 
 ## R22 — Nenhuma dependência nova (R14 da segurança)
 

@@ -178,6 +178,10 @@ defmodule TheBandWeb.NetworkAnalysisLive.CommunitiesTest do
     assert cartao =~ "6 people"
     assert cartao =~ "7 links inside · 1 to other communities"
     assert cartao =~ "Most linked inside:"
+    # 3.3.4 (T053): os três de fora têm o mesmo grau interno; a ordem entre eles saiu do id, e o
+    # cartão diz que é empate.
+    assert cartao =~ ~r/\(5\)\s*tied/
+    refute cartao =~ ~r/\(4\)\s*tied/
     refute cartao =~ "among the members you reach"
     for p <- Enum.take(fora, 3), do: assert(cartao =~ p.name)
     assert texto(html, "#comunidade-2") =~ "3 people"

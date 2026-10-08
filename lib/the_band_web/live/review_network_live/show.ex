@@ -32,6 +32,7 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
   """
   use TheBandWeb, :live_view
 
+  alias TheBand.NetworkAnalysis
   alias TheBand.Ontology.SEON.EO
   alias TheBand.ReviewNetwork
   alias TheBandWeb.NetworkAnalysisLive.Shared
@@ -43,7 +44,7 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
     {:ok,
      socket
      |> assign(page_title: "Review network", nav_area: :network_analysis)
-     |> assign(abertos: MapSet.new(), janelas: ReviewNetwork.windows())}
+     |> assign(abertos: MapSet.new(), janelas: ReviewNetwork.windows(), rede: nil)}
   end
 
   @impl true
@@ -52,7 +53,15 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
   end
 
   def handle_params(%{"organization_id" => id} = params, _uri, socket) do
+    socket = assign(socket, rede: rede_escolhida(params["network"]))
     {:noreply, ler(socket, id, Map.get(params, "window", socket.assigns.janelas.default))}
+  end
+
+  # A rede escolhida nas páginas de análise atravessa esta, que só lê revisão, para voltar com
+  # ela (3.0.3; T053). Comparada como texto com a lista da base: fora dela, nenhuma, e nada do
+  # endereço é repetido nos links.
+  defp rede_escolhida(rede) do
+    if rede in NetworkAnalysis.options().networks.allowed, do: rede
   end
 
   # O endereço antigo (A13): o id passa pela busca por id E tenant, e o destino é montado só com
@@ -111,7 +120,7 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
     case ReviewNetwork.read(tenant, user, id, window) do
       # Janela fora da lista volta à padrão (4.6), sem dizer que o pedido era inválido.
       {:error, :janela_invalida} ->
-        push_patch(socket, to: caminho(id, socket.assigns.janelas.default))
+        push_patch(socket, to: caminho(id, socket.assigns.janelas.default, socket.assigns.rede))
 
       {:error, :not_found} ->
         nao_encontrada(socket)
@@ -138,7 +147,8 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
   defp janela(dias) when is_integer(dias), do: dias
   defp janela(texto), do: String.to_integer(texto)
 
-  defp caminho(id, dias), do: Shared.page_path(:review, id, %{window: dias})
+  defp caminho(id, dias, rede \\ nil),
+    do: Shared.page_path(:review, id, %{window: dias, network: rede})
 
   @impl true
   def render(assigns) do
@@ -155,7 +165,7 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
         :if={assigns[:organizacao]}
         active={:review}
         organization_id={@organization_id}
-        selection={%{window: @window}}
+        selection={%{window: @window, network: @rede}}
       />
       <div :if={assigns[:organizacao]} class="flex flex-col gap-6" id="review-network">
         <%!-- 1.1 --%>
@@ -175,7 +185,7 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
           <span class="opacity-70">Observed organisation</span>
           <.link
             :for={o <- @organizacoes}
-            patch={caminho(o.id, @window)}
+            patch={caminho(o.id, @window, @rede)}
             class={["btn btn-xs", if(o.id == @organization_id, do: "btn-primary", else: "btn-ghost")]}
             aria-current={if(o.id == @organization_id, do: "page")}
           >
@@ -188,7 +198,7 @@ defmodule TheBandWeb.ReviewNetworkLive.Show do
           <div class="flex flex-wrap gap-2" role="group" aria-label="window">
             <.link
               :for={dias <- @janelas.allowed}
-              patch={caminho(@organization_id, dias)}
+              patch={caminho(@organization_id, dias, @rede)}
               class={["btn btn-sm", if(dias == @window, do: "btn-primary", else: "btn-ghost")]}
               aria-current={if(dias == @window, do: "true")}
             >

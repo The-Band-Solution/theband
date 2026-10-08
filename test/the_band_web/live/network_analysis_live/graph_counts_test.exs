@@ -140,7 +140,10 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphCountsTest do
   test "quem administra lê as contagens, a conectividade e as exclusões por motivo", ctx do
     {:ok, _view, html} = abrir(ctx, ctx.admin)
 
-    assert texto(html, "#resumo") == "4 people, 3 directed links, 6 issues opened."
+    assert texto(html, "#resumo") ==
+             "4 people, 3 directed links, 6 issues opened in this window, including those " <>
+               "counted below and not drawn."
+
     assert texto(html, "#conectividade") =~ "(1 group)"
     assert texto(html, "#contagens h2") =~ "derived"
 
@@ -152,6 +155,14 @@ defmodule TheBandWeb.NetworkAnalysisLive.GraphCountsTest do
 
     assert texto(html, "#sem-aresta") =~
              "2 observed people of this organisation had no assignment"
+
+    # 3.2.7 (T053): a frase leva a marca tracejada da ausência, com o texto ao lado.
+    assert texto(html, "#sem-aresta") =~ "not drawn"
+
+    assert html
+           |> LazyHTML.from_fragment()
+           |> LazyHTML.query("#sem-aresta .border-dashed")
+           |> Enum.count() == 1
 
     assert texto(html, "#o-que-a-aresta-liga") =~
              "It does not say who made the assignment, nor who did the work."

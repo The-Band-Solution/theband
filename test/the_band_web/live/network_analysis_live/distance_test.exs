@@ -82,6 +82,16 @@ defmodule TheBandWeb.NetworkAnalysisLive.DistanceTest do
     assert texto(html, "#comprimentos [data-length='1']") =~ "3 pairs"
   end
 
+  # 3.5.4 (T053): com 5 pessoas e 3 ligações, nenhum G(5, 3) fica ligado (ligar 5 exige 4). A
+  # página diz quantos e como a distância foi medida neles.
+  test "quantos aleatórios não ficaram ligados, e como a distância foi medida neles", ctx do
+    html = abrir(ctx)
+
+    assert html |> LazyHTML.from_fragment() |> LazyHTML.text() |> String.replace(~r/\s+/, " ") =~
+             "100 of 100 came out not fully linked; in those, the distance is the average " <>
+               "over the pairs that reach each other."
+  end
+
   test "nenhuma faixa vira adjetivo", ctx do
     # Um K4: eficiência 100%, acima de qualquer faixa que a referência chamaria de "efficient".
     %{organization: org} = organizacao_com_repositorio(ctx.tenant)

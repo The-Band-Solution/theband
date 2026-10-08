@@ -22,6 +22,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.HubsTest do
   import Phoenix.LiveViewTest
   import TheBand.ReviewNetworkFixtures
 
+  alias TheBand.NetworkAnalysis
   alias TheBand.NetworkAnalysis.Commands
   alias TheBand.NetworkAnalysis.Parameters
   alias TheBand.Ontology.KnowledgeBase
@@ -125,6 +126,46 @@ defmodule TheBandWeb.NetworkAnalysisLive.HubsTest do
     assert texto(html, "#lista-proximidade") =~ "to the 6 people they reach"
     assert texto(html, "#nao-avaliacao") =~ "must not be used to evaluate a person"
     assert length(nomes(html, "lista-grau")) == 5
+  end
+
+  # 3.4.4 (T053): o estado sem valor diz o número de rodadas e a razão, e ninguém recebe zero.
+  # Uma rodada só não assenta com a tolerância da base: o cálculo é forçado a não convergir.
+  test "o autovetor que não assentou diz as rodadas e a razão, e não dá valor a ninguém", ctx do
+    tenant = ctx.admin |> Map.fetch!(:tenant_id) |> Tenants.fetch() |> elem(1)
+    %{organization: org} = organizacao_com_repositorio(tenant)
+    [a, b, c] = for n <- ~w(A B C), do: pessoa(tenant, "#{n} Instavel")
+
+    entrada = %{
+      edges: [
+        %{source: a.id, target: b.id, weight: 1},
+        %{source: b.id, target: c.id, weight: 5},
+        %{source: c.id, target: a.id, weight: 1}
+      ],
+      exclusions: %{"issues" => 3},
+      people_without_edges: 0,
+      source_computed_at: nil,
+      provenance: %{}
+    }
+
+    parametros = put_in(Parameters.fetch!().eigenvector.max_iterations, 1)
+
+    {:ok, _, _} =
+      Commands.compute(tenant, org, DateTime.utc_now(:second), parametros, fn _, _, _ ->
+        {:ok, entrada}
+      end)
+
+    {:ok, _view, html} =
+      live(
+        log_in(ctx.conn, ctx.admin),
+        "/network-analysis/#{org.id}/hubs?network=assignment&window=90"
+      )
+
+    bloco = texto(html, "#autovetor-grupo-1")
+    assert bloco =~ "not computed: the calculation did not settle"
+    assert bloco =~ "After #{NetworkAnalysis.options().eigenvector.max_iterations} rounds"
+    assert bloco =~ "by more than 0.000001 per person"
+    assert bloco =~ "no one gets zero"
+    assert q(html, "#autovetor-grupo-1 [data-nome]") |> Enum.count() == 0
   end
 
   test "A3: com escopo concedido, só alcançados; quem é de fora não tem linha", ctx do

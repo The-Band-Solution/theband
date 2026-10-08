@@ -166,96 +166,103 @@ defmodule TheBandWeb.NetworkAnalysisLive.Communities do
       </div>
     </section>
 
-    <%!-- 3.3.2: o grafo de comunidades, com as posições do ponderado --%>
-    <section id="grafo-de-comunidades" class="flex flex-col gap-2">
-      <h2 class="font-semibold">Community graph <Shared.marca tipo={:derivado} /></h2>
-      <%= case @v.graph do %>
-        <% {:ok, grafo} -> %>
-          <GraphComponents.graph
-            id="grafo-comunidades"
-            graph={grafo}
-            network={@rede}
-            view="communities"
-          />
-        <% _ -> %>
-          <.absent reason={"not drawn: " <> Leitura.sem_aresta(@rede)} />
-      <% end %>
-      <%!-- 3.3.3: o método, dito; R21: vale a base, e não o Louvain do protótipo --%>
-      <p id="metodo" class="text-sm">
-        Colour, a dashed outline and a letter mark each community, so the picture reads in
-        greyscale. Communities are found by the greedy modularity method of Clauset, Newman and
-        Moore on the {@rede} links, weighted by count, with ties broken by a declared rule; the same
-        data always gives the same communities. The letter follows size, A the largest.
-      </p>
-    </section>
-
-    <%!-- 3.3.4 e 3.7.4: um cartão por comunidade com alguém que se alcança --%>
-    <section id="cartoes" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <article
-        :for={b <- @c.blocks}
-        id={"comunidade-#{b.index}"}
-        class="card border border-base-300 bg-base-100 p-4 flex flex-col gap-2"
-      >
-        <h3 class="font-semibold flex items-center gap-2">
-          <GraphComponents.community_mark community={b.index} />
-          <%= case b.size do %>
-            <% {:ok, n} -> %>
-              <span>{pessoas(n)}</span>
-            <% {:suprimido, _} -> %>
-              <span class="text-sm font-normal">
-                <.absent reason="size not shown: it would count fewer than 3 people outside your reach" />
-              </span>
-          <% end %>
-        </h3>
-        <p class="text-xs opacity-80">
-          <%= case {b.internal_edges, b.outside_edges} do %>
-            <% {{:ok, dentro}, {:ok, fora}} -> %>
-              {plural(dentro, "link", "links")} inside · {fora} to other communities
-            <% _ -> %>
-              Links not shown: they would count fewer than 3 people outside your reach.
-          <% end %>
+    <%!-- 3.8.2 (T053): no telefone, os cartões das comunidades vêm antes da lista de pessoas
+         que o grafo vira; antes, apareciam depois de um cartão por pessoa. --%>
+    <div class="flex flex-col gap-6">
+      <%!-- 3.3.2: o grafo de comunidades, com as posições do ponderado --%>
+      <section id="grafo-de-comunidades" class="flex flex-col gap-2">
+        <h2 class="font-semibold">Community graph <Shared.marca tipo={:derivado} /></h2>
+        <%= case @v.graph do %>
+          <% {:ok, grafo} -> %>
+            <GraphComponents.graph
+              id="grafo-comunidades"
+              graph={grafo}
+              network={@rede}
+              view="communities"
+            />
+          <% _ -> %>
+            <.absent reason={"not drawn: " <> Leitura.sem_aresta(@rede)} />
+        <% end %>
+        <%!-- 3.3.3: o método, dito; R21: vale a base, e não o Louvain do protótipo --%>
+        <p id="metodo" class="text-sm">
+          Colour, a dashed outline and a letter mark each community, so the picture reads in
+          greyscale. Communities are found by the greedy modularity method of Clauset, Newman and
+          Moore on the {@rede} links, weighted by count, with ties broken by a declared rule; the same
+          data always gives the same communities. The letter follows size, A the largest.
         </p>
+      </section>
 
-        <div class="text-sm">
-          <%= case b.core do %>
-            <% {:recortado, :positions_not_granted} -> %>
-              <p class="opacity-80">
-                The most linked members are shown only to those granted a scope that reaches them,
-                or who administer the organisation.
-              </p>
-            <% [] -> %>
-              <p class="opacity-80">No member you may rank is in this community.</p>
-            <% nucleo -> %>
-              <p>
-                <span class="font-semibold">
-                  Most linked inside{if @v.reach == :parcial, do: ", among the members you reach"}:
+      <%!-- 3.3.4 e 3.7.4: um cartão por comunidade com alguém que se alcança --%>
+      <section id="cartoes" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 max-sm:order-first">
+        <article
+          :for={b <- @c.blocks}
+          id={"comunidade-#{b.index}"}
+          class="card border border-base-300 bg-base-100 p-4 flex flex-col gap-2"
+        >
+          <h3 class="font-semibold flex items-center gap-2">
+            <GraphComponents.community_mark community={b.index} />
+            <%= case b.size do %>
+              <% {:ok, n} -> %>
+                <span>{pessoas(n)}</span>
+              <% {:suprimido, _} -> %>
+                <span class="text-sm font-normal">
+                  <.absent reason="size not shown: it would count fewer than 3 people outside your reach" />
                 </span>
-                <span :for={{p, i} <- Enum.with_index(nucleo)}>
-                  {p.name} ({p.internal_degree}){if i < length(nucleo) - 1, do: ","}
-                </span>
-              </p>
-          <% end %>
-        </div>
+            <% end %>
+          </h3>
+          <p class="text-xs opacity-80">
+            <%= case {b.internal_edges, b.outside_edges} do %>
+              <% {{:ok, dentro}, {:ok, fora}} -> %>
+                {plural(dentro, "link", "links")} inside · {fora} to other communities
+              <% _ -> %>
+                Links not shown: they would count fewer than 3 people outside your reach.
+            <% end %>
+          </p>
 
-        <%!-- T048: o nome de alcançado leva ao perfil --%>
-        <p class="text-sm">
-          <span :for={{m, i} <- Enum.with_index(b.members)}>
-            <.link
-              navigate={Shared.profile_path(@organization_id, m.person_id, @selecao)}
-              class="link link-hover"
-            >{m.name}</.link>{if i < length(b.members) - 1, do: ","}
-          </span>
-        </p>
+          <div class="text-sm">
+            <%= case b.core do %>
+              <% {:recortado, :positions_not_granted} -> %>
+                <p class="opacity-80">
+                  The most linked members are shown only to those granted a scope that reaches them,
+                  or who administer the organisation.
+                </p>
+              <% [] -> %>
+                <p class="opacity-80">No member you may rank is in this community.</p>
+              <% nucleo -> %>
+                <p>
+                  <span class="font-semibold">
+                    Most linked inside{if @v.reach == :parcial, do: ", among the members you reach"}:
+                  </span>
+                  <span :for={{p, i} <- Enum.with_index(nucleo)}>
+                    {p.name} ({p.internal_degree})<span
+                      :if={p.tied?}
+                      class="badge badge-ghost badge-xs ml-1"
+                    >tied</span>{if i < length(nucleo) - 1, do: ","}
+                  </span>
+                </p>
+            <% end %>
+          </div>
 
-        <p :if={match?({:agregado, _}, b.outside)} class="text-sm italic">
-          {elem(b.outside, 1)} outside your reach
-        </p>
-        <p :if={b.outside == :sem_agregado} class="text-xs opacity-70">
-          Some members are outside your reach; they are not counted here, because the count would
-          be fewer than 3.
-        </p>
-      </article>
-    </section>
+          <%!-- T048: o nome de alcançado leva ao perfil --%>
+          <p class="text-sm">
+            <span :for={{m, i} <- Enum.with_index(b.members)}>
+              <.link
+                navigate={Shared.profile_path(@organization_id, m.person_id, @selecao)}
+                class="link link-hover"
+              >{m.name}</.link>{if i < length(b.members) - 1, do: ","}
+            </span>
+          </p>
+
+          <p :if={match?({:agregado, _}, b.outside)} class="text-sm italic">
+            {elem(b.outside, 1)} outside your reach
+          </p>
+          <p :if={b.outside == :sem_agregado} class="text-xs opacity-70">
+            Some members are outside your reach; they are not counted here, because the count would
+            be fewer than 3.
+          </p>
+        </article>
+      </section>
+    </div>
 
     <p :if={@v.reach == :parcial} id="comunidades-sem-alcance" class="text-xs opacity-70">
       A community where you reach no one has no card here.

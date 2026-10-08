@@ -70,6 +70,26 @@ defmodule TheBandWeb.ReviewNetworkLive.AreaTest do
     assert texto(html, "#review-network") =~ "Is code review concentrated in a few people?"
   end
 
+  # 3.0.3 (T053): quem escolheu a designação e passa pela página da 073 volta à designação. Valor
+  # fora da lista da base não é repetido em link nenhum.
+  test "a rede escolhida atravessa a página da 073, e valor fora da lista não", ctx do
+    id = ctx.org.organization.id
+    conn = log_in(ctx.conn, ctx.admin)
+
+    {:ok, _view, html} = live(conn, ~p"/network-analysis/#{id}?window=90&network=assignment")
+
+    hrefs =
+      html
+      |> LazyHTML.from_fragment()
+      |> LazyHTML.query("#area-network-analysis a")
+      |> LazyHTML.attribute("href")
+
+    assert Enum.all?(hrefs, &(&1 =~ "network=assignment"))
+
+    {:ok, _view, html} = live(conn, ~p"/network-analysis/#{id}?window=90&network=xss%3Cb%3E")
+    refute html =~ "xss"
+  end
+
   test "o endereço antigo leva à área, só com a janela da lista (A13)", ctx do
     id = ctx.org.organization.id
     conn = log_in(ctx.conn, ctx.admin)
