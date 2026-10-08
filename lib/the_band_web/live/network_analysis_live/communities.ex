@@ -237,8 +237,14 @@ defmodule TheBandWeb.NetworkAnalysisLive.Communities do
           <% end %>
         </div>
 
+        <%!-- T048: o nome de alcançado leva ao perfil --%>
         <p class="text-sm">
-          {Enum.map_join(b.members, ", ", & &1.name)}
+          <span :for={{m, i} <- Enum.with_index(b.members)}>
+            <.link
+              navigate={Shared.profile_path(@organization_id, m.person_id, @selecao)}
+              class="link link-hover"
+            >{m.name}</.link>{if i < length(b.members) - 1, do: ","}
+          </span>
         </p>
 
         <p :if={match?({:agregado, _}, b.outside)} class="text-sm italic">

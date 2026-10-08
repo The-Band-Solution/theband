@@ -391,6 +391,18 @@ pares}]}` ou `{:suprimido, :fewer_than_k_outside}` —, e `random` com `graphs`,
 `graphs`, `criterion` — `:meets | :does_not_meet | nil` — e `threshold`, o limiar da base). A
 `provenance` ganha `seed`, `generator` e `random_graphs`.
 
+**Emenda de 2026-10-05 (T046, T047)**, feita no mesmo commit da implementação:
+
+- o `Reader` deriva os papéis (`Position.roles/2`) sobre a leitura inteira, a cada `read/4` e
+  `profile/5`; o nó de pessoa da visão ganha `role` (`{:ok, role}`, `{:ausente,
+  :network_too_small_for_roles}` ou `{:recortado, :positions_not_granted}`), e a visão ganha
+  `positions` (`{:ok, [%{person_id, name, community, degree, role}]}` por nome, `{:recortado,
+  :no_reach}` ou `{:ausente, motivo}`) e `position_rule` (os limiares, o mínimo e os rótulos da
+  base, para a tela dizer a regra sem escrever número);
+- `profile/5`: `degree` é `{:ok, n}`; `betweenness_percentile` e `degree_percentile` estão dentro
+  de `role` (o papel diz os dois percentis), e não à parte; `community` pode ser `nil` em leitura
+  antiga. A pessoa é buscada por `EO.people_names/2` com o tenant, depois do cast do UUID.
+
 ## `discard_organization/2`
 
 ```elixir

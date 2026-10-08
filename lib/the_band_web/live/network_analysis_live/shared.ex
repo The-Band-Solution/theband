@@ -67,7 +67,7 @@ defmodule TheBandWeb.NetworkAnalysisLive.Shared do
 
   # As páginas que já existem nesta fatia. As outras entram com a user story que as constrói
   # (tasks.md, fases 4 a 11); até lá aparecem na ordem, sem link, e nunca como link quebrado.
-  @disponiveis [:review, :graph, :communities, :hubs, :distance]
+  @disponiveis [:review, :graph, :communities, :hubs, :distance, :positions]
 
   @doc "As seis páginas da área, na ordem do protótipo (3.0.1)."
   @spec pages() :: [map()]
@@ -105,6 +105,9 @@ defmodule TheBandWeb.NetworkAnalysisLive.Shared do
   def page_path(:distance, organization_id, selecao),
     do: ~p"/network-analysis/#{organization_id}/distance?#{consulta(selecao)}"
 
+  def page_path(:positions, organization_id, selecao),
+    do: ~p"/network-analysis/#{organization_id}/positions?#{consulta(selecao)}"
+
   # A vista de comunidades do grafo (FR-026) acompanha a troca de rede e de janela; a ponderada é
   # o padrão, e não vai no endereço.
   defp consulta(selecao) do
@@ -115,6 +118,15 @@ defmodule TheBandWeb.NetworkAnalysisLive.Shared do
     ]
     |> Enum.reject(fn {_chave, valor} -> is_nil(valor) end)
   end
+
+  @doc """
+  O caminho do perfil de uma pessoa alcançada, com a seleção (T048). Só para alcançados: quem
+  chama tem a pessoa na visão recortada.
+  """
+  @spec profile_path(Ecto.UUID.t(), Ecto.UUID.t(), map()) :: String.t()
+  def profile_path(organization_id, person_id, selecao),
+    do:
+      ~p"/network-analysis/#{organization_id}/people/#{person_id}?#{[network: Map.get(selecao, :network), window: Map.get(selecao, :window)]}"
 
   @doc """
   A letra de uma comunidade (protótipo 3.3.2, decisão de 2026-10-04): 1 → A, 26 → Z, 27 → AA.

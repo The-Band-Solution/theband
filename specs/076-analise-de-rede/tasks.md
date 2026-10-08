@@ -766,7 +766,19 @@ dá o mesmo σ, com semente e número de aleatórios na proveniência.
 **Objetivo**: o papel derivado na leitura, com o critério ao lado. **Teste independente**: rede de 20
 com percentis conhecidos dá o papel da regra a cada pessoa.
 
-- [ ] T045 [P] [US8] Derivar percentil e papel na leitura
+**Feita em 2026-10-05**, na branch `feature/1309-us8-us9` (empilhada sobre `feature/1309-us6-us7`),
+junto com a US9, com a evidência de cada defeito injetado comentada na issue de cada tarefa. O que
+divergiu, e por quê:
+
+- **T045**: o motivo é o da base, `network_too_small_for_roles`; o caso de `commands_test.exs` que
+  `refute` papel e percentil nos nós gravados é o que reprova com o defeito;
+- **T046**: a posição é o rótulo e a frase da base, e não as frases do protótipo (R21); a regra a
+  um clique vem dos limiares da base;
+- **T047**: a liderança declarada da fixture abre a página da pessoa (`pode_ver/3`) e não o
+  alcance da área; com o defeito, o perfil abre e diverge do grafo;
+- **T048**: os nomes de alcançados nas páginas Communities, Hubs e Positions levam ao perfil.
+
+- [x] T045 [P] [US8] Derivar percentil e papel na leitura
   - **Pronta quando**: T008; `contracts/algoritmos.md` `Algorithms.Position`
   - **Descrição**: `lib/the_band/network_analysis/algorithms/position.ex`: percentil por posto médio
     sobre a rede inteira, cortes e rótulos de `network.position_role`, mínimo de pessoas; chamado no
@@ -777,7 +789,7 @@ com percentis conhecidos dá o papel da regra a cada pessoa.
     `commands_test.exs` que `refute` as chaves `role`/`percentile` em `nodes`. **Defeito a injetar**:
     gravar o papel em `Commands`; o caso reprova
 
-- [ ] T046 [US8] [security] Mostrar as posições por nome, com o critério
+- [x] T046 [US8] [security] Mostrar as posições por nome, com o critério
   - **Pronta quando**: T016, T040, T045; protótipo §3 Tela 6 (3.6.1–3.6.3)
   - **Descrição**: `lib/the_band_web/live/network_analysis_live/positions.ex`: tabela por **nome**,
     sem ordenação por coluna — pessoa, comunidade, ligada a, posição em frase com os dois percentis e
@@ -796,7 +808,7 @@ com percentis conhecidos dá o papel da regra a cada pessoa.
 **Objetivo**: o perfil de uma pessoa nas duas redes. **Teste independente**: contagens e listas
 batem com as arestas da leitura.
 
-- [ ] T047 [US9] [security] Abrir o perfil só de quem se alcança
+- [x] T047 [US9] [security] Abrir o perfil só de quem se alcança
   - **Pronta quando**: T017, T045; `contracts/network-analysis.md` `profile/5`
   - **Descrição**: `Reader.profile/5`: abre se a pessoa está em `pessoas_alcancadas/2` desta chamada ou
     é a de quem consulta; `pode_ver/3` não é chamado; as duas redes; pares de fora agregados (*"N
@@ -809,7 +821,7 @@ batem com as arestas da leitura.
     `pode_ver/3` no perfil e `pessoas_alcancadas/2` no grafo; o caso da liderança declarada reprova
     pela divergência
 
-- [ ] T048 [US9] Mostrar o perfil
+- [x] T048 [US9] Mostrar o perfil
   - **Pronta quando**: T047; protótipo 3.6.4, Tela 8
   - **Descrição**: `lib/the_band_web/live/network_analysis_live/profile.ex`: por rede, as contagens com
     os rótulos de `network.degree.count`, grau e intermediação com percentil, papel, as duas listas
