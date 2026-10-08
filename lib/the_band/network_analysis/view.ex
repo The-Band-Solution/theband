@@ -18,7 +18,10 @@ defmodule TheBand.NetworkAnalysis.View do
      dentro de um agregado; nada com quem ficou fora de qualquer agregado;
   4. **supressão complementar**: o número de pessoas da rede e o tamanho dos componentes só
      aparecem com alcance parcial se as pessoas de fora que eles contam forem 0 ou ≥ k;
-  5. hubs e 7. papel são chamados por T040 e T046 a partir de `ve_posicao_de?/2`;
+  5. **hubs** (T040): só pessoas alcançadas cuja posição quem consulta pode ver (DS1), ordenadas
+     pela medida da rede inteira, empate pelo id e marcado; nunca a posição na rede inteira, nem
+     linha de pessoa de fora. Sem escopo concedido, `{:recortado, :positions_not_granted}`;
+  7. papel é chamado por T046 a partir de `ve_posicao_de?/2`;
   6. **comunidades** (T037): um bloco por comunidade com ao menos um alcançado; membros
      alcançados por id; os três mais centrais (`core_size` da base) entre os alcançados, pelo
      grau interno da rede inteira, e só com escopo concedido (DS1); tamanho e ligações da
@@ -33,6 +36,17 @@ defmodule TheBand.NetworkAnalysis.View do
   """
 
   @type alcance :: :todas | {:algumas, MapSet.t()}
+
+  # Os motivos de ausência que a leitura grava, como átomos conhecidos: o texto da leitura nunca
+  # vira átomo (A12, L54). Motivo fora desta lista levanta, e não vira ausência genérica.
+  @motivos %{
+    "network_too_small" => :network_too_small,
+    "did_not_converge" => :did_not_converge,
+    "no_reachable_person" => :no_reachable_person,
+    "component_too_small" => :component_too_small,
+    "no_edge_in_window" => :no_edge_in_window,
+    "network_too_large_for_platform" => :network_too_large_for_platform
+  }
 
   @type t :: %{
           reach: :total | :parcial | :nenhum,
@@ -49,7 +63,8 @@ defmodule TheBand.NetworkAnalysis.View do
              }}
             | {:recortado, :no_reach}
             | {:ausente, :no_edge_in_window},
-          communities: {:ok, map()} | {:recortado, :no_reach} | {:ausente, atom()}
+          communities: {:ok, map()} | {:recortado, :no_reach} | {:ausente, atom()},
+          hubs: {:ok, map()} | {:recortado, atom()} | {:ausente, atom()}
         }
 
   @doc """
@@ -66,7 +81,8 @@ defmodule TheBand.NetworkAnalysis.View do
   @spec build(map(), alcance(), alcance(), String.t() | nil, %{
           required(:min_group) => pos_integer(),
           optional(:gone) => MapSet.t(),
-          optional(:core_size) => pos_integer()
+          optional(:core_size) => pos_integer(),
+          optional(:hubs_size) => pos_integer()
         }) :: t()
   def build(leitura, reach, granted, viewer_person_id, %{min_group: k} = params) do
     nos = leitura_nos(leitura)
@@ -101,6 +117,86 @@ defmodule TheBand.NetworkAnalysis.View do
       :communities,
       comunidades(leitura, nos, base, dentro_de(alcance, reach, gone), params)
     )
+    |> Map.put(:hubs, hubs(nos, base, dentro_de(alcance, reach, gone), params))
+  end
+
+  # Regra 5 (T040; FR-032 a FR-036; R1 da segurança, A3, A11).
+  defp hubs(_nos, _base, :nenhum, _params), do: {:recortado, :no_reach}
+  defp hubs([], _base, _dentro?, _params), do: {:ausente, :no_edge_in_window}
+
+  defp hubs(_nos, %{sees_others_positions?: false}, _dentro?, _params),
+    do: {:recortado, :positions_not_granted}
+
+  defp hubs(nos, base, dentro?, params) do
+    tamanho = Map.get(params, :hubs_size, 5)
+    candidatos = Enum.filter(nos, &(dentro?.(&1["id"]) and ve_posicao_de?(base, &1["id"])))
+
+    {:ok,
+     %{
+       degree:
+         lista(candidatos, tamanho, &{:ok, &1["degree"]}, fn n ->
+           %{out_people: n["out_people"], in_people: n["in_people"]}
+         end),
+       betweenness: lista(candidatos, tamanho, &medida(&1["betweenness"]), fn _ -> %{} end),
+       closeness:
+         lista(candidatos, tamanho, &medida(&1["closeness"]), fn n ->
+           case n["distance_mean"] do
+             %{"value" => m, "reaches" => r} -> %{distance_mean: m, reaches: r}
+             _ -> %{}
+           end
+         end),
+       eigenvector:
+         candidatos
+         |> Enum.group_by(& &1["component"])
+         |> Enum.sort()
+         |> Enum.map(fn {c, membros} ->
+           %{
+             component: c,
+             rows: lista(membros, tamanho, &medida(&1["eigenvector"]), fn _ -> %{} end)
+           }
+         end)
+     }}
+  end
+
+  # Uma lista de hubs: as pessoas com valor, pela medida decrescente, empate pelo id; `tied?`
+  # marca quem tem o mesmo valor de um vizinho da lista. Sem ninguém com valor, a ausência com o
+  # motivo de quem a tem.
+  defp lista(candidatos, tamanho, valor, detalhe) do
+    com_valor = for n <- candidatos, {:ok, v} <- [valor.(n)], do: {n, v}
+
+    case com_valor do
+      [] ->
+        {:ausente, Enum.find_value(candidatos, :no_edge_in_window, &motivo_de(valor.(&1)))}
+
+      _ ->
+        linhas =
+          com_valor
+          |> Enum.sort_by(fn {n, v} -> {-v, n["id"]} end)
+          |> Enum.take(tamanho)
+
+        valores = Enum.map(linhas, &elem(&1, 1))
+
+        {:ok,
+         Enum.map(linhas, fn {n, v} ->
+           %{
+             person_id: n["id"],
+             value: {:ok, v},
+             tied?: Enum.count(valores, &(&1 == v)) > 1 or empatado_fora?(com_valor, v, linhas),
+             detail: detalhe.(n)
+           }
+         end)}
+    end
+  end
+
+  defp motivo_de({:ausente, motivo}), do: motivo
+  defp motivo_de(_valor), do: nil
+
+  # O último da lista empatado com quem ficou de fora dela também é marcado: o corte não decidiu.
+  defp empatado_fora?(com_valor, v, linhas) do
+    fora = length(com_valor) - length(linhas)
+
+    fora > 0 and
+      Enum.count(com_valor, fn {_n, x} -> x == v end) > Enum.count(linhas, &(elem(&1, 1) == v))
   end
 
   # Quem conta como alcançado nesta visão: com `:todas`, todos menos quem saiu de EO.
@@ -311,6 +407,9 @@ defmodule TheBand.NetworkAnalysis.View do
       out_weight: no["out_weight"],
       in_weight: no["in_weight"],
       betweenness: medida(no["betweenness"]),
+      closeness: medida(no["closeness"]),
+      distance_mean: distancia(no["distance_mean"]),
+      eigenvector: medida(no["eigenvector"]),
       community: no["community"],
       links_outside_reach?: ligado_fora?
     }
@@ -319,8 +418,15 @@ defmodule TheBand.NetworkAnalysis.View do
   # A medida gravada (data-model §1.2), com o motivo da ausência como átomo conhecido — nunca
   # criado a partir do dado. Leitura gravada antes da medida existir: não calculada, e não 0.
   defp medida(%{"value" => v}) when is_number(v), do: {:ok, v}
-  defp medida(%{"absent" => "network_too_small"}), do: {:ausente, :network_too_small}
+
+  defp medida(%{"absent" => motivo}) when is_map_key(@motivos, motivo),
+    do: {:ausente, @motivos[motivo]}
+
   defp medida(nil), do: {:ausente, :not_computed}
+
+  defp distancia(%{"value" => m, "reaches" => r}), do: {:ok, %{mean: m, reaches: r}}
+  defp distancia(nil), do: {:ausente, :not_computed}
+  defp distancia(outra), do: medida(outra)
 
   defp aresta(a), do: %{from: a["source"], to: a["target"], weight: a["weight"]}
 

@@ -640,7 +640,16 @@ divergiu do texto das tarefas, e por quê:
 **Objetivo**: as quatro centralidades em listas, com frase correta. **Teste independente**: estrela
 de 6 — o centro lidera grau, intermediação e proximidade.
 
-- [ ] T038 [P] [US5] Calcular distâncias de cada pessoa e a proximidade
+**Feita em 2026-10-05**, na branch `feature/1309-us5` (empilhada sobre `feature/1309-us4`), com a
+evidência de cada defeito injetado comentada na issue de cada tarefa. O que divergiu, e por quê:
+
+- **T039**: o autovetor parte de x = 1 sem normalizar, como a base declara; com uma iteração só,
+  nenhum componente converge, e com duas o de 2 pessoas converge e a estrela não — é o caso do
+  teste de não convergência. Os dois defeitos da tarefa foram injetados;
+- **T040**: o autovetor aparece de 0 a 1, e não na escala 0–100 relativa ao maior do protótipo
+  (o 100 poderia ser de alguém de fora, R1): divergência a confirmar com a pessoa mantenedora.
+
+- [x] T038 [P] [US5] Calcular distâncias de cada pessoa e a proximidade
   - **Pronta quando**: T012; `contracts/algoritmos.md` `Algorithms.Paths`
   - **Descrição**: `lib/the_band/network_analysis/algorithms/paths.ex`: `all_pairs/1`, `closeness/2`
     (Wasserman–Faust), `person_distance/1`; ligado em `Commands` (`closeness`, `distance_mean`,
@@ -651,7 +660,7 @@ de 6 — o centro lidera grau, intermediação e proximidade.
     injetar**: devolver 1/proximidade como distância média (a referência, `:318`); o caso desconexo
     reprova
 
-- [ ] T039 [P] [US5] Calcular o autovetor por componente
+- [x] T039 [P] [US5] Calcular o autovetor por componente
   - **Pronta quando**: T012; `contracts/algoritmos.md` `Algorithms.Eigenvector`
   - **Descrição**: `lib/the_band/network_analysis/algorithms/eigenvector.ex` (A + I, com peso, por
     componente, tolerância e teto da base); ligado em `Commands`
@@ -661,7 +670,7 @@ de 6 — o centro lidera grau, intermediação e proximidade.
     **Defeito a injetar**: iterar sobre A sem I; a bipartida reprova; e devolver o grau como reserva;
     o caso de não convergência reprova
 
-- [ ] T040 [US5] [security] Mostrar os hubs só entre alcançados
+- [x] T040 [US5] [security] Mostrar os hubs só entre alcançados
   - **Pronta quando**: T016, T030, T038, T039; protótipo §3 Tela 4
   - **Descrição**: `lib/the_band_web/live/network_analysis_live/hubs.ex`: quatro listas do tamanho da
     base, ordenadas pela medida, empate pelo id marcado *"tied"*; grau por sentido com os rótulos de

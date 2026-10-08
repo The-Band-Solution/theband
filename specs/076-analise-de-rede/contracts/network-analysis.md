@@ -362,6 +362,19 @@ visão é `{:ok, %{count, modularity, q_rand, blocks, thresholds}} | {:recortado
   candidatos são os alcançados cuja posição quem consulta pode ver (`View.ve_posicao_de?/2`);
 - `View.build/5` recebe `core_size` nos parâmetros (`community_core_size` da base).
 
+**Emenda de 2026-10-05 (T038–T040)**, feita no mesmo commit da implementação:
+
+- a leitura grava, por nó, `closeness`, `distance_mean` (`value` e `reaches`) e `eigenvector`
+  (`value` ou `absent: did_not_converge`); o nó da visão os carrega como `closeness`,
+  `distance_mean` (`{:ok, %{mean, reaches}}`) e `eigenvector`;
+- os motivos de ausência gravados viram átomo por uma lista fechada em `View` (`@motivos`), e
+  nunca a partir do texto (A12);
+- `hubs` da visão é `{:ok, %{degree, betweenness, closeness, eigenvector}}`; cada lista é
+  `{:ok, [hub]}` ou `{:ausente, motivo}` (nenhuma pessoa com valor: o motivo de quem não tem), e
+  `eigenvector` é `[%{component, rows}]`, com `rows` no mesmo formato. Os candidatos são os
+  alcançados cuja posição quem consulta pode ver (DS1). `tied?` marca o valor repetido na lista,
+  ou o último da lista empatado com quem ficou de fora dela. `View.build/5` recebe `hubs_size`.
+
 ## `discard_organization/2`
 
 ```elixir
