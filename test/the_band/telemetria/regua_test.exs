@@ -52,7 +52,13 @@ defmodule TheBand.Telemetria.ReguaTest do
   # Entra, e devolve o retorno e os atributos do ÚNICO passo `entrar_com_senha` que saiu.
   # Um segundo passo, ou nenhum, reprova aqui: a régua é "um passo por tentativa".
   defp entrar(identificador, senha, opts \\ []) do
-    resultado = Tenants.authenticate(identificador, senha, opts)
+    resultado =
+      Tenants.authenticate(
+        identificador,
+        senha,
+        Keyword.put_new_lazy(opts, :origem, &TheBand.OrigemDeTeste.nova/0)
+      )
+
     spans = Spans.recebidos()
 
     assert [span] = Spans.do_passo(spans, :entrar_com_senha),

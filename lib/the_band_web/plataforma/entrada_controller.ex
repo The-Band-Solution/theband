@@ -26,7 +26,8 @@ defmodule TheBandWeb.Plataforma.EntradaController do
     case Credentials.autenticar(
            email,
            Segredo.novo(texto(params, "password")),
-           Segredo.novo(texto(params, "second_factor_token"))
+           Segredo.novo(texto(params, "second_factor_token")),
+           TheBandWeb.Origem.de(conn)
          ) do
       {:ok, op} ->
         conn |> SessaoDoOperador.abrir(op) |> redirect(to: ~p"/platform/organizations")

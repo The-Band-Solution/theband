@@ -211,6 +211,77 @@ defmodule TheBand.WorkItems.TeamWorkTest do
 
       assert WorkItems.team_open_at(ctx.tenant, ctx.equipe.id, dias(-56)) == 0
     end
+
+    # O INSTANTE `desde` pertence a UM lado só (#1268). `open_at/4` avalia o estado NO instante
+    # (`criada <= desde`, `fechada > desde`): o que aconteceu exatamente ali já está na linha de
+    # base. Se a janela também contasse `>= desde`, o mesmo evento entraria duas vezes — a
+    # fechada subtraída duas vezes, a criada somada duas. Mesmo defeito que o PR #1228 corrigiu
+    # em `flow_per_person.ex`.
+    test "evento exatamente em `desde` conta uma vez, e a identidade do burn fecha", ctx do
+      ana = pessoa(ctx.tenant, "ana")
+      vincular(ctx, ana, desde: dias(-400))
+
+      desde = dias(-56)
+      ate = dias(0)
+
+      # Duas abertas antes da janela e fechadas EXATAMENTE em `desde`: já fora da linha de base.
+      # São duas, e não uma, para o erro não se cancelar: com `>=` a janela ganharia uma criada
+      # e duas fechadas a mais, e a identidade do burn deixa de fechar.
+      issue(ctx, "fechou-na-borda-1", [ana], criada: dias(-100), fechada: desde)
+      issue(ctx, "fechou-na-borda-2", [ana], criada: dias(-90), fechada: desde)
+      # Criada EXATAMENTE em `desde` e ainda aberta: já dentro da linha de base.
+      issue(ctx, "abriu-na-borda", [ana], criada: desde, fechada: nil)
+      # Criada dentro da janela e ainda aberta.
+      issue(ctx, "dentro", [ana], criada: dias(-20), fechada: nil)
+
+      base = WorkItems.team_open_at(ctx.tenant, ctx.equipe.id, desde)
+      aberto_agora = WorkItems.team_open_at(ctx.tenant, ctx.equipe.id, ate)
+      assert base == 1
+      assert aberto_agora == 2
+
+      serie =
+        WorkItems.team_state_changes_by_period(ctx.tenant, ctx.equipe.id, :semana,
+          desde: desde,
+          ate: ate
+        )
+
+      criadas = Enum.sum(Enum.map(serie, & &1.criadas))
+      fechadas = Enum.sum(Enum.map(serie, & &1.fechadas))
+
+      assert base + criadas - fechadas == aberto_agora, """
+      A identidade do burn não fecha: linha de base #{base} + criadas #{criadas} − fechadas
+      #{fechadas} ≠ aberto agora #{aberto_agora}. O evento em `desde` entrou nos dois lados.
+      """
+
+      assert {criadas, fechadas} == {1, 0}, """
+      A janela é (desde, ate]: a criada e as fechadas em `desde` já estão decididas na linha de
+      base, e contá-las também na janela as põe dos dois lados do burn.
+      """
+
+      por_equipe =
+        WorkItems.team_state_changes_by_team(ctx.tenant, [ctx.equipe.id], :semana,
+          desde: desde,
+          ate: ate
+        )
+
+      serie_da_faisca = Map.fetch!(por_equipe, ctx.equipe.id)
+
+      base_da_faisca =
+        Map.fetch!(
+          WorkItems.team_open_at_by_team(ctx.tenant, [ctx.equipe.id], desde),
+          ctx.equipe.id
+        )
+
+      criadas_f = Enum.sum(Enum.map(serie_da_faisca, & &1.criadas))
+      fechadas_f = Enum.sum(Enum.map(serie_da_faisca, & &1.fechadas))
+
+      assert base_da_faisca + criadas_f - fechadas_f == aberto_agora, """
+      A faísca do cartão não fecha a identidade: #{base_da_faisca} + #{criadas_f} − #{fechadas_f}
+      ≠ #{aberto_agora}. Ela conta a mesma janela por outra consulta, que também é (desde, ate].
+      """
+
+      assert {criadas_f, fechadas_f} == {1, 0}
+    end
   end
 
   describe "ausência é nomeada" do

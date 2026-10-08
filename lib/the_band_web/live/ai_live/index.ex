@@ -117,7 +117,7 @@ defmodule TheBandWeb.AILive.Index do
   end
 
   def handle_event("delete", _params, socket) do
-    case AI.delete(socket.assigns.current_tenant) do
+    case AI.delete(socket.assigns.current_tenant, socket.assigns.current_user.id) do
       :ok ->
         {:noreply,
          socket

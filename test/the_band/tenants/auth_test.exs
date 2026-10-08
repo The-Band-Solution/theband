@@ -60,10 +60,14 @@ defmodule TheBand.Tenants.AuthTest do
       {:ok, _} = Tenants.revoke_person(ctx.tenant, ligada.id, ctx.admin.id)
 
       recusas = [
-        Tenants.authenticate(com_senha.email, "senha-errada-mas-longa"),
-        Tenants.authenticate("ninguem@example.test", @senha),
-        Tenants.authenticate(sem_senha.email, @senha),
-        Tenants.authenticate("fulana", @senha)
+        Tenants.authenticate(com_senha.email, "senha-errada-mas-longa",
+          origem: TheBand.OrigemDeTeste.nova()
+        ),
+        Tenants.authenticate("ninguem@example.test", @senha,
+          origem: TheBand.OrigemDeTeste.nova()
+        ),
+        Tenants.authenticate(sem_senha.email, @senha, origem: TheBand.OrigemDeTeste.nova()),
+        Tenants.authenticate("fulana", @senha, origem: TheBand.OrigemDeTeste.nova())
       ]
 
       for recusa <- recusas do
@@ -76,14 +80,22 @@ defmodule TheBand.Tenants.AuthTest do
   describe "identificador" do
     test "e-mail entra, sem diferenciar caixa", ctx do
       user = conta_com_senha(ctx.tenant)
-      assert {:ok, entrada} = Tenants.authenticate(String.upcase(user.email), @senha)
+
+      assert {:ok, entrada} =
+               Tenants.authenticate(String.upcase(user.email), @senha,
+                 origem: TheBand.OrigemDeTeste.nova()
+               )
+
       assert entrada.id == user.id
       assert entrada.tenant.id == ctx.tenant.id, "o tenant sai da conta, nunca de escolha"
     end
 
     test "username do GitHub entra pelo elo vigente", ctx do
       ligada = com_elo(ctx.tenant, ctx.admin, "beltrana")
-      assert {:ok, entrada} = Tenants.authenticate("beltrana", @senha)
+
+      assert {:ok, entrada} =
+               Tenants.authenticate("beltrana", @senha, origem: TheBand.OrigemDeTeste.nova())
+
       assert entrada.id == ligada.id
     end
 
@@ -94,8 +106,12 @@ defmodule TheBand.Tenants.AuthTest do
       outro_admin = user_fixture(outro)
       _ligada_b = com_elo(outro, outro_admin, "sicrana")
 
-      assert {:error, :invalid_credentials} = Tenants.authenticate("sicrana", @senha)
-      assert {:ok, entrada} = Tenants.authenticate(ligada_a.email, @senha)
+      assert {:error, :invalid_credentials} =
+               Tenants.authenticate("sicrana", @senha, origem: TheBand.OrigemDeTeste.nova())
+
+      assert {:ok, entrada} =
+               Tenants.authenticate(ligada_a.email, @senha, origem: TheBand.OrigemDeTeste.nova())
+
       assert entrada.tenant.id == ctx.tenant.id
     end
   end
@@ -106,10 +122,14 @@ defmodule TheBand.Tenants.AuthTest do
 
       for _ <- 1..3 do
         assert {:error, :invalid_credentials} =
-                 Tenants.authenticate(user.email, "errada-e-comprida-1")
+                 Tenants.authenticate(user.email, "errada-e-comprida-1",
+                   origem: TheBand.OrigemDeTeste.nova()
+                 )
       end
 
-      assert {:error, {:throttled, s}} = Tenants.authenticate(user.email, @senha)
+      assert {:error, {:throttled, s}} =
+               Tenants.authenticate(user.email, @senha, origem: TheBand.OrigemDeTeste.nova())
+
       assert s > 0 and s <= 60
 
       # Janela vencida: recuar o último erro no banco (não se espera em teste).
@@ -118,7 +138,9 @@ defmodule TheBand.Tenants.AuthTest do
         set: [last_failed_at: DateTime.add(DateTime.utc_now(:second), -120, :second)]
       )
 
-      assert {:ok, entrada} = Tenants.authenticate(user.email, @senha)
+      assert {:ok, entrada} =
+               Tenants.authenticate(user.email, @senha, origem: TheBand.OrigemDeTeste.nova())
+
       assert entrada.failed_attempts == 0
     end
 
@@ -130,13 +152,21 @@ defmodule TheBand.Tenants.AuthTest do
     # mensagem neste OTP.
     test "a conta em espera paga o custo do hash antes de recusar", ctx do
       user = conta_com_senha(ctx.tenant)
-      for _ <- 1..3, do: Tenants.authenticate(user.email, "errada-e-comprida-1")
+
+      for _ <- 1..3,
+          do:
+            Tenants.authenticate(user.email, "errada-e-comprida-1",
+              origem: TheBand.OrigemDeTeste.nova()
+            )
 
       anterior = Application.get_env(:bcrypt_elixir, :log_rounds)
       Application.put_env(:bcrypt_elixir, :log_rounds, 12)
 
       try do
-        {us, resultado} = :timer.tc(fn -> Tenants.authenticate(user.email, @senha) end)
+        {us, resultado} =
+          :timer.tc(fn ->
+            Tenants.authenticate(user.email, @senha, origem: TheBand.OrigemDeTeste.nova())
+          end)
 
         assert {:error, {:throttled, _}} = resultado
 
@@ -154,7 +184,12 @@ defmodule TheBand.Tenants.AuthTest do
 
       resultados =
         1..10
-        |> Task.async_stream(fn _ -> Tenants.authenticate(user.email, "errada-e-comprida-1") end,
+        |> Task.async_stream(
+          fn _ ->
+            Tenants.authenticate(user.email, "errada-e-comprida-1",
+              origem: TheBand.OrigemDeTeste.nova()
+            )
+          end,
           max_concurrency: 10,
           ordered: false
         )
@@ -181,7 +216,10 @@ defmodule TheBand.Tenants.AuthTest do
         nil
       )
 
-      Tenants.authenticate(user.email, "errada-e-comprida-1")
+      Tenants.authenticate(user.email, "errada-e-comprida-1",
+        origem: TheBand.OrigemDeTeste.nova()
+      )
+
       :telemetry.detach(id)
 
       consultas = coletar(ref, [])
@@ -203,7 +241,10 @@ defmodule TheBand.Tenants.AuthTest do
     # `user_sessions` (T010, T013). O giro de `users.session_token` saiu na T014a.
     test "trocar exige a atual e sobe a época da senha (FR-015)", ctx do
       user = conta_com_senha(ctx.tenant)
-      {:ok, entrada} = Tenants.authenticate(user.email, @senha)
+
+      {:ok, entrada} =
+        Tenants.authenticate(user.email, @senha, origem: TheBand.OrigemDeTeste.nova())
+
       epoca_antiga = entrada.password_epoch
 
       assert {:error, :invalid_current} =
@@ -218,8 +259,14 @@ defmodule TheBand.Tenants.AuthTest do
                Tenants.change_password(ctx.tenant, user.id, @senha, "nova-bem-comprida-1")
 
       assert trocada.password_epoch == epoca_antiga + 1
-      assert {:ok, _} = Tenants.authenticate(user.email, "nova-bem-comprida-1")
-      assert {:error, :invalid_credentials} = Tenants.authenticate(user.email, @senha)
+
+      assert {:ok, _} =
+               Tenants.authenticate(user.email, "nova-bem-comprida-1",
+                 origem: TheBand.OrigemDeTeste.nova()
+               )
+
+      assert {:error, :invalid_credentials} =
+               Tenants.authenticate(user.email, @senha, origem: TheBand.OrigemDeTeste.nova())
     end
 
     test "curta demais é changeset inválido, nunca gravada", ctx do
@@ -232,14 +279,22 @@ defmodule TheBand.Tenants.AuthTest do
       user = conta_com_senha(ctx.tenant)
 
       assert {:ok, temporaria} = Tenants.reset_password(ctx.tenant, user.id, ctx.admin.id)
-      assert {:ok, entrada} = Tenants.authenticate(user.email, temporaria)
+
+      assert {:ok, entrada} =
+               Tenants.authenticate(user.email, temporaria, origem: TheBand.OrigemDeTeste.nova())
+
       assert entrada.must_change_password
 
       # A temporária nunca fica legível: o hash não a contém.
       refute entrada.password_hash =~ temporaria
 
       {:ok, _} = Tenants.change_password(ctx.tenant, user.id, temporaria, "definitiva-comprida-1")
-      {:ok, depois} = Tenants.authenticate(user.email, "definitiva-comprida-1")
+
+      {:ok, depois} =
+        Tenants.authenticate(user.email, "definitiva-comprida-1",
+          origem: TheBand.OrigemDeTeste.nova()
+        )
+
       refute depois.must_change_password
     end
 

@@ -21,7 +21,8 @@ defmodule TheBand.Platform.LimiteDoSegundoFatorTest do
   defp sem_espera(op),
     do: Repo.update_all(from(o in Operator, where: o.id == ^op.id), set: [last_failed_at: nil])
 
-  defp entrar(email, senha, c), do: Credentials.autenticar(email, Segredo.novo(senha), c)
+  defp entrar(email, senha, c),
+    do: Credentials.autenticar(email, Segredo.novo(senha), c, TheBand.OrigemDeTeste.nova())
 
   test "C1: nove erros não travam, o décimo trava, o certo é recusado, e o reinício destrava" do
     {r, _} = quieto(fn -> pelo_caminho_real() end)
