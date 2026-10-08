@@ -55,8 +55,10 @@ defmodule TheBand.MixProject do
       # A proteção é `test/the_band/cloak_modos_inalcancaveis_test.exs`. ESTA EXCEÇÃO CAI se:
       #   1. aparecer em `lib/` ou `config/` um cipher do Cloak que não seja o AES.GCM;
       #   2. aparecer `Cloak.Ecto.PBKDF2`;
-      #   3. `cloak` ou `cloak_ecto` mudarem de versão — com o conserto, a entrada fica obsoleta e
-      #      o `hex.audit` avisa.
+      #   3. `cloak` ou `cloak_ecto` mudarem de versão: o teste 3 reprova. Se a versão nova for a
+      #      consertada, o `hex.audit` também avisa que a entrada ficou obsoleta.
+      # As condições 1 e 2 são medidas também em execução (os ciphers do Vault e o @behaviour dos
+      # módulos compilados), e não só no texto.
       hex: [
         ignore_advisories: [
           "EEF-CVE-2026-43966",
