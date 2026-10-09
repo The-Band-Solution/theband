@@ -1025,4 +1025,66 @@ defmodule TheBand.WorkItems.Queries do
       distinct: p.collected_issue_id,
       order_by: [asc: p.collected_issue_id, desc: p.inserted_at, desc: p.id]
   end
+
+  @type assignment_pair :: %{
+          collected_issue_id: Ecto.UUID.t(),
+          opened_at: DateTime.t(),
+          assigned: boolean(),
+          author_person_id: Ecto.UUID.t() | nil,
+          author_account_type: String.t() | nil,
+          assignee_person_id: Ecto.UUID.t() | nil,
+          assignee_account_type: String.t() | nil
+        }
+
+  @doc """
+  Os pares (issue, responsável vigente) das issues abertas desde `since` nos repositórios dados —
+  feature 076, T023 (FR-005, FR-009; research.md R12; R9 da segurança;
+  `specs/076-analise-de-rede/contracts/fronteiras.md`, `assignment_pairs/3`).
+
+  Um elemento por par; issue sem responsável vigente aparece **uma vez**, com `assigned: false`.
+
+  ## O tenant em cada tabela da junção
+
+  A issue no `where`; o responsável e as duas pessoas no `on` das junções à esquerda, para a
+  linha de outro tenant **não** casar: o responsável de T2 apontando, à mão, para a issue de T1
+  não vira par (A1), e a pessoa de outro tenant vira `nil` — sem pessoa ligada —, e nunca nó. As
+  FKs de `issue_assignees` e de `collected_issues.author_person_id` são simples: nada no banco
+  impede a linha cruzada. A organização entra pelos repositórios, que quem chama buscou por id e
+  tenant (A2).
+
+  As pessoas são lidas pela tabela, sem o schema de EO, como `Quality.review_pairs/3` lê as
+  avaliações: só o id, para o filtro de tenant. O tipo de conta vem de `EO.account_types/2`.
+
+  **Não lê `author_login` nem `issue_assignees.login`** (R9): o tipo da conta não ligada é o
+  gravado na coleta (R13), e o login não tem como chegar à leitura nem ao log.
+  """
+  @spec assignment_pairs(Tenant.t(), [Ecto.UUID.t()], since: DateTime.t()) :: [assignment_pair()]
+  def assignment_pairs(_tenant, [], _opts), do: []
+
+  def assignment_pairs(%Tenant{id: tenant_id}, repository_ids, since: %DateTime{} = desde) do
+    Repo.all(
+      from i in CollectedIssue,
+        left_join: a in IssueAssignee,
+        on:
+          a.collected_issue_id == i.id and a.tenant_id == ^tenant_id and
+            is_nil(a.no_longer_observed_at),
+        left_join: pa in "eo_people",
+        on: pa.id == i.author_person_id and pa.tenant_id == type(^tenant_id, :binary_id),
+        left_join: pr in "eo_people",
+        on: pr.id == a.person_id and pr.tenant_id == type(^tenant_id, :binary_id),
+        where:
+          i.tenant_id == ^tenant_id and i.observed_repository_id in ^repository_ids and
+            i.external_created_at >= ^desde and is_nil(i.no_longer_observed_at),
+        order_by: [asc: i.external_created_at, asc: i.id, asc: pr.id, asc: a.id],
+        select: %{
+          collected_issue_id: i.id,
+          opened_at: i.external_created_at,
+          assigned: not is_nil(a.id),
+          author_person_id: type(pa.id, :binary_id),
+          author_account_type: i.author_account_type,
+          assignee_person_id: type(pr.id, :binary_id),
+          assignee_account_type: a.account_type
+        }
+    )
+  end
 end

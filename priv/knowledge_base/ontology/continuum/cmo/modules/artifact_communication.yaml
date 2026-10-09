@@ -10,6 +10,12 @@ module:
       deliberada: participação é relação entre agente e EVENTO — artefato não tem
       participante. É o ato, e não o texto, que dá lugar ontológico para "quem
       participou".
+    en: >
+      The act of commenting on a project artifact, the published comment, the discussion
+      that the comments compose, and the participation of agents in it. The chain is
+      deliberate: participation is a relation between an agent and an EVENT — an artifact
+      has no participant. It is the act, and not the text, that gives an ontological place
+      to "who participated".
   provenance:
     source_type: project_decision
     reference: "Issue #400; a lacuna está documentada na #318"
@@ -24,6 +30,10 @@ concepts:
         Ato comunicativo de um agente sobre um artefato do projeto, que publica um
         comentário no fio de discussão desse artefato. É evento: acontece num
         instante, tem autor, e não muda depois de ocorrido.
+      en: >
+        Communicative act of an agent about a project artifact, which publishes a comment on
+        that artifact's discussion thread. It is an event: it happens at an instant, has an
+        author, and does not change after it has occurred.
     classification: { ufo_category: action, ontouml_stereotype: kind }
     examples: ["responder uma dúvida numa issue", "registrar um bloqueio no fio"]
 
@@ -37,6 +47,11 @@ concepts:
         (spo.artifact): não é produzido para ser entregue nem consumido por
         atividade — é comunicação sobre o artefato. A distinção é a razão de este
         módulo existir (#318).
+      en: >
+        Written manifestation, uniquely identified, published by a commenting act on an
+        artifact's discussion thread. It is NOT a process artifact (spo.artifact): it is not
+        produced to be delivered nor consumed by an activity — it is communication about the
+        artifact. The distinction is the reason this module exists (#318).
     classification: { ufo_category: social_object, ontouml_stereotype: kind }
     examples: ["'isso quebrou no staging?'", "'bloqueado pela credencial do tenant'"]
 
@@ -48,6 +63,10 @@ concepts:
         O coletivo dos comentários publicados sobre um mesmo artefato. Existe a
         partir do primeiro comentário; artefato sem comentário não tem discussão —
         e "sem discussão" é fato distinto de "discussão não coletada", como sempre.
+      en: >
+        The collective of the comments published about the same artifact. It exists from the
+        first comment on; an artifact without comments has no discussion — and "no
+        discussion" is a fact distinct from "discussion not collected", as always.
     classification: { ufo_category: collective, ontouml_stereotype: kind }
 
   - id: cmo.discussion_participation
@@ -59,6 +78,11 @@ concepts:
         de comentar dele ali. Nunca um booleano: a participação desce até os
         comentários que a evidenciam — quantos, de quando a quando. É o conceito
         que permite afirmar colaboração sem fingir que ela é tarefa executada.
+      en: >
+        Relator that connects an agent to the discussion of an artifact, founded on that
+        agent's commenting acts there. Never a boolean: the participation goes down to the
+        comments that evidence it — how many, from when to when. It is the concept that
+        allows asserting collaboration without pretending that it is a performed task.
     classification: { ufo_category: relator, ontouml_stereotype: relator }
 
 relations:

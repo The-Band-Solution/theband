@@ -138,11 +138,20 @@ entrada recusar. Hoje isso **é aceito**, e o teste que o mede já existe:
   - **Feita quando**: as cinco formas de encerrar (sair, definir senha, desativar, giro, validade) valem no servidor; a tela não diz qual delas foi; nenhum código em `lib/` lê `users.session_token`
   - **Teste**: `cookie_de_sessao_evidencia_test.exs` — a afirmação 3 passa a ler **o que está na linha** de `user_sessions` (o que o dump dá) e vai a `/sign-in`, **com o par positivo**: o bruto de `abrir/1`, com a mesma chave, é aceito. Mais: sair e reenviar o cookie guardado → `/sign-in` (S5); `POST /set-password` com cookie de sessão encerrada → `/sign-in` e `password_hash` inalterado (S3); sessão de 8 dias em `POST /profile/password` → `/sign-in` (S6)
 
-- [ ] **T014** Remover a coluna antiga — [#879](https://github.com/The-Band-Solution/theband/issues/879)
-  - **Pronta quando**: T013 concluída **e em produção** — não antes
-  - **Descrição**: migração **separada** que remove `users.session_token`. Separada de propósito: enquanto a coluna existe, voltar atrás custa um deploy; depois de apagá-la, custa um backup. E o padrão de token de sessão da varredura é **aposentado** junto, porque o controle positivo dele planta numa tabela temporária de mesmo nome e continuaria dizendo "limpo" sobre uma coluna que não existe (S12)
+- [ ] **T014** Remover a coluna antiga — [#879](https://github.com/The-Band-Solution/theband/issues/879) — **dividida em dois passos em 2026-09-30**
+  - **Por que dois passos**: a v0.11.0, em produção, ainda **escreve** `users.session_token` (o giro na troca de senha e na desativação, mantido para o rollback). O rollback no Dokploy troca a imagem **sem desfazer migração** (`docs/producao/runbook.md` §5). Remover a coluna na mesma release que para de escrevê-la quebraria a volta para a v0.11.0: trocar a senha e desativar falhariam por coluna inexistente. O runbook exige ADR para migração que quebre o rollback, e os dois passos o evitam
+  - **Pronta quando**: T013 concluída **e em produção** — está, desde a v0.11.0
+
+- [x] **T014a** Parar de escrever e de ler a coluna — [#879](https://github.com/The-Band-Solution/theband/issues/879) — *feita em 2026-09-30*
+  - **Descrição**: sai o campo `session_token` do schema `User`, o giro em `desativar_changeset/2` e em `senha_changeset/3`, e `User.novo_token/0`. A coluna continua no banco, sem uso. Voltar para a v0.11.0 continua funcionando
+  - **Feita quando**: nenhum código em `lib/` lê nem escreve a coluna
+  - **Teste**: `sessao_pela_tabela_test.exs` — os quatro caminhos que a giravam (entrar, trocar a senha, reiniciar, desativar) deixam a coluna nula; com a escrita reinjetada, reprova
+
+- [ ] **T014b** Remover a coluna, na release **seguinte** à da T014a — [#879](https://github.com/The-Band-Solution/theband/issues/879)
+  - **Pronta quando**: T014a em produção. A volta para a versão da T014a é segura, porque ela não toca a coluna
+  - **Descrição**: migração que remove `users.session_token`, com `down` que a recria **vazia**. E o padrão de token de sessão da varredura é **aposentado** junto: o controle positivo dele planta numa tabela temporária de mesmo nome, e continuaria dizendo "limpo" sobre uma coluna que não existe (S12). Os testes que ainda leem a coluna por SQL (os da T012 e o do formato antigo do cookie) saem ou mudam junto
   - **Feita quando**: a coluna não existe; nenhum código a referencia; `Padroes.todos/0` não declara mais o padrão da coluna
-  - **Teste**: abrir sessão real, `pg_dump`, busca **literal** do bruto → 0 ocorrências; e o mesmo teste, antes da T014, acha o bruto de uma conta em `users.session_token` — sem o par, o 0 não mede nada
+  - **Teste**: abrir sessão real e procurar o bruto, literal, em toda coluna de texto do banco → 0 ocorrências
 
 - [x] **T020** Apagar as sessões que deixaram de valer há 90 dias — [#1007](https://github.com/The-Band-Solution/theband/issues/1007) — *feita em 2026-09-29*
   - **Pronta quando**: T011 concluída
@@ -160,19 +169,23 @@ trocar depois de três meses. Pedir, não impedir.
 **Teste independente**: uma credencial com data de quatro meses atrás faz a tela pedir a
 troca; uma de ontem, não; uma sem data aparece como **idade desconhecida**.
 
-- [ ] **T017** Saber a idade de cada credencial — [#882](https://github.com/The-Band-Solution/theband/issues/882)
+- [x] **T017** Saber a idade de cada credencial — [#882](https://github.com/The-Band-Solution/theband/issues/882) — *feita em 2026-10-03*
+  - **Contrato**: [contracts/idade-da-credencial.md](contracts/idade-da-credencial.md), avaliado antes do código em [seguranca-idade-da-credencial.md](seguranca-idade-da-credencial.md)
   - **Pronta quando**: nada além do repositório — `validated_at` já existe nos dois schemas
   - **Descrição**: função única que classifica uma credencial em `:no_prazo`, `:vencida` ou `:idade_desconhecida`, a partir de `validated_at` e da data da última troca. Vale para `tool_credentials` **e** `ai_provider_credentials` — são o mesmo tipo de segredo (FR-002) e a política é a mesma. Sem data, é `:idade_desconhecida`, **nunca** `:no_prazo`: ausência de data não é prova de juventude — FR-019, mesma família da FR-015
   - **Feita quando**: os três estados são distinguíveis; o limite de três meses vive num lugar só, não espalhado por tela
   - **Teste**: `test/the_band/credenciais/idade_test.exs` — data de 4 meses atrás dá `:vencida`; de ontem, `:no_prazo`; **`nil` dá `:idade_desconhecida`, e o teste afirma explicitamente que não é `:no_prazo`**. É a violação, não o caminho feliz
 
-- [ ] **T018** Pedir a troca na tela que administra — [#883](https://github.com/The-Band-Solution/theband/issues/883)
+- [x] **T018** Pedir a troca na tela que administra — [#883](https://github.com/The-Band-Solution/theband/issues/883) — *feita em 2026-10-03*, contra o protótipo aprovado (versão 2, [`prototipo/`](prototipo/)) e o parecer [`seguranca-c1-mesma-chave.md`](seguranca-c1-mesma-chave.md); contrato em [`contracts/pedido-de-troca.md`](contracts/pedido-de-troca.md)
+  - **Entregue**: `TheBandWeb.IdadeDaCredencial` (marca de três estados, célula, aviso, intervalo); `/tools` com a coluna `registered`, o pedido por rótulo (1.3), o de desativar a antiga (1.7), a inativa que pede remoção (1.8) e o rodapé; `/ai` com `key registered`, o pedido (2.2), a data inferida (2.5), a chave do ambiente como idade desconhecida (2.6), `previous key` (2.7), o flash da mesma chave (2.8, C.1) e a nota do formulário (2.9); a marca `replace` nas abas (A.1); `AI.fetch_sem_segredo/2`; o `@moduledoc` de `/ai` corrigido (R2)
+  - **Achado ao testar (condição 4)**: o Ecto em `:debug` logava a chave do modelo em claro ao gravá-la — corrigido com `log: false` em `AI.put/3`; o mesmo vazamento na credencial de ferramenta foi medido e vai na [#1222](https://github.com/The-Band-Solution/theband/issues/1222)
+  - **Obrigações herdadas da avaliação de segurança**: a `API_KEY` do ambiente aparece como *idade desconhecida*, nunca no prazo (achado 3); o `case` sobre o estado enumera os três átomos, sem `_ ->` (achado 4)
   - **Pronta quando**: T017 concluída
   - **Descrição**: nas telas de credencial de ferramenta e de provedor de modelos, mostrar o pedido com **há quanto tempo** ela está em uso — *"registrada há 4 meses"*, não *"credencial antiga"*. O primeiro é acionável; o segundo, não. A coleta **não para**: é pedido, não bloqueio. FR-016, FR-017
   - **Feita quando**: a tela distingue os três estados; nenhuma ação é impedida pelo estado `:vencida`
-  - **Teste**: `test/the_band_web/live/idade_da_credencial_test.exs` — com credencial de 4 meses, o HTML traz o pedido **e o tempo**; com a de ontem, não traz nada; e uma coleta disparada com credencial vencida **continua funcionando**. O último é o que impede a política virar queda de serviço
+  - **Teste**: `test/the_band_web/live/idade_da_credencial_test.exs` — com credencial de 4 meses, o HTML traz o pedido **e o tempo**; com a de ontem, não traz nada; e uma coleta disparada com credencial vencida **continua funcionando**. O último é o que impede a política virar queda de serviço. E `test/the_band_web/live/mesma_chave_test.exs`, as seis condições do parecer C.1
 
-- [ ] **T019** [P] Registrar a data da troca — [#884](https://github.com/The-Band-Solution/theband/issues/884)
+- [x] **T019** [P] Registrar a data da troca — [#884](https://github.com/The-Band-Solution/theband/issues/884) — *feita em 2026-10-03*
   - **Pronta quando**: T017 concluída
   - **Descrição**: trocar o segredo grava a data e zera a contagem. Sem esse registro, a próxima cobrança não sabe se a anterior foi atendida, e a tela pede de novo a quem acabou de trocar. FR-018
   - **Feita quando**: depois da troca, o estado volta a `:no_prazo`; a data anterior não é perdida

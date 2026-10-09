@@ -8,12 +8,14 @@ defmodule TheBandWeb.ConnCase do
   alias TheBand.Segredo
   alias TheBand.Tenants.Sessions
   alias TheBand.Tenants.User
+  alias TheBandWeb.Plataforma.SessaoDoOperador
 
   using do
     quote do
       use TheBandWeb, :verified_routes
 
-      import Phoenix.ConnTest
+      # O `build_conn/0` é o da casa (spec 077, T007): cada conexão com origem própria.
+      import Phoenix.ConnTest, except: [build_conn: 0]
       import Phoenix.LiveViewTest
       import Plug.Conn
 
@@ -40,7 +42,19 @@ defmodule TheBandWeb.ConnCase do
   setup tags do
     pid = Sandbox.start_owner!(TheBand.Repo, shared: not tags[:async])
     on_exit(fn -> Sandbox.stop_owner(pid) end)
-    {:ok, conn: Phoenix.ConnTest.build_conn()}
+    {:ok, conn: build_conn()}
+  end
+
+  @doc """
+  `Phoenix.ConnTest.build_conn/0` com uma origem própria — spec 077, T007.
+
+  O de fábrica dá `127.0.0.1` a toda conexão, e com o limite por origem os testes assíncronos que
+  entram e erram dividiriam um contador. Aqui cada conexão nova é um visitante novo, de um `/64`
+  de documentação; `recycle/1` preserva o endereço, então as requisições seguintes da mesma
+  conversa contam juntas, como as de um navegador.
+  """
+  def build_conn do
+    %{Phoenix.ConnTest.build_conn() | remote_ip: TheBand.OrigemDeTeste.endereco()}
   end
 
   @doc """
@@ -65,6 +79,22 @@ defmodule TheBandWeb.ConnCase do
   end
 
   @doc """
+  Entra como operador da plataforma — spec 070. Abre uma sessão **de verdade** por
+  `SessaoDoOperador.abrir/2` e põe na requisição o cookie cifrado que a resposta gravaria, como o
+  navegador faria. Sem bcrypt nem TOTP: a entrada pelo formulário tem testes próprios.
+  """
+  def log_in_operador(conn, op) do
+    resposta =
+      Phoenix.ConnTest.build_conn()
+      |> Map.put(:secret_key_base, TheBandWeb.Endpoint.config(:secret_key_base))
+      |> SessaoDoOperador.abrir(op)
+      |> Plug.Conn.send_resp(200, "")
+
+    %{value: valor} = resposta.resp_cookies["_the_band_operator"]
+    Plug.Test.put_req_cookie(conn, "_the_band_operator", valor)
+  end
+
+  @doc """
   Declara que esta conta É esta pessoa observada — issue #369.
 
   Sem o elo, a aba de trabalho fecha para todo mundo, inclusive para a própria pessoa: a
@@ -76,7 +106,21 @@ defmodule TheBandWeb.ConnCase do
   no setup de cada teste que depende dele.
   """
   def elo_de_identidade(tenant, user, pessoa) do
-    {:ok, ligada} = TheBand.Tenants.declare_person(tenant, user.id, pessoa.id, user.id)
+    # Quem declara é um administrador ativo da organização, como na tela: desde a 072 (R2), o
+    # ato confere o ator relido, e a própria conta, se for membro, não se declara.
+    import Ecto.Query, only: [from: 2]
+
+    admin_id =
+      TheBand.Repo.one(
+        from(u in TheBand.Tenants.User,
+          where: u.tenant_id == ^tenant.id and u.role == "admin" and is_nil(u.disabled_at),
+          order_by: u.inserted_at,
+          limit: 1,
+          select: u.id
+        )
+      ) || user.id
+
+    {:ok, ligada} = TheBand.Tenants.declare_person(tenant, user.id, pessoa.id, admin_id)
     ligada
   end
 

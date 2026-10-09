@@ -103,6 +103,13 @@ derivation_rule:
           substituido_por_outro:
             { pt-BR: "substituído por outro token", en: "replaced by another token" }
           outro: { pt-BR: "outro", en: "other" }
+          organizacao_suspensa: { pt-BR: "organização suspensa", en: "organisation suspended" }
+        # Gravada, e nunca oferecida — spec 070, T015, FR-013. A suspensão de uma organização
+        # revoga todos os tokens dela na mesma transação, e grava esta cláusula. Ninguém a escolhe
+        # no select: oferecê-la deixaria uma pessoa afirmar que a organização foi suspensa.
+        # `ApiTokens.clausulas_de_revogacao/0` continua lendo só `clausulas`.
+        clausulas_so_registradas:
+          - organizacao_suspensa
 
     rate_limit:
       name:

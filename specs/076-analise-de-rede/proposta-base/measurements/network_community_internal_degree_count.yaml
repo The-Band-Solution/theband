@@ -1,0 +1,37 @@
+measurement:
+  id: network.community_internal_degree.count
+  version: 1
+  name:
+    pt-BR: "Grau interno: com quantas pessoas da própria comunidade a pessoa se liga"
+    en: "Internal degree: how many people of their own community a person is linked to"
+  answers_information_need: [network.structure]
+  value_type: count
+  unit: people
+
+  formula:
+    expression: >
+      Para u na comunidade k de network.communities.count:
+        internal_degree(u) = pessoas distintas v ≠ u em k com aresta u → v ou v → u  [pessoas]
+      Os "mais centrais" da comunidade são as até 3 pessoas de maior internal_degree,
+      desempate pelo identificador interno (network.analysis.parameters.community_core_size).
+    inputs: [network_edges, network.communities.count]
+
+  scope:
+    levels: [person, community]
+    filters:
+      - "os mais centrais nomeados são só os do alcance de quem consulta; quem está fora não entra nomeado (spec 076, US4, FR-028)"
+    period: "a janela da leitura"
+
+  limitations:
+    - "Conta pessoas da mesma comunidade, e não peso: duas pessoas com 1 e com 40 issues em comum contam igual."
+    - "Depende da partição, que é uma entre várias de modularidade parecida."
+
+  misinterpretations:
+    - "Ler os 'mais centrais' como líderes, coordenadores ou donos da comunidade."
+    - "A medida não avalia a pessoa."
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: "spec 076, US4, FR-028"
+    note: "É o 'Membros mais centrais' da referência (`dashboard_team_graph.py:420-436`), que usa `subgraph.degree` do grafo dirigido e conta o par recíproco duas vezes; aqui, pessoas distintas."

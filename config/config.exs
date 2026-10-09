@@ -11,6 +11,11 @@ config :the_band,
   ecto_repos: [TheBand.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+# O log embutido do Ecto fica desligado em todo ambiente — issue #1222. Em `:debug` ele loga os
+# parâmetros antes de o tipo cifrar, e o segredo saía em claro. Quem loga as consultas é
+# `TheBand.Repo.LogDaConsulta`, que redige os parâmetros das tabelas com campo cifrado.
+config :the_band, TheBand.Repo, log: false
+
 # O catálogo de mensagens (feature 047). O padrão é "en" porque o msgid É a frase
 # que a tela mostra hoje (research R2) — trocar a plataforma para pt é trocar a
 # linha do :gettext quando o catálogo pt fechar, e só ela (FR-005). Ela vive no app
@@ -77,7 +82,17 @@ config :tailwind,
 # uma vez por requisição.
 config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id, :tenant_id, :user_id]
+  # `:operator_id` — spec 070, T016, achado O14. O operador da plataforma não é conta de
+  # organização e não tem `user_id`: sem a chave aqui, a linha de log de um ato dele sairia sem
+  # dizer quem fez, mesmo com `Logger.metadata(operator_id: …)` preenchido.
+  metadata: [:request_id, :tenant_id, :user_id, :operator_id]
+
+# Os parâmetros que nunca chegam ao log — spec 070, T016, achado A10. O padrão do Phoenix é só
+# `"password"`. O operador manda código de definição, código de guarda, código do segundo fator e
+# código de recuperação, e cada um abre a conta do operador. O filtro casa por **trecho** do nome
+# do campo: `"token"` cobre `setup_token` e `second_factor_token`, `"code"` cobre
+# `recovery_code` e `confirm_code`.
+config :phoenix, :filter_parameters, ["password", "token", "secret", "code", "totp"]
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
@@ -93,7 +108,28 @@ config :the_band, Oban,
   # `rodadas` é fila **própria**, e não uma vaga a mais em `perfis` — feature 027, T003. Uma
   # rodada mensal percorre até 34 pessoas em sequência: de 15 a 35 minutos, medidos. Na fila
   # `perfis`, que tem concorrência 1, ela deixaria toda geração pedida a mão esperando o mês.
-  queues: [ingestion: 5, transformation: 5, perfis: 1, rodadas: 1],
+  #
+  # `manutencao` é fila **própria** para os jobs do `Cron` que mantêm a plataforma — issue #801,
+  # achado S1 da avaliação de segurança de 2026-10-01. Eles estavam na `ingestion`, que tem 5
+  # vagas, e cada coleta ocupa uma vaga por horas: com cinco coletas simultâneas nenhum job
+  # completava, e o verificador da fila (`TheBand.Saude`) dizia "parada" com a fila trabalhando.
+  # O healthcheck marcava o contêiner `unhealthy`, e reiniciá-lo mataria as cinco coletas. Numa
+  # fila só deles, o `Cron` completa a cada 5 minutos enquanto o Oban estiver vivo, que é
+  # exatamente o que o verificador mede.
+  #
+  # `network_analysis` é fila **própria**, com concorrência 1 — feature 076, T010 (R4; R7 da
+  # segurança). Cada cálculo roda 100 grafos aleatórios por rede e janela, seis combinações por
+  # organização; na `transformation`, que a coleta usa, ele disputaria vaga com a sincronização.
+  # Fila declarada no worker e não configurada aqui fica `available` para sempre
+  # (`recompute_promotions.ex:7-9`); `fila_network_analysis_test.exs` guarda a linha.
+  queues: [
+    ingestion: 5,
+    transformation: 5,
+    perfis: 1,
+    rodadas: 1,
+    manutencao: 2,
+    network_analysis: 1
+  ],
   plugins: [
     {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7},
     # Reconcilia execuções presas a cada cinco minutos. É o atraso máximo aceitável entre a
@@ -147,4 +183,10 @@ config :the_band, :github_http_client, TheBand.Integrations.GitHub.HTTP.Req
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
+# Telemetria da jornada — spec 074, T005 (FR-015). DESLIGADA por padrão: sem exportador, nada
+# sai. Quem liga é `config/runtime.exs`, e só com `THE_BAND_OTLP_ENDPOINT` num host permitido.
+# Com o padrão do SDK (`opentelemetry_exporter` para `localhost:4318`), a telemetria ficaria
+# "ligada" falhando em silêncio — no contêiner, `localhost` é a própria aplicação (S10).
+config :opentelemetry, traces_exporter: :none
+
 import_config "#{config_env()}.exs"

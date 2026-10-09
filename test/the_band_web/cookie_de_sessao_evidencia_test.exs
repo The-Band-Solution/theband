@@ -129,7 +129,14 @@ defmodule TheBandWeb.CookieDeSessaoEvidenciaTest do
       end
 
       # E o cookie do formato antigo, com o que `users.session_token` guardava: também não.
-      antigo = Repo.get!(TheBand.Tenants.User, user.id).session_token
+      # A coluna antiga ainda existe até a T014b, e a plataforma não a escreve desde a T014a. O
+      # valor vem por SQL, como o dump de um banco anterior o traria.
+      antigo = Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
+
+      Repo.query!("UPDATE users SET session_token = $1 WHERE id = $2", [
+        antigo,
+        Ecto.UUID.dump!(user.id)
+      ])
 
       cookie =
         cookie_forjado(%{"user_id" => user.id, "session_token" => antigo}, chave_real())

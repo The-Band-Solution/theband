@@ -285,6 +285,24 @@
      regra acima espremia o report da rodada numa coluna de 60px. Bloco, texto à
      esquerda — o conteúdo dele já é responsivo por conta própria. */
   table.stacked td.painel { display: block; text-align: left; }
+
+  /* A linha aberta e a dos pares dela são UM cartão (rede de revisão, régua 5.2, issue #1308):
+     sem isto os pares abriam num cartão separado, e a pessoa e os pares dela pareciam duas
+     coisas. Não é utilitário porque a borda e a margem do cartão vêm da regra `table.stacked tr`
+     acima, fora de camada, e utilitário do Tailwind não a vence. */
+  table.stacked tr.linha-aberta {
+    border-bottom: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    margin-bottom: 0;
+  }
+
+  table.stacked tr.pares-da-linha {
+    border-top: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    padding-top: 0;
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────

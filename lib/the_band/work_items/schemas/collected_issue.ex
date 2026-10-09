@@ -36,6 +36,9 @@ defmodule TheBand.WorkItems.Schemas.CollectedIssue do
 
     field :author_login, :string
     field :author_person_id, :binary_id
+    # O tipo da conta de quem abriu, por `Mapper.account_type/1` na coleta (076, R13). Nulo é
+    # "não se sabe", nunca "pessoa".
+    field :author_account_type, :string
     field :milestone_title, :string
     # #368: o marco é onde o prazo mora no GitHub. `due_on` nulo é marco sem prazo
     # declarado, e o id acompanha porque título é renomeável.
@@ -97,6 +100,7 @@ defmodule TheBand.WorkItems.Schemas.CollectedIssue do
       :state_reason,
       :author_login,
       :author_person_id,
+      :author_account_type,
       :milestone_title,
       :milestone_external_id,
       :milestone_due_on,
@@ -130,6 +134,9 @@ defmodule TheBand.WorkItems.Schemas.CollectedIssue do
     ])
     |> unique_constraint([:tenant_id, :source_system, :source_instance, :external_id],
       name: :collected_issues_application_reference_index
+    )
+    |> check_constraint(:author_account_type,
+      name: :collected_issues_author_account_type_allowed
     )
   end
 end

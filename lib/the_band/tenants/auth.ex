@@ -26,9 +26,12 @@ defmodule TheBand.Tenants.Auth do
 
   import Ecto.Query
 
+  alias TheBand.LimitePorOrigem
   alias TheBand.Ontology.SEON.EO.Schemas.Person
+  alias TheBand.Origem
   alias TheBand.Repo
   alias TheBand.Tenants.AccessEvents
+  alias TheBand.Tenants.PapelDeAdministrador
   alias TheBand.Tenants.Sessions
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
@@ -36,22 +39,124 @@ defmodule TheBand.Tenants.Auth do
   @tentativas_livres 3
   @teto_segundos 60
 
-  @spec authenticate(String.t(), String.t()) ::
+  @doc """
+  Autentica pelo identificador e pela senha.
+
+  `opts[:origem]` é **obrigatória** (spec 077, contrato §5): a `TheBand.Origem` de quem tenta.
+  Sem ela a chamada quebra, de propósito — uma porta de entrada sem o limite por origem é bug, e
+  não caso de negócio.
+
+  `opts[:jornada_id]` é o correlator da jornada (spec 074, FR-011), lido da sessão pelo
+  controller; vai para o passo `entrar_com_senha`, e para nada mais. O retorno é o mesmo de
+  sempre: o controller **nunca** vê o motivo (seguranca.md, S4).
+  """
+  @spec authenticate(String.t(), String.t(), keyword()) ::
           {:ok, User.t()}
           | {:error, :invalid_credentials}
           | {:error, {:throttled, pos_integer()}}
-  def authenticate(identificador, senha)
-      when is_binary(identificador) and is_binary(senha) do
+  def authenticate(identificador, senha, opts)
+      when is_binary(identificador) and is_binary(senha) and is_list(opts) do
+    %Origem{} = origem = Keyword.fetch!(opts, :origem)
+    jornada_id = Keyword.get(opts, :jornada_id)
+
+    # O LIMITE POR ORIGEM VEM ANTES DE TUDO — spec 077, FR-001 e FR-003; seguranca.md, L5 e L7.
+    #
+    # Antes de `resolver/1`: a recusa por limite não lê conta, não paga hash e não registra falha.
+    # O tempo dela é menor, e isso não diz nada sobre conta, porque nada aqui dependeu do
+    # identificador. Se esta conferência fosse para depois de `resolver/1`, a recusa rápida
+    # passaria a dizer "esta conta existe" — a #1047 de volta.
+    case LimitePorOrigem.conferir(:contas, origem) do
+      {:recusa, _momento} ->
+        emitir_entrada({:error, :invalid_credentials}, :limite_por_origem, nil, jornada_id)
+        {:error, :invalid_credentials}
+
+      {:segue, ficha} ->
+        decidir_e_devolver(identificador, senha, jornada_id, ficha)
+
+      {:observado, _momento, ficha} ->
+        decidir_e_devolver(identificador, senha, jornada_id, ficha)
+    end
+  end
+
+  # A falha já foi contada pelo `conferir/2`; o sucesso devolve a dele, e só a dele (L8).
+  defp decidir_e_devolver(identificador, senha, jornada_id, ficha) do
+    {resultado, motivo, conta} = decidir(identificador, senha)
+    emitir_entrada(resultado, motivo, conta, jornada_id)
+    if match?({:ok, _}, resultado), do: LimitePorOrigem.devolver(ficha)
+    resultado
+  end
+
+  # O RELATOR INTERNO — spec 074, T012; seguranca.md, S4.
+  #
+  # A decisão devolve `{resultado, motivo, conta}`: o resultado é o que o controller recebe, e o
+  # motivo e a conta ficam aqui dentro, para o passo. O passo é emitido por `authenticate/3`
+  # DEPOIS da transação, uma vez, em todo ramo: emitido dentro dela, o custo cairia no ramo da
+  # conta travada e não no do identificador que não resolve, e o tempo voltaria a distinguir os
+  # motivos (FR-009).
+  defp decidir(identificador, senha) do
     case resolver(String.trim(identificador)) do
       nil ->
         # O custo do hash roda mesmo sem conta — tempo constante.
-        Bcrypt.no_user_verify()
-        recusar(nil, :identificador_nao_resolveu)
+        custo_do_hash(:sem_conta)
+        {recusar(nil, :identificador_nao_resolveu), :identificador_nao_resolveu, nil}
 
       %User{} = user ->
-        verificar(user, senha)
+        verificar_com_trava(user, senha)
     end
   end
+
+  # A IDENTIDADE SÓ ONDE ALGUÉM PRECISA AGIR — D1 de 2026-10-03; FR-004; seguranca.md, S14.
+  #
+  # Na recusa com conta conhecida e na espera, o id da conta vai, porque é com ele que quem opera
+  # age. No sucesso comum, não: seria o registro de toda entrada de toda pessoa por sete dias. Só
+  # quando o sucesso apagou tentativas falhas — a campanha que deu certo, achado H4. E quando o
+  # identificador não resolve, nada que dependa do digitado sai, em forma nenhuma.
+  #
+  # O trabalho é o mesmo em todo ramo: a decisão de incluir é uma comparação, sem consulta.
+  defp emitir_entrada({:ok, _}, nil, %User{} = conta, jornada_id) do
+    AccessEvents.passo(%{
+      passo: :entrar_com_senha,
+      desfecho: :concluiu,
+      motivo: nil,
+      tenant_id: conta.tenant_id,
+      user_id: if(conta.failed_attempts > 0, do: conta.id),
+      jornada_id: correlator(jornada_id)
+    })
+  end
+
+  defp emitir_entrada({:error, _}, motivo, conta, jornada_id) do
+    AccessEvents.passo(%{
+      passo: :entrar_com_senha,
+      desfecho: :falhou,
+      motivo: motivo,
+      tenant_id: conta && conta.tenant_id,
+      user_id: conta && conta.id,
+      jornada_id: correlator(jornada_id)
+    })
+  end
+
+  defp correlator(valor) when is_binary(valor), do: valor
+  defp correlator(_), do: nil
+
+  # A TENTATIVA É SERIALIZADA POR CONTA — issue #1046, achado A1 da avaliação da 070.
+  #
+  # A espera lia `failed_attempts` da struct carregada por `resolver/1` e gravava `n + 1`
+  # calculado em memória. Tentativas simultâneas liam o mesmo contador, e todas testavam a
+  # senha: a espera crescente se contornava mandando em paralelo. A conta é relida com
+  # `FOR UPDATE`, e conferir a janela, verificar a senha e registrar a tentativa acontecem com
+  # a linha travada. A segunda tentativa espera a primeira e já lê o contador dela.
+  defp verificar_com_trava(%User{id: id}, senha) do
+    {:ok, resultado} =
+      Repo.transaction(fn ->
+        id
+        |> conta_travada()
+        |> verificar(senha)
+      end)
+
+    resultado
+  end
+
+  defp conta_travada(id), do: Repo.one!(from u in User, where: u.id == ^id, lock: "FOR UPDATE")
 
   # A RECUSA REGISTRADA COM O MOTIVO INTERNO — achado H4.
   #
@@ -67,64 +172,89 @@ defmodule TheBand.Tenants.Auth do
     {:error, :invalid_credentials}
   end
 
+  # Cada ramo devolve o relator `{resultado, motivo, conta}`; a conta é a struct travada, ANTES
+  # de `registrar_falha/1` e `registrar_sucesso/1` — é dela que sai `failed_attempts`, o número de
+  # falhas que o sucesso apagou.
   defp verificar(%User{} = user, senha) do
-    with :ok <- fora_da_janela(user) do
-      cond do
-        # A ORGANIZAÇÃO SUSPENSA NÃO AUTENTICA — achado H3, parte A, 2026-09-09.
-        #
-        # `tenants.status` existia com `default: "active"`, era castável no changeset, e
-        # **nenhum código o lia**. Medido: marcar um tenant como `"suspended"` e
-        # autenticar — as duas coisas funcionavam, e as telas abriam. Era uma coluna que
-        # parecia um controle e não era: quem a marcasse acharia que suspendeu.
-        #
-        # Decisão da pessoa mantenedora em 2026-09-09: passa a ser lida.
-        #
-        # **A recusa é a mesma**, byte a byte. Um motivo novo aqui — "organização
-        # suspensa" — seria enumeração: diria a quem tenta que a conta existe e que o
-        # e-mail está certo. `auth.ex` tem um ponto único de recusa de propósito.
-        #
-        # **E o custo do hash roda igual**, como na cláusula da conta pré-feature abaixo.
-        # Recusar antes de gastar o tempo do Bcrypt criaria um oráculo de tempo que
-        # distingue "organização suspensa" de "senha errada".
-        #
-        # **Não registra falha**, e a diferença é deliberada: a credencial pode estar
-        # perfeitamente correta, e é a organização que está suspensa. Gravar tentativa
-        # falha aqui afirmaria algo falso sobre a senha, e deixaria a conta em espera
-        # crescente no dia em que a organização voltasse.
-        not organizacao_ativa?(user.tenant_id) ->
-          Bcrypt.no_user_verify()
-          recusar(user, :organizacao_suspensa)
-
-        # A CONTA DESATIVADA NÃO AUTENTICA — achado H3, parte B, 2026-09-09.
-        #
-        # Até esta coluna existir, o desligamento era **implícito**: quem administra
-        # reiniciava a senha e não entregava a temporária. Funcionava, e o H3 mostrou por
-        # que era frágil — não estava escrito em lugar nenhum, era indistinguível de um
-        # reinício legítimo no histórico, e **para de funcionar no dia em que existir
-        # token**, porque o token não é a senha.
-        #
-        # Mesma forma da cláusula acima: recusa idêntica, custo do hash pago, e **nenhuma
-        # tentativa falha registrada** — a credencial pode estar correta, e é a conta que
-        # está desativada.
-        not User.ativa?(user) ->
-          Bcrypt.no_user_verify()
-          recusar(user, :conta_desativada)
-
-        is_nil(user.password_hash) ->
-          # Conta pré-feature (FR-014): recusa idêntica; a tela orienta em texto
-          # público, nunca na resposta do formulário.
-          Bcrypt.no_user_verify()
-          registrar_falha(user)
-          recusar(user, :conta_sem_senha)
-
-        Bcrypt.verify_pass(senha, user.password_hash) ->
-          {:ok, registrar_sucesso(user)}
-
-        true ->
-          registrar_falha(user)
-          recusar(user, :senha_errada)
-      end
+    case fora_da_janela(user) do
+      :ok -> verificar_credencial(user, senha)
+      {:error, {:throttled, _}} = espera -> {espera, :em_espera, user}
     end
+  end
+
+  defp verificar_credencial(%User{} = user, senha) do
+    cond do
+      # A ORGANIZAÇÃO SUSPENSA NÃO AUTENTICA — achado H3, parte A, 2026-09-09.
+      #
+      # `tenants.status` existia com `default: "active"`, era castável no changeset, e
+      # **nenhum código o lia**. Medido: marcar um tenant como `"suspended"` e
+      # autenticar — as duas coisas funcionavam, e as telas abriam. Era uma coluna que
+      # parecia um controle e não era: quem a marcasse acharia que suspendeu.
+      #
+      # Decisão da pessoa mantenedora em 2026-09-09: passa a ser lida.
+      #
+      # **A recusa é a mesma**, byte a byte. Um motivo novo aqui — "organização
+      # suspensa" — seria enumeração: diria a quem tenta que a conta existe e que o
+      # e-mail está certo. `auth.ex` tem um ponto único de recusa de propósito.
+      #
+      # **E o custo do hash roda igual**, como na cláusula da conta pré-feature abaixo.
+      # Recusar antes de gastar o tempo do Bcrypt criaria um oráculo de tempo que
+      # distingue "organização suspensa" de "senha errada".
+      #
+      # **Não registra falha**, e a diferença é deliberada: a credencial pode estar
+      # perfeitamente correta, e é a organização que está suspensa. Gravar tentativa
+      # falha aqui afirmaria algo falso sobre a senha, e deixaria a conta em espera
+      # crescente no dia em que a organização voltasse.
+      not organizacao_ativa?(user.tenant_id) ->
+        custo_do_hash(:organizacao_suspensa)
+        recusada(user, :organizacao_suspensa)
+
+      # A CONTA DESATIVADA NÃO AUTENTICA — achado H3, parte B, 2026-09-09.
+      #
+      # Até esta coluna existir, o desligamento era **implícito**: quem administra
+      # reiniciava a senha e não entregava a temporária. Funcionava, e o H3 mostrou por
+      # que era frágil — não estava escrito em lugar nenhum, era indistinguível de um
+      # reinício legítimo no histórico, e **para de funcionar no dia em que existir
+      # token**, porque o token não é a senha.
+      #
+      # Mesma forma da cláusula acima: recusa idêntica, custo do hash pago, e **nenhuma
+      # tentativa falha registrada** — a credencial pode estar correta, e é a conta que
+      # está desativada.
+      not User.ativa?(user) ->
+        custo_do_hash(:conta_desativada)
+        recusada(user, :conta_desativada)
+
+      is_nil(user.password_hash) ->
+        # Conta pré-feature (FR-014): recusa idêntica; a tela orienta em texto
+        # público, nunca na resposta do formulário.
+        custo_do_hash(:conta_sem_senha)
+        registrar_falha(user)
+        recusada(user, :conta_sem_senha)
+
+      senha_confere?(senha, user.password_hash) ->
+        {{:ok, registrar_sucesso(user)}, nil, user}
+
+      true ->
+        registrar_falha(user)
+        recusada(user, :senha_errada)
+    end
+  end
+
+  defp recusada(%User{} = user, motivo), do: {recusar(user, motivo), motivo, user}
+
+  # CADA CUSTO DE HASH DA ENTRADA PASSA POR AQUI, e emite um evento — spec 077, T008 (seguranca.md,
+  # L5, Q5). É o desenho de `Platform.Credentials.custo_do_hash/1`: permite ao teste CONTAR que a
+  # recusa por limite pagou zero hashes, sem cronômetro, que seria instável com o custo baixo do
+  # teste.
+  defp custo_do_hash(motivo) do
+    Bcrypt.no_user_verify()
+    :telemetry.execute([:the_band, :tenants, :custo_do_hash], %{}, %{motivo: motivo})
+  end
+
+  defp senha_confere?(senha, hash) do
+    certa? = Bcrypt.verify_pass(senha, hash)
+    :telemetry.execute([:the_band, :tenants, :custo_do_hash], %{}, %{motivo: :senha_conferida})
+    certa?
   end
 
   # Uma consulta, e só quando o identificador resolveu para uma conta. `resolver/1` não
@@ -150,6 +280,11 @@ defmodule TheBand.Tenants.Auth do
         # avaliação da v0.7.0, e ela estava certa: função documentada e sem call site é
         # pior que ausência, porque quem faz `grep` conclui que está registrado.
         AccessEvents.espera_acionada(user.id, user.tenant_id, restante)
+        # O CUSTO DO HASH NA ESPERA TAMBÉM — issue #1047, achado A3 da avaliação da 070. Sem
+        # isto, a conta em espera respondia sem o Bcrypt, e o identificador que não existe
+        # pagava o `no_user_verify` e nunca entrava em espera: o tempo dizia que o e-mail
+        # existia e estava em espera, embora a mensagem fosse a mesma.
+        custo_do_hash(:em_espera)
         {:error, {:throttled, restante}}
       else
         :ok
@@ -158,6 +293,12 @@ defmodule TheBand.Tenants.Auth do
       :ok
     end
   end
+
+  @doc false
+  # A espera de 0 a 12 falhas, para o teste de paridade da spec 070 (T034) comparar as duas
+  # autenticações pelos valores calculados, e não por literais copiados.
+  @spec tabela_da_espera() :: [non_neg_integer()]
+  def tabela_da_espera, do: Enum.map(0..12, &espera_segundos/1)
 
   defp espera_segundos(tentativas) when tentativas < @tentativas_livres, do: 0
 
@@ -276,8 +417,14 @@ defmodule TheBand.Tenants.Auth do
   persistida em claro (mesmas regras do reinício abaixo).
   """
   @spec cadastrar_conta(Tenant.t(), map(), User.t()) ::
-          {:ok, {User.t(), String.t()}} | {:error, Ecto.Changeset.t()}
+          {:ok, {User.t(), String.t()}} | {:error, :nao_autorizado | Ecto.Changeset.t()}
   def cadastrar_conta(%Tenant{id: tenant_id}, attrs, %User{} = actor) do
+    # O ator relido, e não a struct da tela (072, FR-002a): o papel fica congelado no `mount`.
+    with :ok <- PapelDeAdministrador.exigir_ator(tenant_id, actor.id),
+         do: cadastrar_na_transacao(tenant_id, attrs, actor)
+  end
+
+  defp cadastrar_na_transacao(tenant_id, attrs, actor) do
     Repo.transaction(fn ->
       with {:ok, user} <-
              %User{}
@@ -296,11 +443,13 @@ defmodule TheBand.Tenants.Auth do
   é gravada em claro nem logada; a primeira entrada obriga a troca.
   """
   @spec reset_password(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
-          {:ok, String.t()} | {:error, :not_found | Ecto.Changeset.t()}
+          {:ok, String.t()} | {:error, :nao_autorizado | :not_found | Ecto.Changeset.t()}
   def reset_password(%Tenant{id: tenant_id}, user_id, actor_id) do
-    case do_tenant(tenant_id, user_id) do
-      nil -> {:error, :not_found}
-      %User{} = user -> gravar_temporaria(user, "reset", actor_id)
+    with :ok <- PapelDeAdministrador.exigir_ator(tenant_id, actor_id) do
+      case do_tenant(tenant_id, user_id) do
+        nil -> {:error, :not_found}
+        %User{} = user -> gravar_temporaria(user, "reset", actor_id)
+      end
     end
   end
 
@@ -331,6 +480,9 @@ defmodule TheBand.Tenants.Auth do
   # sessão de quem trocou a própria senha é reaberta pelo controller.
   defp encerrando_as_sessoes({:ok, %User{} = user} = ok) do
     {:ok, _} = Sessions.encerrar_da_conta(user.tenant_id, user.id)
+
+    # Fora de transação: o `Repo.update` acima já gravou, e a tela aberta pode reconferir (#1042).
+    Sessions.avisar_encerramento({:conta, user.id})
     ok
   end
 

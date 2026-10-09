@@ -4,7 +4,7 @@ defmodule TheBand.MixProject do
   def project do
     [
       app: :the_band,
-      version: "0.11.0",
+      version: "0.12.0",
       elixir: "~> 1.17",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -43,7 +43,30 @@ defmodule TheBand.MixProject do
       #   4. a `ex_mcp` mudar de versão (fixada em `== 1.5.0`): a medição vale para ela.
       # E sai sozinha quando a `ex_mcp` tornar o Cowboy opcional (anunciado para a 2.0): o
       # `hex.audit` avisa que a entrada ficou obsoleta — foi assim que o H11 apareceu.
-      hex: [ignore_advisories: ["EEF-CVE-2026-43966", "EEF-CVE-2026-43969"]]
+      #
+      # RISCO RESIDUAL ACEITO — decisão da pessoa mantenedora em 2026-10-06, issue #1418 (§14.0).
+      #
+      # `cloak 1.1.4` (EEF-CVE-2026-95105, HIGH: o cipher AES-CTR não autentica) e `cloak_ecto
+      # 1.3.0` (EEF-CVE-2026-94206, MEDIUM: o campo PBKDF2 ignora as iterações), avisos de
+      # 2026-10-06, SEM versão consertada (as duas são as últimas publicadas, de 2024-04-06).
+      # Não alcançáveis aqui, medido: o `TheBand.Vault` configura só `Cloak.Ciphers.AES.GCM`,
+      # que autentica, e o único tipo Ecto cifrado é `Cloak.Ecto.Binary`.
+      #
+      # A proteção é `test/the_band/cloak_modos_inalcancaveis_test.exs`. ESTA EXCEÇÃO CAI se:
+      #   1. aparecer em `lib/` ou `config/` um cipher do Cloak que não seja o AES.GCM;
+      #   2. aparecer `Cloak.Ecto.PBKDF2`;
+      #   3. `cloak` ou `cloak_ecto` mudarem de versão: o teste 3 reprova. Se a versão nova for a
+      #      consertada, o `hex.audit` também avisa que a entrada ficou obsoleta.
+      # As condições 1 e 2 são medidas também em execução (os ciphers do Vault e o @behaviour dos
+      # módulos compilados), e não só no texto.
+      hex: [
+        ignore_advisories: [
+          "EEF-CVE-2026-43966",
+          "EEF-CVE-2026-43969",
+          "EEF-CVE-2026-95105",
+          "EEF-CVE-2026-94206"
+        ]
+      ]
       # A exceção de `CVE-2026-32686` viveu aqui de 2026-09-08 a 2026-09-20, e saiu **pelo
       # sinal que ela mesma declarava**: `mix hex.audit` passou a dizer que a entrada não
       # casa com nenhum aviso das dependências travadas.
@@ -85,7 +108,11 @@ defmodule TheBand.MixProject do
     [
       the_band: [
         include_executables_for: [:unix],
-        steps: [:assemble]
+        steps: [:assemble],
+        # `:temporary` para o SDK — spec 074, T004. Com o padrão (`:permanent`), uma falha do
+        # OpenTelemetry derrubaria o nó inteiro; a jornada da pessoa não pode depender do cano
+        # que a observa (FR-008). `opentelemetry_exporter` e `opentelemetry_api` seguem o padrão.
+        applications: [opentelemetry: :temporary]
       ]
     ]
   end
@@ -146,6 +173,10 @@ defmodule TheBand.MixProject do
       # specs/045-autenticacao-e-acesso/research.md R1: padrão do phx.gen.auth,
       # manutenção ativa, e o custo (~100ms/verificação) é a proteção, não o preço.
       {:bcrypt_elixir, "~> 3.3"},
+      # O segundo fator TOTP do operador da plataforma — spec 070, T022 (FR-016). Versão exata, sem
+      # `~>`: versão nova só com `mix hex.audit` e `mix deps.audit` refeitos. A escolha e as três
+      # respostas do AGENTS §7.7 estão em specs/070-operador-da-plataforma/plan.md e research R13.
+      {:nimble_totp, "== 1.0.0"},
       {:mox, "~> 1.1", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       # Segurança de Phoenix — XSS, CSRF, injeção, configuração insegura. Nenhuma ferramenta
@@ -181,7 +212,20 @@ defmodule TheBand.MixProject do
       # não `~> 1.5`: com o til, uma 1.x nova entraria sem que a medição do `cowlib` fosse
       # refeita. **A mitigação é a camada fina**: as respostas vivem em `lib/the_band/mcp/`, que
       # não conhece a biblioteca, e trocá-la é trabalho de adaptador.
-      {:ex_mcp, "== 1.5.0"}
+      {:ex_mcp, "== 1.5.0"},
+      # A telemetria da jornada — spec 074, T004; ADR 0005 (E6) e seguranca.md (S9), aceitas em
+      # 2026-10-03 (D5). Versão EXATA nas três diretas: o `TheBand.Telemetria.Exportador` lê o
+      # registro `span` do SDK, e uma versão nova só entra com o teste das sentinelas refeito.
+      # **Nenhum instrumentador automático** (Phoenix, Ecto, Oban): cada um exige fatia e
+      # avaliação de segurança próprias (ADR 0005, E6; seguranca.md, S2 e S3).
+      {:opentelemetry_api, "== 1.5.0"},
+      {:opentelemetry, "== 1.7.0"},
+      {:opentelemetry_exporter, "== 1.11.0"},
+      # SÓ O TETO — seguranca.md, S9. O `opentelemetry_exporter` exige `grpcbox >= 0.0.0`, sem
+      # teto, e o `grpcbox` é publicado por uma conta pessoal única. Esta linha não é uso direto:
+      # existe para que `mix deps.update --all` não aceite uma `grpcbox` fora de `0.18.x` sem que
+      # o `mix.exs` mostre a mudança.
+      {:grpcbox, "~> 0.18.0"}
     ]
   end
 
@@ -196,7 +240,10 @@ defmodule TheBand.MixProject do
       setup: ["deps.get", "ecto.setup", "assets.setup", "assets.build"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
-      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
+      # Spec 071, T005: conectado como o papel que serve, a suíte não cria nem migra a base,
+      # porque esse papel não tem `CREATE` (é o que a 071 garante). A base é preparada antes, pelo
+      # `postgres` (quickstart §2).
+      test: &testar/1,
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
       "assets.build": ["compile", "tailwind the_band", "esbuild the_band"],
       "assets.deploy": [
@@ -209,5 +256,14 @@ defmodule TheBand.MixProject do
       # por "ci" antes de procurar por "gates".
       ci: ["gates"]
     ]
+  end
+
+  defp testar(args) do
+    unless System.get_env("THE_BAND_TEST_DB_USER") do
+      Mix.Task.run("ecto.create", ["--quiet"])
+      Mix.Task.run("ecto.migrate", ["--quiet"])
+    end
+
+    Mix.Task.run("test", args)
   end
 end

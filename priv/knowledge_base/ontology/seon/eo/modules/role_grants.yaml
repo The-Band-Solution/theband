@@ -21,6 +21,26 @@ module:
 
       Toda concessão tem autor, data e revogação **por marca** — revogar nunca apaga a
       linha, porque quem concedeu, quando, e até quando, é a pergunta que mais se faz depois.
+    en: >
+      What an organizational role **allows** on the platform: seeing whose work dashboard,
+      and managing the structure of which team.
+
+      It is not a concept of the reference EO. It is the **adjacent declaration** — the same
+      ontological place that `spo.activity_start_criterion` occupies for the start instant:
+      the network does not answer who may do what on this platform, and inventing the answer
+      inside the ontology would put a product decision in the layer that describes the
+      world.
+
+      The grant is **per role**, and never inferred from its name. `Tech Leader` looks like
+      leadership and so does `Coordenador`; the same organization may have a `Tech Lead`
+      that is technical seniority and manages no one. The error by name pattern is costly in
+      both directions, and costlier in the management one: nobody complains about excess
+      visibility granted; excess management granted rewrites the structure of those who
+      should not have it.
+
+      Every grant has an author, a date, and revocation **by mark** — revoking never deletes
+      the row, because who granted it, when, and until when, is the question most often
+      asked afterwards.
   provenance:
     source_type: project_decision
     reference: >
@@ -54,6 +74,14 @@ concepts:
         O alcance é o que a declaração diz, e não um booleano: `is_leader` perderia quem
         concedeu, quando, e até onde — e numa decisão de visibilidade essas três são as
         perguntas seguintes.
+      en: >
+        Declaration that whoever performs an organizational role, **with a link in force**,
+        reaches the work dashboard of the people on their team (reach `team`) or
+        in their organization (reach `organization`).
+
+        The reach is what the declaration says, and not a boolean: `is_leader` would lose
+        who granted it, when, and how far — and in a visibility decision those three are the
+        next questions.
     classification: { ufo_category: normative_description, ontouml_stereotype: kind }
     attributes:
       - { name: scope, type: enum, values: [team, organization], required: true }
@@ -84,6 +112,16 @@ concepts:
         **Ver e mexer são decisões separadas** (spec 045, FR-022): a concessão de
         visibilidade não confere gestão, e a de gestão não confere visibilidade. Quem
         precisa das duas recebe as duas, e o registro diz qual é qual.
+      en: >
+        Declaration that whoever performs an organizational role, **with a link in force**,
+        can declare the structure of a team — each person's role, the departure,
+        the mistake, the composition of sub-teams, the organization's roles, and the link to
+        a project — in the teams in which they hold the role (reach `team`) or in all those
+        of the organization (reach `organization`).
+
+        **Seeing and changing are separate decisions** (spec 045, FR-022): the visibility
+        grant does not confer management, and the management grant does not confer
+        visibility. Whoever needs both receives both, and the record says which is which.
     classification: { ufo_category: normative_description, ontouml_stereotype: kind }
     attributes:
       - { name: scope, type: enum, values: [team, organization], required: true }

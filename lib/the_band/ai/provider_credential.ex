@@ -29,6 +29,11 @@ defmodule TheBand.AI.ProviderCredential do
 
     field :declared_by_user_id, :binary_id
     field :validated_at, :utc_datetime
+    # Quando o segredo atual foi gravado, e desde quando valia o que ele substituiu (064/T019).
+    # Não são segredo: são datas, e sozinhas não abrem nada. A idade sai daqui, e não de
+    # `validated_at`, porque regravar a mesma chave revalida sem trocar segredo nenhum.
+    field :secret_set_at, :utc_datetime
+    field :previous_secret_set_at, :utc_datetime
     field :last_failure_at, :utc_datetime
     field :last_failure_reason, :string
 

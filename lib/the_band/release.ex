@@ -25,18 +25,108 @@ defmodule TheBand.Release do
   esquema em movimento.
   """
 
+  alias TheBand.Papeis
+  alias TheBand.Platform.Grants
   alias TheBand.Tenants.Bootstrap
   alias TheBand.Tenants.Sessions
 
   @app :the_band
 
-  @doc "Aplica todas as migrações pendentes. Chamado pelo entrypoint, antes do boot."
+  @doc """
+  Aplica todas as migrações pendentes e concede os privilégios ao papel que serve. Chamado pelo
+  entrypoint, antes do boot, com o `DATABASE_URL` **da credencial que migra** naquela linha só
+  (spec 071, FR-004 e FR-005).
+
+  O papel que serve é o usuário de `THE_BAND_URL_QUE_SERVE`, que o entrypoint passa junto. Sem ela
+  (o entrypoint antigo, ou um `eval` à mão), a concessão é pulada, e a linha diz isso.
+  """
   def migrate do
     load_app()
 
     for repo <- repos() do
-      {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :up, all: true))
+      com_url_redigida(fn ->
+        {:ok, linha, _} = Ecto.Migrator.with_repo(repo, &migrar_e_conceder/1)
+        IO.puts(linha)
+      end)
     end
+  end
+
+  defp migrar_e_conceder(repo) do
+    Ecto.Migrator.run(repo, :up, all: true)
+    conceder_a_quem_serve(repo, System.get_env("THE_BAND_URL_QUE_SERVE"))
+  end
+
+  defp conceder_a_quem_serve(_repo, nil),
+    do: "papéis: THE_BAND_URL_QUE_SERVE ausente, concessão pulada"
+
+  defp conceder_a_quem_serve(repo, url) do
+    case URI.parse(url).userinfo do
+      nil ->
+        "papéis: a URL de quem serve não traz usuário, concessão pulada"
+
+      userinfo ->
+        papel = userinfo |> String.split(":", parts: 2) |> hd() |> URI.decode()
+        :ok = Papeis.conceder(repo, papel)
+        "papéis: privilégios de quem serve concedidos"
+    end
+  end
+
+  @doc """
+  O deploy sem a credencial que migra: os três estados de `TheBand.Papeis.estado_sem_credencial/1`
+  (spec 071, FR-008). Imprime a linha do relator, e levanta **só** quando há migração pendente e
+  quem serve não consegue migrar, para o `set -e` do entrypoint não deixar servir sobre esquema
+  pela metade.
+  """
+  def migrar_sem_credencial do
+    load_app()
+
+    for repo <- repos() do
+      com_url_redigida(fn ->
+        {:ok, linha, _} = Ecto.Migrator.with_repo(repo, &sem_credencial/1)
+        IO.puts(linha)
+      end)
+    end
+  end
+
+  defp sem_credencial(repo) do
+    case Papeis.estado_sem_credencial(repo) do
+      :migra_como_hoje ->
+        Ecto.Migrator.run(repo, :up, all: true)
+
+        "papéis: separação NÃO em vigor (credencial_que_migra_ausente); migrado com a credencial que serve"
+
+      :sobe_sem_migrar ->
+        Papeis.frase(Papeis.conferir(repo)) <> "; DATABASE_MIGRATION_URL ausente, nada a migrar"
+
+      {:nao_sobe, pendentes} ->
+        raise "papéis: #{length(pendentes)} migração(ões) pendente(s) e DATABASE_MIGRATION_URL " <>
+                "ausente; configure-a no painel (runbook §14) e reimplante"
+    end
+  end
+
+  @doc """
+  A conferência dos papéis, por `rpc`, dentro do nó que serve (spec 071, FR-009):
+
+      /app/bin/the_band rpc 'IO.puts(TheBand.Release.conferir_papeis())'
+
+  Por `eval` ela mediria o papel daquela VM, e não o do processo que serve.
+  """
+  def conferir_papeis, do: Papeis.frase(Papeis.conferir(TheBand.Repo))
+
+  @doc false
+  # S6 de `specs/071-papeis-do-banco/seguranca.md`: `Ecto.InvalidURLError` imprime a URL, com a
+  # senha, quando ela tem caractere reservado. A frase nomeia a variável, e nunca o valor.
+  def com_url_redigida(fun) do
+    fun.()
+  rescue
+    Ecto.InvalidURLError ->
+      reraise RuntimeError,
+              [
+                message:
+                  "URL de banco malformada: confira DATABASE_URL ou DATABASE_MIGRATION_URL " <>
+                    "(senha só com 0-9a-f, gerada por openssl rand -hex 32)"
+              ],
+              []
   end
 
   @doc """
@@ -110,12 +200,92 @@ defmodule TheBand.Release do
       {:ok, _, _} =
         Ecto.Migrator.with_repo(repo, fn _ ->
           {:ok, n} = Sessions.girar_todas()
-          IO.puts("#{n} sessão(ões) encerrada(s). Todas as pessoas precisam entrar de novo.")
+          # As do operador da plataforma também caem no giro — spec 070, T032.
+          {:ok, op} = TheBand.Platform.Sessions.encerrar_todas()
+
+          IO.puts(
+            "#{n} sessão(ões) encerrada(s), e #{op} sessão(ões) de operador. " <>
+              "Todas as pessoas precisam entrar de novo."
+          )
+
+          # O aviso às telas abertas não sai desta VM (#1050). Com a aplicação no ar, o caminho
+          # é `girar_sessoes/0` por `rpc`; este é o da aplicação parada, depois de restaurar.
+          IO.puts(
+            "Se a aplicação está no ar, as telas abertas não caem por este caminho. " <>
+              "Use: /app/bin/the_band rpc 'IO.puts(TheBand.Release.girar_sessoes())'"
+          )
         end)
     end
 
     :ok
   end
+
+  @doc """
+  **Encerra a sessão de todo mundo, e derruba as telas abertas** — issue #1050.
+
+      /app/bin/the_band rpc 'IO.puts(TheBand.Release.girar_sessoes())'
+
+  Roda por `rpc`, **dentro do nó que está servindo**, como `saude_da_fila/0`. É o caminho com a
+  aplicação no ar: `Sessions.girar_todas/0` avisa as telas pelo PubSub do nó (#1042), e cada
+  LiveView aberta reconfere a sessão e cai em `/sign-in`. Pelo `eval` de
+  `encerrar_todas_as_sessoes/0`, o aviso sai em outra VM e não chega a ninguém.
+
+  Devolve a frase com o número, e só o número.
+  """
+  @spec girar_sessoes() :: String.t()
+  def girar_sessoes do
+    {:ok, n} = Sessions.girar_todas()
+    {:ok, op} = TheBand.Platform.Sessions.encerrar_todas()
+
+    "#{n} sessão(ões) encerrada(s), e as telas abertas foram avisadas; " <>
+      "#{op} sessão(ões) de operador encerrada(s). Todas as pessoas precisam entrar de novo."
+  end
+
+  @doc """
+  A saúde da fila, para o healthcheck do contêiner — issue #801.
+
+      /app/bin/the_band rpc 'IO.puts(TheBand.Release.saude_da_fila())'
+
+  Roda por `rpc`, **dentro do nó que está servindo**, e por isso não carrega a aplicação nem
+  abre `Repo` próprio: usa os que já estão no ar. Devolve `"ok"` ou `"parada"`, e **nunca**
+  derruba o nó: quem decide é o `grep` do `HEALTHCHECK`, do lado de fora. Uma função chamada
+  por `rpc` que parasse o nó transformaria o verificador num defeito.
+  """
+  @spec saude_da_fila() :: String.t()
+  def saude_da_fila do
+    case TheBand.Saude.fila() do
+      :ok -> "ok"
+      {:parada, _minutos} -> "parada"
+    end
+  end
+
+  @doc """
+  **Recifra todos os campos cifrados com a chave mestra nova** — issue #1052.
+
+      /app/bin/the_band rpc 'IO.puts(TheBand.Release.rotacionar_chave())'
+
+  A release não tem `mix`, e `mix the_band.rotate_key` não existe em produção. Roda por `rpc`,
+  **dentro do nó que serve**, porque o `TheBand.Vault` dele já subiu com as duas chaves do
+  ambiente: a nova em `THE_BAND_MASTER_KEY` e a antiga em `THE_BAND_PREVIOUS_MASTER_KEY`. Os
+  passos estão no runbook §12.
+
+  Devolve a frase com as contagens por tabela, e nunca um valor. Com qualquer registro ilegível,
+  não grava nada e diz quantos, por tabela.
+  """
+  @spec rotacionar_chave() :: String.t()
+  def rotacionar_chave do
+    case TheBand.Rotacao.recifrar(false) do
+      {:ok, contagens} ->
+        "recifradas: " <> por_tabela(contagens) <> ". Agora remova THE_BAND_PREVIOUS_MASTER_KEY."
+
+      {:error, {:ilegiveis, por}} ->
+        "NADA FOI GRAVADO. Ilegíveis com as chaves configuradas: " <>
+          por_tabela(por) <> ". Confira THE_BAND_PREVIOUS_MASTER_KEY."
+    end
+  end
+
+  defp por_tabela(contagens),
+    do: Enum.map_join(contagens, ", ", fn {tabela, n} -> "#{n} em #{tabela}" end)
 
   @doc """
   Desfaz até a versão dada. **Não é chamado automaticamente em lugar nenhum.**
@@ -126,6 +296,80 @@ defmodule TheBand.Release do
   def rollback(repo, version) do
     load_app()
     {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :down, to: version))
+  end
+
+  # ------------------------------------------- o operador da plataforma (spec 070, T032)
+  #
+  # O ÚNICO caminho que concede, reinicia e revoga o papel (FR-001): nenhuma tela o faz. Pelo
+  # Dokploy:
+  #
+  #     /app/bin/the_band eval 'TheBand.Release.conceder_operador("email", "Nome", "quem executa")'
+  #     /app/bin/the_band eval 'TheBand.Release.reiniciar_credencial_do_operador("email", "quem executa")'
+  #     /app/bin/the_band eval 'TheBand.Release.revogar_operador("email", "quem executa", "nota")'
+  #
+  # **Nunca recebem senha** (O4, O11): a senha nasce no navegador, pelo código de definição, que é
+  # a única coisa secreta impressa, uma vez, com a validade. `quem executa` é DECLARADO, e não
+  # autenticado: a prova de quem rodou é o acesso ao Dokploy, fora da aplicação.
+
+  @doc "Concede o papel de operador e imprime o código de definição, uma vez."
+  def conceder_operador(email, nome, declarado_por) do
+    em_repo(fn ->
+      case Grants.conceder(email, nome, declarado_por) do
+        {:ok, {_op, _grant, codigo}} ->
+          IO.puts("operador concedido: #{email}")
+          imprimir_codigo(codigo)
+
+        {:error, :ja_concedido} ->
+          IO.puts("#{email} já tem a concessão vigente. Nada foi feito.")
+
+        {:error, changeset} ->
+          IO.puts("recusado: #{inspect(changeset.errors)}")
+      end
+    end)
+  end
+
+  @doc "Reinicia a credencial do operador e imprime o código de definição novo, uma vez."
+  def reiniciar_credencial_do_operador(email, declarado_por) do
+    em_repo(fn ->
+      case Grants.reiniciar_credencial(email, declarado_por) do
+        {:ok, codigo} ->
+          IO.puts(
+            "credencial reiniciada: #{email}. A senha e o segundo fator anteriores não valem mais."
+          )
+
+          imprimir_codigo(codigo)
+
+        {:error, :not_found} ->
+          IO.puts("#{email} não é operador com concessão vigente. Nada foi feito.")
+      end
+    end)
+  end
+
+  @doc "Revoga o papel de operador, e as sessões dele caem na mesma transação."
+  def revogar_operador(email, declarado_por, nota \\ nil) do
+    em_repo(fn ->
+      case Grants.revogar(email, declarado_por, nota) do
+        {:ok, _grant} -> IO.puts("operador revogado: #{email}. As sessões dele foram encerradas.")
+        {:error, :not_found} -> IO.puts("#{email} não tem concessão vigente. Nada foi feito.")
+      end
+    end)
+  end
+
+  defp imprimir_codigo(codigo) do
+    IO.puts("""
+    código de definição (vale 30 minutos, uma vez): #{TheBand.Segredo.expor(codigo)}
+    Entregue-o à pessoa por um canal seguro. Ele não será mostrado de novo.
+    """)
+  end
+
+  defp em_repo(fun) do
+    load_app()
+
+    for repo <- repos() do
+      {:ok, _, _} = Ecto.Migrator.with_repo(repo, fn _ -> fun.() end)
+    end
+
+    :ok
   end
 
   defp repos do

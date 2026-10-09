@@ -25,14 +25,23 @@ target:
   concept: sro.intended_scrum_development_task
 semantics:
   equivalence: derived
-  justification: >
-    Uma issue do tipo Task descreve trabalho planejado para materializar uma user
-    story — o que corresponde à tarefa pretendida da SRO, e não à executada. A
-    tarefa executada é evento distinto, derivado do histórico de status do item e
-    do fechamento da issue, e é ligada a esta por causação
-    (sro.performed_task_caused_by_intended_task). Colapsar as duas em um registro
-    só destrói a análise de aderência entre planejado e realizado, que é
-    exatamente o que CQ29 pede.
+  justification:
+    pt-BR: >
+      Uma issue do tipo Task descreve trabalho planejado para materializar uma user
+      story — o que corresponde à tarefa pretendida da SRO, e não à executada. A
+      tarefa executada é evento distinto, derivado do histórico de status do item e
+      do fechamento da issue, e é ligada a esta por causação
+      (sro.performed_task_caused_by_intended_task). Colapsar as duas em um registro
+      só destrói a análise de aderência entre planejado e realizado, que é
+      exatamente o que CQ29 pede.
+    en: >
+      An issue of type Task describes work planned to materialize a user story — which
+      corresponds to the SRO intended task, and not to the performed one. The performed task
+      is a distinct event, derived from the item's status history and from the closing of
+      the issue, and it is linked to this one by causation
+      (sro.performed_task_caused_by_intended_task). Collapsing the two into a single record
+      destroys the analysis of adherence between what was planned and what was carried out,
+      which is exactly what CQ29 asks for.
 identity:
   external_id_path: id
   natural_key: [repository.node_id, number]
@@ -49,10 +58,22 @@ relations:
     target_ontology: eo
     target_concept: eo.person
 limitations:
-  - Tarefa cujo pai é um épico viola sro.rule07; registrar divergência e não criar o vínculo direto com o épico.
-  - Tarefa sem pai fica sem user story atendida; é escopo órfão e deve aparecer como lacuna, não ser ligada ao sprint por proximidade.
-  - Esta issue é a tarefa PRETENDIDA. A tarefa executada vem de github.project_item_status e não deste mapeamento.
-  - Assignee indica quem foi designado, não necessariamente quem executou; a participação real vem de commits e reviews.
+  - pt-BR: Tarefa cujo pai é um épico viola sro.rule07; registrar divergência e não criar o vínculo direto com o épico.
+    en: >
+      A task whose parent is an epic violates sro.rule07; record the divergence and do not
+      create the direct link to the epic.
+  - pt-BR: Tarefa sem pai fica sem user story atendida; é escopo órfão e deve aparecer como lacuna, não ser ligada ao sprint por proximidade.
+    en: >
+      A task without a parent is left without a served user story; it is orphan scope and
+      must appear as a gap, not be linked to the sprint by proximity.
+  - pt-BR: Esta issue é a tarefa PRETENDIDA. A tarefa executada vem de github.project_item_status e não deste mapeamento.
+    en: >
+      This issue is the INTENDED task. The performed task comes from
+      github.project_item_status and not from this mapping.
+  - pt-BR: Assignee indica quem foi designado, não necessariamente quem executou; a participação real vem de commits e reviews.
+    en: >
+      Assignee indicates who was assigned, not necessarily who performed the task; actual
+      participation comes from commits and reviews.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at]

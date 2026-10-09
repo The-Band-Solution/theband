@@ -14,6 +14,7 @@ defmodule TheBandWeb.SessionController do
   use TheBandWeb, :controller
 
   alias TheBand.Tenants
+  alias TheBand.Tenants.AccessEvents
   alias TheBand.Tenants.Sessions
   alias TheBandWeb.Sessao
 
@@ -24,7 +25,20 @@ defmodule TheBandWeb.SessionController do
   defp mensagem_unica, do: dgettext("errors", "Credenciais inválidas.")
 
   def create(conn, %{"identifier" => identificador, "password" => senha}) do
-    case Tenants.authenticate(identificador, senha) do
+    # O CORRELATOR DA JORNADA — spec 074, T013 (FR-011; seguranca.md, S4 e S5).
+    #
+    # Lido **só da sessão**, nunca dos parâmetros: o cliente não escolhe com qual abertura a
+    # tentativa se casa. E apagado **antes** de decidir, com qualquer desfecho: a sessão é
+    # assinada e não cifrada, e uma chave apagada num motivo e mantida noutro diria ao cliente
+    # qual dos dois aconteceu.
+    jornada_id = get_session(conn, :jornada_id)
+    conn = delete_session(conn, :jornada_id)
+
+    # A ORIGEM DE QUEM TENTA — spec 077, FR-001. A recusa pelo limite sai pelo mesmo
+    # `{:error, _}` de baixo: a resposta não muda em nada (FR-002).
+    origem = TheBandWeb.Origem.de(conn)
+
+    case Tenants.authenticate(identificador, senha, jornada_id: jornada_id, origem: origem) do
       {:ok, user} ->
         destino = get_session(conn, :redirect_to) || ~p"/people"
 
@@ -40,8 +54,21 @@ defmodule TheBandWeb.SessionController do
 
   # SAIR ENCERRA NO SERVIDOR — 064, achado S5. Antes, sair só apagava o cookie local, e uma
   # cópia do cookie feita antes continuava valendo.
+  #
+  # SAIR DIZ SE ENCERROU ALGUMA COISA — spec 074, T016. `current_session` só existe se
+  # `CurrentScope` conferiu a sessão aberta; sem ela, não havia o que encerrar, e a saída é uma
+  # falha nomeada. Quando o cookie trazia uma sessão já encerrada, a mesma requisição produz dois
+  # passos — `sessao_derrubada`, emitido por `CurrentScope`, e este —, e são dois fatos.
+  # `Sessions.encerrar/1` não muda (contrato §8).
   def delete(conn, _params) do
-    if sessao = conn.assigns[:current_session], do: Sessions.encerrar(sessao)
+    case conn.assigns[:current_session] do
+      nil ->
+        passo(:sair, :falhou, :sessao_ja_nao_existia, nil)
+
+      sessao ->
+        Sessions.encerrar(sessao)
+        passo(:sair, :concluiu, nil, nil, sessao.tenant_id)
+    end
 
     conn
     |> configure_session(drop: true)
@@ -55,8 +82,13 @@ defmodule TheBandWeb.SessionController do
   def update_password(conn, %{"current" => atual, "password" => nova}) do
     user = conn.assigns.current_user
 
+    # O MOTIVO VEM DO RAMO, e nunca do changeset — spec 074, T021; seguranca.md, S1. O changeset
+    # carrega a senha nova em `changes`; lê-lo para nomear o motivo seria o caminho mais curto
+    # para ela sair.
     case Tenants.change_password(user.tenant, user.id, atual, nova) do
       {:ok, atualizada} ->
+        passo(:trocar_a_senha, :concluiu, nil, nil, user.tenant_id)
+
         conn
         |> Sessao.abrir(atualizada)
         |> put_flash(
@@ -66,15 +98,27 @@ defmodule TheBandWeb.SessionController do
         |> redirect(to: ~p"/profile")
 
       {:error, :invalid_current} ->
+        passo(:trocar_a_senha, :falhou, :senha_atual_nao_confere, user)
+
         conn
         |> put_flash(:error, dgettext("errors", "A senha atual não confere."))
         |> redirect(to: ~p"/profile")
 
-      {:error, _} ->
-        conn
-        |> put_flash(:error, dgettext("errors", "A senha precisa de pelo menos 12 caracteres."))
-        |> redirect(to: ~p"/profile")
+      {:error, %Ecto.Changeset{}} ->
+        passo(:trocar_a_senha, :falhou, :recusada_pela_regra, user)
+        recusar_a_troca(conn)
+
+      # A conta da sessão sumiu entre a conferência e a troca: inalcançável sem corrida, e sem
+      # motivo declarado na taxonomia — por isso sem passo, e dito no contrato §2.
+      {:error, :not_found} ->
+        recusar_a_troca(conn)
     end
+  end
+
+  defp recusar_a_troca(conn) do
+    conn
+    |> put_flash(:error, dgettext("errors", "A senha precisa de pelo menos 12 caracteres."))
+    |> redirect(to: ~p"/profile")
   end
 
   @doc """
@@ -110,27 +154,55 @@ defmodule TheBandWeb.SessionController do
       if senha == confirmacao do
         aplicar_definicao(conn, user, senha)
       else
+        passo(:definir_a_senha, :falhou, :confirmacao_diferente, user)
+
         conn
         |> put_flash(:error, dgettext("errors", "A confirmação não confere com a senha."))
         |> redirect(to: ~p"/set-password")
       end
     else
-      _ -> conn |> configure_session(drop: true) |> redirect(to: ~p"/sign-in")
+      # Sem sessão, ou conta em regime normal na rota da temporária (H1): fora do fluxo. A conta
+      # vai no passo quando é conhecida — uma sessão válida tentando esta porta é o sinal do H1.
+      _ ->
+        passo(:definir_a_senha, :falhou, :fora_do_fluxo, conn.assigns[:current_user])
+        conn |> configure_session(drop: true) |> redirect(to: ~p"/sign-in")
     end
   end
 
+  # O motivo vem do ramo, e nunca do changeset — ver `update_password/2`.
   defp aplicar_definicao(conn, user, senha) do
     case Tenants.set_password(user.tenant, user.id, senha) do
       {:ok, atualizada} ->
+        passo(:definir_a_senha, :concluiu, nil, nil, user.tenant_id)
+
         conn
         |> Sessao.abrir(atualizada)
         |> put_flash(:info, dgettext("sistema", "Senha definida."))
         |> redirect(to: ~p"/people")
 
-      {:error, _changeset} ->
+      {:error, erro} ->
+        if match?(%Ecto.Changeset{}, erro),
+          do: passo(:definir_a_senha, :falhou, :recusada_pela_regra, user)
+
         conn
         |> put_flash(:error, dgettext("errors", "A senha precisa de pelo menos 12 caracteres."))
         |> redirect(to: ~p"/set-password")
     end
+  end
+
+  # O passo de jornada — spec 074, contracts/jornada.md §2. A conta entra como id, e só nos
+  # desfechos que pedem ação (FR-004, D1): `passo/4` recebe a conta da recusa; `passo/5`, o
+  # concluído, recebe só a organização.
+  defp passo(passo, desfecho, motivo, conta),
+    do: passo(passo, desfecho, motivo, conta && conta.id, conta && conta.tenant_id)
+
+  defp passo(passo, desfecho, motivo, user_id, tenant_id) do
+    AccessEvents.passo(%{
+      passo: passo,
+      desfecho: desfecho,
+      motivo: motivo,
+      tenant_id: tenant_id,
+      user_id: user_id
+    })
   end
 end

@@ -57,5 +57,10 @@ defmodule TheBandWeb.Endpoint do
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
+
+  # Antes do roteador, para as páginas que nascem de exceção (a recusa de CSRF, o caminho que não
+  # existe) também levarem a CSP e os cabeçalhos de segurança (070/T038, #1135). Ver
+  # `TheBandWeb.Plugs.Borda`.
+  plug TheBandWeb.Plugs.Borda
   plug TheBandWeb.Router
 end

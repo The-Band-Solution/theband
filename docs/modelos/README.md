@@ -28,6 +28,11 @@ bloco publicado seja código que não vira desenho. A coluna
 *diagramas* é a contagem de blocos ```` ```mermaid ```` no arquivo — zero significa que o
 documento é censo, tabela ou matriz, e não que falta desenho.
 
+**Acréscimo de 2026-10-02 (spec 070)**: três documentos e cinco diagramas novos —
+`banco/operador-da-plataforma.md`, `estados/organizacao-suspensa.md` e
+`estados/credencial-do-operador.md` —, renderizados com o mesmo `mermaid-cli@11.17.0` nessa data.
+Com eles, **29 documentos e 47 diagramas**; a recontagem completa do índice não foi refeita.
+
 ### Por onde começar
 
 Se você chegou agora ao projeto, leia nesta ordem. Cada um destes quatro é um **censo**, e
@@ -76,6 +81,7 @@ legíveis assim.
 | [`banco/projetos-e-processo.md`](banco/projetos-e-processo.md) | 2 | 17 tabelas |
 | [`banco/perfis-e-modelo.md`](banco/perfis-e-modelo.md) | 1 | 5 tabelas |
 | [`banco/declaracoes-da-organizacao.md`](banco/declaracoes-da-organizacao.md) | 1 | **novo** — 9 tabelas de declaração, 12 índices parciais, FK declarada × coluna crua |
+| [`banco/operador-da-plataforma.md`](banco/operador-da-plataforma.md) | 1 | **novo (070)** — 5 tabelas do operador e da suspensão, a FK nova de `api_access_tokens`, 17 `CHECK`s e o primeiro trigger adiado |
 
 ### Estados — por que situações um registro passa
 
@@ -89,6 +95,8 @@ legíveis assim.
 | [`estados/coleta.md`](estados/coleta.md) | 4 | **novo** — a execução, a ferramenta (estado por evento) e a credencial |
 | [`estados/projeto-declarado.md`](estados/projeto-declarado.md) | 2 | **novo** — o projeto e seus quatro vínculos; o único estado final que não volta |
 | [`estados/vinculo-de-equipe.md`](estados/vinculo-de-equipe.md) | 2 | quatro campos, cinco situações |
+| [`estados/organizacao-suspensa.md`](estados/organizacao-suspensa.md) | 2 | **novo (070)** — `active`/`suspended` amarrado ao episódio pelo trigger adiado; o episódio aberto e fechado |
+| [`estados/credencial-do-operador.md`](estados/credencial-do-operador.md) | 2 | **novo (070)** — os três passos do cadastro, a entrada, o travamento em 10, reinício e revogação; e a sessão |
 
 ### DSM — o que precisa vir antes do quê
 

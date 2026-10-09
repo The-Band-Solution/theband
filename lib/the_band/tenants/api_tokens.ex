@@ -47,6 +47,7 @@ defmodule TheBand.Tenants.ApiTokens do
 
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Repo
+  alias TheBand.Tenants.PapelDeAdministrador
   alias TheBand.Tenants.Schemas.ApiAccessToken, as: Token
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
@@ -139,6 +140,45 @@ defmodule TheBand.Tenants.ApiTokens do
     end)
   end
 
+  @doc """
+  As cláusulas que um token revogado pode ter: as oferecidas e as só registradas
+  (`organizacao_suspensa`) — spec 070, T047. A tela lê o rótulo daqui; o select continua com
+  `clausulas_de_revogacao/0`, e não ganha opção.
+  """
+  @spec clausulas_registradas() :: [String.t()]
+  def clausulas_registradas,
+    do: clausulas_de_revogacao() ++ (valores_da_revogacao()["clausulas_so_registradas"] || [])
+
+  @doc "Os rótulos de todas as cláusulas registradas, para escrever a linha do token revogado."
+  @spec rotulos_registrados(String.t()) :: [{String.t(), String.t()}]
+  def rotulos_registrados(idioma \\ "en") do
+    rotulos = valores_da_revogacao()["rotulos"] || %{}
+    Enum.map(clausulas_registradas(), &{&1, get_in(rotulos, [&1, idioma]) || &1})
+  end
+
+  @doc """
+  Revoga todo token vigente da organização, pela suspensão `suspensao_id` — spec 070, T047
+  (FR-013). Roda dentro da transação da suspensão. A condição `revoked_at IS NULL` fica no `WHERE`:
+  o token já revogado mantém o autor e a razão da primeira revogação.
+
+  Recebe o id do episódio por argumento, e não lê `tenant_suspensions`.
+  """
+  @spec revogar_por_suspensao(Tenant.t(), Ecto.UUID.t()) :: {:ok, non_neg_integer()}
+  def revogar_por_suspensao(%Tenant{id: tenant_id}, suspensao_id) when is_binary(suspensao_id) do
+    {n, _} =
+      Repo.update_all(
+        from(t in Token, where: t.tenant_id == ^tenant_id and is_nil(t.revoked_at)),
+        set: [
+          revoked_at: agora(),
+          revoked_by_user_id: nil,
+          revoked_by_suspension_id: suspensao_id,
+          revocation_clause: "organizacao_suspensa"
+        ]
+      )
+
+    {:ok, n}
+  end
+
   defp valores_da_revogacao do
     case KnowledgeBase.rule(@regra) do
       {:ok, regra} ->
@@ -187,10 +227,34 @@ defmodule TheBand.Tenants.ApiTokens do
 
   **O valor em claro sai daqui e nunca mais.** Ele não é gravado, e a terceira posição da
   tupla é a única vez que ele existe fora da memória de quem chamou.
+
+  Dono e autor de outro tenant são recusados no changeset, e nada é gravado — issue #1035.
+  Antes, só `ApiAuth` impedia o **uso** de um token assim; a criação aceitava.
   """
   @spec criar(Tenant.t(), User.t(), map(), User.t()) ::
-          {:ok, Token.t(), String.t()} | {:error, Ecto.Changeset.t()}
-  def criar(%Tenant{id: tenant_id}, %User{id: dono_id}, attrs, %User{id: autor_id}) do
+          {:ok, Token.t(), String.t()} | {:error, :nao_autorizado | Ecto.Changeset.t()}
+  def criar(%Tenant{id: tenant_id} = tenant, %User{} = dono, attrs, %User{} = autor) do
+    # Token para OUTRA conta é ato de administração, e o autor é relido (072, FR-002a; S1): um
+    # rebaixado com a aba aberta criaria token com dono admin, e passaria a ler como ele.
+    with :ok <- autor_pode_criar(tenant_id, dono, autor),
+         do: criar_token(tenant, dono, attrs, autor)
+  end
+
+  defp autor_pode_criar(_tenant_id, %User{id: id}, %User{id: id}), do: :ok
+
+  # O autor de outra organização segue para a recusa do changeset (#1035), que diz qual conta
+  # não é da organização; a conferência do papel é para quem é dela.
+  defp autor_pode_criar(tenant_id, _dono, %User{tenant_id: tenant_id, id: autor_id}),
+    do: PapelDeAdministrador.exigir_ator(tenant_id, autor_id)
+
+  defp autor_pode_criar(_tenant_id, _dono, _autor), do: :ok
+
+  defp criar_token(
+         %Tenant{id: tenant_id},
+         %User{id: dono_id} = dono,
+         attrs,
+         %User{id: autor_id} = autor
+       ) do
     id_publico = gerar_id_publico(@bytes_do_id)
     segredo = gerar_segredo(@bytes_do_segredo)
     valor = prefixo() <> id_publico <> "_" <> segredo
@@ -206,12 +270,21 @@ defmodule TheBand.Tenants.ApiTokens do
       created_by_user_id: autor_id,
       expires_at: expiracao(attrs)
     })
+    |> do_tenant(:user_id, dono, tenant_id)
+    |> do_tenant(:created_by_user_id, autor, tenant_id)
     |> Repo.insert()
     |> case do
       {:ok, token} -> {:ok, %{token | value: valor}, valor}
       {:error, changeset} -> {:error, changeset}
     end
   end
+
+  # Mensagem de tela, em inglês. O mesmo texto para dono e autor, e sem dizer de qual
+  # organização a conta é: dizer confirmaria que ela existe em outra.
+  defp do_tenant(changeset, _campo, %User{tenant_id: tenant_id}, tenant_id), do: changeset
+
+  defp do_tenant(changeset, campo, %User{}, _tenant_id),
+    do: Ecto.Changeset.add_error(changeset, campo, "is not an account of this organization")
 
   # O teto vem da base, e um pedido acima dele é **reduzido ao teto**, não recusado: quem
   # pede 365 dias quer o máximo que puder ter, e recusar transformaria isso em erro de
@@ -385,9 +458,11 @@ defmodule TheBand.Tenants.ApiTokens do
   na lista — recusa, nunca gravação silenciosa de uma razão que ninguém vai conseguir contar.
   """
   @spec revogar(Tenant.t(), Ecto.UUID.t(), User.t(), map()) ::
-          {:ok, Token.t()} | {:error, :not_found} | {:error, Ecto.Changeset.t()}
+          {:ok, Token.t()} | {:error, :nao_autorizado | :not_found | Ecto.Changeset.t()}
   def revogar(%Tenant{} = tenant, id, %User{id: autor_id}, razao) do
-    with {:ok, token} <- buscar(tenant, id) do
+    # O token antes do ator: o de outra organização é `:not_found`, e nunca recusa de papel.
+    with {:ok, token} <- buscar(tenant, id),
+         :ok <- PapelDeAdministrador.exigir_ator(tenant.id, autor_id) do
       if token.revoked_at do
         {:ok, token}
       else

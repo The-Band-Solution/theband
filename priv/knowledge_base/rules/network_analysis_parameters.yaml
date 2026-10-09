@@ -1,0 +1,535 @@
+derivation_rule:
+  id: network.analysis.parameters
+  version: 1
+  provider: platform
+  status: proposed
+  confidence: medium
+
+  name:
+    pt-BR: "Os parâmetros da análise de rede — algoritmos, sementes, amostras e tamanhos de lista"
+
+  description:
+    pt-BR: >
+      A análise de rede (spec 076) depende de escolhas que mudam o número que a plataforma
+      afirma: que projeção sem direção, que algoritmo de comunidades e como desempata, quantos
+      grafos aleatórios e com que semente, como o autovetor converge, quantas pessoas cada
+      lista mostra. Moram aqui, e não em constante de módulo, pela razão de
+      `review.network.parameters`: em constante, o número muda num diff de código e ninguém
+      percebe que a plataforma passou a afirmar outra coisa.
+
+      Os limiares que transformam percentil em PAPEL de pessoa não moram aqui: estão em
+      `network.position_role`, porque mudam o que se diz sobre uma pessoa, e essa mudança
+      precisa de revisão própria.
+
+      Cada valor tem a razão escrita. Onde a referência (`dashboard_team_graph.py`) tinha o
+      valor sem razão, a nota diz isso e diz de onde veio o que está aqui.
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: >
+      spec 076, FR-010, FR-017, FR-022, FR-027, FR-032 a FR-043, FR-052; revisão semântica 076;
+      decisão da pessoa mantenedora de 2026-10-03 (*"a mesma análise quero todas"*); emendas do
+      plano de 2026-10-04 (research.md R5, R7, R8, R16), T006
+    note: >
+      Nenhum valor foi medido contra o banco. O volume em 180 dias na maior organização é a
+      pergunta aberta 073/T002 (#1190), e o plano a usa para confirmar que o custo cabe sem
+      dependência nova.
+
+  rules:
+    networks:
+      name:
+        pt-BR: "As duas redes analisadas"
+      statement:
+        pt-BR: >
+          A análise existe para exatamente duas redes: `review` (aresta
+          `review.network.edge`) e `assignment` (aresta `assignment.network.edge`). Valor fora
+          da lista é recusado no domínio. As janelas são as de
+          `review.network.parameters.window_days` (30, 90, 180; padrão 90), para as duas.
+      note:
+        pt-BR: >
+          A rede `review` é a leitura que a 073 gravou, e a `assignment` é calculada aqui, com
+          as contas da organização declaradas AGORA. Para a conta declarada sair das duas (A7),
+          a leitura da 073 da versão 1 da `review.network.edge`, ou calculada até a última
+          declaração ou revogação do tenant, NÃO é usada: a rede de revisão fica ausente, com o
+          motivo `review_reading_outdated`, e a tela diz que ela é recalculada na sincronização
+          seguinte. Nunca é usada como se tivesse medido (E4 da revisão semântica do PR #1383).
+      values:
+        allowed: [review, assignment]
+        windows_from: review.network.parameters.window_days
+
+    undirected_projection:
+      name:
+        pt-BR: "A projeção sem direção soma os dois sentidos"
+      statement:
+        pt-BR: >
+          Toda medida sem direção usa o grafo em que há aresta {u, v} se houver u → v ou
+          v → u, com peso w({u, v}) = w(u → v) + w(v → u). Medidas que usam distância
+          (intermediação, proximidade, distância média, diâmetro, eficiência, σ) contam
+          PASSOS e ignoram o peso; medidas que usam peso (autovetor, comunidades) usam essa
+          soma.
+      note:
+        pt-BR: >
+          A referência usa `to_undirected()` (`:80`), que guarda o atributo de UM dos
+          sentidos do par recíproco: A → B com peso 5 e B → A com peso 1 vira {A, B} com
+          peso 5 ou 1, conforme a ordem de inserção. A soma é a única escolha que não depende
+          de ordem e não descarta observação. Distância por passos, e não ponderada, porque o
+          peso aqui é INTENSIDADE (quantas issues, quantas revisões), e não custo: tratar peso
+          alto como caminho longo inverteria o sentido.
+      values:
+        weight: sum_of_both_directions
+        distance: hops
+
+    connectivity:
+      name:
+        pt-BR: "Conectividade fraca, um critério só"
+      statement:
+        pt-BR: >
+          Componentes, alcance entre pessoas e "a rede é conexa" usam o critério FRACO
+          (direção ignorada). A frase da tela diz o número de componentes; com 1, diz que
+          todas as pessoas da rede estão ligadas, direta ou indiretamente.
+      note:
+        pt-BR: >
+          A referência testa conectividade FORTE e reporta componentes FRACOS na mesma frase
+          (`:277-282`), o que produziu "o grafo é desconexo, contendo 1 componentes". O
+          critério fraco é o da 073 (`review.network.unconnected_groups.count`).
+      values:
+        criterion: weak
+
+    hubs_list_size:
+      name:
+        pt-BR: "Cada lista de hubs mostra até 5 pessoas"
+      statement:
+        pt-BR: >
+          As quatro listas de hubs (grau, intermediação, proximidade, autovetor) mostram até
+          5 pessoas, ordenadas pela medida, decrescente. Empate na medida é desempatado pelo
+          identificador interno da pessoa, crescente, e a tela marca o empate ("tied").
+      note:
+        pt-BR: >
+          5 é o `top_n` da referência (`:82`), mantido por decisão de 2026-10-03 (igual à
+          referência). A razão para não ser maior: a lista existe para apontar onde a rede se
+          concentra, e não para ordenar todo mundo — a ordenação de todos é o ranking que a
+          lista geral, por nome, continua recusando (FR-034). O desempate pelo identificador
+          é arbitrário de propósito: desempatar por nome favoreceria a ordem alfabética, e
+          desempatar por outra medida inventaria um critério; o arbitrário, declarado e
+          marcado como empate na tela, não afirma nada.
+      values:
+        size: 5
+        tie_break: person_internal_id_ascending
+        mark_ties: true
+
+    communities:
+      name:
+        pt-BR: "Comunidades por maximização gulosa de modularidade, com peso e desempate declarado"
+      statement:
+        pt-BR: >
+          A partição é a do algoritmo guloso de Clauset, Newman e Moore (2004) sobre a projeção
+          sem direção COM PESO (`undirected_projection`), resolução 1: começa com cada pessoa
+          numa comunidade e junta, a cada passo, o par de comunidades ligadas cuja junção
+          mais aumenta a modularidade, até nenhuma junção aumentá-la. Empate no ganho é
+          desempatado pelo par de menor índice, sendo o índice inicial de cada comunidade a
+          posição da pessoa na ordem crescente do identificador interno. As comunidades são
+          numeradas por tamanho decrescente, e empate de tamanho pelo menor índice.
+      note:
+        pt-BR: >
+          É o algoritmo da referência (`greedy_modularity_communities`, `:241`), com duas
+          correções: o PESO (a referência maximiza sem peso, e duas pessoas com 20 issues em
+          comum contam como duas com 1) e o DESEMPATE declarado (sem ele, a partição depende
+          da ordem de leitura do banco, e a FR-052 cai). Louvain e Leiden encontram partições
+          de modularidade maior, mas são aleatorizados: exigiriam semente e não são o que a
+          pessoa mantenedora pediu ("igual").
+      values:
+        algorithm: clauset_newman_moore_greedy
+        weighted: true
+        resolution: 1
+        tie_break: lowest_index_pair
+        numbering: size_descending
+
+    community_core_size:
+      name:
+        pt-BR: "Os 3 mais centrais de cada comunidade, por grau interno"
+      statement:
+        pt-BR: >
+          Cada comunidade mostra até 3 pessoas com maior grau interno (número de pessoas
+          distintas da MESMA comunidade a que se liga), desempate como `hubs_list_size`.
+      note:
+        pt-BR: >
+          3 é o `min(3, …)` da referência (`:434`), mantido. Comunidade de até 3 pessoas tem
+          todos os membros entre os "mais centrais", e a tela não mostra a lista duas vezes.
+      values:
+        size: 3
+
+    modularity_reading:
+      name:
+        pt-BR: "Como a modularidade é lida: ao lado da dos grafos aleatórios, com as faixas da literatura citadas"
+      statement:
+        pt-BR: >
+          A modularidade Q aparece com Q_rand: a média, sobre os grafos aleatórios de
+          `small_world`, da modularidade da partição que o MESMO algoritmo guloso
+          (`communities`), COM PESO, encontra em CADA grafo aleatório. Não é a partição da
+          rede real aplicada aos aleatórios, que mediria outra coisa. Cada grafo aleatório
+          recebe, nas suas m arestas, o MULTICONJUNTO dos pesos reais da projeção sem direção,
+          embaralhado pelo gerador de `small_world` (Fisher–Yates, consumindo a sequência
+          depois dos pares daquele grafo). As faixas abaixo aparecem como
+          CITAÇÃO, com a fonte, e nunca como adjetivo próprio da plataforma:
+            - Q acima de cerca de 0,3: "in practice indicates significant community
+              structure" (Clauset, Newman e Moore, 2004);
+            - Q entre 0,3 e 0,7 é o intervalo típico de redes com estrutura de comunidade, e
+              acima de 0,7 é raro (Newman e Girvan, 2004).
+      note:
+        pt-BR: >
+          A referência usa 0,3 e 0,7 como faixas próprias (`:404`), sem fonte. As duas têm
+          fonte na literatura, e por isso podem ser citadas. Mas Guimerà, Sales-Pardo e Amaral
+          (2004) mostram que grafos ALEATÓRIOS esparsos e pequenos atingem Q de 0,3 ou mais
+          por flutuação — exatamente o tamanho das redes desta plataforma. Por isso o número
+          que decide é Q contra Q_rand, e a faixa é contexto.
+
+          Os pesos reais sorteados, e não aleatórios sem peso (emenda do plano, R8; A5 da
+          revisão semântica 2): pesos concentrados aumentam Q por si; comparar Q com peso
+          contra Q_rand sem peso enviesaria a leitura a favor de "há estrutura" justamente na
+          rede de designação, que concentra peso. Com o mesmo multiconjunto, a diferença entre
+          Q e Q_rand é da ESTRUTURA, e não da distribuição de pesos. Configuração nula com
+          graus preservados seria outra escolha de modelo nulo, não pedida.
+      values:
+        cited_thresholds: [0.3, 0.7]
+        compare_with_random: true
+        random_weights: shuffled_real_multiset
+
+    eigenvector:
+      name:
+        pt-BR: "Autovetor por componente, por iteração de potência sobre A + I, com peso"
+      statement:
+        pt-BR: >
+          Para cada componente (critério fraco) com ao menos 2 pessoas, o autovetor é o vetor
+          x da iteração x ← (A + I)·x normalizada pela norma euclidiana, A a matriz de pesos
+          da projeção sem direção, começando de x = 1. Converge quando a soma das diferenças
+          absolutas entre duas iterações é menor que n_c × 1e-6 (n_c = pessoas do componente),
+          em até 1000 iterações. Sem convergência, o componente inteiro fica AUSENTE com o
+          motivo `did_not_converge`.
+      note:
+        pt-BR: >
+          A + I, e não A, porque em grafo bipartido (poucos autores designando para muitos
+          responsáveis, que é o formato típico da rede de designação) a iteração sobre A
+          oscila entre dois vetores e não converge; somar I desloca o espectro sem mudar o
+          autovetor dominante. É o método de `networkx.eigenvector_centrality`. A referência
+          usa `eigenvector_centrality_numpy` no grafo inteiro, cai em exceção quando ele é
+          desconexo, e então usa a centralidade de GRAU como reserva (`:113`, outra escala) e
+          0,01 para nó isolado (`:117`). Aqui não há reserva: o que não converge é ausente, e
+          nó isolado não existe (pessoa sem aresta não é nó). A tolerância é a padrão do
+          networkx (1e-6 por pessoa), para que a comparação com ferramenta de referência
+          (SC-002) seja direta; o teto é 1000, e não os 100 do networkx, porque somar I
+          desacelera a convergência, e um teto curto produziria ausência onde há valor.
+      values:
+        per_component: true
+        min_component_size: 2
+        method: power_iteration_shifted
+        tolerance_per_node: 1.0e-6
+        max_iterations: 1000
+        not_converged: absent
+
+    betweenness:
+      name:
+        pt-BR: "Intermediação sobre a projeção sem direção, em passos, normalizada pela rede inteira"
+      statement:
+        pt-BR: >
+          Intermediação de Freeman (1977), calculada pelo algoritmo de Brandes (2001) sobre a
+          projeção sem direção, sem peso, normalizada por (n − 1)(n − 2)/2, n o número de
+          pessoas da rede inteira. Rede com menos de 3 pessoas: a normalização não está
+          definida e a medida é AUSENTE com motivo `network_too_small`.
+      note:
+        pt-BR: >
+          A referência calcula sobre o grafo DIRIGIDO (`:90`) e a lê como "ponte entre
+          grupos" (`:304`). Ponte entre grupos é pergunta sem direção: dois grupos estão
+          ligados por B se A → B ← C tanto quanto se A → B → C, e o grafo dirigido só conta o
+          segundo. A medida segue a pergunta que a tela faz; a mudança está declarada na
+          revisão semântica (S4).
+      values:
+        graph: undirected_projection
+        weighted: false
+        normalization: "(n-1)(n-2)/2"
+        min_people: 3
+
+    closeness:
+      name:
+        pt-BR: "Proximidade com a correção de Wasserman e Faust, e a distância média dita à parte"
+      statement:
+        pt-BR: >
+          Para a pessoa u, com r(u) pessoas alcançáveis contando ela própria, n pessoas na
+          rede e D(u) a soma das distâncias, em passos, até as alcançáveis:
+          closeness(u) = ((r(u) − 1)/(n − 1)) × ((r(u) − 1)/D(u)). A distância média da
+          pessoa, D(u)/(r(u) − 1), e o número de pessoas que ela alcança, r(u) − 1, são
+          medidas próprias (`network.person_distance.mean`) e aparecem ao lado.
+      note:
+        pt-BR: >
+          É a fórmula do networkx com `wf_improved=True`, a que a referência usa sem saber
+          (`:94`). O defeito da referência não é a fórmula: é escrever 1/closeness como
+          "alcança outros em N passos" (`:318`). Com a correção, 1/closeness não é distância
+          média em grafo desconexo, e a frase fica falsa justamente para quem está em
+          componente pequeno.
+      values:
+        correction: wasserman_faust
+        distance: hops
+
+    clustering:
+      name:
+        pt-BR: "Clustering médio sobre quem tem ao menos 2 vizinhos"
+      statement:
+        pt-BR: >
+          O clustering local de u é a fração dos pares de vizinhos de u que são vizinhos
+          entre si (Watts e Strogatz, 1998), na projeção sem direção, sem peso. Pessoa com
+          menos de 2 vizinhos não tem clustering local DEFINIDO: fica fora da média, e o
+          número delas é dito. O clustering médio é a média sobre quem tem ao menos 2
+          vizinhos. Sem ninguém com 2 vizinhos, é AUSENTE com motivo `no_person_with_two_neighbours`.
+      note:
+        pt-BR: >
+          O networkx (e por isso a referência, `:184`) conta 0 para quem tem menos de 2
+          vizinhos. Isso é ausência virando zero, e puxa a média para baixo em redes com
+          muitas pessoas de um vizinho só — o formato da rede de designação. A mesma regra
+          vale para os grafos aleatórios do σ, e por isso a razão C/C_rand é comparável.
+      values:
+        undefined_local: excluded_and_counted
+        min_neighbours: 2
+
+    distances:
+      name:
+        pt-BR: "Distância média, diâmetro e eficiência sobre pares"
+      statement:
+        pt-BR: >
+          Sobre a projeção sem direção, em passos, com P os pares não ordenados de pessoas
+          distintas e A ⊆ P os que se alcançam:
+            distância média = soma das distâncias em A / |A|, dita com |A| / |P|;
+            diâmetro = maior distância em A;
+            eficiência global = (soma sobre P de 1/d) / |P|, com 1/d = 0 para par de P fora
+              de A (Latora e Marchiori, 2001).
+          Sem par em A (rede sem aresta): as três são AUSENTES com motivo `no_edge_in_window`.
+      note:
+        pt-BR: >
+          A referência faz a média SIMPLES das médias por componente (`:139-149`): um par de
+          2 pessoas pesa o mesmo que um componente de 40. Aqui cada par pesa um. No diâmetro,
+          a frase "no máximo N passos para uma informação ir de qualquer um a qualquer outro"
+          (`:351`) é falsa quando há componentes; a tela diz "between people who reach each
+          other". Na eficiência, o 0 do par sem caminho NÃO é valor de reserva: é a definição
+          de Latora e Marchiori (1/∞), e a medida existe justamente para valer em rede
+          desconexa — está dito na medida.
+      values:
+        pairs: unordered
+        unreachable_in_efficiency: zero_by_definition
+
+    small_world:
+      name:
+        pt-BR: "σ contra 100 grafos aleatórios G(n, m), semente 42, todos na média"
+      statement:
+        pt-BR: >
+          σ = (C / C_rand) / (L / L_rand) (Humphries e Gurney, 2008), com C o clustering
+          médio (`clustering`) e L a distância média (`distances`) da rede, e C_rand, L_rand
+          as médias sobre 100 grafos aleatórios com o MESMO número de pessoas n e de arestas
+          m da projeção sem direção, sorteados uniformemente (modelo G(n, m)) por gerador
+          pseudoaleatório com semente 42, na mesma ordem a cada cálculo. TODO grafo gerado
+          entra; cada média divide pelo número de grafos em que a medida está definida, que é
+          dito. C e L de cada aleatório seguem as MESMAS regras da rede real.
+
+          σ é AUSENTE com motivo:
+            - `network_too_small` — menos de 10 pessoas na rede;
+            - `random_clustering_undefined` — C_rand é zero ou indefinido em todos os
+              grafos aleatórios;
+            - `clustering_undefined` ou `no_edge_in_window` — C ou L da rede indefinidos.
+
+          A leitura é "meets the σ > 1 criterion" (ou "does not meet"), nunca "é" ou "não é
+          mundo pequeno".
+      note:
+        pt-BR: >
+          Os defeitos da referência (`:186-229`), um a um: (1) divide por 10 mesmo quando
+          menos de 10 grafos entraram — aqui divide pelo que entrou; (2) descarta os aleatórios
+          desconexos, enviesando C_rand e L_rand — aqui todos entram, e L de grafo desconexo
+          segue a regra de pares que se alcançam, a mesma da rede real; (3) compara L real
+          (média de médias) com L aleatório (só conexos) — aqui as duas pela mesma regra;
+          (4) sem semente e com 10 amostras — aqui semente fixa e 100 amostras; (5) devolve 0
+          quando não há aleatório conexo, e o relatório conclui "NÃO é mundo pequeno" — aqui
+          é ausente, e ausência não é conclusão.
+
+          G(n, m), e não G(n, p) como a referência (`:197`), porque G(n, p) sorteia o NÚMERO
+          de arestas, e a comparação deixa de ser com a mesma densidade. 100 amostras porque o
+          erro padrão da média cai com a raiz do número de amostras: com 10, o σ muda de uma
+          execução para outra o bastante para cruzar o 1 em redes perto do limite; com 100, o
+          erro cai a cerca de um terço, a um custo de 100 buscas em largura de todos os pares,
+          trivial para centenas de pessoas. A semente 42 é a do layout da referência
+          (`spring_layout(seed=42)`, `:539`): o valor é arbitrário, e o que importa é ser fixo
+          e gravado na proveniência. A semente SOZINHA não fixa a sequência: o algoritmo do
+          gerador pseudoaleatório (o de `:rand` do Erlang, escolhido no plano) e o
+          procedimento de sorteio das m arestas são parte do parâmetro, gravados com a
+          semente, e trocar qualquer um deles é versão nova desta regra. Pela mesma razão,
+          "semente 42" aqui não reproduz os números do networkx com `seed=42`: a comparação
+          com ferramenta de referência (SC-002) é de método e de valor dentro da tolerância
+          do plano, e não de sorteio. O mínimo de 10 pessoas porque, abaixo disso, G(n, m) com
+          a mesma densidade tem poucos triângulos possíveis, e C_rand oscila entre zero e
+          valores grandes de um sorteio para outro; o valor é revisável com dado.
+
+          O critério σ > 1 é o de Humphries e Gurney (2008), e é FRACO: Telesford et al.
+          (2011) mostram que redes quase reticuladas também o atendem. O ω deles não foi
+          adotado porque exige grafos reticulados equivalentes, e não é o que a referência
+          mostra; a limitação está na medida.
+
+          O GERADOR e o SORTEIO, declarados (emenda do plano, R7; A8 da revisão semântica 2):
+          o algoritmo é `exsss` do `:rand` do Erlang/OTP (Xorshift116**), com estado
+          EXPLÍCITO semeado com `seed`, e nunca o estado do processo — qualquer outra chamada
+          a `:rand` no mesmo processo mudaria a sequência. Os nós dos aleatórios são os
+          índices 1..n na ordem crescente do identificador interno da pessoa. Cada par é
+          sorteado por REJEIÇÃO: u e v uniformes em 1..n; o par é recusado se u = v ou se
+          {min, max} já foi sorteado; repete até m pares. Os grafos consomem a mesma
+          sequência, em ordem: o grafo i começa onde o i − 1 parou, e os pesos do Q_rand
+          (`modularity_reading`) são embaralhados por Fisher–Yates logo depois dos pares de
+          cada grafo. O multiconjunto entra no embaralhamento na ordem crescente do par {menor
+          id, maior id} da projeção sem direção, e o i-ésimo peso embaralhado vai para o i-ésimo
+          par sorteado.
+      values:
+        random_model: gnm
+        random_graphs: 100
+        seed: 42
+        min_people: 10
+        criterion_threshold: 1
+        average_over: graphs_where_defined
+        generator: exsss
+        sampling:
+          nodes: person_internal_id_ascending
+          pairs: rejection_of_loops_and_repeats
+          weights: fisher_yates
+          weights_input: undirected_pair_ascending
+          weights_assigned_to: sampled_pair_order
+
+    outside_reach:
+      name:
+        pt-BR: "Quem está fora do alcance aparece agrupado, em grupos de ao menos 3"
+      statement:
+        pt-BR: >
+          Com alcance parcial, as pessoas fora do alcance de quem consulta aparecem como UM nó
+          agregado por comunidade quando forem ao menos 3; as de comunidades com menos de 3
+          juntam-se num nó "other communities" se juntarem ao menos 3; senão não há nó, e a
+          pessoa alcançada ligada a alguém de fora leva só a marca "has links outside your
+          reach". Número que, subtraídos os nomes visíveis, contaria menos de 3 pessoas de fora
+          não aparece. Nenhum nó anônimo individual (spec 076, FR-015; seguranca.md R2).
+      note:
+        pt-BR: >
+          Com 1, o agregado é uma pessoa; com 2, cada uma é identificável por quem conhece a
+          outra, e o grupo vira um par; 3 é o menor grupo em que nenhum número isola alguém sem
+          conhecimento externo sobre duas pessoas. É o mesmo valor de
+          `review.network.parameters.min_group_size_shown`. Estatística oficial costuma usar 5,
+          mas aqui as redes têm dezenas de pessoas e as comunidades, poucas: 5 suprimiria quase
+          todo agregado. Revisável com dado; a decisão DS2 da avaliação de segurança pode
+          trocá-lo por 5.
+      values:
+        min_group: 3
+        aggregate_by: community
+        individual_anonymous_nodes: false
+        complementary_suppression: true
+
+    layout:
+      name:
+        pt-BR: "Posições calculadas no servidor por força dirigida, semente 42"
+      statement:
+        pt-BR: >
+          As posições do desenho são as de Fruchterman e Reingold (1991) sobre a projeção sem
+          direção com peso, 50 iterações, posições iniciais sorteadas com semente 42 em ordem
+          crescente de identificador interno, como `networkx.spring_layout(seed=42)`. O mesmo
+          dado dá as mesmas posições (FR-022, FR-052). As duas vistas (ponderada e
+          comunidades) usam as MESMAS posições, como a referência.
+      note:
+        pt-BR: >
+          "Como `networkx.spring_layout(seed=42)`" é sobre o MÉTODO: o gerador do Elixir não
+          produz a sequência do numpy, e as posições não serão as da referência. O gerador
+          é declarado e gravado como em `small_world`.
+
+          A posição não é medida e não afirma nada sobre ninguém: duas pessoas próximas no
+          desenho não estão "mais ligadas" do que a aresta diz. Por isso o layout é parâmetro
+          de apresentação, e não medida. 50 iterações é o padrão do `spring_layout`.
+
+          O layout é semeado À PARTE (um estado novo com a mesma semente, e não a sequência
+          que `small_world` deixou), para que a ordem de cálculo entre σ e layout não mude as
+          posições (plano, R7).
+
+          NOMES ESCRITOS NO DESENHO (`labelled_nodes`, emenda do plano, R16): só as 7 pessoas
+          com mais pessoas ligadas (grau, desempate como `hubs_list_size`) levam o nome
+          escrito ao lado do nó; as demais têm o nome no título do nó, no foco e na lista. 7
+          é o número do protótipo aprovado em 2026-10-04 (3.2.2): com mais, os rótulos se
+          sobrepõem num desenho de dezenas de nós e nenhum se lê. Não é medida e não afirma
+          que essas pessoas importam mais: é legibilidade, e a lista ao lado traz todas.
+      values:
+        algorithm: fruchterman_reingold
+        iterations: 50
+        seed: 42
+        seeding: separate_from_small_world
+        shared_between_views: true
+        labelled_nodes: 7
+
+    size_limit:
+      name:
+        pt-BR: "O teto de tamanho: acima de 300 pessoas ou 3 000 arestas, σ, Q_rand, a eficiência dos aleatórios e layout não rodam"
+      statement:
+        pt-BR: >
+          Rede com mais de `max_people` pessoas ou mais de `max_undirected_edges` arestas na
+          projeção sem direção não tem σ, Q_rand, a eficiência dos aleatórios (efficiency_rand)
+          nem layout calculados: os quatro são AUSENTES
+          com motivo `network_too_large_for_platform`, e a tela mostra a lista no lugar do
+          desenho. As demais medidas são calculadas.
+      note:
+        pt-BR: >
+          Emenda do plano (R5). O custo é dominado pelos 100 grafos aleatórios (σ e Q_rand)
+          por rede e janela, seis combinações por organização; sem teto, uma rede grande é
+          laço longo na fila (R14 da segurança). O maior volume medido em desenvolvimento, em
+          2026-10-04, é 54 pessoas e 155 arestas (designação, 180 dias); o teto deixa folga de
+          mais de cinco vezes. É PROVISÓRIO: a medida do pipeline inteiro no tamanho do teto
+          (T050) e o volume de produção (#1190) o confirmam ou trocam, com versão nova desta
+          regra. Acima do teto, ausência, e nunca um valor aproximado: aproximar seria afirmar
+          um número que não foi calculado.
+      values:
+        max_people: 300
+        max_undirected_edges: 3000
+        absent_above: [sigma, q_rand, efficiency_rand, layout]
+        absent_reason: network_too_large_for_platform
+
+    betweenness_color_bands:
+      name:
+        pt-BR: "A cor do nó no desenho: a intermediação em cinco faixas numéricas, sem adjetivo"
+      statement:
+        pt-BR: >
+          No desenho, a cor do nó é a faixa da intermediação normalizada (`betweenness`) em
+          que a pessoa cai: `none` (exatamente 0), `below_2` (acima de 0 e abaixo de 0,02),
+          `2_to_5` (de 0,02 a menos de 0,05), `5_to_10` (de 0,05 a menos de 0,10) e
+          `10_or_more` (0,10 ou mais). A legenda escreve as faixas como números ("none",
+          "<2%", "2–5%", "5–10%", "≥10%"), e nunca como "alta", "baixa" ou "ponte".
+          Intermediação ausente (rede com menos de 3 pessoas) não tem faixa: o nó leva a cor
+          neutra e a legenda diz por quê.
+      note:
+        pt-BR: >
+          Emenda do plano (R16), para o protótipo aprovado em 2026-10-04 (3.2.1). São faixas de
+          COR, para o olho separar nós no desenho, e não leitura da medida: a referência usava
+          0,3 e 0,1 como "ponte" e "conector" (`dashboard_team_graph.py:304`), e a revisão
+          semântica as recusou por não terem fonte. Aqui nenhum corte vira palavra sobre a
+          pessoa; o número exato está no título do nó e na lista. Os cortes 2, 5 e 10% são os
+          do protótipo, escolhidos para separar a cauda (a maior parte das pessoas fica abaixo
+          de 2% numa rede de dezenas) dos poucos nós por onde passam muitos caminhos;
+          revisáveis com dado, com versão nova desta regra.
+      values:
+        scale: normalized_betweenness
+        bands:
+          - { code: none, from: 0, to: 0, label: "none" }
+          - { code: below_2, from_exclusive: 0, to_exclusive: 0.02, label: "<2%" }
+          - { code: 2_to_5, from: 0.02, to_exclusive: 0.05, label: "2–5%" }
+          - { code: 5_to_10, from: 0.05, to_exclusive: 0.10, label: "5–10%" }
+          - { code: 10_or_more, from: 0.10, label: "≥10%" }
+        absent: neutral_with_reason
+
+  misinterpretations:
+    - claim:
+        pt-BR: "a semente foi escolhida para dar um σ maior"
+      why_wrong:
+        pt-BR: >
+          A semente é fixada antes de qualquer cálculo, é a mesma para toda rede e toda
+          organização, e está gravada na proveniência. Trocá-la é mudança desta regra, com
+          versão nova.
+    - claim:
+        pt-BR: "com o desempate declarado, as comunidades são as 'verdadeiras'"
+      why_wrong:
+        pt-BR: >
+          O desempate torna a partição REPRODUTÍVEL, e não correta. O algoritmo guloso
+          encontra uma partição de modularidade alta, e não a máxima; outra partição de
+          modularidade quase igual pode separar as pessoas de outro jeito.

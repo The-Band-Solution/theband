@@ -37,6 +37,11 @@ module:
       commit — as participações que ligam stakeholders aos atos da gerência de
       configuração, e as associações que ligam os atos à solicitação que os motivou.
       Extensão do projeto The Band, não da CMPO publicada.
+    en: >
+      Who submitted a change request, who integrated it, and who performed each commit — the
+      participations that link stakeholders to the configuration management acts, and the
+      associations that link the acts to the request that motivated them. An extension from
+      The Band project, not from the published CMPO.
   provenance:
     source_type: project_decision
     reference: "Issue #426; lacuna exposta ao escrever github.pull_request.to.cmpo.change_request"
@@ -58,6 +63,12 @@ concepts:
         participação é relação entre agente e evento: sem o ato, "quem solicitou" não
         teria onde se ancorar — a solicitação é objeto social, e objeto social não tem
         participante.
+      en: >
+        Performed simple activity that submits a change request for evaluation, producing
+        the request. It exists as a concept of its own because participation is a relation
+        between an agent and an event: without the act, "who requested" would have nowhere
+        to be anchored — the request is a social object, and a social object has no
+        participant.
     classification: { ufo_category: action, ontouml_stereotype: kind, parent: spo.performed_simple_activity }
     examples: ["abrir um Pull Request", "registrar uma solicitação de alteração no processo"]
 

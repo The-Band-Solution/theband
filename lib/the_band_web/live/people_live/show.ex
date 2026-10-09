@@ -80,7 +80,12 @@ defmodule TheBandWeb.PeopleLive.Show do
         # seguida e a assinatura ficaria órfã.
         if connected?(socket), do: Profiles.subscribe(tenant, pessoa.id)
 
-        {:ok, assign(socket, pessoa: pessoa, page_title: pessoa.name || pessoa.login)}
+        {:ok,
+         assign(socket,
+           pessoa: pessoa,
+           page_title: pessoa.name || pessoa.login,
+           conta_da_organizacao: :fechada
+         )}
     end
   end
 
@@ -162,6 +167,14 @@ defmodule TheBandWeb.PeopleLive.Show do
           {:noreply,
            socket |> put_flash(:info, dgettext("sistema", "Account unlinked.")) |> load()}
 
+        {:error, :nao_autorizado} ->
+          {:noreply,
+           put_flash(
+             socket,
+             :error,
+             dgettext("errors", "Only organisation administrators can do that.")
+           )}
+
         {:error, :not_declared} ->
           {:noreply, put_flash(socket, :error, dgettext("errors", "Nothing to unlink."))}
 
@@ -175,6 +188,47 @@ defmodule TheBandWeb.PeopleLive.Show do
          :error,
          dgettext("errors", "Only an administrator can unlink an account.")
        )}
+    end
+  end
+
+  # A conta da organização (076, T026; R14). A administração é conferida no DOMÍNIO
+  # (`Tenants.OrganizationAccounts`), relida no banco a cada ato, e não aqui: o evento forjado
+  # por uma conta de membro chega a `Tenants` e é recusado lá, sem mudar nada. A tela só não
+  # desenha o controle para quem não administra.
+  #
+  # O estado da declaração é lido ao abrir a seção, e não a cada render: a página está no teto
+  # de consultas (`person_detail_test.exs`), e este é um ato raro de administração.
+  def handle_event("ver_conta_da_organizacao", _params, socket),
+    do: {:noreply, ler_conta_da_organizacao(socket)}
+
+  def handle_event("declarar_conta_da_organizacao", params, socket) do
+    %{current_tenant: tenant, current_user: user, pessoa: pessoa} = socket.assigns
+    motivo = params |> Map.get("reason", "") |> to_string()
+
+    case Tenants.declare_organization_account(tenant, pessoa.id, motivo, user) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, dgettext("sistema", "Declared as the organisation's account."))
+         |> ler_conta_da_organizacao()}
+
+      {:error, motivo} ->
+        {:noreply, put_flash(socket, :error, recusa_da_conta_da_organizacao(motivo))}
+    end
+  end
+
+  def handle_event("revogar_conta_da_organizacao", %{"id" => id}, socket) do
+    %{current_tenant: tenant, current_user: user} = socket.assigns
+
+    case Tenants.revoke_organization_account(tenant, id, user) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, dgettext("sistema", "Organisation account declaration revoked."))
+         |> ler_conta_da_organizacao()}
+
+      {:error, motivo} ->
+        {:noreply, put_flash(socket, :error, recusa_da_conta_da_organizacao(motivo))}
     end
   end
 
@@ -231,6 +285,14 @@ defmodule TheBandWeb.PeopleLive.Show do
          |> load()}
 
       # "Já está em uso" sem dizer de quem manda quem declarou procurar. A plataforma sabe.
+      {:error, :nao_autorizado} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Only organisation administrators can do that.")
+         )}
+
       {:error, :taken} ->
         {:noreply, put_flash(socket, :error, ja_e_de_outra(socket))}
 
@@ -266,6 +328,40 @@ defmodule TheBandWeb.PeopleLive.Show do
   # escolha que ninguém fez. É a FR-005 da feature 019, e `Tabela.query/4` corta o vazio.
   defp escala_no_endereco(%{assigns: %{escala: :mes}}), do: nil
   defp escala_no_endereco(%{assigns: %{escala: escala}}), do: Atom.to_string(escala)
+
+  defp ler_conta_da_organizacao(socket) do
+    %{current_tenant: tenant, current_user: user, pessoa: pessoa} = socket.assigns
+
+    case Tenants.list_organization_accounts(tenant, user) do
+      {:ok, declaracoes} ->
+        assign(socket,
+          conta_da_organizacao: {:aberta, Enum.find(declaracoes, &(&1.person_id == pessoa.id))}
+        )
+
+      {:error, motivo} ->
+        put_flash(socket, :error, recusa_da_conta_da_organizacao(motivo))
+    end
+  end
+
+  # As frases vão para a tela, em inglês (§11.1), e nasceram aqui: não traduzir de volta.
+  defp recusa_da_conta_da_organizacao(:not_admin),
+    do: dgettext("errors", "Only organisation administrators can do that.")
+
+  defp recusa_da_conta_da_organizacao(:not_found),
+    do: dgettext("errors", "Nothing to revoke.")
+
+  defp recusa_da_conta_da_organizacao(:own_person),
+    do: dgettext("errors", "Your own person cannot be declared as the organisation's account.")
+
+  defp recusa_da_conta_da_organizacao(:linked_to_platform_account),
+    do:
+      dgettext(
+        "errors",
+        "A person linked to a platform account cannot be declared as the organisation's account."
+      )
+
+  defp recusa_da_conta_da_organizacao(%Ecto.Changeset{}),
+    do: dgettext("errors", "Write why this account belongs to the organisation.")
 
   defp load(socket) do
     tenant = socket.assigns.current_tenant
@@ -2023,6 +2119,78 @@ defmodule TheBandWeb.PeopleLive.Show do
             accounts are linked to an observed person. The rest reach no panel, and that is
             a gap in what was declared — not a gap in what was collected.
           </p>
+        </section>
+
+        <%!-- ═══ A CONTA DA ORGANIZAÇÃO — feature 076, T026 (R14) ═══
+              Só para a administração. A origem mostra a conta da organização como `User`, e só
+              uma declaração a distingue de uma pessoa. A declaração a tira das duas redes da
+              análise de rede, e por isso tem motivo, autor e revogação. --%>
+        <section
+          :if={@current_user.role == "admin"}
+          id="organization-account"
+          class="scroll-mt-20 space-y-2"
+        >
+          <div>
+            <h3 class="font-semibold">Organisation account</h3>
+            <p class="text-xs text-base-content/60">
+              The source shows an account the organisation shares as if it were a person. Declared
+              here, it is not a person in the network analysis: its links are counted as left out,
+              never drawn. The declaration does not change what the source collected.
+            </p>
+          </div>
+
+          <%= case @conta_da_organizacao do %>
+            <% :fechada -> %>
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm"
+                phx-click="ver_conta_da_organizacao"
+              >
+                Show whether this is the organisation's account
+              </button>
+            <% {:aberta, nil} -> %>
+              <p class="text-sm opacity-70">
+                <strong>Not declared.</strong> This account is a person in the network analysis.
+              </p>
+              <form
+                id="declarar-conta-da-organizacao"
+                phx-submit="declarar_conta_da_organizacao"
+                class="flex flex-col gap-2 sm:flex-row sm:items-end"
+              >
+                <label class="fieldset sm:flex-1">
+                  <span class="label-text text-xs">why this account belongs to the organisation</span>
+                  <input
+                    type="text"
+                    name="reason"
+                    required
+                    maxlength="500"
+                    class="input input-sm input-bordered w-full"
+                  />
+                </label>
+                <.button type="submit" class="btn-sm">Declare as the organisation's account</.button>
+              </form>
+              <p class="text-xs opacity-60">
+                A person linked to a platform account cannot be declared: whoever signs in is a
+                person.
+              </p>
+            <% {:aberta, declaracao} -> %>
+              <p class="text-sm" id="conta-da-organizacao-declarada">
+                <strong>Declared as the organisation's account</strong>
+                by {declaracao.declared_by || "an account that no longer exists"} on {Calendar.strftime(
+                  declaracao.declared_at,
+                  "%Y-%m-%d"
+                )}: <span class="italic">{declaracao.reason}</span>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-xs"
+                  phx-click="revogar_conta_da_organizacao"
+                  phx-value-id={declaracao.id}
+                  data-confirm="Revoke it? This account becomes a person in the network analysis again."
+                >
+                  revoke
+                </button>
+              </p>
+          <% end %>
         </section>
       </div>
     </Layouts.app>

@@ -1,0 +1,38 @@
+measurement:
+  id: network.clustering.ratio
+  version: 1
+  name:
+    pt-BR: "Coeficiente de clustering médio, sobre quem tem ao menos dois vizinhos"
+    en: "Average clustering coefficient, over people with at least two neighbours"
+  answers_information_need: [network.structure]
+  value_type: ratio
+  unit: ratio
+
+  formula:
+    expression: >
+      Na projeção sem direção, sem peso, para u com k(u) ≥ 2 vizinhos e t(u) arestas entre
+      eles:
+        local(u) = 2·t(u) / (k(u)·(k(u) − 1))
+        clustering = média de local(u) sobre as pessoas com k(u) ≥ 2                [razão]
+        undefined_people = pessoas com k(u) < 2, ditas ao lado                       [pessoas]
+      Sem ninguém com k ≥ 2: AUSENTE com motivo `no_person_with_two_neighbours`. É o C do σ.
+    inputs: [network_edges]
+
+  scope:
+    levels: [observed_organization]
+    filters:
+      - "calculada sobre a rede inteira (FR-011); aparece ao lado de C_rand"
+    period: "a janela da leitura"
+
+  limitations:
+    - "Exclui quem tem menos de 2 vizinhos, e por isso o valor difere do networkx e da referência, que contam 0 para eles. A mesma regra vale para os aleatórios."
+    - "Em rede de designação, muita gente tem um vizinho só (quem abriu a issue); a média é sobre uma parte da rede, e a tela diz quantos ficaram fora."
+
+  misinterpretations:
+    - "Ler como 'grupos coesos onde todos colaboram entre si' (a frase da referência, `dashboard_team_graph.py:364`). É a fração de triângulos fechados na rede observada."
+
+  provenance:
+    source_type: literature
+    authors: ["Duncan J. Watts", "Steven H. Strogatz"]
+    year: 1998
+    reference: "Watts, D. J.; Strogatz, S. H. Collective dynamics of 'small-world' networks. Nature 393, 1998; spec 076, FR-039"

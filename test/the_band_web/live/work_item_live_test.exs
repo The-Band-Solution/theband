@@ -142,7 +142,9 @@ defmodule TheBandWeb.WorkItemLiveTest do
     test "a tela diz isso em vez de deixar a seção vazia", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/work")
 
-      assert html =~ "Label and structure agree on every issue"
+      # A frase mudou na 065/US2 emendada (#905, protótipo aprovado em 2026-09-30): "label", nesta
+      # tela, passou a ser só a coluna de rótulos, e a divergência é do TIPO DECLARADO.
+      assert html =~ "Declared type and structure agree on every issue"
     end
   end
 

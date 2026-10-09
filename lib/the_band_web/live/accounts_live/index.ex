@@ -57,6 +57,8 @@ defmodule TheBandWeb.AccountsLive.Index do
   alias TheBand.Tenants.AccountDisablement
   alias TheBand.Tenants.AccountLifecycle
   alias TheBand.Tenants.User
+  alias TheBandWeb.AccountsLive.Papel
+  alias TheBandWeb.Live.Hooks
 
   @impl true
   def mount(_params, _session, socket) do
@@ -69,6 +71,9 @@ defmodule TheBandWeb.AccountsLive.Index do
        busca: nil,
        desativando: nil,
        reativando: nil,
+       papel: nil,
+       aviso_papel: nil,
+       recusa_papel: nil,
        filtro: "all"
      )
      |> carregar()}
@@ -92,7 +97,9 @@ defmodule TheBandWeb.AccountsLive.Index do
       logins: EO.person_logins(tenant, vinculadas),
       historico: Tenants.historico_de_acesso(tenant, ids),
       escopos: Tenants.concessoes_vigentes_por_conta(tenant, ids),
-      autores: autores(users)
+      autores: autores(users),
+      papeis: Tenants.role_summary(tenant, ids),
+      mudancas: Tenants.role_changes(tenant)
     )
   end
 
@@ -114,6 +121,9 @@ defmodule TheBandWeb.AccountsLive.Index do
          |> assign(temporaria: %{user_id: user.id, senha: temporaria}, erro: nil, busca: nil)
          |> carregar()}
 
+      {:error, :nao_autorizado} ->
+        {:noreply, Hooks.recusar_por_papel(socket)}
+
       {:error, changeset} ->
         {:noreply,
          assign(socket,
@@ -134,6 +144,9 @@ defmodule TheBandWeb.AccountsLive.Index do
          socket
          |> assign(temporaria: %{user_id: user_id, senha: temporaria}, erro: nil)
          |> carregar()}
+
+      {:error, :nao_autorizado} ->
+        {:noreply, Hooks.recusar_por_papel(socket)}
 
       {:error, _} ->
         {:noreply,
@@ -189,6 +202,9 @@ defmodule TheBandWeb.AccountsLive.Index do
       # Cenário 3 da US2: a recusa NOMEIA a conta dona — a leitura estreita roda só aqui,
       # no caminho do conflito. A garantia contra a corrida é do índice único parcial;
       # esta frase é o nome, não a defesa.
+      {:error, :nao_autorizado} ->
+        {:noreply, Hooks.recusar_por_papel(socket)}
+
       {:error, :taken} ->
         dona = Tenants.user_of_person(socket.assigns.current_tenant, person_id)
 
@@ -216,6 +232,9 @@ defmodule TheBandWeb.AccountsLive.Index do
       {:ok, _} ->
         {:noreply, socket |> assign(erro: nil, temporaria: nil) |> carregar()}
 
+      {:error, :nao_autorizado} ->
+        {:noreply, Hooks.recusar_por_papel(socket)}
+
       {:error, _} ->
         {:noreply, assign(socket, erro: dgettext("errors", "Nada a revogar."), temporaria: nil)}
     end
@@ -237,6 +256,7 @@ defmodule TheBandWeb.AccountsLive.Index do
      assign(socket,
        desativando: %{user_id: user_id, reason: primeira, note: ""},
        reativando: nil,
+       papel: nil,
        erro: nil
      )}
   end
@@ -271,6 +291,9 @@ defmodule TheBandWeb.AccountsLive.Index do
       {:ok, _} ->
         {:noreply, socket |> assign(erro: nil, temporaria: nil, desativando: nil) |> carregar()}
 
+      {:error, :nao_autorizado} ->
+        {:noreply, Hooks.recusar_por_papel(socket)}
+
       {:error, erro} ->
         {:noreply, assign(socket, erro: recusa_de_desativacao(erro), temporaria: nil)}
     end
@@ -290,6 +313,7 @@ defmodule TheBandWeb.AccountsLive.Index do
      assign(socket,
        reativando: %{user_id: user_id, reason: primeira, note: "", abertura: abertura},
        desativando: nil,
+       papel: nil,
        erro: nil
      )}
   end
@@ -321,10 +345,177 @@ defmodule TheBandWeb.AccountsLive.Index do
       {:ok, _} ->
         {:noreply, socket |> assign(erro: nil, temporaria: nil, reativando: nil) |> carregar()}
 
+      {:error, :nao_autorizado} ->
+        {:noreply, Hooks.recusar_por_papel(socket)}
+
       {:error, erro} ->
         {:noreply, assign(socket, erro: recusa_de_reativacao(erro), temporaria: nil)}
     end
   end
+
+  # ── A marca de administrador — spec 072, T011 ──
+  #
+  # O painel abre abaixo da tabela, onde abrem desativar e reativar, e fecha os dois. Promover e
+  # rebaixar outra pessoa não pedem digitação (Q2); deixar o próprio papel pede o e-mail, porque é
+  # o único ato que quem o faz não desfaz sozinho.
+  def handle_event("abrir_papel", %{"id" => user_id, "acao" => acao}, socket)
+      when acao in ["promover", "rebaixar", "deixar"] do
+    {:noreply,
+     assign(socket,
+       papel: %{
+         user_id: user_id,
+         acao: acao,
+         note: "",
+         email: "",
+         aberto_em: DateTime.utc_now()
+       },
+       desativando: nil,
+       reativando: nil,
+       aviso_papel: nil,
+       recusa_papel: nil,
+       erro: nil
+     )}
+  end
+
+  def handle_event("fechar_papel", _params, socket),
+    do: {:noreply, assign(socket, papel: nil, recusa_papel: nil)}
+
+  # A nota e o e-mail digitados sobrevivem ao re-render e à recusa (item 25).
+  def handle_event("mudar_papel", params, socket) do
+    {:noreply,
+     assign(socket,
+       papel: %{
+         socket.assigns.papel
+         | note: Map.get(params, "note", ""),
+           email: Map.get(params, "email", "")
+       }
+     )}
+  end
+
+  def handle_event("confirmar_papel", params, socket) do
+    papel = %{
+      socket.assigns.papel
+      | note: Map.get(params, "note", ""),
+        email: Map.get(params, "email", "")
+    }
+
+    if papel.acao == "deixar" and not email_confere?(papel.email, socket.assigns.current_user),
+      do: {:noreply, assign(socket, papel: papel, recusa_papel: Papel.email_errado())},
+      else: mudar_papel(socket, papel)
+  end
+
+  defp email_confere?(digitado, user),
+    do: String.downcase(String.trim(digitado || "")) == String.downcase(user.email)
+
+  defp mudar_papel(socket, papel) do
+    tenant = socket.assigns.current_tenant
+    ator = socket.assigns.current_user
+    alvo = user_por_id(socket.assigns.users, papel.user_id)
+
+    ato =
+      if papel.acao == "promover",
+        do: &Tenants.promote_user/4,
+        else: &Tenants.demote_user/4
+
+    case ato.(tenant, papel.user_id, ator, note: papel.note) do
+      {:ok, ep} when papel.acao == "deixar" ->
+        quem_devolve = List.first(outros_admins(socket.assigns.users, ator.id))
+
+        {:noreply,
+         socket
+         |> put_flash(:info, Papel.deixou(tenant.name, ep.inserted_at, quem_devolve))
+         |> redirect(to: "/people")}
+
+      {:ok, ep} ->
+        acao = if papel.acao == "promover", do: :promover, else: :rebaixar
+        socket = carregar(socket)
+        admins = Papel.admins_ativos(socket.assigns.users)
+
+        {:noreply,
+         assign(socket,
+           papel: nil,
+           recusa_papel: nil,
+           aviso_papel: Papel.sucesso(acao, alvo, ep.inserted_at, admins)
+         )}
+
+      {:error, :nao_autorizado} ->
+        {:noreply, Hooks.recusar_por_papel(socket)}
+
+      {:error, motivo} ->
+        recusar_papel(socket, papel, alvo, motivo)
+    end
+  end
+
+  # Item 27: a marca fica, e a frase diz quem agiu antes. O painel fecha, porque o que ele
+  # descrevia não existe mais. Só se cita a mudança que veio DEPOIS de o painel abrir: uma
+  # anterior já estava na tela quando a pessoa decidiu, e nomeá-la atribuiria a recusa a quem
+  # talvez não a causou.
+  defp recusar_papel(socket, papel, alvo, :ultimo_admin_ativo) do
+    socket = carregar(socket)
+    antes = mudanca_depois_de(socket.assigns.mudancas.mudancas, papel.aberto_em)
+
+    de_quem =
+      if papel.acao == "deixar",
+        do: dgettext("errors", "Your role is unchanged."),
+        else: dgettext("errors", "%{nome}'s role is unchanged.", nome: Papel.nome(alvo))
+
+    {:noreply,
+     assign(socket,
+       papel: nil,
+       aviso_papel: nil,
+       recusa_papel: Papel.ultimo_admin(antes, de_quem, papel.acao == "deixar")
+     )}
+  end
+
+  # Item 29: quem chegou atrasado lê o papel de agora e a mudança que chegou antes.
+  defp recusar_papel(socket, _papel, alvo, {:estado_mudou, ep}) do
+    socket = carregar(socket)
+    atual = user_por_id(socket.assigns.users, alvo.id) || alvo
+
+    {:noreply,
+     assign(socket,
+       papel: nil,
+       aviso_papel: nil,
+       recusa_papel: Papel.ja_mudou(atual, atual.role, ep, socket.assigns.autores)
+     )}
+  end
+
+  # O painel fica aberto, com a nota, para quem a encurta não perder o que escreveu.
+  defp recusar_papel(socket, papel, _alvo, :nota_longa) do
+    {:noreply,
+     assign(socket,
+       papel: papel,
+       aviso_papel: nil,
+       recusa_papel: dgettext("errors", "Not changed: the note is longer than 2000 characters.")
+     )}
+  end
+
+  defp recusar_papel(socket, _papel, alvo, :conta_desativada) do
+    {:noreply,
+     socket
+     |> carregar()
+     |> assign(papel: nil, aviso_papel: nil, recusa_papel: Papel.conta_desativada(alvo))}
+  end
+
+  defp recusar_papel(socket, _papel, _alvo, _motivo) do
+    {:noreply,
+     socket
+     |> carregar()
+     |> assign(
+       papel: nil,
+       aviso_papel: nil,
+       recusa_papel: dgettext("errors", "Account not found.")
+     )}
+  end
+
+  defp mudanca_depois_de([ep | _], aberto_em),
+    do: if(DateTime.compare(ep.inserted_at, aberto_em) == :gt, do: ep)
+
+  defp mudanca_depois_de([], _aberto_em), do: nil
+
+  # Os administradores ativos fora a conta do painel: quem fica, e quem pode devolver o papel.
+  defp outros_admins(users, user_id),
+    do: Enum.filter(users, &(User.admin?(&1) and User.ativa?(&1) and &1.id != user_id))
 
   # As recusas têm mensagens DIFERENTES, e de propósito: aqui quem lê é quem administra o
   # próprio tenant, e cada uma tem remédio distinto. É o oposto da recusa da entrada, onde
@@ -335,6 +526,10 @@ defmodule TheBandWeb.AccountsLive.Index do
         "errors",
         "This is your own account — ask another administrator."
       )
+
+  # Tela em inglês, mesmo nascendo no domínio: é o guarda do último administrador ativo.
+  defp recusa_de_desativacao(:ultimo_admin_ativo),
+    do: Papel.ultimo_admin(nil, nil)
 
   defp recusa_de_desativacao(:ja_desativada),
     do: dgettext("errors", "This account was already disabled.")
@@ -391,7 +586,8 @@ defmodule TheBandWeb.AccountsLive.Index do
       total: length(users),
       entram: Enum.count(users, &(User.ativa?(&1) and &1.password_hash != nil)),
       desativadas: Enum.count(users, &(not User.ativa?(&1))),
-      sem_senha: Enum.count(users, &(&1.password_hash == nil))
+      sem_senha: Enum.count(users, &(&1.password_hash == nil)),
+      admins: Papel.admins_ativos(users)
     }
   end
 
@@ -561,6 +757,12 @@ defmodule TheBandWeb.AccountsLive.Index do
         <p class="font-mono text-sm tabular-nums">
           {@composicao.total} {plural(@composicao.total, "account", "accounts")} · {@composicao.entram} can sign in today · {@composicao.desativadas} disabled
           · {@composicao.sem_senha} {plural(@composicao.sem_senha, "has", "have")} no password
+          ·
+          <strong>{@composicao.admins} active {plural(
+            @composicao.admins,
+            "administrator",
+            "administrators"
+          )}</strong>
         </p>
 
         <p class="max-w-3xl font-serif text-sm opacity-80">
@@ -568,6 +770,8 @@ defmodule TheBandWeb.AccountsLive.Index do
           an account is created here, and it is disabled here.
         </p>
       </div>
+
+      <Papel.quem_administra />
 
       <div :if={@erro} role="alert" class="alert alert-error font-serif text-sm">{@erro}</div>
 
@@ -658,7 +862,8 @@ defmodule TheBandWeb.AccountsLive.Index do
         </div>
 
         <div class="card bg-base-200 overflow-x-auto p-0">
-          <table class="table">
+          <%!-- Seis colunas: empilha no telefone, com o nome da coluna em cada célula (Q4). --%>
+          <table class="table stacked">
             <thead>
               <tr>
                 <th>Person</th>
@@ -666,30 +871,33 @@ defmodule TheBandWeb.AccountsLive.Index do
                 <th>Management</th>
                 <th>Account</th>
                 <th>Sign-in credential</th>
-                <th></th>
+                <th><span class="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
               <%= for user <- @linhas do %>
                 <tr class={[not User.ativa?(user) && "bg-base-300/40"]}>
-                  <td>
+                  <td data-label="Person">
                     <p class="font-semibold">{user.name}</p>
                     <p class="font-mono text-xs opacity-60">{user.email}</p>
                   </td>
 
-                  <td>
+                  <td data-label="GitHub">
                     <.celula_do_elo user={user} logins={@logins} busca={@busca} />
                   </td>
 
-                  <td>
-                    <span :if={user.role == "admin"} class="badge badge-primary badge-sm">
-                      administrator
-                    </span>
-                    <span :if={user.role != "admin"} class="opacity-50">—</span>
+                  <td data-label="Management">
+                    <Papel.celula
+                      user={user}
+                      current_user={@current_user}
+                      resumo={@papeis[user.id]}
+                      autores={@autores}
+                      admins_ativos={@composicao.admins}
+                    />
                   </td>
 
                   <%!-- A COLUNA DA CONTA: pode entrar? Só isto, e nada da credencial. --%>
-                  <td>
+                  <td data-label="Account">
                     <.estado_da_conta_celula
                       user={user}
                       resumo={resumo_do_historico(@historico, user.id)}
@@ -698,7 +906,7 @@ defmodule TheBandWeb.AccountsLive.Index do
                   </td>
 
                   <%!-- A COLUNA DA CREDENCIAL: entraria com o quê? O rótulo vem da base. --%>
-                  <td>
+                  <td data-label="Sign-in credential">
                     <p class={[
                       "font-mono text-xs",
                       User.estado_da_credencial(user) == :no_password && "opacity-70",
@@ -718,7 +926,7 @@ defmodule TheBandWeb.AccountsLive.Index do
                     </p>
                   </td>
 
-                  <td class="text-right align-top">
+                  <td data-label="Actions" class="text-right align-top">
                     <.acoes_da_linha user={user} current_user={@current_user} />
                   </td>
                 </tr>
@@ -728,7 +936,7 @@ defmodule TheBandWeb.AccountsLive.Index do
                   :if={episodios_mostrados(resumo_do_historico(@historico, user.id)) != []}
                   class={[not User.ativa?(user) && "bg-base-300/40"]}
                 >
-                  <td colspan="6" class="pt-0">
+                  <td colspan="6" data-label="" class="painel pt-0">
                     <.historico_da_conta
                       user={user}
                       resumo={resumo_do_historico(@historico, user.id)}
@@ -745,6 +953,17 @@ defmodule TheBandWeb.AccountsLive.Index do
         <.legenda />
       </div>
 
+      <Papel.avisos aviso={@aviso_papel} recusa={@recusa_papel} />
+
+      <Papel.painel
+        :if={@papel}
+        papel={@papel}
+        user={user_por_id(@users, @papel.user_id)}
+        tenant={@current_tenant}
+        outros_admins={outros_admins(@users, @papel.user_id)}
+        current_user={@current_user}
+      />
+
       <.formulario_de_desativacao
         :if={@desativando}
         desativando={@desativando}
@@ -759,6 +978,9 @@ defmodule TheBandWeb.AccountsLive.Index do
         autores={@autores}
         escopos={escopos_de(@escopos, @reativando.user_id)}
       />
+
+      <%!-- Depois dos três painéis, que abrem no mesmo lugar, logo abaixo da tabela (item 10). --%>
+      <Papel.mudancas mudancas={@mudancas} />
 
       <.o_que_nao_muda tenant={@current_tenant} entram={@composicao.entram} />
     </Layouts.app>
@@ -1122,6 +1344,9 @@ defmodule TheBandWeb.AccountsLive.Index do
             disappears teaches nobody anything.
           </dd>
         </div>
+      </dl>
+      <dl class="mt-2 grid gap-x-6 gap-y-2 md:grid-cols-2">
+        <Papel.legenda />
       </dl>
       <p class="mt-2 opacity-60">
         Every state above survives being printed in black and white: the word is in its own

@@ -1,0 +1,74 @@
+information_need:
+  id: review.concentration
+  name:
+    pt-BR: "Concentração da revisão de código entre pessoas"
+    en: "Concentration of code review among people"
+  question:
+    pt-BR: >
+      Numa janela de tempo, a revisão das solicitações de mudança de uma organização
+      observada está concentrada em poucas pessoas — e há grupos de pessoas que não se
+      revisam entre si?
+    en: >
+      Within a time window, is the review of an observed organisation's change requests
+      concentrated in a few people — and are there groups of people who do not review
+      each other?
+  stakeholders: [engineering_manager, team_lead, scrum_master]
+  decision_supported:
+    pt-BR: >
+      Decidir se a revisão precisa ser redistribuída **antes** que a ausência de uma ou
+      duas pessoas pare o fluxo de integração, e onde abrir caminho de revisão entre
+      grupos que hoje não se revisam.
+
+      **O que esta necessidade explicitamente não responde**, e onde quem decide precisa
+      buscar em outro lugar: quem revisa bem, quem contribui mais, quem é mais produtivo,
+      e se alguém está se omitindo. A carga de revisão depende de designação (CODEOWNERS,
+      regra do repositório), papel, senioridade, férias e fuso — nada disso está na rede.
+      Também não responde **quanto tempo** a revisão leva: isso é
+      `review.time_to_first_review`, e as duas se leem lado a lado, não se combinam.
+
+      A rede é de **revisão**, e não de colaboração nem de delegação. Revisar a
+      solicitação de alguém é um ato observado sobre um artefato; "colaborar" é
+      julgamento sobre a relação entre pessoas, e a plataforma não o afirma.
+  required_concepts:
+    - eo.person
+    - spo.project_person_stakeholder
+    - qapo.artifact_evaluation
+    - qapo.evaluated_artifact
+    - cmpo.change_request
+    - cmpo.change_request_submission
+  required_relations:
+    - qapo.stakeholder_performed_artifact_evaluation
+    - qapo.artifact_evaluation_evaluates
+    - cmpo.stakeholder_submitted_change_request
+    - cmpo.submission_produced_change_request
+  candidate_measurements:
+    - review.network.reviews_given.count
+    - review.network.reviews_received.count
+    - review.network.unconnected_groups.count
+    - review.network.concentration.top_k_share
+    - review.network.reviews.count
+    - review.network.reviewers.count
+    - review.network.authors_reviewed.count
+    - review.network.people_without_activity.count
+    - review.network.excluded.count
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: >
+      spec 073 (`specs/073-rede-de-revisao/spec.md`), FR-006 e FR-007; avaliação de
+      segurança `seguranca.md`, R1, R2 e R5, e as decisões da pessoa mantenedora de
+      2026-10-03
+    note: >
+      Nasce da análise do repositório de referência
+      `leds-conectafapes/leds-conectafapes-management-dashboard` (2026-10-03), que
+      constrói um grafo "de colaboração" a partir de quem abriu uma issue e quem foi
+      designado para ela. Aquilo é **delegação**, e a plataforma recusa chamá-lo de
+      colaboração. Esta necessidade toma a relação que tem semântica declarada na rede de
+      ontologias — avaliação de artefato (QAPO) sobre solicitação de mudança (CMPO), por
+      uma pessoa (EO) sobre o trabalho de outra — e pergunta só o que ela sustenta:
+      concentração e separação.
+
+      O caminho de pessoa até a avaliação passa pelo papel da SPO
+      (`spo.project_person_stakeholder`, `is_role_of: eo.person`), e não por `eo.person`
+      nua — é a mesma escolha de `qapo.stakeholder_performed_artifact_evaluation`, que
+      mantém a QAPO dentro das dependências declaradas dela (`[ufo, spo]`).

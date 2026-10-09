@@ -12,7 +12,6 @@ defmodule Mix.Tasks.TheBand.VarreSegredosTest do
   alias TheBand.Repo
   alias TheBand.Segredo.Padroes
   alias TheBand.Tenants
-  alias TheBand.Tenants.User
   alias TheBandWeb.ConnCase
 
   # Um token com a forma de um do GitHub, montado para não existir como literal no repositório.
@@ -145,14 +144,15 @@ defmodule Mix.Tasks.TheBand.VarreSegredosTest do
           "role" => "member"
         })
 
-      # Conta nova não tem token de sessão: ele nasce no primeiro login. Gravado aqui pela mesma
-      # função que o sistema usa, para a varredura ter o que achar.
-      sessao = User.novo_token()
+      # A coluna antiga continua existindo até a T014b, e a plataforma não a escreve mais desde a
+      # T014a. O valor é gravado por SQL, na forma que a coluna guardava, para a varredura ter o
+      # que achar num banco com dado de antes da v0.11.0.
+      sessao = Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
 
-      Repo.update_all(
-        Ecto.Query.from(x in User, where: x.id == ^u.id),
-        set: [session_token: sessao]
-      )
+      Repo.query!("UPDATE users SET session_token = $1 WHERE id = $2", [
+        sessao,
+        Ecto.UUID.dump!(u.id)
+      ])
 
       assert {1, texto} = Tarefa.executar(["--banco"])
 

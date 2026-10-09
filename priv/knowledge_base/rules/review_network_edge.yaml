@@ -1,0 +1,261 @@
+derivation_rule:
+  id: review.network.edge
+  # Versão 2 (2026-10-04, feature 076, T027): o motivo `organization_account`, entre
+  # `bot_or_app` e `unlinked_person`. Decisão da pessoa mantenedora sobre a A7 da revisão
+  # semântica 2 da 076 (T002, #1326): a conta declarada como da organização sai das DUAS redes,
+  # e não só da de designação. As leituras gravadas pela versão 1 não avaliaram o motivo, e a
+  # contagem delas é NULA, nunca zero.
+  version: 2
+  provider: platform
+  status: proposed
+  confidence: high
+
+  name:
+    pt-BR: "A aresta da rede de revisão: de quem revisou para quem abriu a solicitação revisada"
+
+  # ---------------------------------------------------------------------------
+  # Regra, e não `mapping:` — decidido na revisão semântica (073/T003, 2026-10-03).
+  #
+  # A proposta original declarava a aresta como mapeamento
+  # `github.pull_request_review.to.qapo.artifact_evaluation.as_review_edge`. Três razões
+  # a tiraram de lá:
+  #
+  #   1. o par (origem, alvo) já é declarado por
+  #      `github.pull_request_review.to.qapo.artifact_evaluation` com `equivalence: partial`.
+  #      Um segundo mapeamento do MESMO par com `equivalence: derived` faria a base afirmar
+  #      duas coisas sobre a mesma tradução — e quem lê `derived` entende que a avaliação de
+  #      artefato é inferida da review, o que é falso: a avaliação é observada; a ARESTA é
+  #      que é derivada;
+  #   2. o mapeamento identifica pela origem (`external_id_path: id`, o id do evento de
+  #      review), e a unidade da aresta é o par (pessoa revisora, solicitação): a
+  #      identidade declarada não era a da coisa;
+  #   3. a aresta é lida das avaliações e solicitações JÁ integradas (`qapo_*`, `cmpo_*`),
+  #      e não do payload — o próprio cabeçalho da proposta dizia isso. Mapeamento é
+  #      fonte externa → conceito (AGENTS.md §8, §10); isto é derivação sobre instâncias da
+  #      rede, que é o que `derivation_rule` é (research.md R11 já pedia esta forma).
+  #
+  # Os estados que contam e a ordem das exclusões moram AQUI, e não em
+  # `review.network.parameters`: mudam quando o SIGNIFICADO da aresta muda, e invalidam
+  # leituras antigas. Os parâmetros mudam quando a APRESENTAÇÃO muda (research.md R11).
+  # ---------------------------------------------------------------------------
+
+  description:
+    pt-BR: >
+      Uma aresta revisor → autor existe, numa janela W e numa organização observada O,
+      quando uma pessoa avaliou (`qapo.stakeholder_performed_artifact_evaluation`) uma
+      solicitação de mudança (`cmpo.change_request`, no papel `qapo.evaluated_artifact`,
+      via `qapo.artifact_evaluation_evaluates`) cuja submissão (`cmpo.change_request_submission`,
+      `cmpo.submission_produced_change_request`) teve a participação de OUTRA pessoa
+      (`cmpo.stakeholder_submitted_change_request`). As duas pessoas entram pelo papel
+      `spo.project_person_stakeholder` de uma `eo.person`.
+
+      O peso da aresta é o número de solicitações DISTINTAS do autor que o revisor avaliou
+      em W. Várias rodadas da mesma pessoa sobre a mesma solicitação são uma contribuição
+      só (spec 073, FR-002).
+
+  semantics:
+    equivalence: derived
+    justification: >
+      Nada na origem diz "A revisou B". A origem diz que uma conta enviou uma review sobre
+      um Pull Request aberto por outra conta; a plataforma integra a review como avaliação
+      de artefato (mapeamento `github.pull_request_review.to.qapo.artifact_evaluation`,
+      `partial`), integra o Pull Request como solicitação de mudança com a submissão e o
+      submissor (`github.pull_request.to.cmpo.change_request`), resolve as duas contas em
+      `eo.person`, e só então liga as duas pessoas. A aresta é uma LEITURA sobre fatos
+      observados, e `derived` é o grau que impede lê-la como fato observado.
+
+      A aresta é sobre REVISÃO. Não é colaboração — colaborar é julgamento sobre a relação
+      entre pessoas, e a avaliação é um ato sobre um artefato. Não é delegação — quem abriu
+      não designou quem revisou, e a origem nem sempre registra designação de revisor. Não é
+      integração — Pull Request não é merge, e quem integrou é
+      `cmpo.stakeholder_performed_checkin`, que esta regra não percorre.
+
+  # A categoria UFO da aresta, declarada porque a pergunta "isto é um relator?" vai voltar.
+  ufo_category:
+    pt-BR: >
+      **Relação derivada, sem relator, e não conceito da rede.** Os fundamentos (truthmakers)
+      da aresta são EVENTOS: o ato de avaliar (`qapo.artifact_evaluation`, `action`) e o ato
+      de submeter (`cmpo.change_request_submission`, `action`), ligados pelo artefato. Nada
+      persiste entre as duas pessoas além desses eventos — não há compromisso, papel
+      relacional nem duração própria —, e por isso a aresta NÃO é relator (diferente de
+      `eo.team_membership`, que tem período e contexto e é relator de verdade). Também não é
+      relação material no sentido de UFO, que exigiria um relator como fundamento.
+
+      Consequências: a aresta não ganha id de conceito, módulo de ontologia nem tabela de
+      domínio com `internal_id`; vive só na leitura derivada (`review_network_readings`),
+      substituída a cada cálculo; e o peso é agregação sobre a janela, não propriedade de
+      coisa nenhuma.
+
+  inputs:
+    # Campos das instâncias JÁ integradas, com o campo de origem entre parênteses para que a
+    # rastreabilidade até o GitHub fique escrita.
+    - "avaliação: estado (state), instante de envio (submittedAt), conta e pessoa revisora (author.id, author.__typename), solicitação avaliada (pullRequest.id)"
+    - "solicitação: pessoa e conta que a submeteram (pullRequest.author.id), resolvidas na coleta da solicitação (`author_person_id`)"
+    - "pessoa: `eo.person.account_type` das duas pontas, e a declaração de conta da organização (`organization_account_declarations`, versão 2)"
+
+  unit:
+    pt-BR: >
+      A unidade da aresta é o par (PESSOA revisora, solicitação). A unidade das exclusões é
+      o par (CONTA revisora, solicitação), porque a exclusão acontece justamente quando a
+      conta não é, ou não se sabe se é, uma pessoa. Uma pessoa com duas contas ligadas que
+      revisou a mesma solicitação pelas duas contribui UMA vez para o peso. Contas apagadas
+      (autor nulo) sobre a mesma solicitação são indistinguíveis entre si, e contam um par.
+
+  rules:
+    counted_states:
+      name:
+        pt-BR: "Os estados de revisão que contam, por lista de inclusão"
+      statement:
+        pt-BR: >
+          Entra na rede a avaliação ENVIADA (`submittedAt` não nulo) em um destes estados:
+          APPROVED, CHANGES_REQUESTED, COMMENTED e DISMISSED. PENDING não entra (FR-003).
+          Estado novo da origem **não** entra por omissão: a lista é de inclusão, e nunca
+          "tudo menos PENDING" (research.md R3). A coleta guarda o estado CRU, qualquer que
+          seja; é ESTA lista que decide o que vira par — e não a carga, que não recusa
+          estado desconhecido (o `unmapped: reject` de `review.yaml` vale para a tradução em
+          veredito, `TheBand.Quality.Verdict`, e não para a gravação).
+      note:
+        pt-BR: >
+          Decidido na revisão semântica (T003): a lista mora nesta regra, e não no
+          mapeamento da review, porque o `value_map` de `review.yaml` traduz POSIÇÃO
+          (veredito), e DISMISSED e PENDING não são posição. A posição não entra na rede: a
+          rede não distingue quem aprova de quem pede mudança. DISMISSED conta porque a
+          revisão aconteceu; o descarte é decisão posterior sobre ela.
+      values:
+        states: [APPROVED, CHANGES_REQUESTED, COMMENTED, DISMISSED]
+
+    exclusions:
+      name:
+        pt-BR: "As quatro exclusões, em ordem, e o que cada uma conta"
+      statement:
+        pt-BR: >
+          Todo par (conta revisora, solicitação) com avaliação contável enviada na janela,
+          sobre solicitação da organização observada, termina em **exatamente um** destino:
+          contribui para uma aresta, ou entra em **um** motivo de exclusão. Avaliados nesta
+          ordem, o primeiro que se aplica decide:
+
+            1. `bot_or_app` — revisor ou autor é conta de máquina: pessoa ligada com
+               `eo.person.account_type` em (`bot`, `app`); conta não ligada que
+               `Mapper.account_type/1` classifica como `bot` ou `app` (pelo `__typename` e
+               pelo sufixo `[bot]`). Autor nulo NÃO é máquina;
+            2. `organization_account` — revisor ou autor é pessoa declarada pela
+               administração como conta da organização (versão 2; a mesma declaração da
+               `assignment.network.edge`). Depois de máquina, porque uma conta pode ser as
+               duas, e a contagem não pode dobrar;
+            3. `unlinked_person` — revisor ou autor não está ligado a uma `eo.person`
+               (login não resolvido, ou conta apagada na origem, que chega com autor nulo);
+            4. `self_review` — revisor e autor são a mesma `eo.person`.
+
+          Invariante: (soma dos pesos das arestas) + bot_or_app + organization_account +
+          unlinked_person + self_review = pares contáveis da janela, com os pares de aresta deduplicados por
+          pessoa (ver `unit`). As contagens aparecem só no agregado da leitura, nunca com
+          login e nunca por pessoa (FR-004, R5, R9).
+      note:
+        pt-BR: >
+          A ordem vai de "não é pessoa" a "é pessoa, mas não sabemos qual" a "é a mesma
+          pessoa": a auto-revisão só é decidível quando as duas pontas estão ligadas, e por
+          isso vem por último. Sem ordem declarada uma revisão de bot sobre a própria
+          solicitação seria contada duas vezes, e os totais deixariam de fechar.
+
+          **Decidido em 2026-10-03**: conta apagada vai para `unlinked_person`, e não para
+          `bot_or_app`, diferentemente do que a coleta fazia (`github_change_requests.ex`,
+          corrigido na T030). Apagar a conta não é evidência de máquina; classificá-la como
+          bot cairia para o lado plausível, que é o "padrão largo inventa mais".
+      values:
+        order: [bot_or_app, organization_account, unlinked_person, self_review]
+        counted_by_reason: true
+        listed_by_login: false
+        per_person: false
+
+  relations:
+    reviewer:
+      source: "author.id da avaliação → eo.person"
+      note: >
+        Só vira nó a pessoa observada com `account_type = 'person'` em EO. O `__typename`
+        (`author_type`) sozinho não basta: uma conta de máquina pode vir como `User` e ser
+        `bot` em EO pelo sufixo `[bot]` do login (seguranca.md R9).
+    change_request_author:
+      source: "pullRequest.author.id → eo.person, pela submissão"
+      note: >
+        O autor é o da SUBMISSÃO da solicitação, resolvido na coleta da solicitação
+        (`author_person_id`), e não o de commits nem o de quem integrou.
+    evaluated_change_request:
+      source: "pullRequest.id → cmpo.change_request"
+
+  limitations:
+    - >
+      A conta da organização só é reconhecida se a administração a declarou (versão 2). Enquanto
+      não estiver declarada, ela é pessoa e é nó, como na rede de designação. Leitura gravada
+      pela versão 1 não avaliou o motivo: a contagem dela é nula, e a tela diz que não foi
+      avaliado.
+    - >
+      O QUE A DECLARAÇÃO AFIRMA: que o registro `eo.person` resolvido daquela conta não
+      representa um indivíduo, e sim uma conta usada pela organização. Ela não muda o tipo
+      coletado (`eo.person.account_type` continua o da origem), e por isso fica num relator à
+      parte, com autoria e revogação: Pessoa ≠ Conta.
+    - >
+      A DECLARAÇÃO VALE PARA A JANELA INTEIRA: a leitura usa as declarações vigentes quando foi
+      calculada, e não as da data de cada revisão. Uma conta declarada hoje sai também das
+      revisões de 180 dias atrás; a revogação a devolve do mesmo modo.
+    - >
+      LEITURA DESATUALIZADA: nada recalcula a rede de revisão quando se declara ou revoga. A
+      análise de rede (076) não usa a leitura da versão 1, nem a calculada até a última
+      declaração ou revogação do tenant: ela fica ausente, com o motivo
+      `review_reading_outdated`, até a sincronização seguinte recalcular esta rede (E4 da
+      revisão semântica do PR #1383). A tela da 073 continua mostrando a leitura com o instante
+      em que foi calculada.
+    - >
+      A aresta é derivada, e nada nela foi dito pela origem como "A revisou B". Erro de
+      resolução de conta em pessoa vira aresta errada, e é por isso que conta não resolvida é
+      excluída e contada, e nunca adivinhada.
+    - >
+      NÃO é colaboração, NÃO é delegação, NÃO é integração. Nenhuma tela, medida ou texto
+      derivado desta regra pode chamar a aresta de "colaboração" (spec 073, FR-005).
+    - >
+      Revisão DESCARTADA (DISMISSED) entra: a revisão aconteceu, e o descarte é decisão
+      posterior sobre ela. Revisão PENDENTE (rascunho, sem submittedAt) não entra: não
+      aconteceu ainda.
+    - >
+      AUTO-REVISÃO (revisor e autor resolvidos na mesma eo.person) não vira aresta, e é
+      contada no agregado da leitura — nunca por pessoa (FR-004, R5).
+    - >
+      BOT OU APLICATIVO em qualquer das pontas não vira aresta, e é contado. A conta da
+      organização usada como pessoa (o caso `LEDS` na referência) não é reconhecida pelo tipo
+      coletado, que a mostra como `person`: ela é a exclusão 2 (`organization_account`), por
+      declaração, desde a versão 2.
+    - >
+      SEM PESSOA LIGADA em qualquer das pontas (login que não se resolveu em eo.person, ou
+      autor nulo por conta apagada na origem) não vira aresta, e é contado separado de bot.
+    - >
+      O login de revisão excluída nunca é listado. A exclusão aparece só como contagem por
+      motivo (R9).
+    - >
+      Revisão de solicitação de outra organização observada, ou de outro tenant, nunca entra.
+      A leitura filtra avaliação e solicitação pelo tenant, nos dois lados do join (R12), e
+      pela organização observada, buscada por id e tenant juntos (R4).
+    - >
+      O autor é resolvido quando a solicitação é coletada. Solicitação cujo autor só foi
+      ligado a uma pessoa depois não é percorrida de novo, e a revisão sobre ela fica em
+      "sem pessoa ligada" até nova coleta.
+    - >
+      A CMPO não declara que `cmpo.submission_produced_change_request` especializa
+      `spo.activity_creates_artifact`, nem a QAPO depende da CMPO. A aresta atravessa as duas
+      por esta regra, que é global — e não por relação nova numa delas, o que inverteria a
+      rede (ver o cabeçalho de `qapo.evaluation_participation`).
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: >
+      spec 073, FR-002 a FR-005; research.md R2, R3 e R11; seguranca.md R9 e R12; decisões
+      da pessoa mantenedora de 2026-10-03; revisão semântica 073/T003
+      (`specs/073-rede-de-revisao/revisao-semantica.md`). Versão 2: spec 076, FR-007 e
+      research.md R14; a A7 da revisão semântica 2 da 076
+      (`specs/076-analise-de-rede/revisao-semantica-2.md`), decidida pela pessoa mantenedora na
+      T002 (#1326) — a conta declarada da organização sai das DUAS redes —; implementada na
+      T027
+    note: >
+      Substitui, antes de entrar na base, o mapeamento proposto
+      `github.pull_request_review.to.qapo.artifact_evaluation.as_review_edge`. O conteúdo
+      semântico (justificativa, limitações, estados, exclusões) é o daquele arquivo; a forma
+      é a de regra, pelas três razões do cabeçalho.

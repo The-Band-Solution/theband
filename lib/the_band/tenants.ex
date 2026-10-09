@@ -17,25 +17,58 @@ defmodule TheBand.Tenants do
   alias TheBand.Tenants.AccountLifecycle
   alias TheBand.Tenants.ApiTokens
   alias TheBand.Tenants.Auth
+  alias TheBand.Tenants.MudancaDePapel
+  alias TheBand.Tenants.OrganizationAccounts
+  alias TheBand.Tenants.PapelDeAdministrador
   alias TheBand.Tenants.Sessions
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
 
+  # As colunas de `tenants` que a área do operador lê (spec 070, FR-007). `select` explícito, e não
+  # a struct: o que não está aqui não sai do banco para a plataforma.
+  @colunas_para_a_plataforma [:id, :name, :slug, :status]
+
   # Feature 045 — contratos em specs/045-autenticacao-e-acesso/contracts/.
-  defdelegate authenticate(identificador, senha), to: Auth
+  # `opts[:jornada_id]` — o correlator da jornada, spec 074 (contracts/jornada.md §2).
+  defdelegate authenticate(identificador, senha, opts), to: Auth
   defdelegate set_password(tenant, user_id, senha), to: Auth
   defdelegate change_password(tenant, user_id, atual, nova), to: Auth
   defdelegate reset_password(tenant, user_id, actor_id), to: Auth
   defdelegate cadastrar_conta(tenant, attrs, actor), to: Auth
 
+  # A marca de administrador — spec 072. Só por estes atos o papel de uma conta existente muda.
+  defdelegate promote_user(tenant, user_id, actor, opts \\ []), to: MudancaDePapel, as: :promover
+  defdelegate demote_user(tenant, user_id, actor, opts \\ []), to: MudancaDePapel, as: :rebaixar
+  defdelegate role_changes(tenant, opts \\ []), to: MudancaDePapel, as: :listar
+  defdelegate role_summary(tenant, user_ids), to: MudancaDePapel, as: :resumo_por_conta
+
   defdelegate scopes(tenant, user), to: Access
   defdelegate pode_gerir_estrutura(tenant, user, team_id), to: Access
   defdelegate pode_ver(tenant, user, person_id), to: Access
   defdelegate pessoas_alcancadas(tenant, user), to: Access
+  defdelegate pessoas_alcancadas(tenant, user, opts), to: Access
   defdelegate pode_ver_equipe(tenant, user, team_id), to: Access
   defdelegate grant_scope(tenant, user_id, level, target_id, actor), to: Access, as: :grant
   defdelegate revoke_scope(tenant, grant_id, actor), to: Access, as: :revoke
   defdelegate operacional?(tenant, user), to: Access
+
+  # A conta da organização, declarada pela administração (076, T025; R14). Módulo próprio, e não
+  # `Access`: a declaração não decide quem vê o quê, decide quem é nó nas redes da análise.
+  defdelegate declare_organization_account(tenant, person_id, reason, actor),
+    to: OrganizationAccounts,
+    as: :declare
+
+  defdelegate revoke_organization_account(tenant, declaration_id, actor),
+    to: OrganizationAccounts,
+    as: :revoke
+
+  defdelegate organization_account_ids(tenant), to: OrganizationAccounts, as: :ids
+
+  defdelegate organization_accounts_changed_at(tenant),
+    to: OrganizationAccounts,
+    as: :last_change_at
+
+  defdelegate list_organization_accounts(tenant, actor), to: OrganizationAccounts, as: :list
 
   # ------------------------------------------- o token de API (feature 061)
   #
@@ -52,6 +85,7 @@ defmodule TheBand.Tenants do
   defdelegate revoke_api_token(tenant, id, autor, razao), to: ApiTokens, as: :revogar
   defdelegate api_token_revocation_clauses(), to: ApiTokens, as: :clausulas_de_revogacao
   defdelegate api_token_revocation_labels(), to: ApiTokens, as: :clausulas_com_rotulo
+  defdelegate api_token_recorded_revocation_labels(), to: ApiTokens, as: :rotulos_registrados
 
   defdelegate api_token_usage_by_route(tenant, public_id, janela_em_segundos),
     to: TheBand.Tenants.ApiAccessLog,
@@ -74,6 +108,95 @@ defmodule TheBand.Tenants do
     case Repo.get(Tenant, id) do
       nil -> {:error, :not_found}
       tenant -> {:ok, tenant}
+    end
+  end
+
+  @doc """
+  `:ok` quando a organização está ativa — issue #1033. É o predicado único de quem trabalha em
+  nome de um tenant: os workers, o agendador e o botão de sincronizar.
+
+  Ativa é `status == "active"`, o mesmo teste do login (`Auth`) e da sessão (`CurrentScope`).
+  Qualquer outro valor conta como inativa, inclusive um que ninguém previu: `status` é texto
+  livre no banco, e o lado seguro do desconhecido é não trabalhar.
+  """
+  @spec ensure_active(Tenant.t()) :: :ok | {:error, :tenant_inactive}
+  def ensure_active(%Tenant{status: "active"}), do: :ok
+  def ensure_active(%Tenant{}), do: {:error, :tenant_inactive}
+
+  @typedoc "O que a área do operador lê de uma organização (FR-007): o `id`, que não é mostrado, e três colunas."
+  @type resumo_para_a_plataforma :: %{
+          id: Ecto.UUID.t(),
+          name: String.t(),
+          slug: String.t(),
+          status: String.t()
+        }
+
+  @doc """
+  Todas as organizações, por `name`, só com o que a área do operador pode ler — spec 070, T038a
+  (FR-007; achado D1).
+
+  **Mapa, e nunca `%Tenant{}`**: a struct traz `has_many :users`, a um `preload` de distância de
+  dado de domínio. Sem junção e sem contagem.
+
+  **Só `TheBand.Platform` chama** (achado D1-b): esta leitura não recebe tenant, porque é o escopo
+  da plataforma, e uma tela de domínio que a usasse mostraria a uma pessoa de A o nome de B. O teste
+  `resumos_para_a_plataforma_test.exs` afirma isso pelo `mix xref callers`.
+  """
+  @spec resumos_para_a_plataforma() :: [resumo_para_a_plataforma()]
+  def resumos_para_a_plataforma,
+    do: Repo.all(from(t in Tenant, order_by: t.name, select: map(t, ^@colunas_para_a_plataforma)))
+
+  @doc "Uma organização pelo `slug`, na forma de `resumos_para_a_plataforma/0`."
+  @spec resumo_para_a_plataforma(String.t()) ::
+          {:ok, resumo_para_a_plataforma()} | {:error, :not_found}
+  def resumo_para_a_plataforma(slug) when is_binary(slug) do
+    case Repo.one(
+           from(t in Tenant, where: t.slug == ^slug, select: map(t, ^@colunas_para_a_plataforma))
+         ) do
+      nil -> {:error, :not_found}
+      resumo -> {:ok, resumo}
+    end
+  end
+
+  @doc """
+  Troca o estado da organização de `de` para `para`, **dentro da transação de quem chama** — spec
+  070, T046a (O10; achado D1). Contrato em
+  `specs/070-operador-da-plataforma/contracts/sessoes-e-tokens-da-organizacao.md`.
+
+  É a **única** escrita de `tenants.status` fora da criação. Fora de uma transação ela **levanta**:
+  a troca nunca se confirma sozinha, sem o episódio, as sessões e os tokens da suspensão. Chamar
+  fora é defeito de quem chama, e não caso de negócio. O único chamador é
+  `TheBand.Platform.Suspensions`.
+
+  A condição de estado fica **no `WHERE`**, e não numa leitura anterior: duas suspensões paralelas
+  passariam as duas por uma leitura de antes. Devolve `{:ok, %Tenant{status: para}}`,
+  `{:error, :estado_mudou}` (a organização existe, e o estado já não era `de`) ou
+  `{:error, :not_found}`.
+
+  Era `trocar_estado_no_multi/5`, um passo de `Ecto.Multi`. O Dialyzer recusa o termo opaco do
+  `Multi` nesta versão (medido no `mix gates` de 2026-10-02, `call_without_opaque`), e a casa já usa
+  `Repo.transaction/1` pelo mesmo motivo (`item_phase.ex`).
+  """
+  @spec trocar_estado(Tenant.t(), String.t(), String.t()) ::
+          {:ok, Tenant.t()} | {:error, :estado_mudou | :not_found}
+  def trocar_estado(%Tenant{id: id}, de, para)
+      when (de == "active" and para == "suspended") or (de == "suspended" and para == "active") do
+    unless Repo.in_transaction?(),
+      do: raise(ArgumentError, "trocar_estado/3 só existe dentro da transação de quem chama")
+
+    case Repo.update_all(
+           from(t in Tenant, where: t.id == ^id and t.status == ^de, select: t),
+           set: [status: para, updated_at: DateTime.utc_now(:second)]
+         ) do
+      {1, [tenant]} ->
+        {:ok, tenant}
+
+      {0, _} ->
+        {:error,
+         if(Repo.exists?(from t in Tenant, where: t.id == ^id),
+           do: :estado_mudou,
+           else: :not_found
+         )}
     end
   end
 
@@ -114,8 +237,13 @@ defmodule TheBand.Tenants do
 
   @spec create_user(Tenant.t(), map()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
   def create_user(%Tenant{id: tenant_id}, attrs) do
+    # Seeds e fixtures: o papel vem explícito, por `com_papel/2`, e não pelo cast (spec 072, S4).
+    # Nenhum caminho de `lib/` chama esta função; a tela usa `cadastrar_conta/3`, que cria `member`.
+    {papel, attrs} = Map.pop(attrs, "role", "member")
+
     %User{}
     |> User.changeset(Map.put(attrs, "tenant_id", tenant_id))
+    |> User.com_papel(papel)
     |> Repo.insert()
   end
 
@@ -177,9 +305,10 @@ defmodule TheBand.Tenants do
   painel sem nada ter sido pedido.
   """
   @spec declare_person(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
-          {:ok, User.t()} | {:error, :not_found | :taken | Ecto.Changeset.t()}
+          {:ok, User.t()} | {:error, :nao_autorizado | :not_found | :taken | Ecto.Changeset.t()}
   def declare_person(%Tenant{id: tenant_id}, user_id, person_id, actor_id) do
-    with {:ok, user} <- usuaria_do_tenant(tenant_id, user_id) do
+    with :ok <- PapelDeAdministrador.exigir_ator(tenant_id, actor_id),
+         {:ok, user} <- usuaria_do_tenant(tenant_id, user_id) do
       user
       |> gravar_elo(person_id, actor_id)
       |> desfecho_do_elo()
@@ -234,9 +363,10 @@ defmodule TheBand.Tenants do
   `person_revoked_at` que o tira de circulação.
   """
   @spec revoke_person(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
-          {:ok, User.t()} | {:error, :not_found | :not_declared}
+          {:ok, User.t()} | {:error, :nao_autorizado | :not_found | :not_declared}
   def revoke_person(%Tenant{id: tenant_id}, user_id, actor_id) do
-    with {:ok, user} <- usuaria_do_tenant(tenant_id, user_id) do
+    with :ok <- PapelDeAdministrador.exigir_ator(tenant_id, actor_id),
+         {:ok, user} <- usuaria_do_tenant(tenant_id, user_id) do
       if User.elo_vigente?(user) do
         revogar_elo(user, actor_id, DateTime.utc_now(:second))
         {:ok, Repo.get!(User, user.id)}
@@ -284,13 +414,19 @@ defmodule TheBand.Tenants do
   **A própria conta que executa o ato** — desativar-se a si é ficar de fora sem ter a
   quem pedir de volta, e num tenant com uma administração só isso tranca a organização
   inteira. Devolve `{:error, :nao_pode_desativar_a_si}`.
+
+  **O último administrador ativo** — issue #1055. Sem este guarda, dois administradores que
+  desativam um ao outro ao mesmo tempo deixavam a organização sem nenhum: cada transação via o
+  outro ativo. Devolve `{:error, :ultimo_admin_ativo}`.
   """
   @spec disable_user(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t(), map()) ::
           {:ok, User.t()}
           | {:error,
              :not_found
+             | :nao_autorizado
              | :ja_desativada
              | :nao_pode_desativar_a_si
+             | :ultimo_admin_ativo
              | :vocabulario_nao_declarado
              | Ecto.Changeset.t()}
   def disable_user(%Tenant{id: tenant_id}, user_id, actor_id, razao) when is_map(razao) do
@@ -307,6 +443,9 @@ defmodule TheBand.Tenants do
   # resposta rápida a *"pode entrar?"*; o episódio é o registro.
   defp desativar_na_transacao(user, tenant_id, actor_id, razao) do
     Repo.transaction(fn ->
+      with {:error, motivo} <- guarda_da_desativacao(tenant_id, actor_id, user.id),
+           do: Repo.rollback(motivo)
+
       episodio =
         AccountDisablement.abrir_changeset(%{
           "tenant_id" => tenant_id,
@@ -335,7 +474,17 @@ defmodule TheBand.Tenants do
         {:error, erro} -> Repo.rollback(erro)
       end
     end)
+    |> avisando_as_telas(user.id)
   end
+
+  # Depois do commit, e só se ele aconteceu: a tela aberta reconfere a sessão no banco ao
+  # receber o aviso, e antes do commit a acharia ainda aberta — issue #1042.
+  defp avisando_as_telas({:ok, _} = ok, user_id) do
+    Sessions.avisar_encerramento({:conta, user_id})
+    ok
+  end
+
+  defp avisando_as_telas(erro, _user_id), do: erro
 
   @doc """
   Reativa uma conta desativada — com ator e razão, e **fechando** o episódio.
@@ -364,9 +513,11 @@ defmodule TheBand.Tenants do
   """
   @spec enable_user(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t(), map()) ::
           {:ok, User.t()}
-          | {:error, :not_found | :ja_ativa | :sem_episodio_aberto | Ecto.Changeset.t()}
+          | {:error,
+             :nao_autorizado | :not_found | :ja_ativa | :sem_episodio_aberto | Ecto.Changeset.t()}
   def enable_user(%Tenant{id: tenant_id}, user_id, actor_id, razao) when is_map(razao) do
-    with {:ok, user} <- usuaria_do_tenant(tenant_id, user_id),
+    with :ok <- PapelDeAdministrador.exigir_ator(tenant_id, actor_id),
+         {:ok, user} <- usuaria_do_tenant(tenant_id, user_id),
          :ok <- ja_desativada(user),
          {:ok, episodio} <- episodio_aberto(tenant_id, user_id) do
       reativar_na_transacao(user, episodio, tenant_id, actor_id, razao)
@@ -509,6 +660,22 @@ defmodule TheBand.Tenants do
     do: {:error, :nao_pode_desativar_a_si}
 
   defp nao_e_a_si(_user_id, _actor_id), do: :ok
+
+  # O GUARDA DO ÚLTIMO ADMINISTRADOR ATIVO — issue #1055, e desde a 072 o MESMO de promover e
+  # rebaixar (T007, achado S3). `travar/3` trava as contas admin ativas em ordem de id, confere o
+  # ator no conjunto e relê o alvo sob a trava. A decisão é pela struct relida: o guarda antigo
+  # decidia pelo papel lido antes da trava, e com a promoção existindo, desativar um membro que
+  # outro admin promoveu no meio passava pelo ramo "não é admin" e deixava a organização sem
+  # nenhum.
+  defp guarda_da_desativacao(tenant_id, actor_id, user_id) do
+    with {:ok, %{alvo: alvo} = travado} <-
+           PapelDeAdministrador.travar(tenant_id, actor_id, user_id),
+         :ok <- ainda_ativa(alvo) do
+      if PapelDeAdministrador.ultimo_admin_ativo?(travado),
+        do: {:error, :ultimo_admin_ativo},
+        else: :ok
+    end
+  end
 
   defp ainda_ativa(user) do
     if User.ativa?(user), do: :ok, else: {:error, :ja_desativada}

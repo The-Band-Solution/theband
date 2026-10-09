@@ -32,6 +32,7 @@ defmodule TheBand.Tenants.Sessions do
   alias TheBand.Repo
   alias TheBand.Segredo
   alias TheBand.Tenants.Schemas.UserSession
+  alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
 
   @bytes 32
@@ -122,8 +123,34 @@ defmodule TheBand.Tenants.Sessions do
       set: [ended_at: agora()]
     )
 
-    :ok
+    avisar_encerramento({:sessao, id})
   end
+
+  @doc """
+  Os tópicos em que a tela aberta com esta sessão escuta — issue #1042.
+
+  A hook `:current_scope` inscreve o LiveView conectado nos três. Sem isso, a hook conferia a
+  sessão só no `mount`, e a aba aberta seguia respondendo a eventos depois de a conta ser
+  desativada: medido em 2026-10-01.
+  """
+  @spec topicos(UserSession.t()) :: [String.t()]
+  def topicos(%UserSession{id: id, user_id: user_id}),
+    do: ["sessao:" <> id, "conta:" <> user_id, "sessoes"]
+
+  @doc """
+  Avisa as telas abertas de que sessões foram encerradas — issue #1042.
+
+  A mensagem é só `:sessao_encerrada`, sem motivo, conta nem tenant. Quem recebe reconfere a
+  sessão no banco, e é o banco que decide. Por isso quem encerra **dentro de uma transação**
+  avisa **depois do commit**: antes, a reconferência acharia a sessão ainda aberta.
+  """
+  @spec avisar_encerramento({:sessao, Ecto.UUID.t()} | {:conta, Ecto.UUID.t()} | :todas) :: :ok
+  def avisar_encerramento({:sessao, id}), do: publicar("sessao:" <> id)
+  def avisar_encerramento({:conta, user_id}), do: publicar("conta:" <> user_id)
+  def avisar_encerramento(:todas), do: publicar("sessoes")
+
+  defp publicar(topico),
+    do: Phoenix.PubSub.broadcast(TheBand.PubSub, topico, :sessao_encerrada)
 
   @doc """
   Apaga as sessões que deixaram de valer há mais de 90 dias — T020, decisão P3. É o **único**
@@ -150,10 +177,35 @@ defmodule TheBand.Tenants.Sessions do
   end
 
   @doc """
+  Encerra toda sessão aberta da organização e devolve **os ids** encerrados — spec 070, T046
+  (FR-004). Contrato em `specs/070-operador-da-plataforma/contracts/sessoes-e-tokens-da-organizacao.md`.
+
+  Roda dentro da transação da suspensão, e por isso **não avisa**: avisar antes do `commit` seria
+  avisar o que o banco ainda não confirmou. Quem chama publica `avisar_encerramento({:sessao, id})`
+  para cada id, depois do `commit` (A2). Recebe `%Tenant{}`, e não o id cru.
+  """
+  @spec encerrar_da_organizacao(Tenant.t()) :: {:ok, [Ecto.UUID.t()]}
+  def encerrar_da_organizacao(%Tenant{id: tenant_id}) do
+    {_n, ids} =
+      Repo.update_all(
+        from(s in UserSession,
+          where: s.tenant_id == ^tenant_id and is_nil(s.ended_at),
+          select: s.id
+        ),
+        set: [ended_at: agora()]
+      )
+
+    {:ok, ids}
+  end
+
+  @doc """
   Encerra toda sessão aberta da conta, e devolve quantas encerrou.
 
   É chamada dentro da transação de `Tenants.disable_user/4` (S1): sem isso, reativar a conta
   devolveria toda sessão aberta antes da desativação, inclusive a que motivou desligar alguém.
+
+  **Não avisa as telas abertas**, justamente porque roda dentro de transação. Quem chama avisa
+  com `avisar_encerramento({:conta, user_id})` depois do commit (#1042).
   """
   @spec encerrar_da_conta(Ecto.UUID.t(), Ecto.UUID.t()) :: {:ok, non_neg_integer()}
   def encerrar_da_conta(tenant_id, user_id) do
@@ -180,6 +232,9 @@ defmodule TheBand.Tenants.Sessions do
         set: [ended_at: agora()]
       )
 
+    # Só alcança as telas do nó em que roda. Pelo `bin/the_band eval` do runbook, que sobe
+    # outra VM, o aviso não chega a quem serve, e a tela aberta só cai ao reconectar (#1042).
+    avisar_encerramento(:todas)
     {:ok, n}
   end
 

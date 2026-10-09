@@ -47,7 +47,9 @@ defmodule TheBand.MCP.EnvelopeTest do
 
     e = Envelope.montar(base(ressalvas: {:mapeamento, @mapeamento}))
 
-    assert e.limitations == mapeamento["limitations"]
+    # O item da base pode ser mapa de idioma (075, #1312); o envelope fala o português dele.
+    assert e.limitations == Enum.map(mapeamento["limitations"], &KnowledgeBase.pt_br/1)
+    assert Enum.all?(e.limitations, &is_binary/1), "o envelope vazou o mapa de idioma"
     assert Map.has_key?(e, :misinterpretations)
     assert e.misinterpretations == []
     assert e.measurement_id == nil

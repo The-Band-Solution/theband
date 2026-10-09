@@ -166,14 +166,19 @@ defmodule TheBandWeb.ProcessLive.Index do
                 delas concluiria que o dado sumiu, ou que a coleta falhou.
 
                 Não diz quantas ficaram de fora: o número seria uma medida sobre pessoas
-                que quem lê não alcança. --%>
+                que quem lê não alcança.
+
+                A regra escrita é a de `pessoas_alcancadas/2`, e não a de `pode_ver/3`: o
+                mesmo defeito da #1185, na mesma frase, corrigido junto (feature 076, T005).
+                Frase de tela, em inglês (AGENTS.md §11.1). --%>
           <div :if={@alcance_parcial?} class="alert alert-info mb-3 block text-sm">
             <p>
               <strong>This table shows only the people you reach.</strong>
-              Since <strong>9 September 2026</strong>, activity by named person follows the
-              same rule as a person's panel — your own record, the people on your teams,
-              whoever you lead by declared role, an organization scope, or administering
-              this tenant.
+              Since <strong>9 September 2026</strong>, activity by named person shows your
+              own record, the people on the teams in your scope (the teams you belong to and
+              the ones granted to you), the people on the teams of an organization in your
+              scope, or everyone if you administer this tenant. Leading a team through a role
+              does not add people to this table; a scope does.
             </p>
           </div>
 

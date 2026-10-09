@@ -1,0 +1,43 @@
+measurement:
+  id: network.eigenvector.score
+  version: 1
+  name:
+    pt-BR: "Centralidade de autovetor, por componente"
+    en: "Eigenvector centrality, per component"
+  answers_information_need: [network.structure]
+  value_type: score
+  unit: score
+
+  formula:
+    expression: >
+      Para cada componente c (critério fraco) com n_c ≥ 2, sobre a projeção sem direção COM
+      peso (soma dos dois sentidos), x_c é o limite da iteração x ← (A_c + I)·x / ‖(A_c + I)·x‖₂
+      a partir de x = 1 (network.analysis.parameters.eigenvector):
+        eigenvector(u) = x_c(u), com ‖x_c‖₂ = 1                                    [escore]
+      Sem convergência no teto da base: AUSENTE com motivo `did_not_converge` para todas as
+      pessoas de c. Nunca 0,01, nunca o grau no lugar.
+    inputs: [network_edges, network_edge_weights]
+
+  scope:
+    levels: [person, component]
+    filters:
+      - "a lista de hubs por autovetor é POR COMPONENTE; valores de componentes diferentes não se ordenam juntos"
+      - "calculada sobre a rede inteira (FR-011); o nome só sob o alcance (FR-012)"
+    period: "a janela da leitura"
+
+  limitations:
+    - "A normalização é por componente: 0,6 num componente de 3 e 0,3 num de 30 não dizem que a primeira pessoa é 'mais central'."
+    - "Usa o peso: duas pessoas com muitas issues em comum puxam o valor uma da outra."
+    - "Em componente de 2 pessoas, as duas têm o mesmo valor (1/√2) por construção."
+
+  misinterpretations:
+    - "Ler como 'influência' ou 'liga-se a pessoas importantes' (a frase da referência, `:326`). É a posição no autovetor dominante da matriz de vínculos, e nada mais."
+    - "Converter o número em adjetivo por faixa: a referência usa 0,5 e 0,2 sem razão (`:330`)."
+    - "A medida não avalia a pessoa."
+
+  provenance:
+    source_type: literature
+    authors: ["Phillip Bonacich"]
+    year: 1972
+    reference: "Bonacich, P. Factoring and weighting approaches to status scores and clique identification. Journal of Mathematical Sociology 2(1), 1972; spec 076, FR-036"
+    note: "Corrige `dashboard_team_graph.py:98-117`: reserva pelo grau em outra escala, 0,01 para nó isolado, e ordenação conjunta de componentes."

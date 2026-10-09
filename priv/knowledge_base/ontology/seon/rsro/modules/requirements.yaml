@@ -7,6 +7,9 @@ module:
     pt-BR: >
       Distinção fundamental: o artefato de requisito descreve o requisito, mas não
       é o requisito. Requisito é o objetivo a ser alcançado.
+    en: >
+      Fundamental distinction: the requirements artifact describes the requirement, but is
+      not the requirement. A requirement is the goal to be achieved.
   provenance:
     source_type: reference_ontology
     reference: "Tese, Seção 2.2.3, Figura 22"
@@ -19,6 +22,7 @@ concepts:
       pt-BR: >
         Objetivo a ser alcançado, representando uma condição ou capacidade
         necessária ao usuário.
+      en: "Goal to be achieved, representing a condition or capability needed by the user."
     classification: { ufo_category: goal }
     examples: ["criar ordem de serviço"]
 
@@ -27,6 +31,7 @@ concepts:
     label: { pt-BR: "Requisito Funcional" }
     definition:
       pt-BR: Requisito que define uma função a ser disponibilizada no produto construído.
+      en: "Requirement that defines a function to be made available in the built product."
     classification: { ufo_category: goal, parent: rsro.requirement }
     examples: ["o sistema precisa controlar pedidos de clientes"]
 
@@ -35,6 +40,7 @@ concepts:
     label: { pt-BR: "Requisito Não Funcional" }
     definition:
       pt-BR: Requisito que define critérios ou capacidades para o produto.
+      en: "Requirement that defines criteria or capabilities for the product."
     classification: { ufo_category: goal, parent: rsro.requirement }
     examples: ["estar acessível em navegadores específicos", "executar uma função em tempo estabelecido"]
 
@@ -45,6 +51,9 @@ concepts:
       pt-BR: >
         Artefato que descreve um ou mais requisitos. Descreve o requisito; não é
         o requisito.
+      en: >
+        Artifact that describes one or more requirements. It describes the requirement; it
+        is not the requirement.
     classification: { ufo_category: social_object, parent: spo.information_item }
 
   - id: rsro.requirements_document
@@ -52,6 +61,7 @@ concepts:
     label: { pt-BR: "Documento de Requisitos" }
     definition:
       pt-BR: Documento composto de artefatos de requisitos que descrevem requisitos.
+      en: "Document composed of requirements artifacts that describe requirements."
     classification: { ufo_category: social_object, parent: spo.document }
     examples: ["uma Especificação de Requisitos"]
 

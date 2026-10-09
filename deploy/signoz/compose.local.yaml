@@ -1,0 +1,34 @@
+# O override de DESENVOLVIMENTO do SigNoz — spec 074, T006; ADR 0005, E2, item 2; S6.
+#
+# É o ÚNICO arquivo de `deploy/signoz/` com `ports:`, e tudo nele escuta só em `127.0.0.1`: a
+# aplicação de desenvolvimento roda no host, fora da rede `telemetria`, e o painel abre no
+# navegador local. Em produção este arquivo não é usado — o Dokploy implanta só `compose.yaml`,
+# e o painel é alcançado por túnel SSH (D2).
+#
+# Duas coisas que só valem aqui (#1313):
+#
+# - o profile `telemetria` (P4). Em produção não há profile, porque o Dokploy não passa
+#   `--profile`; aqui ele existe para que `docker compose up` na raiz continue subindo só o
+#   Postgres;
+# - a rede `telemetria` deixa de ser externa (P3). Em produção ela é a overlay `attachable`
+#   criada uma vez no VPS; aqui não há Swarm, e o compose a cria como bridge, com o mesmo nome.
+
+x-profile: &profile
+  profiles: ["telemetria"]
+
+services:
+  zookeeper-1: *profile
+  clickhouse: *profile
+  signoz-telemetrystore-migrator: *profile
+  otel-collector:
+    <<: *profile
+    ports:
+      - "127.0.0.1:4318:4318" # OTLP/HTTP
+  signoz:
+    <<: *profile
+    ports:
+      - "127.0.0.1:3301:8080" # painel; 8080 do host costuma estar ocupado
+
+networks:
+  telemetria:
+    external: false

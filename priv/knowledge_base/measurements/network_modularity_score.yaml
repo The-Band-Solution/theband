@@ -1,0 +1,46 @@
+measurement:
+  id: network.modularity.score
+  version: 1
+  name:
+    pt-BR: "Modularidade da partição detectada, ao lado da dos grafos aleatórios"
+    en: "Modularity of the detected partition, next to that of random graphs"
+  answers_information_need: [network.structure]
+  value_type: score
+  unit: modularity
+
+  formula:
+    expression: >
+      Sobre a projeção sem direção com peso, m_w a soma dos pesos, A_uv o peso de {u, v},
+      k_u a soma dos pesos de u, e P a partição de network.communities.count:
+        Q = (1 / 2m_w) × soma sobre u, v de [A_uv − k_u·k_v / 2m_w] × δ(c_u, c_v)   [escore]
+      Q_rand = média, sobre os grafos aleatórios de network.analysis.parameters.small_world,
+      de Q da partição que o MESMO algoritmo guloso, COM PESO, encontra em cada um; cada
+      aleatório leva nas suas arestas o multiconjunto dos pesos reais, embaralhado
+      (network.analysis.parameters.modularity_reading.random_weights); dividida pelo número
+      de grafos com ao menos uma aresta, que é dito.
+      Acima de network.analysis.parameters.size_limit: Q_rand AUSENTE com motivo
+      `network_too_large_for_platform`; Q é calculada.
+      Sem aresta: AUSENTE com motivo `no_edge_in_window`. A leitura segue
+      network.analysis.parameters.modularity_reading.
+    inputs: [network_edges, network_edge_weights, network.communities.count]
+
+  scope:
+    levels: [observed_organization]
+    filters:
+      - "calculada sobre a rede inteira (FR-011)"
+    period: "a janela da leitura"
+
+  limitations:
+    - "Grafos aleatórios pequenos e esparsos atingem Q de 0,3 ou mais por flutuação (Guimerà, Sales-Pardo e Amaral, 2004): por isso Q aparece ao lado de Q_rand."
+    - "Q_rand compara contra grafos com a mesma densidade e os mesmos pesos, sorteados: diz se a estrutura observada excede a do acaso com esses pesos, e não contra outros modelos nulos (graus preservados, por exemplo)."
+    - "A modularidade tem limite de resolução: comunidades pequenas dentro de redes grandes podem ser fundidas."
+
+  misinterpretations:
+    - "Ler Q acima de 0,3 como 'comunidades bem definidas' sem olhar Q_rand. A referência faz isso com faixas sem fonte (`dashboard_team_graph.py:404`)."
+    - "Ler Q alto como bom ou ruim: separação alta pode ser produtos independentes de propósito."
+
+  provenance:
+    source_type: literature
+    authors: ["M. E. J. Newman", "Michelle Girvan"]
+    year: 2004
+    reference: "Newman, M. E. J.; Girvan, M. Finding and evaluating community structure in networks. Physical Review E 69, 026113, 2004; Guimerà, R.; Sales-Pardo, M.; Amaral, L. A. N. Modularity from fluctuations in random graphs and complex networks. Physical Review E 70, 025101, 2004; spec 076, FR-029, FR-031"

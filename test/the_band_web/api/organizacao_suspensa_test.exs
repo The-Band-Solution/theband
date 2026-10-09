@@ -15,6 +15,7 @@ defmodule TheBandWeb.Api.OrganizacaoSuspensaTest do
   """
   use TheBandWeb.ConnCase, async: false
 
+  import Ecto.Query, only: [from: 2]
   import ExUnit.CaptureLog
 
   alias TheBand.Repo
@@ -35,7 +36,12 @@ defmodule TheBandWeb.Api.OrganizacaoSuspensaTest do
   end
 
   defp mudar_status(tenant, status) do
-    {:ok, t} = tenant |> Tenants.Tenant.changeset(%{"status" => status}) |> Repo.update()
+    # Por `update_all`, e não pelo changeset: desde a spec 070 (T013) `:status` não é castável. Verde
+    # depois do trigger adiado de T044a só porque o sandbox nunca faz `COMMIT` (data-model §4a).
+    {1, _} =
+      Repo.update_all(from(x in Tenants.Tenant, where: x.id == ^tenant.id), set: [status: status])
+
+    t = Repo.get!(Tenants.Tenant, tenant.id)
     # A GUARDA DO CENÁRIO: um `status` que não gravou faria o teste passar pelo motivo errado.
     assert t.status == status
     t

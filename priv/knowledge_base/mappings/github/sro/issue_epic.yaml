@@ -26,22 +26,38 @@ target:
   concept: sro.epic
 semantics:
   equivalence: derived
-  justification: >
-    Épico é uma user story que TEM PARTES — sro.rule05. Não é um rótulo: é
-    consequência da composição. Por isso `values` aqui inclui tanto os nomes de
-    tipo "Epic" quanto os de "User Story": o que decide é
-    `structural_requirements`, e o tipo declarado apenas informa a intenção do
-    time.
+  justification:
+    pt-BR: >
+      Épico é uma user story que TEM PARTES — sro.rule05. Não é um rótulo: é
+      consequência da composição. Por isso `values` aqui inclui tanto os nomes de
+      tipo "Epic" quanto os de "User Story": o que decide é
+      `structural_requirements`, e o tipo declarado apenas informa a intenção do
+      time.
 
-    `children_of_concept: sro.user_story` é a parte que não se pode omitir. As
-    partes têm de ser user stories para haver composição. Se as sub-issues são
-    todas do tipo `Task`, elas ATENDEM a user story em vez de compô-la, e a issue
-    permanece atômica.
+      `children_of_concept: sro.user_story` é a parte que não se pode omitir. As
+      partes têm de ser user stories para haver composição. Se as sub-issues são
+      todas do tipo `Task`, elas ATENDEM a user story em vez de compô-la, e a issue
+      permanece atômica.
 
-    Quando declaração e estrutura divergem, a estrutura vence e a divergência é
-    registrada. Ela normalmente significa uma de duas coisas, e as duas interessam
-    a quem administra o processo: épico abandonado sem decomposição, ou user story
-    que cresceu e virou épico sem ninguém retipar.
+      Quando declaração e estrutura divergem, a estrutura vence e a divergência é
+      registrada. Ela normalmente significa uma de duas coisas, e as duas interessam
+      a quem administra o processo: épico abandonado sem decomposição, ou user story
+      que cresceu e virou épico sem ninguém retipar.
+    en: >
+      An epic is a user story that HAS PARTS — sro.rule05. It is not a label: it is a
+      consequence of composition. That is why `values` here includes both the "Epic" type
+      names and the "User Story" ones: what decides is `structural_requirements`, and the
+      declared type merely informs the team's intention.
+
+      `children_of_concept: sro.user_story` is the part that cannot be omitted. The parts
+      have to be user stories for there to be composition. If the sub-issues are all of type
+      `Task`, they SERVE the user story instead of composing it, and the issue remains
+      atomic.
+
+      When declaration and structure diverge, the structure wins and the divergence is
+      recorded. It usually means one of two things, and both matter to whoever administers
+      the process: an epic abandoned without decomposition, or a user story that grew and
+      became an epic without anyone retyping it.
 identity:
   external_id_path: node.id
   natural_key: [node.repository.nameWithOwner, node.number]
@@ -57,20 +73,34 @@ relations:
     target_ontology: cmpo
     target_concept: cmpo.source_repository
 limitations:
-  - >
-    Um vínculo de composição que fecharia CICLO é recusado, e a recusa nomeia o
-    caminho — sro.rule04. As duas issues permanecem coletadas: a issue existe no
-    GitHub, e esconder dado observado por causa de relação inválida seria pior.
-  - >
-    Sub-issue em repositório fora do escopo observado é registrada como referência
-    externa. A relação existe; a parte não é promovida.
-  - >
-    A classificação como épico é derivada da coleta, e não materializada em
-    coluna. Uma issue que perde todas as partes deixa de ser épico — gravar o
-    valor faria o registro divergir da estrutura no instante seguinte (ADR 0004 D7).
-  - >
-    `importance` e `complexity` ficam nulas, pela mesma razão do mapeamento da
-    user story atômica.
+  - pt-BR: >
+      Um vínculo de composição que fecharia CICLO é recusado, e a recusa nomeia o
+      caminho — sro.rule04. As duas issues permanecem coletadas: a issue existe no
+      GitHub, e esconder dado observado por causa de relação inválida seria pior.
+    en: >
+      A composition link that would close a CYCLE is refused, and the refusal names the path
+      — sro.rule04. Both issues remain collected: the issue exists on GitHub, and hiding
+      observed data because of an invalid relation would be worse.
+  - pt-BR: >
+      Sub-issue em repositório fora do escopo observado é registrada como referência
+      externa. A relação existe; a parte não é promovida.
+    en: >
+      A sub-issue in a repository outside the observed scope is recorded as an external
+      reference. The relation exists; the part is not promoted.
+  - pt-BR: >
+      A classificação como épico é derivada da coleta, e não materializada em
+      coluna. Uma issue que perde todas as partes deixa de ser épico — gravar o
+      valor faria o registro divergir da estrutura no instante seguinte (ADR 0004 D7).
+    en: >
+      The classification as epic is derived from the collection, and not materialized in a
+      column. An issue that loses all its parts stops being an epic — storing the value
+      would make the record diverge from the structure the very next instant (ADR 0004 D7).
+  - pt-BR: >
+      `importance` e `complexity` ficam nulas, pela mesma razão do mapeamento da
+      user story atômica.
+    en: >
+      `importance` and `complexity` are left null, for the same reason as in the atomic user
+      story mapping.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at, schema_version]

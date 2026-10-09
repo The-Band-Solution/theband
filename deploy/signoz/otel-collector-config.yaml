@@ -1,0 +1,58 @@
+# O coletor do SigNoz para a 074 — spec 074, T006; ADR 0005, E2, E3, E7.
+#
+# Derivado de `deploy/docker/otel-collector-config.yaml` do SigNoz v0.125.0, com três diferenças
+# deliberadas:
+#
+# 1. SÓ TRAÇOS, e só por OTLP/HTTP. A 074 exporta `http_protobuf` (research R11); o receptor
+#    gRPC, as métricas, os logs, o Prometheus, as métricas derivadas de span (`signozspanmetrics`)
+#    e o medidor de uso do SigNoz não têm consumidor nesta fatia — o painel da T022 consulta os
+#    traços —, e cada um seria uma porta ou um caminho de dado a mais para vigiar;
+# 2. `memory_limiter` PRIMEIRO no pipeline (E3): o coletor recusa dado antes de ser morto pelo
+#    teto de memória do contêiner, e a recusa aparece para quem exporta como erro, não como OOM;
+# 3. NADA DE OpAMP. Este arquivo é a configuração inteira, passada por `--config`, sem
+#    `--manager-config`: na medida de E3, o servidor respondeu erro por OpAMP e o coletor aplicou
+#    uma configuração `nop` — de pé, *healthy*, e recusando toda conexão em 4318.
+#
+# A senha do ClickHouse vem do ambiente (`SIGNOZ_CLICKHOUSE_PASSWORD`), nunca deste arquivo.
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 360
+    spike_limit_mib: 80
+  batch:
+    send_batch_size: 10000
+    send_batch_max_size: 11000
+    timeout: 10s
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+exporters:
+  clickhousetraces:
+    datasource: tcp://clickhouse:9000/signoz_traces?username=default&password=${env:SIGNOZ_CLICKHOUSE_PASSWORD}
+    low_cardinal_exception_grouping: false
+    use_new_schema: true
+  metadataexporter:
+    cache:
+      provider: in_memory
+    dsn: tcp://clickhouse:9000/signoz_metadata?username=default&password=${env:SIGNOZ_CLICKHOUSE_PASSWORD}
+    enabled: true
+    timeout: 45s
+
+service:
+  telemetry:
+    logs:
+      encoding: json
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [clickhousetraces, metadataexporter]

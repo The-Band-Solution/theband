@@ -179,7 +179,7 @@ defmodule TheBandWeb.WorkItemLive.Index do
             <div class="card-body gap-3 p-4 sm:p-5">
               <.metric label="divergences" value={length(@divergencias)} />
               <p :if={@divergencias == []} class="text-sm text-base-content/70">
-                None. Label and structure agree on every issue.
+                None. Declared type and structure agree on every issue.
               </p>
               <%!-- Grouped by kind, not merely listed: "12 divergences" says nothing about
                     what to do, "9 tasks with parts, 3 epics without parts" does. Counting
@@ -359,12 +359,17 @@ defmodule TheBandWeb.WorkItemLive.Index do
                 skip_reason={i.skip_reason}
                 skip_detail={i.skip_detail}
               />
-              <div :if={i.divergence_kind} class="text-xs text-warning">
-                {ConceptLabel.divergencia(i.divergence_kind)}
-              </div>
+              <%!-- #905: os dois lados, o porquê e o lado seguido, na própria linha. --%>
+              <.divergencia
+                :if={i.divergence_kind}
+                tipo={i.divergence_kind}
+                declarado={i.issue_type}
+                derivado={ConceptLabel.rotulo(i.derived_concept)}
+              />
             </:col>
-            <%!-- OS RÓTULOS, por último e de propósito: a alegação do time lê depois do
-                  veredito da plataforma. E são duas origens no mesmo lugar — o campo da
+            <%!-- OS RÓTULOS, por último e de propósito: são CONTEXTO, e não um lado da
+                  divergência (065/US2, emendada em 2026-09-30). A alegação do time é o tipo
+                  declarado, no bloco da divergência. E são duas origens no mesmo lugar — o campo da
                   ferramenta e o prefixo do título —, distinguidas pelo preenchimento,
                   nunca só pela cor. Ver spec 065 e o protótipo aprovado em 2026-09-13. --%>
             <:col :let={i} label="labels">

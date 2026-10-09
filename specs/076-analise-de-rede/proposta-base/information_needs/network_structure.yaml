@@ -1,0 +1,87 @@
+information_need:
+  id: network.structure
+  name:
+    pt-BR: "A estrutura da rede de pessoas formada pela revisão e pela designação"
+    en: "Structure of the network of people formed by review and by assignment"
+  question:
+    pt-BR: >
+      Numa janela de tempo, na rede de revisão e na de designação de uma organização
+      observada: que comunidades se formam, quem concentra as ligações e quem está nos
+      caminhos entre os grupos, quão perto as pessoas estão umas das outras, se a rede atende
+      ao critério de mundo pequeno, e qual a posição de cada pessoa nela?
+    en: >
+      Within a time window, in an observed organisation's review network and assignment
+      network: which communities form, who concentrates the links and who lies on the paths
+      between groups, how close people are to each other, whether the network meets the
+      small-world criterion, and what is each person's position in it?
+  stakeholders: [engineering_manager, team_lead, scrum_master]
+  decision_supported:
+    pt-BR: >
+      Decidir onde abrir caminho de revisão ou de designação entre grupos que hoje não se
+      ligam; por onde passam os caminhos observados entre os grupos (quem está em muitos
+      caminhos, o que NÃO diz que a ausência da pessoa separaria a rede: isso é ponto de
+      articulação, que nenhuma medida desta necessidade calcula);
+      se a forma da rede observada corresponde à que a organização acredita ter; e por onde
+      começar a integração de quem chega (quem já está ligado a muitos).
+
+      **O que esta necessidade explicitamente não responde**: quem trabalha bem, quem é mais
+      importante, quem merece promoção, quem está se omitindo, e quem colabora com quem. As
+      duas arestas são atos observados numa ferramenta — revisar uma solicitação; abrir uma
+      issue pela qual outra pessoa está designada — e não relações de trabalho. Posição na
+      rede não é desempenho. A carga de revisão e de designação depende de regra do
+      repositório, papel, senioridade, férias e fuso, e nada disso está na rede.
+
+      Também não substitui `review.concentration` (a revisão está em poucas pessoas?, sem
+      nomear), que continua sendo a primeira leitura da rede de revisão; esta necessidade é a
+      leitura estrutural, com nomes sob o alcance.
+  required_concepts:
+    - eo.person
+    - spo.project_person_stakeholder
+    - qapo.artifact_evaluation
+    - cmpo.change_request
+    - cmpo.change_request_submission
+    - sro.user_story
+    - sro.intended_scrum_development_task
+    - sro.epic
+    - osdef.defect
+  required_relations:
+    - qapo.stakeholder_performed_artifact_evaluation
+    - qapo.artifact_evaluation_evaluates
+    - cmpo.stakeholder_submitted_change_request
+    - cmpo.submission_produced_change_request
+  candidate_measurements:
+    - assignment.network.issues.count
+    - assignment.network.excluded.count
+    - assignment.network.edge_weight.count
+    - assignment.network.people_without_edges.count
+    - network.components.count
+    - network.degree.count
+    - network.degree_centrality.ratio
+    - network.betweenness.ratio
+    - network.closeness.ratio
+    - network.person_distance.mean
+    - network.eigenvector.score
+    - network.position_percentile.percentage
+    - network.communities.count
+    - network.modularity.score
+    - network.community_internal_degree.count
+    - network.average_distance.mean
+    - network.diameter.count
+    - network.global_efficiency.ratio
+    - network.clustering.ratio
+    - network.small_world_sigma.score
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: >
+      spec 076 (`specs/076-analise-de-rede/spec.md`); decisões da pessoa mantenedora de
+      2026-10-03; revisão semântica 076; avaliação de segurança 076
+    note: >
+      Reproduz a análise de `leds-conectafapes-management-dashboard`
+      (`dashboard_team_graph.py`, `report/collaboration_report.md`), pedida "igual" pela
+      pessoa mantenedora, sobre duas arestas com semântica declarada: `review.network.edge`
+      (073) e `assignment.network.edge` (076). A relação de designação não tem id de relação
+      na rede de ontologias: ela é a coincidência da relação `author`/`reporter` dos
+      mapeamentos de issue com a relação `assignee` do mapeamento de tarefa, sobre a mesma
+      issue, e está declarada como regra derivada, e não como relação nova da SRO
+      (revisão semântica 076, S2).

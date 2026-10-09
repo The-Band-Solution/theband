@@ -6,10 +6,15 @@ source: { provider: github, entity: ref, api: graphql, schema_version: v4 }
 target: { ontology: cmpo, concept: cmpo.branch }
 semantics:
   equivalence: partial
-  justification: >
-    Uma ref do tipo branch é o coletivo dos artefatos de um repositório em uma
-    linha de desenvolvimento — a Branch de CMPO. Branch de origem e de destino são
-    papéis assumidos em um check-in, e não tipos de branch.
+  justification:
+    pt-BR: >
+      Uma ref do tipo branch é o coletivo dos artefatos de um repositório em uma
+      linha de desenvolvimento — a Branch de CMPO. Branch de origem e de destino são
+      papéis assumidos em um check-in, e não tipos de branch.
+    en: >
+      A ref of type branch is the collective of the artifacts of a repository in a line of
+      development — the CMPO Branch. Source and target branch are roles played in a
+      check-in, and not types of branch.
 identity:
   external_id_path: id
   natural_key: [repository.node_id, name]
@@ -20,28 +25,51 @@ attributes:
   is_default:        { derived_from: "comparação com repository.defaultBranchRef.name" }
   is_protected:      { source_path: branchProtectionRule, transform: "presente -> true; nulo -> false, com a divergência registrada" }
 limitations:
-  - >
-    RESOLVIDA na versão 2 — "tags também são refs": a consulta usa
-    `refPrefix: "refs/heads/"`, e tag não entra.
-  - >
-    Branch protegida ou default é configuração da ferramenta, não distinção ontológica. As
-    duas são guardadas porque descrevem POLÍTICA, e política é o que se compara com o que de
-    fato aconteceu — não porque criem subtipos de branch.
-  - >
-    `branchProtectionRule` exige escopo de administração. Sem ele o campo não vem, e a coleta
-    grava `false` **contando separadamente** em `branch_protection_unknown`: "não soubemos
-    dizer" nunca vira "não protegida".
-  - >
-    **Esta coleta não é incremental**, ao contrário das demais. A pergunta é "que branches
-    existem agora", e responder exige o conjunto inteiro para saber o que deixou de existir.
-  - >
-    Branch mergeada é APAGADA na origem, e o histórico dela não está aqui: está no
-    `source_branch` das solicitações de mudança. Medido em 2026-08-19, 2.461 nomes de branch
-    de origem distintos contra 6, 63 e 47 branches vivas nos repositórios do piloto. A
-    solicitação aponta para um nome que pode não ter entidade, e a tela precisa dizer isso.
-  - >
-    Branch que sumiu é MARCADA, nunca removida: ela existiu, e o check-in que aconteceu nela
-    continua sendo fato sobre o processo.
+  - pt-BR: >
+      RESOLVIDA na versão 2 — "tags também são refs": a consulta usa
+      `refPrefix: "refs/heads/"`, e tag não entra.
+    en: >
+      RESOLVED in version 2 — "tags are also refs": the query uses `refPrefix:
+      "refs/heads/"`, and tags do not come in.
+  - pt-BR: >
+      Branch protegida ou default é configuração da ferramenta, não distinção ontológica. As
+      duas são guardadas porque descrevem POLÍTICA, e política é o que se compara com o que de
+      fato aconteceu — não porque criem subtipos de branch.
+    en: >
+      A protected or default branch is a configuration of the tool, not an ontological
+      distinction. Both are stored because they describe POLICY, and policy is what is
+      compared with what actually happened — not because they create subtypes of branch.
+  - pt-BR: >
+      `branchProtectionRule` exige escopo de administração. Sem ele o campo não vem, e a coleta
+      grava `false` **contando separadamente** em `branch_protection_unknown`: "não soubemos
+      dizer" nunca vira "não protegida".
+    en: >
+      `branchProtectionRule` requires administration scope. Without it the field does not
+      come, and the collection stores `false` **counting separately** in
+      `branch_protection_unknown`: "we could not tell" never becomes "not protected".
+  - pt-BR: >
+      **Esta coleta não é incremental**, ao contrário das demais. A pergunta é "que branches
+      existem agora", e responder exige o conjunto inteiro para saber o que deixou de existir.
+    en: >
+      **This collection is not incremental**, unlike the others. The question is "which
+      branches exist now", and answering it requires the whole set in order to know what has
+      ceased to exist.
+  - pt-BR: >
+      Branch mergeada é APAGADA na origem, e o histórico dela não está aqui: está no
+      `source_branch` das solicitações de mudança. Medido em 2026-08-19, 2.461 nomes de branch
+      de origem distintos contra 6, 63 e 47 branches vivas nos repositórios do piloto. A
+      solicitação aponta para um nome que pode não ter entidade, e a tela precisa dizer isso.
+    en: >
+      A merged branch is DELETED at the source, and its history is not here: it is in the
+      `source_branch` of the change requests. Measured on 2026-08-19, 2,461 distinct source
+      branch names against 6, 63 and 47 live branches in the pilot repositories. The request
+      points to a name that may have no entity, and the screen needs to say so.
+  - pt-BR: >
+      Branch que sumiu é MARCADA, nunca removida: ela existiu, e o check-in que aconteceu nela
+      continua sendo fato sobre o processo.
+    en: >
+      A branch that disappeared is MARKED, never removed: it existed, and the check-in that
+      happened in it remains a fact about the process.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at]

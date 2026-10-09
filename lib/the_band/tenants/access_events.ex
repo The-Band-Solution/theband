@@ -55,6 +55,87 @@ defmodule TheBand.Tenants.AccessEvents do
   """
   require Logger
 
+  # ------------------------------------------------- o passo de jornada (spec 074)
+  #
+  # Contrato em `specs/074-jornada-entrar-e-sair/contracts/jornada.md` §1–2. Esta função é **só de
+  # emissão**: não loga — as funções de log abaixo não mudam — e não decide nada. O evento é
+  # traduzido em span por `TheBand.Telemetria.Jornada`, fora do domínio.
+  #
+  # **As guardas são a terceira camada de S1** (seguranca.md): só passam átomo da lista, id
+  # binário e o correlator. Struct de conta, `conn`, changeset e texto livre não cabem na
+  # assinatura — e por isso nenhum handler anexado ao mesmo evento os recebe.
+
+  @passos [
+    :abrir_a_entrada,
+    :entrar_com_senha,
+    :sair,
+    :sessao_derrubada,
+    :definir_a_senha,
+    :trocar_a_senha
+  ]
+
+  @type passo ::
+          :abrir_a_entrada
+          | :entrar_com_senha
+          | :sair
+          | :sessao_derrubada
+          | :definir_a_senha
+          | :trocar_a_senha
+
+  # As guardas de `passo/1`, nomeadas. Juntas na cabeça, eram uma expressão só que ninguém lia.
+  # `motivo` é `nil` se e só se o desfecho é `:concluiu`; um booleano não é motivo.
+  defguardp e_desfecho(desfecho, motivo)
+            when (desfecho == :concluiu and is_nil(motivo)) or
+                   (desfecho == :falhou and is_atom(motivo) and not is_nil(motivo) and
+                      not is_boolean(motivo))
+
+  defguardp e_id(valor) when is_nil(valor) or is_binary(valor)
+
+  # As cinco chaves obrigatórias, e no máximo `jornada_id` além delas: um mapa com qualquer
+  # outra chave — `senha`, `email`, `conn` — não passa.
+  defguardp so_as_chaves(dados)
+            when map_size(dados) == 5 or
+                   (map_size(dados) == 6 and is_map_key(dados, :jornada_id) and
+                      e_id(:erlang.map_get(:jornada_id, dados)))
+
+  @doc """
+  Emite um passo da jornada de entrar e sair, como evento `[:the_band, :jornada, :passo]`.
+
+  `motivo` é `nil` **se e só se** `desfecho` é `:concluiu`. `jornada_id` é opcional, e só vem em
+  `abrir_a_entrada` e `entrar_com_senha`. Qualquer outra forma levanta `FunctionClauseError`:
+  é bug de quem chama, e a régua (`test/the_band/telemetria/regua_test.exs`) o pega.
+  """
+  @spec passo(%{
+          required(:passo) => passo(),
+          required(:desfecho) => :concluiu | :falhou,
+          required(:motivo) => atom() | nil,
+          required(:tenant_id) => Ecto.UUID.t() | nil,
+          required(:user_id) => Ecto.UUID.t() | nil,
+          optional(:jornada_id) => String.t() | nil
+        }) :: :ok
+  def passo(
+        %{
+          passo: passo,
+          desfecho: desfecho,
+          motivo: motivo,
+          tenant_id: tenant_id,
+          user_id: user_id
+        } =
+          dados
+      )
+      when passo in @passos and e_desfecho(desfecho, motivo) and e_id(tenant_id) and
+             e_id(user_id) and so_as_chaves(dados) do
+    :telemetry.execute([:the_band, :jornada, :passo], %{}, %{
+      jornada: :entrar_e_sair,
+      passo: passo,
+      desfecho: desfecho,
+      motivo: motivo,
+      tenant_id: tenant_id,
+      user_id: user_id,
+      jornada_id: Map.get(dados, :jornada_id)
+    })
+  end
+
   @doc """
   Entrada aceita.
 
@@ -152,6 +233,192 @@ defmodule TheBand.Tenants.AccessEvents do
       "ato administrativo",
       [ato: ato, sobre_user_id: sobre_user_id, tenant_id: tenant_id] ++ extra
     )
+  end
+
+  @doc """
+  A conta da organização declarada ou revogada, ou a recusa — feature 076, T025 (R14; A20).
+
+  `ato` é o que se tentou; `resultado` é `:ok` ou o motivo da recusa (`:not_admin`, `:not_found`,
+  `:own_person`, `:linked_to_platform_account`, `:invalid`). Quem agiu vai explícito, e não só no
+  `Logger.metadata`: a declaração tira uma pessoa das duas redes, e o rastro precisa dizer quem o
+  fez mesmo fora de uma requisição. Só ids e átomos cabem na assinatura.
+  """
+  @spec conta_da_organizacao(
+          :conta_da_organizacao_declarada | :conta_da_organizacao_revogada,
+          Ecto.UUID.t(),
+          Ecto.UUID.t(),
+          Ecto.UUID.t() | nil,
+          atom()
+        ) :: :ok
+  def conta_da_organizacao(ato, tenant_id, actor_user_id, person_id, resultado)
+      when ato in [:conta_da_organizacao_declarada, :conta_da_organizacao_revogada] and
+             is_binary(tenant_id) and is_binary(actor_user_id) and
+             (is_binary(person_id) or is_nil(person_id)) and is_atom(resultado) do
+    registrar("ato administrativo",
+      ato: ato,
+      tenant_id: tenant_id,
+      actor_user_id: actor_user_id,
+      person_id: person_id,
+      resultado: resultado
+    )
+  end
+
+  @doc """
+  A chave do provedor de modelos gravada ou removida — #1221 (R1 do parecer C.1).
+
+  `tipo` é a classificação que `AI.put/3` já fez: `:primeira`, `:troca` ou `:mesma_chave`. Ou é
+  `:removida`, vinda de `AI.delete/3`. A coluna `declared_by_user_id` guarda só quem pôs a chave
+  em uso. Esta linha é o que responde **quem trocou e quando**.
+
+  As guardas são a proteção, como em `conta_da_organizacao/5`. Só cabem átomo da lista e ids, e
+  não há `extra`. Nenhum trecho da chave, nem `last_four`, cabe na assinatura (parecer
+  `docs/seguranca/2026-10-05-1221-troca-da-chave-do-modelo.md`, condições 2 e 5). Ator `nil`
+  passa: omitir a linha quando falta o ator apagaria o rastro justo no caso anômalo.
+  """
+  @spec chave_do_modelo(
+          :primeira | :troca | :mesma_chave | :removida,
+          Ecto.UUID.t(),
+          Ecto.UUID.t() | nil
+        ) :: :ok
+  def chave_do_modelo(tipo, tenant_id, actor_user_id)
+      when tipo in [:primeira, :troca, :mesma_chave, :removida] and is_binary(tenant_id) and
+             (is_binary(actor_user_id) or is_nil(actor_user_id)) do
+    registrar("ato administrativo",
+      ato: :chave_do_modelo,
+      tipo: tipo,
+      tenant_id: tenant_id,
+      actor_user_id: actor_user_id
+    )
+  end
+
+  # ------------------------------------------------- o operador da plataforma (spec 070)
+  #
+  # Contrato em `specs/070-operador-da-plataforma/contracts/eventos-de-acesso.md` (FR-010, O14,
+  # A7). Todos em `:warning`. O ator vem do `Logger.metadata(operator_id: …)` do plug da área do
+  # operador, e nunca de `user_id`, que significa `users.id` em toda linha (research R12).
+  #
+  # **As guardas são a proteção**: cada função aceita só id, átomo e contagem. Código de
+  # definição, de cadastro, de guarda, de recuperação, código TOTP, senha e segredo não cabem em
+  # nenhuma assinatura, e um teste confere que nenhum aparece numa linha capturada (A7).
+
+  @doc "Suspensão ou reativação de uma organização. `tenant_id` é o da organização **afetada**."
+  @spec ato_de_plataforma(
+          :organizacao_suspensa | :organizacao_reativada,
+          Ecto.UUID.t(),
+          keyword()
+        ) ::
+          :ok
+  def ato_de_plataforma(ato, tenant_id, extra)
+      when ato in [:organizacao_suspensa, :organizacao_reativada] and is_list(extra) do
+    registrar_operador("ato de plataforma", [ato: ato, tenant_id: tenant_id] ++ extra)
+  end
+
+  @doc "O papel de operador concedido pelo comando de release."
+  @spec operador_concedido(Ecto.UUID.t(), String.t()) :: :ok
+  def operador_concedido(operator_id, declarado_por) when is_binary(declarado_por),
+    do:
+      registrar_operador("operador concedido",
+        operator_id: operator_id,
+        declarado_por: declarado_por,
+        via: :release_command
+      )
+
+  @doc "O papel de operador revogado pelo comando de release, com quantas sessões caíram."
+  @spec operador_revogado(Ecto.UUID.t(), String.t(), non_neg_integer()) :: :ok
+  def operador_revogado(operator_id, declarado_por, sessoes)
+      when is_binary(declarado_por) and is_integer(sessoes),
+      do:
+        registrar_operador("operador revogado",
+          operator_id: operator_id,
+          declarado_por: declarado_por,
+          sessoes_encerradas: sessoes,
+          via: :release_command
+        )
+
+  @doc "A credencial do operador reiniciada pelo comando de release."
+  @spec operador_credencial_reiniciada(Ecto.UUID.t(), String.t()) :: :ok
+  def operador_credencial_reiniciada(operator_id, declarado_por) when is_binary(declarado_por),
+    do:
+      registrar_operador("operador credencial reiniciada",
+        operator_id: operator_id,
+        declarado_por: declarado_por,
+        via: :release_command
+      )
+
+  @doc "Entrada do operador aceita, com quantas tentativas falhas o sucesso apagou."
+  @spec operador_entrada_aceita(Ecto.UUID.t(), non_neg_integer()) :: :ok
+  def operador_entrada_aceita(operator_id, apagadas) when is_integer(apagadas),
+    do:
+      registrar_operador("operador entrada aceita",
+        operator_id: operator_id,
+        falhas_apagadas: apagadas
+      )
+
+  @doc "Entrada do operador recusada, com o motivo interno de `Credentials`."
+  @spec operador_entrada_recusada(Ecto.UUID.t() | nil, atom()) :: :ok
+  def operador_entrada_recusada(operator_id, motivo) when is_atom(motivo),
+    do: registrar_operador("operador entrada recusada", operator_id: operator_id, motivo: motivo)
+
+  @doc "O primeiro passo da definição aceito: a senha definida (A7)."
+  @spec operador_senha_definida(Ecto.UUID.t()) :: :ok
+  def operador_senha_definida(operator_id),
+    do: registrar_operador("operador senha definida", operator_id: operator_id)
+
+  @doc "A definição de senha recusada, com o motivo (A7, A14)."
+  @spec operador_definicao_recusada(Ecto.UUID.t() | nil, atom()) :: :ok
+  def operador_definicao_recusada(operator_id, motivo) when is_atom(motivo),
+    do:
+      registrar_operador("operador definição recusada", operator_id: operator_id, motivo: motivo)
+
+  @doc "O terceiro passo do cadastro aceito: é aqui que o segundo fator passa a valer."
+  @spec operador_segundo_fator_cadastrado(Ecto.UUID.t()) :: :ok
+  def operador_segundo_fator_cadastrado(operator_id),
+    do: registrar_operador("operador segundo fator cadastrado", operator_id: operator_id)
+
+  @doc "Um passo do cadastro do segundo fator recusado, com o motivo."
+  @spec operador_cadastro_recusado(Ecto.UUID.t() | nil, atom()) :: :ok
+  def operador_cadastro_recusado(operator_id, motivo) when is_atom(motivo),
+    do: registrar_operador("operador cadastro recusado", operator_id: operator_id, motivo: motivo)
+
+  @doc "Um código de recuperação consumido, com quantos restam."
+  @spec operador_recuperacao_usada(Ecto.UUID.t(), non_neg_integer()) :: :ok
+  def operador_recuperacao_usada(operator_id, restantes) when is_integer(restantes),
+    do:
+      registrar_operador("operador recuperação usada",
+        operator_id: operator_id,
+        restantes: restantes
+      )
+
+  @doc "O segundo fator travou no limite (T1). Sai uma vez, na transição."
+  @spec operador_segundo_fator_travado(Ecto.UUID.t()) :: :ok
+  def operador_segundo_fator_travado(operator_id),
+    do: registrar_operador("operador segundo fator travado", operator_id: operator_id)
+
+  @doc "A espera crescente do operador acionada."
+  @spec operador_espera_acionada(Ecto.UUID.t(), pos_integer()) :: :ok
+  def operador_espera_acionada(operator_id, segundos) when is_integer(segundos),
+    do:
+      registrar_operador("operador espera acionada", operator_id: operator_id, segundos: segundos)
+
+  @doc "A sessão do operador derrubada, com o motivo de `Platform.Sessions.conferir/2`."
+  @spec operador_sessao_derrubada(Ecto.UUID.t() | nil, atom()) :: :ok
+  def operador_sessao_derrubada(operator_id, motivo) when is_atom(motivo),
+    do: registrar_operador("operador sessão derrubada", operator_id: operator_id, motivo: motivo)
+
+  @doc "Um ato de suspender ou reativar recusado. `tenant_id` é nil quando o slug não resolveu."
+  @spec operador_ato_recusado(Ecto.UUID.t(), Ecto.UUID.t() | nil, atom()) :: :ok
+  def operador_ato_recusado(operator_id, tenant_id, motivo) when is_atom(motivo),
+    do:
+      registrar_operador("operador ato recusado",
+        operator_id: operator_id,
+        tenant_id: tenant_id,
+        motivo: motivo
+      )
+
+  defp registrar_operador(evento, campos) do
+    Logger.warning(fn ->
+      "acesso: #{evento} · " <> Enum.map_join(campos, " ", fn {k, v} -> "#{k}=#{inspect(v)}" end)
+    end)
   end
 
   # `warning` para recusa, ato administrativo, espera acionada — e para **entrada aceita

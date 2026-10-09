@@ -1,0 +1,185 @@
+derivation_rule:
+  id: network.position_role
+  version: 1
+  provider: platform
+  status: proposed
+  confidence: low
+
+  name:
+    pt-BR: "O papel de cada pessoa na rede, pelos percentis de grau e de intermediação"
+
+  description:
+    pt-BR: >
+      A referência classifica cada pessoa em um de seis papéis pelos percentis de grau e de
+      intermediação (`dashboard_team_graph.py:485-510`). A pessoa mantenedora pediu a mesma
+      classificação em 2026-10-03, revertendo a recusa da 073 (FR-018 e a segunda entrada de
+      `review.network.parameters.refuses`).
+
+      Esta regra a declara com o que a referência não tem: o método do percentil, a razão de
+      cada corte, o mínimo de pessoas abaixo do qual ninguém é classificado, e rótulos que
+      descrevem POSIÇÃO NA REDE, e não a pessoa.
+
+      `confidence: low` de propósito: os cortes são convenção, não fronteira medida, e o papel
+      é a afirmação mais forte que a plataforma faz sobre uma pessoa. Toda tela que o mostra
+      mostra junto os dois percentis e o critério (spec 076, FR-047).
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: >
+      spec 076, FR-044 a FR-047; decisão da pessoa mantenedora de 2026-10-03 (*"o papel de
+      cada pessoa na rede"*); revisão semântica 076, S6 e decisão D2; avaliação de segurança
+      076
+    note: >
+      Os rótulos desta versão são a proposta da revisão semântica (posicionais). Os rótulos
+      textuais da referência estão em `reference_labels`, para a decisão D2.
+
+  inputs:
+    - "network.position_percentile.percentage (grau e intermediação, por pessoa)"
+    - "número de pessoas da rede inteira (FR-011)"
+
+  rules:
+    percentile_method:
+      name:
+        pt-BR: "Percentil por posto médio, sobre a rede inteira"
+      statement:
+        pt-BR: >
+          O percentil de u na medida M é 100 × (número de pessoas com M menor que M(u) +
+          metade do número de OUTRAS pessoas com M igual a M(u) + 1/2) / n, n as pessoas da
+          rede inteira. Empate dá o mesmo percentil a todos os empatados.
+      note:
+        pt-BR: >
+          A referência conta "menor ou igual" (`:486-487`). Em rede de designação, muita gente
+          tem intermediação exatamente zero; com "menor ou igual", se 40% das pessoas têm
+          zero, TODAS elas ficam no percentil 40 — acima do corte baixo de 30 — e nenhuma é
+          "periférica", embora estejam todas no fundo. O posto médio põe o grupo empatado no
+          meio do intervalo que ele ocupa (percentil 20 no exemplo), que é o lugar dele.
+      values:
+        method: mid_rank
+        population: whole_network
+
+    min_people:
+      name:
+        pt-BR: "Ninguém é classificado em rede com menos de 10 pessoas"
+      statement:
+        pt-BR: >
+          Com menos de 10 pessoas na rede, o papel é AUSENTE com motivo
+          `network_too_small_for_roles` para TODAS, e a tela diz o mínimo.
+      note:
+        pt-BR: >
+          Com n pessoas, um passo de percentil vale 100/n pontos. Abaixo de 10, cada pessoa
+          move o percentil das outras em mais de 10 pontos, e "o quinto superior" tem uma
+          pessoa só por construção: o rótulo deixaria de ser posição na distribuição e
+          passaria a ser o nome do primeiro colocado. Com o posto médio e o corte estrito
+          (> 80), sem empate, o quinto superior tem uma pessoa só até n = 7 e duas a partir
+          de n = 8; 10 deixa folga para um empate no topo e é o mesmo mínimo do σ
+          (`network.analysis.parameters.small_world.min_people`), para que papel e σ
+          apareçam e sumam juntos. O valor é convenção, revisável com dado.
+      values:
+        min_people: 10
+
+    cuts:
+      name:
+        pt-BR: "Os cortes: acima de 80 é alto, acima de 50 é acima da mediana, abaixo de 20 é baixo"
+      statement:
+        pt-BR: >
+          Para grau (g) e intermediação (b), em percentil, avaliados nesta ordem, o primeiro
+          que se aplica decide:
+            1. g > 80 e b > 80 → `central_position`;
+            2. g > 80 → `many_direct_links`;
+            3. b > 80 → `on_many_paths`;
+            4. g > 50 e b > 50 → `above_median_in_both`;
+            5. g < 20 e b < 20 → `few_links_few_paths`;
+            6. senão → `mixed_position`.
+      note:
+        pt-BR: >
+          **80** é o quintil superior: "alto" só significa algo se for raro, e um quinto da
+          rede é o maior grupo que ainda é minoria clara (a referência usa 80 sem razão; a
+          razão é esta). **50** é a mediana: "acima da mediana nas duas" é a afirmação mais
+          fraca que ainda distingue alguém da metade da rede. **20** é o quintil inferior,
+          SIMÉTRICO ao 80 — e diverge da referência, que usa 30 sem razão escrita; 30 não é
+          quintil, tercil (33,3) nem decil, e não há fronteira que o justifique. Se a pessoa
+          mantenedora preferir o valor da referência, é a decisão D2 da revisão semântica, e
+          o valor muda aqui com versão nova.
+
+          A ordem é a da referência (`:497-507`): a combinação das duas antes de cada uma
+          sozinha, e o "baixo nas duas" antes do resto.
+      values:
+        high_above: 80
+        median_above: 50
+        low_below: 20
+        order: [central_position, many_direct_links, on_many_paths, above_median_in_both, few_links_few_paths, mixed_position]
+
+    labels:
+      name:
+        pt-BR: "Os rótulos descrevem posição na rede, e não a pessoa"
+      statement:
+        pt-BR: >
+          A tela (em inglês, convenção da casa) mostra, para cada papel, o rótulo e a frase
+          abaixo, sempre com os dois percentis e o corte que decidiu.
+      values:
+        central_position:
+          en: "Central position"
+          en_sentence: "Among the top fifth both in direct links and in shortest paths through them, in this network and window."
+        many_direct_links:
+          en: "Many direct links"
+          en_sentence: "Among the top fifth in the number of distinct people linked, in this network and window."
+        on_many_paths:
+          en: "On many paths"
+          en_sentence: "Among the top fifth in shortest paths between other people that pass through them, in this network and window."
+        above_median_in_both:
+          en: "Above the median in both"
+          en_sentence: "Above the median both in direct links and in shortest paths through them, in this network and window."
+        few_links_few_paths:
+          en: "Few links, few paths"
+          en_sentence: "In the bottom fifth both in direct links and in shortest paths through them, in this network and window."
+        mixed_position:
+          en: "Mixed position"
+          en_sentence: "None of the above combinations, in this network and window."
+      note:
+        pt-BR: >
+          Os rótulos da referência — "Coordenador central", "Hub de colaboração", "Ponte entre
+          equipes", "Colaborador especializado com foco limitado" — afirmam FUNÇÃO
+          (coordena), MÉRITO implícito (central, crítico) ou JUÍZO ("foco limitado"), e dois
+          deles falam de colaboração e de equipe, que a aresta não sustenta (a designação não é
+          colaboração; comunidade não é equipe). Os rótulos acima dizem só o que os dois
+          percentis dizem. Os da referência estão em `reference_labels`, para a decisão D2.
+
+    reference_labels:
+      name:
+        pt-BR: "Os rótulos da referência, registrados para a decisão D2, e não usados"
+      values:
+        central_position: "Coordenador central (alta conexão e intermediação)"
+        many_direct_links: "Hub de colaboração (muitas conexões diretas)"
+        on_many_paths: "Ponte entre equipes (importante intermediário)"
+        above_median_in_both: "Colaborador regular com papel de conexão"
+        few_links_few_paths: "Colaborador especializado com foco limitado"
+        mixed_position: "Colaborador com papel misto"
+
+  misinterpretations:
+    - claim:
+        pt-BR: "o papel diz quem é importante, quem coordena ou quem rende mais"
+      why_wrong:
+        pt-BR: >
+          Diz só a posição em duas medidas estruturais da rede observada na janela. Quem
+          coordena por designação formal pode estar em qualquer papel; quem revisa pouco
+          porque está em férias aparece com poucos vínculos.
+    - claim:
+        pt-BR: "o papel é atributo da pessoa"
+      why_wrong:
+        pt-BR: >
+          É da pessoa NA rede e NA janela. Muda quando outra pessoa entra ou sai (o percentil é
+          relativo), quando a janela muda, e é diferente na rede de revisão e na de designação.
+    - claim:
+        pt-BR: "'Few links, few paths' é quem não colabora"
+      why_wrong:
+        pt-BR: >
+          É quem tem poucas arestas observadas pela ferramenta na janela. Trabalho fora da
+          ferramenta, papel de especialista consultado por fora, ou entrada recente produzem a
+          mesma posição.
+    - claim:
+        pt-BR: "comparar o papel da mesma pessoa entre organizações"
+      why_wrong:
+        pt-BR: >
+          O percentil é relativo a cada rede. O mesmo número de vínculos é "Many direct links"
+          numa rede de 12 e "Mixed position" numa de 80.

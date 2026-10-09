@@ -5,6 +5,10 @@ defmodule TheBand.Application do
 
   use Application
 
+  alias TheBand.Origem.Configuracao
+  alias TheBand.Repo.LogDaConsulta
+  alias TheBand.Telemetria.Contadores
+  alias TheBand.Telemetria.Jornada
   alias TheBandWeb.Plugs.ApiRateLimit
 
   require Logger
@@ -26,11 +30,25 @@ defmodule TheBand.Application do
     # transformando o controle de abuso em causa de erro.
     ApiRateLimit.preparar()
 
+    # O log das consultas nasce ANTES do Repo — issue #1222. O Repo tem `log: false`, e uma
+    # consulta feita antes do handler simplesmente não seria logada; depois dele, sai redigida.
+    :ok = LogDaConsulta.anexar()
+
+    # A telemetria da jornada nasce ANTES dos filhos — spec 074, T010, como o log das consultas:
+    # um passo emitido antes do handler não viraria span, e sumiria sem contar.
+    :ok = Contadores.preparar()
+    :ok = Jornada.anexar()
+    dizer_o_estado_da_telemetria()
+    dizer_o_estado_da_origem()
+
     children = [
       TheBandWeb.Telemetry,
       TheBand.Repo,
       TheBand.Vault,
       TheBand.Ontology.KnowledgeBase,
+      # O contador do limite por origem — spec 077. Depois da base de conhecimento, de onde lê os
+      # números, e antes do endpoint, para que nenhuma entrada chegue sem a tabela.
+      TheBand.LimitePorOrigem,
       {Oban, Application.fetch_env!(:the_band, Oban)},
       {DNSCluster, query: Application.get_env(:the_band, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: TheBand.PubSub},
@@ -51,8 +69,57 @@ defmodule TheBand.Application do
     ]
 
     opts = [strategy: :one_for_one, name: TheBand.Supervisor]
-    Supervisor.start_link(children, opts)
+
+    with {:ok, pid} <- Supervisor.start_link(children, opts) do
+      conferir_papeis_no_boot()
+      {:ok, pid}
+    end
   end
+
+  # FR-015: a telemetria desligada é DITA, e com a razão — pelo nome da variável, nunca pelo
+  # valor. E as variáveis `OTEL_*` que `config/runtime.exs` apagou são nomeadas: quem as pôs no
+  # ambiente precisa saber que foram ignoradas.
+  defp dizer_o_estado_da_telemetria do
+    config = Application.get_env(:the_band, :telemetria, [])
+
+    case Keyword.get(config, :otel_apagadas, []) do
+      [] ->
+        :ok
+
+      nomes ->
+        Logger.warning("telemetria: variáveis ignoradas e apagadas: #{Enum.join(nomes, ", ")}")
+    end
+
+    case Keyword.get(config, :estado) do
+      :ligada -> Logger.info("telemetria ligada")
+      # No teste, os testes ligam o filtro com destino no próprio processo (research R4).
+      :teste -> :ok
+      {:desligada, motivo} -> Logger.warning("telemetria desligada: #{motivo}")
+      nil -> Logger.warning("telemetria desligada: configuração ausente")
+    end
+  end
+
+  # O ESTADO DA ORIGEM É DITO A CADA SUBIDA — spec 077, FR-009. O não declarado é `warning`: o
+  # limite está no ar e não recusa, e quem lê o log do deploy precisa saber disso sem procurar.
+  defp dizer_o_estado_da_origem do
+    config = Application.get_env(:the_band, :origem, %{estado: :nao_declarada})
+    frase = Configuracao.frase(config)
+
+    if config.estado == :nao_declarada, do: Logger.warning(frase), else: Logger.info(frase)
+  end
+
+  # Spec 071, FR-008: a linha dos papéis se repete a cada subida, porque o log do deploy some.
+  # Sem link: uma conferência que falha vira `:inconclusivo` e não derruba o boot. Desligada no
+  # teste, onde o sandbox ainda não está pronto quando a aplicação sobe.
+  defp conferir_papeis_no_boot do
+    if Application.get_env(:the_band, :conferir_papeis_no_boot, true) do
+      Task.start(fn -> avisar_papeis(TheBand.Papeis.conferir(TheBand.Repo)) end)
+    end
+  end
+
+  @doc false
+  def avisar_papeis({:em_vigor, _} = relator), do: Logger.info(TheBand.Papeis.frase(relator))
+  def avisar_papeis(relator), do: Logger.warning(TheBand.Papeis.frase(relator))
 
   # Tell Phoenix to update the endpoint configuration
   # whenever the application is updated.

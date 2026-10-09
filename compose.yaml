@@ -1,3 +1,12 @@
+# O SigNoz local, no profile `telemetria` — spec 074, T006. Nada dele sobe sem
+# `--profile telemetria`; os detalhes, as variáveis e o comando estão em
+# `deploy/signoz/compose.yaml`. O `compose.local.yaml` é o override de desenvolvimento, o único
+# com portas, e só em 127.0.0.1.
+include:
+  - path:
+      - deploy/signoz/compose.yaml
+      - deploy/signoz/compose.local.yaml
+
 services:
   postgres:
     # research.md R1 fixou PostgreSQL 16, e **o volume é 16** — conferido em

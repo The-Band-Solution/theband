@@ -17,16 +17,26 @@ target:
   concept: eo.person
 semantics:
   equivalence: partial
-  justification: >
-    A associação entre um time do GitHub e uma conta identifica a pessoa que
-    integra aquele time. É por isso que este mapeamento tem como alvo eo.person,
-    e não eo.team_membership: a alocação exige um papel organizacional, que o
-    GitHub não fornece.
+  justification:
+    pt-BR: >
+      A associação entre um time do GitHub e uma conta identifica a pessoa que
+      integra aquele time. É por isso que este mapeamento tem como alvo eo.person,
+      e não eo.team_membership: a alocação exige um papel organizacional, que o
+      GitHub não fornece.
 
-    O vínculo pessoa-time observado é preservado como evidência, com o nível de
-    acesso na plataforma (MAINTAINER ou MEMBER) registrado como atributo do
-    vínculo — não como papel. A promoção a eo.team_membership ocorre quando o
-    tenant atribui o papel organizacional, conforme github.team_membership_evidence.
+      O vínculo pessoa-time observado é preservado como evidência, com o nível de
+      acesso na plataforma (MAINTAINER ou MEMBER) registrado como atributo do
+      vínculo — não como papel. A promoção a eo.team_membership ocorre quando o
+      tenant atribui o papel organizacional, conforme github.team_membership_evidence.
+    en: >
+      The association between a GitHub team and an account identifies the person who belongs
+      to that team. That is why this mapping targets eo.person, and not eo.team_membership:
+      the allocation requires an organizational role, which GitHub does not provide.
+
+      The observed person-team membership is preserved as evidence, with the access level on
+      the platform (MAINTAINER or MEMBER) recorded as an attribute of the membership — not
+      as a role. Promotion to eo.team_membership occurs when the tenant assigns the
+      organizational role, according to github.team_membership_evidence.
 identity:
   external_id_path: node.id
   natural_key: [node.login]
@@ -39,28 +49,62 @@ relations:
     target_ontology: eo
     target_concept: eo.organizational_team
 limitations:
-  - MAINTAINER e MEMBER são níveis de acesso na plataforma, não papéis organizacionais; não devem virar eo.organizational_role.
-  - O vínculo é promovido a eo.team_membership na coleta, como vínculo observado sem papel (regra github.team_membership_evidence v2, 2026-09-06); CQ14 e CQ16 permanecem sem resposta até o tenant declarar o papel.
-  - A API não informa quando a pessoa entrou no time; started_at e ended_at ficam nulos e o histórico de alocação não é reconstituível.
-  - Contas do tipo Bot podem integrar times e não são pessoas; devem ser classificadas separadamente.
-  - >
-    Um vínculo deixa de ser vigente por DUAS causas, e elas significam coisas diferentes.
-    PRIMEIRA - a origem mudou: remoção de uma pessoa do time no GitHub não gera evento, e
-    só é detectável por comparação entre coletas. SEGUNDA - a plataforma parou de olhar: o
-    tenant encerrou a observação daquela organização, e a decisão é da plataforma, não
-    fato sobre a origem.
-  - >
-    A distinção decide o que a retomada faz. Vínculo marcado pela SEGUNDA causa volta a
-    ser vigente na coleta seguinte, se a origem ainda o mostrar. Vínculo marcado pela
-    PRIMEIRA só volta se a origem passar a mostrá-lo de novo. Tratar as duas iguais faria
-    a retomada ressuscitar vínculo que a origem já não tem, e a plataforma afirmaria
-    observação que não ocorreu.
-  - >
-    A causa não é coluna: é derivável. Registro marcado cuja ferramenta tem evento de
-    encerramento posterior à última coleta foi marcado pela segunda causa; os demais, pela
-    primeira. Acrescentar coluna em pessoas, equipes e vínculos criaria três lugares para
-    discordarem sobre o mesmo fato.
-  - O e-mail não é coletado, pela mesma razão declarada em github.user.to.eo.person - exigiria escopo mais amplo do que a coleta precisa.
+  - pt-BR: MAINTAINER e MEMBER são níveis de acesso na plataforma, não papéis organizacionais; não devem virar eo.organizational_role.
+    en: >
+      MAINTAINER and MEMBER are access levels on the platform, not organizational roles;
+      they must not become eo.organizational_role.
+  - pt-BR: O vínculo é promovido a eo.team_membership na coleta, como vínculo observado sem papel (regra github.team_membership_evidence v2, 2026-09-06); CQ14 e CQ16 permanecem sem resposta até o tenant declarar o papel.
+    en: >
+      The team membership is promoted to eo.team_membership during collection, as an
+      observed team membership without a role (rule github.team_membership_evidence v2,
+      2026-09-06); CQ14 and CQ16 remain unanswered until the tenant declares the role.
+  - pt-BR: A API não informa quando a pessoa entrou no time; started_at e ended_at ficam nulos e o histórico de alocação não é reconstituível.
+    en: >
+      The API does not report when the person joined the team; started_at and ended_at
+      remain null and the allocation history cannot be reconstructed.
+  - pt-BR: Contas do tipo Bot podem integrar times e não são pessoas; devem ser classificadas separadamente.
+    en: >
+      Accounts of type Bot may belong to teams and are not people; they must be classified
+      separately.
+  - pt-BR: >
+      Um vínculo deixa de ser vigente por DUAS causas, e elas significam coisas diferentes.
+      PRIMEIRA - a origem mudou: remoção de uma pessoa do time no GitHub não gera evento, e
+      só é detectável por comparação entre coletas. SEGUNDA - a plataforma parou de olhar: o
+      tenant encerrou a observação daquela organização, e a decisão é da plataforma, não
+      fato sobre a origem.
+    en: >
+      A team membership stops being in force for TWO causes, and they mean different things.
+      FIRST - the origin changed: removing a person from the team on GitHub generates no
+      event, and is only detectable by comparing collections. SECOND - the platform stopped
+      looking: the tenant ended the observation of that organization, and the decision is
+      the platform's, not a fact about the origin.
+  - pt-BR: >
+      A distinção decide o que a retomada faz. Vínculo marcado pela SEGUNDA causa volta a
+      ser vigente na coleta seguinte, se a origem ainda o mostrar. Vínculo marcado pela
+      PRIMEIRA só volta se a origem passar a mostrá-lo de novo. Tratar as duas iguais faria
+      a retomada ressuscitar vínculo que a origem já não tem, e a plataforma afirmaria
+      observação que não ocorreu.
+    en: >
+      The distinction decides what resuming does. A team membership marked by the SECOND
+      cause becomes in force again in the next collection, if the origin still shows it. A
+      team membership marked by the FIRST cause only comes back if the origin starts showing
+      it again. Treating the two the same would make resuming resurrect a team membership
+      the origin no longer has, and the platform would assert an observation that did not
+      occur.
+  - pt-BR: >
+      A causa não é coluna: é derivável. Registro marcado cuja ferramenta tem evento de
+      encerramento posterior à última coleta foi marcado pela segunda causa; os demais, pela
+      primeira. Acrescentar coluna em pessoas, equipes e vínculos criaria três lugares para
+      discordarem sobre o mesmo fato.
+    en: >
+      The cause is not a column: it is derivable. A marked record whose tool has an end
+      event later than the last collection was marked by the second cause; the others, by
+      the first. Adding a column to people, teams, and team memberships would create three
+      places to disagree about the same fact.
+  - pt-BR: O e-mail não é coletado, pela mesma razão declarada em github.user.to.eo.person - exigiria escopo mais amplo do que a coleta precisa.
+    en: >
+      The e-mail is not collected, for the same reason declared in github.user.to.eo.person
+      - it would require a broader scope than the collection needs.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at]

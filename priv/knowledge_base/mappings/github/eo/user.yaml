@@ -12,30 +12,57 @@ target:
   concept: eo.person
 semantics:
   equivalence: partial
-  justification: >
-    Uma conta de usuário do GitHub identifica um agente que atuou no repositório.
-    Não é a pessoa: uma pessoa pode ter várias contas, e uma conta pode ser um bot
-    ou uma conta de serviço. A identidade de pessoa exige reconciliação explícita.
+  justification:
+    pt-BR: >
+      Uma conta de usuário do GitHub identifica um agente que atuou no repositório.
+      Não é a pessoa: uma pessoa pode ter várias contas, e uma conta pode ser um bot
+      ou uma conta de serviço. A identidade de pessoa exige reconciliação explícita.
+    en: >
+      A GitHub user account identifies an agent that acted in the repository. It is not the
+      person: a person may have several accounts, and an account may be a bot or a service
+      account. Person identity requires explicit reconciliation.
 identity:
   external_id_path: id
   natural_key: [login]
 attributes:
   name:  { source_path: name }
 limitations:
-  - >
-    Não existe vínculo direto entre pessoa e organização, e este mapeamento não o
-    declara. A versão anterior declarava relations.organization apontando para
-    eo.organization, e EO não tem nem deve ter essa relação - o vínculo com
-    organização passaria por papel organizacional, que o GitHub não fornece. O
-    caminho respondível é pessoa -> equipe -> organização, e quem não está em equipe
-    alguma não aparece em organização alguma. Ver eo.cq02.
-  - >
-    O caminho organization.id não existe no payload de um membro - a organização é o
-    pai da consulta, não campo do nó. Declará-lo produziu eo_people.organization_id
-    nula em 100% dos registros. Achados F3 e F6 da feature 002.
-  - Contas do tipo Bot e App não são pessoas e devem ser classificadas separadamente.
-  - A mesma pessoa pode ter múltiplas contas; a unificação exige regra explícita, nunca heurística de nome.
-  - O e-mail não é coletado. O campo existe na API, mas exige o escopo read:user ou user:email, mais amplo do que a coleta precisa, e costuma vir nulo por configuração de privacidade. Pedir escopo maior por um campo quase sempre vazio amplia a superfície de acesso sem contrapartida. Consequência - eo.person.email permanece nulo quando a fonte é o GitHub, e qualquer análise que dependa de e-mail não é respondível a partir dela.
+  - pt-BR: >
+      Não existe vínculo direto entre pessoa e organização, e este mapeamento não o
+      declara. A versão anterior declarava relations.organization apontando para
+      eo.organization, e EO não tem nem deve ter essa relação - o vínculo com
+      organização passaria por papel organizacional, que o GitHub não fornece. O
+      caminho respondível é pessoa -> equipe -> organização, e quem não está em equipe
+      alguma não aparece em organização alguma. Ver eo.cq02.
+    en: >
+      There is no direct link between person and organization, and this mapping does not
+      declare one. The previous version declared relations.organization pointing to
+      eo.organization, and EO neither has nor should have that relation - the link to an
+      organization would go through an organizational role, which GitHub does not provide.
+      The answerable path is person -> team -> organization, and whoever is on no team
+      appears in no organization. See eo.cq02.
+  - pt-BR: >
+      O caminho organization.id não existe no payload de um membro - a organização é o
+      pai da consulta, não campo do nó. Declará-lo produziu eo_people.organization_id
+      nula em 100% dos registros. Achados F3 e F6 da feature 002.
+    en: >
+      The organization.id path does not exist in a member's payload - the organization is
+      the parent of the query, not a field of the node. Declaring it produced a null
+      eo_people.organization_id in 100% of the records. Findings F3 and F6 of feature 002.
+  - pt-BR: Contas do tipo Bot e App não são pessoas e devem ser classificadas separadamente.
+    en: "Accounts of type Bot and App are not people and must be classified separately."
+  - pt-BR: A mesma pessoa pode ter múltiplas contas; a unificação exige regra explícita, nunca heurística de nome.
+    en: >
+      The same person may have multiple accounts; unification requires an explicit rule,
+      never a name heuristic.
+  - pt-BR: O e-mail não é coletado. O campo existe na API, mas exige o escopo read:user ou user:email, mais amplo do que a coleta precisa, e costuma vir nulo por configuração de privacidade. Pedir escopo maior por um campo quase sempre vazio amplia a superfície de acesso sem contrapartida. Consequência - eo.person.email permanece nulo quando a fonte é o GitHub, e qualquer análise que dependa de e-mail não é respondível a partir dela.
+    en: >
+      The e-mail is not collected. The field exists in the API, but it requires the
+      read:user or user:email scope, broader than the collection needs, and it usually comes
+      back null due to privacy settings. Asking for a larger scope for an almost always
+      empty field widens the access surface with nothing in return. Consequence -
+      eo.person.email remains null when the source is GitHub, and any analysis that depends
+      on e-mail cannot be answered from it.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at]

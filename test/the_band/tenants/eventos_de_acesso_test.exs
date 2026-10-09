@@ -56,7 +56,10 @@ defmodule TheBand.Tenants.EventosDeAcessoTest do
       # a terceira falha já faz a quarta tentativa esperar. Com três, o sucesso deste teste
       # vinha `{:error, {:throttled, 2}}` — e o teste mediria a espera, não o rastro.
       for _ <- 1..2 do
-        {:error, :invalid_credentials} = Tenants.authenticate(ctx.alvo.email, "errada-comprida-1")
+        {:error, :invalid_credentials} =
+          Tenants.authenticate(ctx.alvo.email, "errada-comprida-1",
+            origem: TheBand.OrigemDeTeste.nova()
+          )
       end
 
       {:ok, antes} = Tenants.fetch_user(ctx.alvo.id)
@@ -67,7 +70,11 @@ defmodule TheBand.Tenants.EventosDeAcessoTest do
       arquivo existe para provar.
       """
 
-      log = capture_log(fn -> {:ok, _} = Tenants.authenticate(ctx.alvo.email, @senha) end)
+      log =
+        capture_log(fn ->
+          {:ok, _} =
+            Tenants.authenticate(ctx.alvo.email, @senha, origem: TheBand.OrigemDeTeste.nova())
+        end)
 
       assert log =~ "falhas_apagadas=2", """
       É a única evidência que sobra. `registrar_sucesso/1` zera `failed_attempts` no mesmo
@@ -92,7 +99,10 @@ defmodule TheBand.Tenants.EventosDeAcessoTest do
     test "a resposta é idêntica; o motivo interno difere", ctx do
       {:ok, _} = Tenants.disable_user(ctx.tenant, ctx.alvo.id, ctx.admin.id, @razao_de_saida)
 
-      log = capture_log(fn -> Tenants.authenticate(ctx.alvo.email, @senha) end)
+      log =
+        capture_log(fn ->
+          Tenants.authenticate(ctx.alvo.email, @senha, origem: TheBand.OrigemDeTeste.nova())
+        end)
 
       assert log =~ "motivo=:conta_desativada", """
       Na resposta HTTP a recusa é única (FR-002) — motivo distinto ali seria enumeração. É
@@ -100,8 +110,10 @@ defmodule TheBand.Tenants.EventosDeAcessoTest do
       """
 
       # E A ASSERÇÃO QUE IMPORTA, que não é sobre o log: a resposta continua indistinta.
-      assert Tenants.authenticate(ctx.alvo.email, @senha) ==
-               Tenants.authenticate(ctx.alvo.email, "outra-senha-comprida-9")
+      assert Tenants.authenticate(ctx.alvo.email, @senha, origem: TheBand.OrigemDeTeste.nova()) ==
+               Tenants.authenticate(ctx.alvo.email, "outra-senha-comprida-9",
+                 origem: TheBand.OrigemDeTeste.nova()
+               )
     end
   end
 
@@ -134,7 +146,10 @@ defmodule TheBand.Tenants.EventosDeAcessoTest do
     test "a espera crescente é registrada quando dispara", ctx do
       # `@tentativas_livres` é 3: a quarta tentativa espera.
       for _ <- 1..3 do
-        {:error, :invalid_credentials} = Tenants.authenticate(ctx.alvo.email, "errada-comprida-1")
+        {:error, :invalid_credentials} =
+          Tenants.authenticate(ctx.alvo.email, "errada-comprida-1",
+            origem: TheBand.OrigemDeTeste.nova()
+          )
       end
 
       log =
@@ -148,7 +163,7 @@ defmodule TheBand.Tenants.EventosDeAcessoTest do
           #
           # Sem isto, a próxima ocorrência mostra só `left/right` e não diz se a espera não
           # disparou, se disparou e expirou, ou se as tentativas não foram contadas.
-          case Tenants.authenticate(ctx.alvo.email, @senha) do
+          case Tenants.authenticate(ctx.alvo.email, @senha, origem: TheBand.OrigemDeTeste.nova()) do
             {:error, {:throttled, _}} ->
               :ok
 
@@ -180,20 +195,16 @@ defmodule TheBand.Tenants.EventosDeAcessoTest do
 
       log =
         capture_log(fn ->
-          Tenants.authenticate(ctx.alvo.email, @senha)
-          Tenants.authenticate(ctx.alvo.email, temporaria)
+          Tenants.authenticate(ctx.alvo.email, @senha, origem: TheBand.OrigemDeTeste.nova())
+          Tenants.authenticate(ctx.alvo.email, temporaria, origem: TheBand.OrigemDeTeste.nova())
         end)
 
       refute log =~ @senha, "a senha entrou no log"
       refute log =~ temporaria, "a senha temporária entrou no log"
 
-      {:ok, recarregada} = Tenants.fetch_user(ctx.alvo.id)
-
-      refute log =~ recarregada.session_token, """
-      `redact: true` protege o `inspect/1`, e **não** uma interpolação escrita à mão. A
-      proteção real é as funções de `AccessEvents` receberem identificadores e motivos —
-      nunca credencial. Este teste mede a proteção real.
-      """
+      # O token de sessão não entra aqui desde a 064 (T014a): a entrada não o lê nem o escreve
+      # mais, e o bruto da sessão nova vive só no cookie. `Sessions` e `TheBandWeb.Sessao` têm
+      # os próprios testes de que o bruto não vai para log.
     end
   end
 end

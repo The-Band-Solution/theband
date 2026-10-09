@@ -355,6 +355,11 @@ msgstr ""
 msgid "Syncs e Tools pedem administração ou escopo organization — o seu acesso não os alcança."
 msgstr ""
 
+#: lib/the_band_web/live/review_network_live/show.ex:77
+#, elixir-autogen, elixir-format
+msgid "Not found."
+msgstr "Não encontrado."
+
 #: lib/the_band_web/live/teams_live/show.ex:37
 #, elixir-autogen, elixir-format
 msgid "Team not found."
@@ -663,3 +668,18 @@ msgstr "Você não tem escopo para declarar equipe aqui."
 #, elixir-autogen, elixir-format
 msgid "This panel is not yours to see."
 msgstr "Este painel não é seu para ver."
+
+#: lib/the_band_web/live/people_live/show.ex
+#, elixir-autogen, elixir-format
+msgid "Your own person cannot be declared as the organisation's account."
+msgstr "A sua própria pessoa não pode ser declarada como a conta da organização."
+
+#: lib/the_band_web/live/people_live/show.ex
+#, elixir-autogen, elixir-format
+msgid "A person linked to a platform account cannot be declared as the organisation's account."
+msgstr "Uma pessoa ligada a uma conta da plataforma não pode ser declarada como a conta da organização."
+
+#: lib/the_band_web/live/people_live/show.ex
+#, elixir-autogen, elixir-format
+msgid "Write why this account belongs to the organisation."
+msgstr "Escreva por que esta conta é da organização."

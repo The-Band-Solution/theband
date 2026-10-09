@@ -4,6 +4,27 @@ defmodule TheBandWeb.Router do
   import TheBandWeb.Plugs.CurrentScope,
     only: [require_user: 2, require_admin: 2, require_operacao: 2]
 
+  import TheBandWeb.Plataforma.OperatorScope,
+    only: [require_operator: 2, no_store: 2]
+
+  # A CSP num atributo — spec 070, T017 (A8). A pipeline das telas de domínio e a da área do
+  # operador (`/platform`, mesma origem) usam o MESMO valor: duas cópias divergiriam no dia em
+  # que alguém apertasse uma e esquecesse a outra. O valor não mudou na extração; o teste
+  # `test/the_band_web/csp_test.exs` guarda o literal de antes.
+  @csp "default-src 'self'; " <>
+         "script-src 'self'; " <>
+         "style-src 'self' 'unsafe-inline'; " <>
+         "img-src 'self' data:; " <>
+         "font-src 'self' data:; " <>
+         "connect-src 'self' ws: wss:; " <>
+         "base-uri 'self'; " <>
+         "form-action 'self'; " <>
+         "frame-ancestors 'none'"
+
+  @doc false
+  # Para `TheBandWeb.Plugs.Borda`, que põe a mesma CSP antes do roteador (070/T038, #1135).
+  def csp, do: @csp
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -25,20 +46,36 @@ defmodule TheBandWeb.Router do
     # **`'unsafe-inline'` em `style-src` é concessão declarada**, não descuido: removê-la
     # exige `'unsafe-hashes'` com hash por atributo, que o LiveView gera em tempo de execução.
     # ------------------------------------------------------------------------
-    plug :put_secure_browser_headers, %{
-      "content-security-policy" =>
-        "default-src 'self'; " <>
-          "script-src 'self'; " <>
-          "style-src 'self' 'unsafe-inline'; " <>
-          "img-src 'self' data:; " <>
-          "font-src 'self' data:; " <>
-          "connect-src 'self' ws: wss:; " <>
-          "base-uri 'self'; " <>
-          "form-action 'self'; " <>
-          "frame-ancestors 'none'"
-    }
+    plug :put_secure_browser_headers, %{"content-security-policy" => @csp}
 
     plug TheBandWeb.Plugs.CurrentScope
+  end
+
+  pipeline :jornada_de_entrada do
+    plug TheBandWeb.Plugs.JornadaDeEntrada
+  end
+
+  # A área do operador da plataforma — spec 070, T036 (FR-009, FR-011). Contrato em
+  # `specs/070-operador-da-plataforma/contracts/rotas-da-plataforma.md`.
+  #
+  # **Sem `CurrentScope`**: a sessão das organizações não é lida aqui, e o operador não é uma
+  # conta de organização. `fetch_session` está só pelo token de CSRF; a sessão do operador vem do
+  # cookie próprio, que `OperatorScope` lê. A CSP é a MESMA de `:browser` (A8): é ela que impede
+  # um script da mesma origem de usar o cookie do operador.
+  pipeline :plataforma do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    # O flash leva só a frase de sucesso do ato, que não é segredo; o segredo e os códigos do
+    # cadastro nunca passam por ele (T5).
+    plug :fetch_flash
+    plug :put_root_layout, html: {TheBandWeb.Layouts, :root}
+    plug :protect_from_forgery
+
+    # A recusa de CSRF LEVANTA, e a página de erro sai da conexão de antes da pipeline: por isso a
+    # CSP e o `no-store` também são postos na borda do endpoint (`TheBandWeb.Plugs.Borda`).
+    plug :put_secure_browser_headers, %{"content-security-policy" => @csp}
+    plug :no_store
+    plug TheBandWeb.Plataforma.OperatorScope
   end
 
   pipeline :api do
@@ -133,6 +170,45 @@ defmodule TheBandWeb.Router do
     forward "/", TheBandWeb.MCP.Porta
   end
 
+  # As rotas de `rotas-da-plataforma.md`.
+  scope "/platform", TheBandWeb.Plataforma do
+    pipe_through :plataforma
+
+    get "/sign-in", EntradaController, :new
+    post "/session", EntradaController, :create
+    get "/setup", CadastroController, :new
+    post "/setup", CadastroController, :create
+    post "/setup/second-factor", CadastroController, :second_factor
+    post "/setup/recovery-codes", CadastroController, :recovery_codes
+
+    scope "/" do
+      pipe_through :require_operator
+
+      delete "/session", EntradaController, :delete
+      get "/organizations", OrganizacaoController, :index
+      get "/organizations/:slug", OrganizacaoController, :show
+      post "/organizations/:slug/suspension", OrganizacaoController, :suspension
+      post "/organizations/:slug/reactivation", OrganizacaoController, :reactivation
+    end
+
+    # POR ÚLTIMO (A12): o caminho que não existe recebe o mesmo `404` de `require_operator`, com os
+    # mesmos cabeçalhos — sem esta linha, ele cairia no `404` do endpoint, sem a pipeline, e a
+    # diferença de cabeçalhos diria quais caminhos são rotas de operador.
+    #
+    # Uma ação para leitura e outra para escrita: a mesma ação em `GET` e em `POST` é o achado
+    # `Config.CSRFRoute` do Sobelow. As duas respondem pela mesma função.
+    get "/", CaminhoController, :nao_encontrado
+    get "/*caminho", CaminhoController, :nao_encontrado
+    post "/", CaminhoController, :nao_encontrado_na_escrita
+    post "/*caminho", CaminhoController, :nao_encontrado_na_escrita
+    put "/", CaminhoController, :nao_encontrado_na_escrita
+    put "/*caminho", CaminhoController, :nao_encontrado_na_escrita
+    patch "/", CaminhoController, :nao_encontrado_na_escrita
+    patch "/*caminho", CaminhoController, :nao_encontrado_na_escrita
+    delete "/", CaminhoController, :nao_encontrado_na_escrita
+    delete "/*caminho", CaminhoController, :nao_encontrado_na_escrita
+  end
+
   # A descrição OpenAPI, em JSON. **Sem credencial**, de propósito: ela descreve a forma da
   # API e não devolve dado nenhum, e exigir token para ler o contrato obrigaria quem integra
   # a pedir credencial antes de saber se a API serve.
@@ -204,7 +280,10 @@ defmodule TheBandWeb.Router do
     # e no nome da imagem — e o único consumidor da rota roda antes de haver sessão.
     get "/version", VersionController, :show
 
-    live "/sign-in", SessionLive.New, :new
+    # A FILA ANDA? — issue #801. Um verificador FORA do Oban: o guarda de dentro para junto com
+    # o que guarda. Sem autenticação e sem detalhe, como `/version`.
+    get "/health", SaudeController, :show
+
     post "/session", SessionController, :create
     delete "/session", SessionController, :delete
 
@@ -213,6 +292,16 @@ defmodule TheBandWeb.Router do
     # conta nesse estado é recusada em toda OUTRA tela, não nesta.
     live "/set-password", SessionLive.SetPassword, :new
     post "/set-password", SessionController, :set_password
+  end
+
+  # A TELA DE ENTRADA, com o correlator da jornada — spec 074, T013 (FR-011; seguranca.md, S5).
+  #
+  # Num escopo próprio para que o plug rode **só** no `GET /sign-in`: o `POST /session` lê o
+  # correlator e o apaga, e não pode ganhar um novo no caminho.
+  scope "/", TheBandWeb do
+    pipe_through [:browser, :jornada_de_entrada]
+
+    live "/sign-in", SessionLive.New, :new
   end
 
   # Consulta — qualquer pessoa autenticada, sempre restrita ao próprio tenant.
@@ -225,6 +314,30 @@ defmodule TheBandWeb.Router do
       live "/teams", TeamsLive.Index, :index
       live "/teams/:id", TeamsLive.Show, :show
       live "/organizations", OrganizationLive.Index, :index
+      # A área Network analysis (076, FR-001): qualquer conta do tenant; o recorte é a função
+      # de domínio (`NetworkAnalysis.read/4`, `ReviewNetwork.read/4`), e não um `require_*`
+      # (research.md R15). Só rotas `live`: nenhuma exportação nem API (FR-053).
+      live "/network-analysis", NetworkAnalysisLive.Index, :index
+      # A rede de revisão da 073 é a primeira página da área (FR-003).
+      live "/network-analysis/:organization_id", ReviewNetworkLive.Show, :show
+      live "/network-analysis/:organization_id/graph", NetworkAnalysisLive.Graph, :show
+
+      live "/network-analysis/:organization_id/communities",
+           NetworkAnalysisLive.Communities,
+           :show
+
+      live "/network-analysis/:organization_id/hubs", NetworkAnalysisLive.Hubs, :show
+
+      live "/network-analysis/:organization_id/distance", NetworkAnalysisLive.Distance, :show
+
+      live "/network-analysis/:organization_id/people/:person_id",
+           NetworkAnalysisLive.Profile,
+           :show
+
+      live "/network-analysis/:organization_id/positions", NetworkAnalysisLive.Positions, :show
+
+      # O endereço antigo da 073 leva à área, com o id validado e só a janela da lista (R13, A13).
+      live "/organizations/:id/review-network", ReviewNetworkLive.Show, :legacy
       live "/profile", ProfileLive.Index, :index
       live "/process", ProcessLive.Index, :index
       live "/projects", ProjectsLive.Index, :index

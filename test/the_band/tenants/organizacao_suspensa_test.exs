@@ -24,6 +24,7 @@ defmodule TheBand.Tenants.OrganizacaoSuspensaTest do
   """
   use TheBandWeb.ConnCase, async: false
 
+  import Ecto.Query, only: [from: 2]
   import Phoenix.LiveViewTest
 
   alias TheBand.Repo
@@ -39,10 +40,16 @@ defmodule TheBand.Tenants.OrganizacaoSuspensaTest do
   end
 
   defp suspender(tenant) do
-    {:ok, suspenso} =
-      tenant
-      |> Tenants.Tenant.changeset(%{"status" => "suspended"})
-      |> Repo.update()
+    # Por `update_all`, e não pelo changeset: desde a spec 070 (T013) `:status` não é castável, e o
+    # estado só muda pela suspensão do operador. Este teste prova o efeito da organização suspensa,
+    # e não o ato de suspender. Continua verde depois do trigger adiado de T044a só porque o
+    # sandbox nunca faz `COMMIT` (data-model §4a).
+    {1, _} =
+      Repo.update_all(from(t in Tenants.Tenant, where: t.id == ^tenant.id),
+        set: [status: "suspended"]
+      )
+
+    suspenso = Repo.get!(Tenants.Tenant, tenant.id)
 
     # A GUARDA DO CENÁRIO: sem ela, um `status` que não gravou faria todos os testes
     # abaixo passarem por a organização continuar ativa — verde afirmando o contrário.
@@ -52,22 +59,32 @@ defmodule TheBand.Tenants.OrganizacaoSuspensaTest do
 
   describe "a porta da entrada" do
     test "organização suspensa não autentica", ctx do
-      assert {:ok, _} = Tenants.authenticate(ctx.admin.email, @senha), """
-      A conta autentica ANTES da suspensão. Sem esta asserção, o `refute` abaixo poderia
-      passar por a senha estar errada.
-      """
+      assert {:ok, _} =
+               Tenants.authenticate(ctx.admin.email, @senha, origem: TheBand.OrigemDeTeste.nova()),
+             """
+             A conta autentica ANTES da suspensão. Sem esta asserção, o `refute` abaixo poderia
+             passar por a senha estar errada.
+             """
 
       suspender(ctx.tenant)
 
-      assert {:error, :invalid_credentials} = Tenants.authenticate(ctx.admin.email, @senha)
+      assert {:error, :invalid_credentials} =
+               Tenants.authenticate(ctx.admin.email, @senha, origem: TheBand.OrigemDeTeste.nova())
     end
 
     test "e a recusa é IDÊNTICA à da senha errada — motivo novo seria enumeração", ctx do
       suspender(ctx.tenant)
 
-      suspensa = Tenants.authenticate(ctx.admin.email, @senha)
-      senha_errada = Tenants.authenticate(ctx.admin.email, "outra-senha-comprida-9")
-      conta_inexistente = Tenants.authenticate("ninguem@example.test", @senha)
+      suspensa =
+        Tenants.authenticate(ctx.admin.email, @senha, origem: TheBand.OrigemDeTeste.nova())
+
+      senha_errada =
+        Tenants.authenticate(ctx.admin.email, "outra-senha-comprida-9",
+          origem: TheBand.OrigemDeTeste.nova()
+        )
+
+      conta_inexistente =
+        Tenants.authenticate("ninguem@example.test", @senha, origem: TheBand.OrigemDeTeste.nova())
 
       assert suspensa == senha_errada
       assert suspensa == conta_inexistente
@@ -82,7 +99,8 @@ defmodule TheBand.Tenants.OrganizacaoSuspensaTest do
     test "não registra tentativa falha — a credencial pode estar correta", ctx do
       suspender(ctx.tenant)
 
-      {:error, :invalid_credentials} = Tenants.authenticate(ctx.admin.email, @senha)
+      {:error, :invalid_credentials} =
+        Tenants.authenticate(ctx.admin.email, @senha, origem: TheBand.OrigemDeTeste.nova())
 
       {:ok, recarregada} = Tenants.fetch_user(ctx.admin.id)
 
@@ -127,7 +145,8 @@ defmodule TheBand.Tenants.OrganizacaoSuspensaTest do
     test "nada muda para quem não foi suspenso", ctx do
       assert ctx.tenant.status == "active"
 
-      assert {:ok, _} = Tenants.authenticate(ctx.admin.email, @senha)
+      assert {:ok, _} =
+               Tenants.authenticate(ctx.admin.email, @senha, origem: TheBand.OrigemDeTeste.nova())
 
       assert {:ok, _live, _html} = live(log_in(ctx.conn, ctx.admin), ~p"/people"), """
       Sem este par, o conserto poderia ter trancado a plataforma inteira e a suíte

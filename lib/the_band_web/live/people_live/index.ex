@@ -13,6 +13,7 @@ defmodule TheBandWeb.PeopleLive.Index do
   import TheBandWeb.Components.DataTable
 
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Tenants
   alias TheBandWeb.TabelaLive, as: Tabela
 
   @por_pagina 50
@@ -23,7 +24,21 @@ defmodule TheBandWeb.PeopleLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, page_title: "People")}
+    {:ok,
+     assign(socket,
+       page_title: "People",
+       contas_da_organizacao: contas_da_organizacao(socket.assigns)
+     )}
+  end
+
+  # As contas declaradas da organização (076, T026; R14), só para a administração. Para quem não
+  # administra, `Tenants` recusa e a seção não existe: a lista não é dela (R8). Lida no `mount`,
+  # e não a cada filtro, porque não muda com a busca da tabela.
+  defp contas_da_organizacao(%{current_tenant: tenant, current_user: user}) do
+    case Tenants.list_organization_accounts(tenant, user) do
+      {:ok, declaracoes} -> declaracoes
+      {:error, :not_admin} -> nil
+    end
   end
 
   # O estado vem do endereço, e não do socket: recarregar precisa devolver a mesma tela, e o
@@ -215,6 +230,46 @@ defmodule TheBandWeb.PeopleLive.Index do
         not enter the people count. Two accounts of the same person remain two records —
         identity reconciliation is not part of this delivery.
       </p>
+
+      <%!-- 076, T026: só a administração vê a lista. Ausência escrita, e nunca "0". --%>
+      <section :if={@contas_da_organizacao} id="contas-da-organizacao" class="space-y-2">
+        <h2 class="font-semibold">Organisation accounts</h2>
+        <p class="text-xs opacity-60">
+          Accounts an administrator declared as the organisation's, and not a person. They are not
+          people in the network analysis: their links are counted as left out. Declare or revoke
+          on the person's page.
+        </p>
+        <%= if @contas_da_organizacao == [] do %>
+          <.absent reason="no account declared as the organisation's" />
+        <% else %>
+          <table class="table table-sm stacked">
+            <thead>
+              <tr>
+                <th>account</th>
+                <th>why</th>
+                <th>declared by</th>
+                <th>on</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr :for={d <- @contas_da_organizacao} id={"conta-da-organizacao-#{d.id}"}>
+                <td data-label="account">
+                  <.link navigate={~p"/people/#{d.person_id}"} class="link">
+                    {d.person_name || "a person no longer observed"}
+                  </.link>
+                </td>
+                <td data-label="why">{d.reason}</td>
+                <td data-label="declared by">
+                  {d.declared_by || "an account that no longer exists"}
+                </td>
+                <td data-label="on" class="font-mono text-xs">
+                  {Calendar.strftime(d.declared_at, "%Y-%m-%d")}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        <% end %>
+      </section>
     </Layouts.app>
     """
   end
@@ -269,7 +324,10 @@ defmodule TheBandWeb.PeopleLive.Index do
   # pessoa nesta organização" manda trocar o filtro. Uma frase só para os dois faria quem
   # lê procurar no lugar errado.
   defp empty_message(search, organizacao_id, has_any)
-  defp empty_message("", nil, false), do: "No sync has brought people yet."
+  # Com ou sem busca: se nenhuma coleta trouxe pessoas, a ausência é da origem, e não da busca.
+  # A cláusula com busca faltava, e digitar na busca de uma organização vazia derrubava a tela
+  # (#1041).
+  defp empty_message(_search, nil, false), do: "No sync has brought people yet."
 
   defp empty_message(_search, org, false) when not is_nil(org),
     do: "No sync has brought people yet — the organisation filter has nothing to narrow."

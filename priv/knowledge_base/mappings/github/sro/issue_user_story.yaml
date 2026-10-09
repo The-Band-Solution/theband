@@ -25,12 +25,18 @@ target:
   concept: sro.atomic_user_story
 semantics:
   equivalence: derived
-  justification: >
-    Uma issue promovida a user story atômica descreve um requisito do produto e
-    não é decomposta em outras user stories. É o nível em que tarefas de
-    desenvolvimento se ligam ao escopo (sro.rule07) e em que entregáveis
-    materializam requisitos — por isso a distinção entre atômica e épico não é
-    cosmética.
+  justification:
+    pt-BR: >
+      Uma issue promovida a user story atômica descreve um requisito do produto e
+      não é decomposta em outras user stories. É o nível em que tarefas de
+      desenvolvimento se ligam ao escopo (sro.rule07) e em que entregáveis
+      materializam requisitos — por isso a distinção entre atômica e épico não é
+      cosmética.
+    en: >
+      An issue promoted to atomic user story describes a product requirement and is not
+      decomposed into other user stories. It is the level at which development tasks are
+      linked to scope (sro.rule07) and at which deliverables materialize requirements — that
+      is why the distinction between atomic and epic is not cosmetic.
 identity:
   external_id_path: id
   natural_key: [repository.node_id, number]
@@ -47,44 +53,89 @@ relations:
     target_ontology: sro
     target_concept: sro.epic
 limitations:
-  - Issue com sub-issues que também são user stories é épico, não atômica — a estrutura vence o tipo declarado.
-  - Sub-issues do tipo Task não descaracterizam a user story como atômica; tarefas a atendem, não a compõem.
-  - Critérios de aceitação escritos no corpo em texto livre não são sro.acceptance_criterion até serem extraídos e validados; a extração não faz parte deste mapeamento.
-  - >
-    `importance` e `complexity` ficam NULAS, e a versão 1 deste mapeamento as lia
-    de `fieldValueByName(Priority)` e `fieldValueByName(Estimate)`. Duas coisas
-    erradas ali, corrigidas na versão 2.
+  - pt-BR: Issue com sub-issues que também são user stories é épico, não atômica — a estrutura vence o tipo declarado.
+    en: >
+      An issue with sub-issues that are also user stories is an epic, not atomic — the
+      structure wins over the declared type.
+  - pt-BR: Sub-issues do tipo Task não descaracterizam a user story como atômica; tarefas a atendem, não a compõem.
+    en: >
+      Sub-issues of type Task do not disqualify the user story as atomic; tasks serve it,
+      they do not compose it.
+  - pt-BR: Critérios de aceitação escritos no corpo em texto livre não são sro.acceptance_criterion até serem extraídos e validados; a extração não faz parte deste mapeamento.
+    en: >
+      Acceptance criteria written in the body as free text are not sro.acceptance_criterion
+      until they are extracted and validated; the extraction is not part of this mapping.
+  - pt-BR: >
+      `importance` e `complexity` ficam NULAS, e a versão 1 deste mapeamento as lia
+      de `fieldValueByName(Priority)` e `fieldValueByName(Estimate)`. Duas coisas
+      erradas ali, corrigidas na versão 2.
 
-    A primeira: `Priority` NÃO é `importance`. Importance é decimal com escala
-    declarada — "quão valiosa a user story é para a organização" —, e Priority é
-    seleção única cujos valores o tenant inventou (P0, P1, P2). Converter um no
-    outro é mapeamento por semelhança de nome, que o princípio I proíbe e o
-    AGENTS.md §7.7 nomeia como antipadrão. O quadro real deste tenant não tem
-    campo numérico de importância, e a ausência fica declarada em vez de
-    substituída.
+      A primeira: `Priority` NÃO é `importance`. Importance é decimal com escala
+      declarada — "quão valiosa a user story é para a organização" —, e Priority é
+      seleção única cujos valores o tenant inventou (P0, P1, P2). Converter um no
+      outro é mapeamento por semelhança de nome, que o princípio I proíbe e o
+      AGENTS.md §7.7 nomeia como antipadrão. O quadro real deste tenant não tem
+      campo numérico de importância, e a ausência fica declarada em vez de
+      substituída.
 
-    A segunda: `fieldValueByName` identifica o campo pelo NOME. Renomear "Priority"
-    para "Prioridade" quebraria o mapeamento em silêncio. A identidade de um campo
-    configurável é o identificador dele — FR-027 da feature 004 —, e o mapeamento
-    campo→atributo passa a ser declarado por tenant em `rules/tenants/`.
-  - >
-    Uma issue marcada `Epic` SEM sub-issues cai aqui, e a divergência entre tipo
-    declarado e conceito derivado fica registrada. Não existe épico sem partes
-    (sro.rule05), e a divergência costuma significar épico abandonado sem
-    decomposição.
-  - >
-    Sub-issues do tipo `Task` NÃO tornam a issue épica: tarefa ATENDE user story
-    (sro.intended_task_planned_to_meet_user_story), não a compõe. É o erro mais
-    fácil de cometer nesta regra.
-  - >
-    Sem a API de sub-issues — GitHub Enterprise Server antigo — a distinção
-    épico/atômica NÃO é feita, e isso é declarado em vez de suprido por heurística
-    de lista em markdown.
-  - >
-    Critério de aceitação não é extraído do corpo. `sro.acceptance_criterion`
-    consta como não observável na matriz de cobertura; extrair por heurística
-    produziria critério plausível e errado.
-  - Feature e User Story são tratadas como o mesmo destino, o que pode ser incorreto em organizações que usam Feature como agrupador — confirmar por tenant.
+      A segunda: `fieldValueByName` identifica o campo pelo NOME. Renomear "Priority"
+      para "Prioridade" quebraria o mapeamento em silêncio. A identidade de um campo
+      configurável é o identificador dele — FR-027 da feature 004 —, e o mapeamento
+      campo→atributo passa a ser declarado por tenant em `rules/tenants/`.
+    en: >
+      `importance` and `complexity` are left NULL, and version 1 of this mapping read them
+      from `fieldValueByName(Priority)` and `fieldValueByName(Estimate)`. Two things were
+      wrong there, corrected in version 2.
+
+      The first: `Priority` is NOT `importance`. Importance is a decimal with a declared
+      scale — "how valuable the user story is to the organization" —, and Priority is a
+      single select whose values the tenant made up (P0, P1, P2). Converting one into the
+      other is mapping by name similarity, which principle I forbids and AGENTS.md §7.7
+      names as an antipattern. This tenant's real board has no numeric importance field, and
+      the absence is declared instead of substituted.
+
+      The second: `fieldValueByName` identifies the field by its NAME. Renaming "Priority"
+      to "Prioridade" would break the mapping silently. The identity of a configurable field
+      is its identifier — FR-027 of feature 004 —, and the field→attribute mapping is now
+      declared per tenant in `rules/tenants/`.
+  - pt-BR: >
+      Uma issue marcada `Epic` SEM sub-issues cai aqui, e a divergência entre tipo
+      declarado e conceito derivado fica registrada. Não existe épico sem partes
+      (sro.rule05), e a divergência costuma significar épico abandonado sem
+      decomposição.
+    en: >
+      An issue marked `Epic` WITHOUT sub-issues falls here, and the divergence between
+      declared type and derived concept is recorded. There is no epic without parts
+      (sro.rule05), and the divergence usually means an epic abandoned without
+      decomposition.
+  - pt-BR: >
+      Sub-issues do tipo `Task` NÃO tornam a issue épica: tarefa ATENDE user story
+      (sro.intended_task_planned_to_meet_user_story), não a compõe. É o erro mais
+      fácil de cometer nesta regra.
+    en: >
+      Sub-issues of type `Task` do NOT make the issue an epic: a task SERVES a user story
+      (sro.intended_task_planned_to_meet_user_story), it does not compose it. It is the
+      easiest mistake to make in this rule.
+  - pt-BR: >
+      Sem a API de sub-issues — GitHub Enterprise Server antigo — a distinção
+      épico/atômica NÃO é feita, e isso é declarado em vez de suprido por heurística
+      de lista em markdown.
+    en: >
+      Without the sub-issues API — old GitHub Enterprise Server — the epic/atomic
+      distinction is NOT made, and this is declared instead of being filled in by a markdown
+      list heuristic.
+  - pt-BR: >
+      Critério de aceitação não é extraído do corpo. `sro.acceptance_criterion`
+      consta como não observável na matriz de cobertura; extrair por heurística
+      produziria critério plausível e errado.
+    en: >
+      Acceptance criteria are not extracted from the body. `sro.acceptance_criterion` is
+      listed as not observable in the coverage matrix; extracting by heuristic would produce
+      plausible and wrong criteria.
+  - pt-BR: Feature e User Story são tratadas como o mesmo destino, o que pode ser incorreto em organizações que usam Feature como agrupador — confirmar por tenant.
+    en: >
+      Feature and User Story are treated as the same target, which may be incorrect in
+      organizations that use Feature as a grouper — confirm per tenant.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at]

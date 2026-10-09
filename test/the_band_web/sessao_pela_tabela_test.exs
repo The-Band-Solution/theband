@@ -46,6 +46,21 @@ defmodule TheBandWeb.SessaoPelaTabelaTest do
     {conn, conn.resp_cookies["_the_band_key"].value}
   end
 
+  # A coluna antiga, lida e escrita por SQL: ela saiu do schema na T014a e sai do banco na T014b.
+  defp token_da_coluna(user_id) do
+    %{rows: [[v]]} =
+      Repo.query!("SELECT session_token FROM users WHERE id = $1", [Ecto.UUID.dump!(user_id)])
+
+    v
+  end
+
+  defp token_da_coluna(user_id, valor) do
+    Repo.query!("UPDATE users SET session_token = $1 WHERE id = $2", [
+      valor,
+      Ecto.UUID.dump!(user_id)
+    ])
+  end
+
   defp com_cookie(valor), do: put_req_header(build_conn(), "cookie", "_the_band_key=#{valor}")
 
   defp chave_real, do: Application.fetch_env!(:the_band, TheBandWeb.Endpoint)[:secret_key_base]
@@ -127,7 +142,9 @@ defmodule TheBandWeb.SessaoPelaTabelaTest do
       })
 
     assert redirected_to(conn) == ~p"/sign-in"
-    assert {:ok, _} = Tenants.authenticate(alvo.email, @senha)
+
+    assert {:ok, _} =
+             Tenants.authenticate(alvo.email, @senha, origem: TheBand.OrigemDeTeste.nova())
   end
 
   test "S4 — um cookie só com user_id, assinado com a chave real, não abre nada", %{alvo: alvo} do
@@ -144,7 +161,9 @@ defmodule TheBandWeb.SessaoPelaTabelaTest do
       })
 
     assert redirected_to(conn) == ~p"/sign-in"
-    assert {:ok, _} = Tenants.authenticate(alvo.email, @senha)
+
+    assert {:ok, _} =
+             Tenants.authenticate(alvo.email, @senha, origem: TheBand.OrigemDeTeste.nova())
   end
 
   test "S1 — desativar e reativar não devolve a sessão", ctx do
@@ -186,12 +205,36 @@ defmodule TheBandWeb.SessaoPelaTabelaTest do
     assert abertas == 1
   end
 
+  test "T014a — nenhum caminho escreve mais a coluna antiga", ctx do
+    # Os quatro caminhos que a giravam até a v0.11.0: entrar, definir a senha, trocar a senha e
+    # desativar. A conta nasce com a coluna nula e continua nula depois de todos.
+    token_da_coluna(ctx.alvo.id, nil)
+
+    {conn, _cookie} = entrar(ctx.alvo.email)
+
+    conn
+    |> recycle()
+    |> post(~p"/profile/password", %{"current" => @senha, "password" => "trocada-sem-coluna"})
+
+    {:ok, _} = Tenants.reset_password(ctx.tenant, ctx.alvo.id, ctx.admin.id)
+
+    {:ok, _} =
+      Tenants.disable_user(ctx.tenant, ctx.alvo.id, ctx.admin.id, %{
+        "reason" => "left_the_organisation"
+      })
+
+    assert token_da_coluna(ctx.alvo.id) == nil
+  end
+
   describe "T012 — o token antigo girado" do
     test "o cookie de antes da troca não vale, nem pela leitura nova nem pela antiga", %{
       alvo: alvo
     } do
-      antigo = Repo.get!(User, alvo.id).session_token
-      assert is_binary(antigo)
+      # O estado de antes da T012: a conta com o token em claro na coluna. A plataforma não a
+      # escreve mais desde a T014a, então o valor é gravado aqui por SQL.
+      antigo = Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
+      token_da_coluna(alvo.id, antigo)
+      assert token_da_coluna(alvo.id) == antigo
       cookie_antigo = forjar(%{"user_id" => alvo.id, "session_token" => antigo})
 
       Repo.query!(@modulo.sql_up())
@@ -200,8 +243,7 @@ defmodule TheBandWeb.SessaoPelaTabelaTest do
       assert redirected_to(get(com_cookie(cookie_antigo), ~p"/people")) == ~p"/sign-in"
 
       # A antiga, a de um rollback, comparava a coluna com o cookie: girada, não casa.
-      girado = Repo.get!(User, alvo.id).session_token
-      refute girado == antigo
+      refute token_da_coluna(alvo.id) == antigo
     end
 
     test "gira toda conta, inclusive a que tinha a coluna nula (S4 num rollback)", %{
@@ -213,7 +255,7 @@ defmodule TheBandWeb.SessaoPelaTabelaTest do
           "role" => "member"
         })
 
-      assert Repo.get!(User, sem_token.id).session_token == nil
+      assert token_da_coluna(sem_token.id) == nil
 
       Repo.query!(@modulo.sql_up())
 

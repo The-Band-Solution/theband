@@ -279,7 +279,10 @@ defmodule TheBand.Teams.FlowPerPerson do
     |> join(:inner, [i], a in IssueAssignee, on: a.collected_issue_id == i.id)
     |> where([i, a], i.tenant_id == ^tenant_id and a.person_id in ^pessoas)
     |> where([i], not is_nil(field(i, ^campo)))
-    |> where([i], field(i, ^campo) >= ^desde and field(i, ^campo) <= ^ate)
+    # `> desde`, e não `>=`: o instante `desde` já pertence ao aberto inicial, que
+    # `abertos_em/3` avalia com `criada <= desde` e `fechada > desde`. Contá-lo aqui também
+    # punha o mesmo evento nos dois lados da identidade do burn (PR #1228).
+    |> where([i], field(i, ^campo) > ^desde and field(i, ^campo) <= ^ate)
     |> group_by([_i, a], [a.person_id, fragment("2")])
     |> select(
       [i, a],

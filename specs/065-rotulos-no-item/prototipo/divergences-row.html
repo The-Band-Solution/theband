@@ -1,0 +1,362 @@
+<title>Divergence Row</title>
+<style>
+  /* Layout: one page, two stacked tables (today, proposed) of the same four rows, then the
+     decisions. Tokens inherited from issue-detail-labels.html (065, approved 2026-09-29). */
+  :root{
+    --verdete:#1f6f68; --paper:#f7f8f7; --paper-shade:#eef0ee; --paper-line:#d7dcd8;
+    --ink:#101614; --ink-soft:#4a5551; --info-blue:#23566f; --amber:#8a5a0c; --clay:#9a4a32;
+    --grotesk:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+    --serif:ui-serif,Georgia,'Iowan Old Style','Times New Roman',serif;
+    --mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;
+    --tick:.625rem; --micro:.6875rem; --meta:.8125rem; --body:.875rem;
+    --prose:1rem; --title:1.25rem; --section:1.5rem; --mark:.125rem; --box:.5rem;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+    --verdete:#5cbcb2; --paper:#0e1413; --paper-shade:#171f1d; --paper-line:#2b3734;
+    --ink:#e8edeb; --ink-soft:#9aa8a4; --info-blue:#7fb4cc; --amber:#d9a441; --clay:#e08a6d;}}
+  :root[data-theme="dark"]{color-scheme:dark;
+    --verdete:#5cbcb2; --paper:#0e1413; --paper-shade:#171f1d; --paper-line:#2b3734;
+    --ink:#e8edeb; --ink-soft:#9aa8a4; --info-blue:#7fb4cc; --amber:#d9a441; --clay:#e08a6d;}
+  *{box-sizing:border-box}
+  body{background:var(--paper);color:var(--ink);font-family:var(--grotesk);
+       font-size:var(--body);line-height:1.5;margin:0;padding-block:2rem 5rem;padding-inline:1rem}
+  body.gray .wrap{filter:grayscale(1)}
+  .wrap{max-width:72rem;margin:0 auto;display:flex;flex-direction:column;gap:2.25rem}
+  .eyebrow{font-family:var(--mono);font-size:var(--tick);letter-spacing:.06em;
+           text-transform:uppercase;color:var(--ink-soft);margin:0 0 .5rem}
+  h1{font-size:var(--section);font-weight:650;letter-spacing:-.02em;line-height:1.2;margin:0 0 .75rem;text-wrap:balance}
+  h2{font-size:var(--title);font-weight:650;letter-spacing:-.02em;margin:0 0 .35rem;text-wrap:balance}
+  .prose{font-family:var(--serif);font-size:var(--prose);line-height:1.6;max-width:40rem;margin:0}
+  .note{font-family:var(--serif);font-size:var(--meta);line-height:1.55;color:var(--ink-soft);max-width:44rem;margin:0}
+  section{display:flex;flex-direction:column;gap:1rem;min-width:0}
+  .head{border-bottom:1.5px solid var(--paper-line);padding-bottom:.75rem}
+  code{font-family:var(--mono);font-size:.9em;background:var(--paper-shade);
+       padding:.05rem .25rem;border-radius:var(--mark);border:1px solid var(--paper-line)}
+  .band{font-family:var(--mono);font-size:var(--micro);letter-spacing:.06em;text-transform:uppercase;
+        color:var(--paper);background:var(--ink);padding:.35rem .7rem;border-radius:var(--mark);align-self:flex-start}
+  .tools{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:1rem}
+  .tools button{font:inherit;font-family:var(--mono);font-size:var(--micro);color:var(--ink);
+    background:var(--paper-shade);border:1px solid var(--paper-line);border-radius:var(--mark);
+    padding:.3rem .6rem;cursor:pointer}
+  .tools button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .tools button:focus-visible{outline:2px solid var(--verdete);outline-offset:2px}
+  .tag{font-family:var(--mono);font-size:var(--tick);letter-spacing:.06em;text-transform:uppercase}
+  .tag.no{color:var(--clay)} .tag.yes{color:var(--verdete)}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+  /* Label marks: identical to the approved /work column and issue page. */
+  .chip{display:inline-flex;align-items:center;font-family:var(--mono);font-size:var(--micro);
+        letter-spacing:.03em;padding:.1rem .4rem;border-radius:var(--mark);white-space:nowrap}
+  .obs{background:var(--verdete);color:var(--paper);border:1px solid var(--verdete)}
+  .der{color:var(--info-blue);border:1px solid currentColor;background-color:transparent;
+       background-image:repeating-linear-gradient(135deg,currentColor 0 2px,transparent 2px 4px)}
+  .der span{background:var(--paper-shade);padding:0 .2rem;border-radius:var(--mark);color:var(--info-blue)}
+  .more{color:var(--verdete);border:1px solid currentColor;font-weight:600;text-decoration:none}
+  .none{font-size:var(--micro);font-style:italic;color:var(--ink-soft)}
+  .ghost{border:1px solid var(--paper-line);color:var(--ink-soft);background:var(--paper)}
+  .chips{display:flex;flex-wrap:wrap;gap:.25rem;align-items:center}
+  .example{font-family:var(--mono);font-size:var(--tick);letter-spacing:.06em;text-transform:uppercase;
+           border:1px dashed var(--amber);color:var(--amber);padding:0 .3rem;border-radius:var(--mark)}
+
+  /* Evidence dot of <.evidence>: solid = declared type, hatched = structure. */
+  .ev{display:inline-flex;align-items:center;gap:.4rem}
+  .dot{width:.625rem;height:.625rem;border-radius:1px;flex-shrink:0;color:var(--verdete)}
+  .dot.solid{background:currentColor}
+  .dot.hatch{outline:1px solid currentColor;outline-offset:-1px;
+             background:repeating-linear-gradient(135deg,currentColor 0 2px,transparent 2px 4px)}
+  .warn{font-size:var(--micro);color:var(--amber)}
+
+  /* The table, stacked below 52rem (AGENTS.md 11.1: more than three columns stacks). */
+  .scroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:var(--meta)}
+  th{font-family:var(--mono);font-size:var(--tick);letter-spacing:.06em;text-transform:uppercase;
+     color:var(--ink-soft);font-weight:500;text-align:left;padding:.4rem .5rem;border-bottom:1.5px solid var(--paper-line)}
+  td{padding:.55rem .5rem;border-bottom:1px solid var(--paper-line);vertical-align:top}
+  td.r{text-align:right}
+  .soft{color:var(--ink-soft);font-size:var(--micro)}
+  .ttl{max-width:18rem}
+  @media(max-width:52rem){
+    table,thead,tbody,tr,th,td{display:block}
+    thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+    tr{border:1.5px solid var(--paper-line);border-radius:var(--box);margin-bottom:.75rem;padding:.35rem .6rem;background:var(--paper-shade)}
+    td{display:grid;grid-template-columns:6.5rem minmax(0,1fr);gap:.5rem;border-bottom:1px dotted var(--paper-line);padding:.4rem 0}
+    td:last-child{border-bottom:none}
+    td::before{content:attr(data-label);font-family:var(--mono);font-size:var(--tick);letter-spacing:.05em;
+               text-transform:uppercase;color:var(--ink-soft);padding-top:.15rem}
+    td.r{text-align:left} .ttl{max-width:none}
+  }
+
+  /* THE NEW BLOCK. Lives inside "promoted to". Three channels for "diverges": the double
+     border, the glyph and the word. "followed" is said in words; the followed side is also
+     solid-underlined and the other side dotted, so greyscale still reads which is which. */
+  .div{margin-top:.4rem;border:3px double var(--amber);border-radius:var(--mark);padding:.4rem .5rem;
+       display:flex;flex-direction:column;gap:.3rem;background:var(--paper);max-width:24rem}
+  .div .k{font-family:var(--mono);font-size:var(--tick);letter-spacing:.06em;text-transform:uppercase;color:var(--amber);font-weight:600}
+  .sides{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+  .side{display:flex;flex-direction:column;gap:.05rem;min-width:0}
+  .side .w{font-family:var(--mono);font-size:var(--tick);letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft)}
+  .side .v{font-weight:600;padding-bottom:.1rem}
+  .side.f .v{border-bottom:2px solid var(--ink)}
+  .side.o .v{border-bottom:2px dotted var(--ink-soft);font-weight:500}
+  .why{font-family:var(--serif);font-size:var(--micro);color:var(--ink-soft)}
+  .fol{font-size:var(--micro)} .fol b{font-weight:650}
+
+  .legend{display:flex;flex-wrap:wrap;gap:.9rem;align-items:center;border-top:1.5px solid var(--paper-line);padding-top:.7rem}
+  .legend div{display:flex;align-items:center;gap:.35rem;font-size:var(--micro);color:var(--ink-soft)}
+
+  .kinds{width:100%;border-collapse:collapse}
+  .dec{display:flex;flex-direction:column;gap:.9rem}
+  .item{border-left:3px solid var(--paper-line);padding-left:.8rem;display:flex;flex-direction:column;gap:.25rem}
+  .item.decided{border-left-color:var(--verdete)}
+  .item.open{border-left-color:var(--amber);border-left-style:dashed}
+  .item .h{font-weight:650}
+  .item .s{font-family:var(--mono);font-size:var(--tick);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+  .item p,.item li{font-family:var(--serif);font-size:var(--meta);line-height:1.55;margin:0}
+  .item ul{margin:.2rem 0 0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.2rem}
+  .rec{color:var(--verdete);font-weight:600}
+  .card{border:1.5px solid var(--paper-line);border-radius:var(--box);background:var(--paper-shade);
+        padding:1rem;display:flex;flex-direction:column;gap:.5rem;max-width:26rem}
+  .card .m{font-family:var(--mono);font-size:var(--title);font-variant-numeric:tabular-nums}
+  .strike{text-decoration:line-through;color:var(--clay)}
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Prototype · spec 065 · US2 amended 2026-09-30 · issue #905 · approved 2026-09-30 by the maintainer</p>
+    <h1>Divergence Row</h1>
+    <p class="prose">An issue whose declared type and structure disagree is flagged in its own row on <code>/work</code>. Today the row says only what kind of divergence it is. Which side the platform followed is written once, in the summary card, per kind. This proposal puts the declared type, the derived concept, the reason they diverge and the side the platform followed into the row itself. Labels stay in their own column as context.</p>
+    <div class="tools">
+      <button type="button" id="gray" aria-pressed="false">View in greyscale</button>
+      <span class="note">SC-003: every mark must read without colour. Toggle to check.</span>
+    </div>
+  </header>
+
+  <span class="band">screen 1 · /work · table “Issues” · divergent rows</span>
+
+  <section>
+    <div class="head">
+      <p class="eyebrow">Today, as rendered by work_item_live/index.ex · real rows from the_band_dev</p>
+      <h2>Today: the row names the kind, and nothing else</h2>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>organisation</th><th>repository</th><th>#</th><th>title</th><th>type at source</th><th>parts at source</th><th>promoted to</th><th>labels</th></tr></thead>
+        <tbody>
+          <tr>
+            <td data-label="organisation" class="soft">leds-conectafapes</td>
+            <td data-label="repository">edite-project</td>
+            <td data-label="#" class="r num">6</td>
+            <td data-label="title" class="ttl">[FEATURE] Dashboard geral e visualização de mensagens para editais</td>
+            <td data-label="type at source"><span class="chip ghost">Feature</span></td>
+            <td data-label="parts at source" class="r num">0</td>
+            <td data-label="promoted to"><span class="ev"><span class="dot solid"></span>atomic user story</span><div class="warn">user story with no parts or tasks</div></td>
+            <td data-label="labels"><div class="chips"><span class="chip obs">dashboard</span><span class="chip obs">editais</span><span class="chip obs">feature</span><a class="chip more" href="#">+1</a></div></td>
+          </tr>
+          <tr>
+            <td data-label="organisation" class="soft">leds-conectafapes</td>
+            <td data-label="repository">conectafapes-project</td>
+            <td data-label="#" class="r num">2280</td>
+            <td data-label="title" class="ttl">[Back-end] Adicionar verificação de remessa de cadastro vazia</td>
+            <td data-label="type at source"><span class="chip ghost">Feature</span></td>
+            <td data-label="parts at source" class="r num">0</td>
+            <td data-label="promoted to"><span class="ev"><span class="dot solid"></span>atomic user story</span><div class="warn">user story with no parts or tasks</div></td>
+            <td data-label="labels"><div class="chips"><span class="chip obs">backend</span><span class="chip der"><span>Back-end</span></span></div></td>
+          </tr>
+          <tr>
+            <td data-label="organisation" class="soft">leds-conectafapes</td>
+            <td data-label="repository">agentes-project</td>
+            <td data-label="#" class="r num">13</td>
+            <td data-label="title" class="ttl">[FEATURE] Reponder questões de editais via audio.</td>
+            <td data-label="type at source"><span class="chip ghost">Feature</span></td>
+            <td data-label="parts at source" class="r num">0</td>
+            <td data-label="promoted to"><span class="ev"><span class="dot solid"></span>atomic user story</span><div class="warn">user story with no parts or tasks</div></td>
+            <td data-label="labels"><span class="none">no label</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><span class="tag no">not accepted</span> The amber line names the kind. It does not say that the declared type and the structure disagree, and it does not say what the platform did about it (AC1, AC3, SC-008). To learn that the concept was kept, the reader scrolls up to the summary card and matches the sentence.</p>
+  </section>
+
+  <section>
+    <div class="head">
+      <p class="eyebrow">Proposed · same rows · one example row of a kind the database does not hold yet</p>
+      <h2>Proposed: claim, verdict, reason and the side followed, in the row</h2>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>organisation</th><th>repository</th><th>#</th><th>title</th><th>type at source</th><th>parts at source</th><th>promoted to</th><th>labels</th></tr></thead>
+        <tbody>
+          <tr>
+            <td data-label="organisation" class="soft">leds-conectafapes</td>
+            <td data-label="repository">edite-project</td>
+            <td data-label="#" class="r num">6</td>
+            <td data-label="title" class="ttl">[FEATURE] Dashboard geral e visualização de mensagens para editais</td>
+            <td data-label="type at source"><span class="chip ghost">Feature</span></td>
+            <td data-label="parts at source" class="r num">0</td>
+            <td data-label="promoted to">
+              <span class="ev"><span class="dot solid"></span>atomic user story</span>
+              <div class="div" title="classified as an atomic user story, with no parts and no tasks linked to it; it may be a user story nobody decomposed, and that is why the concept was kept">
+                <span class="k">≠ diverges · type and structure</span>
+                <div class="sides">
+                  <div class="side f"><span class="w">declared type · claim</span><span class="v">Feature</span></div>
+                  <div class="side o"><span class="w">derived concept · verdict</span><span class="v">atomic user story</span></div>
+                </div>
+                <span class="why">why: no parts and no tasks are linked to it</span>
+                <span class="fol"><b>followed: the declared type</b> — concept kept, flagged as a signal</span>
+              </div>
+            </td>
+            <td data-label="labels"><div class="chips"><span class="chip obs" title="observed — set on the label field at the source">dashboard</span><span class="chip obs" title="observed — set on the label field at the source">editais</span><span class="chip obs" title="observed — set on the label field at the source">feature</span><a class="chip more" href="#" title="see all 4 labels on this issue">+1</a></div></td>
+          </tr>
+          <tr>
+            <td data-label="organisation" class="soft">leds-conectafapes</td>
+            <td data-label="repository">conectafapes-project</td>
+            <td data-label="#" class="r num">2280</td>
+            <td data-label="title" class="ttl">[Back-end] Adicionar verificação de remessa de cadastro vazia</td>
+            <td data-label="type at source"><span class="chip ghost">Feature</span></td>
+            <td data-label="parts at source" class="r num">0</td>
+            <td data-label="promoted to">
+              <span class="ev"><span class="dot solid"></span>atomic user story</span>
+              <div class="div">
+                <span class="k">≠ diverges · type and structure</span>
+                <div class="sides">
+                  <div class="side f"><span class="w">declared type · claim</span><span class="v">Feature</span></div>
+                  <div class="side o"><span class="w">derived concept · verdict</span><span class="v">atomic user story</span></div>
+                </div>
+                <span class="why">why: no parts and no tasks are linked to it</span>
+                <span class="fol"><b>followed: the declared type</b> — concept kept, flagged as a signal</span>
+              </div>
+            </td>
+            <td data-label="labels"><div class="chips"><span class="chip obs" title="observed — set on the label field at the source">backend</span><span class="chip der" title="derived — read from the bracketed prefix in the title"><span>Back-end</span></span></div></td>
+          </tr>
+          <tr>
+            <td data-label="organisation" class="soft">leds-conectafapes</td>
+            <td data-label="repository">agentes-project</td>
+            <td data-label="#" class="r num">13</td>
+            <td data-label="title" class="ttl">[FEATURE] Reponder questões de editais via audio.</td>
+            <td data-label="type at source"><span class="chip ghost">Feature</span></td>
+            <td data-label="parts at source" class="r num">0</td>
+            <td data-label="promoted to">
+              <span class="ev"><span class="dot solid"></span>atomic user story</span>
+              <div class="div">
+                <span class="k">≠ diverges · type and structure</span>
+                <div class="sides">
+                  <div class="side f"><span class="w">declared type · claim</span><span class="v">Feature</span></div>
+                  <div class="side o"><span class="w">derived concept · verdict</span><span class="v">atomic user story</span></div>
+                </div>
+                <span class="why">why: no parts and no tasks are linked to it</span>
+                <span class="fol"><b>followed: the declared type</b> — concept kept, flagged as a signal</span>
+              </div>
+            </td>
+            <td data-label="labels"><span class="none" title="no label on the field, and no declared prefix in the title">no label</span></td>
+          </tr>
+          <tr>
+            <td data-label="organisation" class="soft"><span class="example">example</span></td>
+            <td data-label="repository"><span class="example">example</span></td>
+            <td data-label="#" class="r num"><span class="example">example</span></td>
+            <td data-label="title" class="ttl"><span class="example">example</span> An issue typed Epic with no sub-issues</td>
+            <td data-label="type at source"><span class="chip ghost">Epic</span></td>
+            <td data-label="parts at source" class="r num">0</td>
+            <td data-label="promoted to">
+              <span class="ev"><span class="dot hatch"></span>atomic user story</span>
+              <div class="div">
+                <span class="k">≠ diverges · type and structure</span>
+                <div class="sides">
+                  <div class="side o"><span class="w">declared type · claim</span><span class="v">Epic</span></div>
+                  <div class="side f"><span class="w">derived concept · verdict</span><span class="v">atomic user story</span></div>
+                </div>
+                <span class="why">why: typed Epic, and it has no parts</span>
+                <span class="fol"><b>followed: the structure</b> — concept decided by the axiom; an epic has parts</span>
+              </div>
+            </td>
+            <td data-label="labels"><span class="none">no label</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="legend">
+      <div><span class="chip obs">x</span> label, observed on the field</div>
+      <div><span class="chip der"><span>x</span></span> label, derived from the title prefix</div>
+      <div><span class="none">no label</span> no label of either origin</div>
+      <div><span style="display:inline-block;width:1.4rem;height:.9rem;border:3px double var(--amber)"></span> diverges</div>
+      <div><span style="display:inline-block;width:1.4rem;border-bottom:2px solid var(--ink)"></span> side followed</div>
+      <div><span style="display:inline-block;width:1.4rem;border-bottom:2px dotted var(--ink-soft)"></span> side not followed</div>
+    </div>
+    <p class="note">The labels column does not change. No label appears inside the divergence block, so nothing in the row says a label disagrees with anything. On #6 the label <code>feature</code> and the type <code>Feature</code> sit in different columns and say different things. The prefix <code>[FEATURE]</code> is a type prefix, so it does not become a label (FR-006). On #2280 the field gives <code>backend</code> and the title gives <code>Back-end</code>, and both appear (FR-008). The fourth row is marked <span class="example">example</span>: the development database holds no divergence of any kind except <code>user_story_without_parts</code>. It is included to show the wording when the platform follows the structure.</p>
+  </section>
+
+  <span class="band">screen 1 · /work · card “divergences” · one sentence</span>
+
+  <section>
+    <div class="head">
+      <p class="eyebrow">The summary card, real count · only its empty-state sentence changes</p>
+      <h2>The card keeps its count and per-kind wording</h2>
+    </div>
+    <div class="card">
+      <span class="tag">divergences</span>
+      <span class="m">711</span>
+      <span class="soft">user story with no parts or tasks · <span class="num">711</span> · concept kept — signal</span>
+      <span class="soft">when there are none:</span>
+      <span class="soft strike">None. Label and structure agree on every issue.</span>
+      <span>None. Declared type and structure agree on every issue.</span>
+    </div>
+    <p class="note">The word “label” in the empty state means the declared type. After the amendment of 2026-09-30, “label” on this screen means only the labels column, so the sentence changes to match.</p>
+  </section>
+
+  <section>
+    <div class="head">
+      <p class="eyebrow">Where each phrase comes from</p>
+      <h2>The side followed, for every kind</h2>
+    </div>
+    <div class="scroll">
+      <table class="kinds">
+        <thead><tr><th>divergence_kind</th><th>why line</th><th>followed line</th><th>in dev today</th></tr></thead>
+        <tbody>
+          <tr><td data-label="kind"><code>user_story_without_parts</code></td><td data-label="why">no parts and no tasks are linked to it</td><td data-label="followed">followed: the declared type — concept kept, flagged as a signal</td><td data-label="in dev" class="num">711</td></tr>
+          <tr><td data-label="kind"><code>task_with_parts</code></td><td data-label="why">task with collected parts</td><td data-label="followed">followed: the declared type — concept kept, flagged as a signal</td><td data-label="in dev" class="num">0</td></tr>
+          <tr><td data-label="kind"><code>epic_without_parts</code></td><td data-label="why">typed Epic, and it has no parts</td><td data-label="followed">followed: the structure — concept decided by the axiom; an epic has parts</td><td data-label="in dev" class="num">0</td></tr>
+          <tr><td data-label="kind"><code>composition_makes_epic</code></td><td data-label="why">composition makes it an epic</td><td data-label="followed">followed: the structure — concept decided by the axiom; its parts make it an epic</td><td data-label="in dev" class="num">0</td></tr>
+          <tr><td data-label="kind"><code>label_vs_structure</code></td><td data-label="why">never produced</td><td data-label="followed">not drawn; see the note below</td><td data-label="in dev" class="num">0</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">The side comes from the same predicate that already drives the card, <code>ConceptLabel.divergencia_mudou_conceito?/1</code>. There is one source for both places, so the row and the card cannot disagree. The “why” text is the current <code>ConceptLabel.divergencia/1</code> phrase. Two are rephrased so the line reads as a reason and so “label” keeps meaning only the labels column: “user story with no parts or tasks” and “labelled epic, and it has no parts” (which becomes “typed Epic”). The full <code>divergence_reason</code> goes in the block’s <code>title</code>.</p>
+  </section>
+
+  <section>
+    <div class="head">
+      <p class="eyebrow">Decisions and open questions</p>
+      <h2>All settled on 2026-09-30</h2>
+    </div>
+    <div class="dec">
+      <div class="item decided"><span class="s">Decided 2026-09-30 · maintainer</span><span class="h">D1. The row shows declared type and derived concept side by side, and says they diverge. The label is not a side.</span></div>
+      <div class="item decided"><span class="s">Decided 2026-09-30 · maintainer</span><span class="h">D2. Labels appear as context with their origin. A row without labels says “no label”.</span><p>Met by the labels column as already approved. It stays unchanged, last, with 3 + <code>+N</code>.</p></div>
+      <div class="item decided"><span class="s">Decided 2026-09-30 · maintainer</span><span class="h">D3. Each row says in words which side the platform followed. For user_story_without_parts it is the declared side.</span></div>
+      <div class="item decided"><span class="s">Decided 2026-09-30 · maintainer · as proposed by Design</span><span class="h">D4. The divergence block lives inside “promoted to”, and labels never enter it. The card’s empty state says “Declared type and structure agree”. The followed side is drawn with a solid underline and the other side with a dotted one.</span></div>
+
+      <div class="item decided"><span class="s">Q1 · Decided 2026-09-30 · maintainer · (a)</span><span class="h">Does the row carry a “why” line that names the structure?</span>
+        <p>For user_story_without_parts, “Feature” routes to atomic user story, which is exactly the verdict. The two sides name the same concept. What disagrees is the declared intent and the empty structure. Without a reason, “Feature · atomic user story · diverges” reads as a contradiction that does not exist.</p>
+        <ul><li>(a) yes: one line, “why: …”, from the kind</li><li>(b) no: claim, verdict and the diverges mark only</li></ul>
+        <p><span class="rec">Recommendation: (a).</span> It is the only line that tells the reader what to fix (decompose it, or link the tasks).</p></div>
+      <div class="item decided"><span class="s">Q2 · Decided 2026-09-30 · maintainer · (a)</span><span class="h">Where does the block live?</span>
+        <ul><li>(a) inside the “promoted to” cell, under the evidence mark</li><li>(b) a full-width line under the row</li><li>(c) a new “divergence” column</li></ul>
+        <p><span class="rec">Recommendation: (a).</span> The table keeps its eight columns and the shared table component stays as it is. When stacked on a phone, the block stays under its own label. Option (b) would need a second row type in the component, and (c) adds a column that is empty on 4 918 of 5 629 rows.</p></div>
+      <div class="item decided"><span class="s">Q3 · Decided 2026-09-30 · maintainer · (a); the empty declared_concept becomes its own bug</span><span class="h">The claim is the type as written at the source, because declared_concept is never recorded.</span>
+        <p>In the development database <code>declared_concept</code> is empty on all 711 divergences, although <code>github_issue_type_routing.yaml</code> says to record it. The row can show only <code>issue_type</code> (“Feature”).</p>
+        <ul><li>(a) show the type as written now, and file the missing declared_concept as a defect for the Product Owner</li><li>(b) hold the row until declared_concept is recorded, then show the concept the type routes to</li></ul>
+        <p><span class="rec">Recommendation: (a).</span> The type as written is the team’s own claim and is observed. Recording the concept is a separate fix and does not change this layout.</p></div>
+    </div>
+  </section>
+</div>
+
+<script>
+  (function(){
+    var b=document.getElementById('gray');
+    b.addEventListener('click',function(){
+      var on=document.body.classList.toggle('gray');
+      b.setAttribute('aria-pressed',on?'true':'false');
+      b.textContent=on?'Back to colour':'View in greyscale';
+    });
+  })();
+</script>

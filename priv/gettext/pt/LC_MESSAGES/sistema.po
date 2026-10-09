@@ -312,3 +312,33 @@ msgstr "Composição encerrada."
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Team %{nome} declared inside this one."
 msgstr "Equipe %{nome} declarada."
+
+#: lib/the_band_web/plataforma/organizacao_controller.ex
+#, elixir-autogen, elixir-format
+msgid "Suspensa. Toda sessão foi encerrada e todo token de API, revogado."
+msgstr ""
+
+#: lib/the_band_web/plataforma/organizacao_controller.ex
+#, elixir-autogen, elixir-format
+msgid "Reativada. Nenhuma sessão nem token voltou."
+msgstr ""
+
+#: lib/the_band_web/live/ai_live/index.ex
+#, elixir-autogen, elixir-format
+msgid "Key checked against the provider and saved (%{masked}). It is the key already registered, so it still counts from %{data}."
+msgstr ""
+
+#: lib/the_band_web/live/ai_live/index.ex
+#, elixir-autogen, elixir-format
+msgid "Key checked against the provider and saved (%{masked}). It replaces the key registered on %{data}; the count starts again today."
+msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex
+#, elixir-autogen, elixir-format
+msgid "Declared as the organisation's account."
+msgstr "Declarada como a conta da organização."
+
+#: lib/the_band_web/live/people_live/show.ex
+#, elixir-autogen, elixir-format
+msgid "Organisation account declaration revoked."
+msgstr "Declaração de conta da organização revogada."

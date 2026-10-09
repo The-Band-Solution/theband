@@ -62,7 +62,6 @@ defmodule TheBand.Tenants.User do
     # `password_set_at ≈ inserted_at` é heurística com cara de fato.
     field :password_source, :string
     field :password_set_by_user_id, :binary_id
-    field :session_token, :string, redact: true
 
     # A época da senha — 064/T010. Sobe a cada definição de senha, e a sessão aberta com uma
     # época anterior deixa de valer.
@@ -102,13 +101,27 @@ defmodule TheBand.Tenants.User do
     timestamps(type: :utc_datetime)
   end
 
+  # Spec 072, FR-006 (S4 de `specs/072-papel-de-administrador/seguranca.md`): o papel NÃO é
+  # castável. Antes, `cadastrar_conta/3` passava os atributos recebidos a este changeset, e um
+  # chamador que repassasse `"role" => "admin"` criava administrador. O papel entra só por
+  # `com_papel/2`, que o bootstrap e o ato da 072 chamam explicitamente.
   def changeset(user, attrs) do
     user
-    |> cast(attrs, [:email, :name, :role, :tenant_id])
+    |> cast(attrs, [:email, :name, :tenant_id])
     |> validate_required([:email, :tenant_id])
     |> validate_inclusion(:role, @roles)
+    |> check_constraint(:role, name: :users_role_valido)
     |> unique_constraint(:email)
   end
+
+  @doc """
+  Grava o papel no changeset, explicitamente. Só o bootstrap (a primeira conta) e
+  `TheBand.Tenants.create_user/2` (seeds e fixtures) chamam; a mudança de papel de uma conta
+  existente é o ato da spec 072, que escreve com o episódio.
+  """
+  @spec com_papel(Ecto.Changeset.t(), String.t()) :: Ecto.Changeset.t()
+  def com_papel(changeset, papel) when papel in @roles,
+    do: put_change(changeset, :role, papel)
 
   @doc """
   Declara qual pessoa observada é esta conta — issue #369.
@@ -132,19 +145,17 @@ defmodule TheBand.Tenants.User do
   end
 
   @doc """
-  Desativa a conta — marca com autoria e data, e gira o token antigo.
+  Desativa a conta — marca com autoria e data.
 
-  **Desde a 064 (T013), quem faz a desativação valer agora é `Sessions.encerrar_da_conta/2`**,
-  chamada na mesma transação por `Tenants.disable_user/4`: a sessão é lida de `user_sessions`, e
-  não mais desta coluna. O giro de `session_token` continua até a T014 remover a coluna, só para
-  um rollback do código não reabrir a sessão pela leitura antiga (achado S7).
+  **Quem faz a desativação valer agora é `Sessions.encerrar_da_conta/2`** (064, T011), chamada na
+  mesma transação por `Tenants.disable_user/4`. A sessão é lida de `user_sessions` desde a T013.
+  A coluna antiga `users.session_token` deixou de ser escrita na T014a, e é removida na T014b.
   """
   @spec desativar_changeset(t(), Ecto.UUID.t()) :: Ecto.Changeset.t()
   def desativar_changeset(user, actor_id) do
     change(user,
       disabled_at: DateTime.utc_now(:second),
-      disabled_by_user_id: actor_id,
-      session_token: novo_token()
+      disabled_by_user_id: actor_id
     )
   end
 
@@ -216,7 +227,6 @@ defmodule TheBand.Tenants.User do
         |> put_change(:must_change_password, Keyword.get(opts, :temporary, false))
         |> put_change(:password_source, Keyword.get(opts, :source))
         |> put_change(:password_set_by_user_id, Keyword.get(opts, :by))
-        |> put_change(:session_token, novo_token())
         |> prepare_changes(&incrementar_epoca/1)
         |> delete_change(:password)
     end
@@ -271,8 +281,4 @@ defmodule TheBand.Tenants.User do
   # sai do estado pendente no mesmo changeset. Se aparecer, a proveniência não explica a
   # pendência, e dizer *não registrado* é o que resta de verdadeiro.
   def estado_da_credencial(%__MODULE__{}), do: :temporary_source_not_recorded
-
-  @doc "Token de sessão novo — girá-lo derruba as outras sessões (FR-015)."
-  @spec novo_token() :: String.t()
-  def novo_token, do: Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
 end

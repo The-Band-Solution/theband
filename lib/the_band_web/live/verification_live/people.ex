@@ -151,14 +151,24 @@ defmodule TheBandWeb.VerificationLive.People do
 
             **Não diz quantas linhas ficaram de fora**, e isso é deliberado: o número seria
             uma medida sobre pessoas que quem lê não alcança. Diz que há filtro, e qual é a
-            regra — o suficiente para não confundir recorte com ausência. --%>
+            regra — o suficiente para não confundir recorte com ausência.
+
+            A REGRA ESCRITA É A DE `pessoas_alcancadas/2`, e não a de `pode_ver/3` — #1185,
+            DS4 da feature 076 decidida em (a) em 2026-10-04. A frase anterior prometia
+            "whoever you lead by declared role", e o recorte nunca aplicou a liderança
+            declarada: quem liderava por papel, sem escopo, lia que veria e não via. Se a
+            regra do recorte mudar, esta frase muda junto; `people_recorte_test.exs` reprova
+            quando as duas divergirem.
+
+            Frase de tela, em inglês mesmo nascendo no domínio (AGENTS.md §11.1). --%>
       <div :if={@alcance_parcial?} class="alert alert-info block text-sm">
         <p>
           <strong>This list shows only the people you reach.</strong>
-          Since <strong>9 September 2026</strong>, a named ranking follows the same rule as
-          a person's panel: your own record, the people on your teams, whoever you lead by
-          declared role, an organization scope, or administering this tenant. What you see
-          is a slice, not the whole.
+          Since <strong>9 September 2026</strong>, a named ranking shows your own record,
+          the people on the teams in your scope (the teams you belong to and the ones
+          granted to you), the people on the teams of an organization in your scope, or
+          everyone if you administer this tenant. Leading a team through a role does not
+          add people to this list; a scope does. What you see is a slice, not the whole.
         </p>
       </div>
 

@@ -12,6 +12,7 @@ defmodule TheBandWeb.Live.Hooks do
   import Phoenix.LiveView
 
   alias TheBand.Tenants.AccessEvents
+  alias TheBand.Tenants.Sessions
   alias TheBand.Tenants.User
   alias TheBandWeb.Sessao
 
@@ -20,7 +21,7 @@ defmodule TheBandWeb.Live.Hooks do
   # (um login legítimo em outro aparelho estendia a sessão roubada) e uma comparação de token
   # própria.
   def on_mount(:current_scope, _params, session, socket) do
-    with {:ok, _sessao, user} <- Sessao.conferir(session),
+    with {:ok, sessao, user} <- Sessao.conferir(session),
          # A ORGANIZAÇÃO SUSPENSA DERRUBA O LIVEVIEW TAMBÉM — achado H3, parte A.
          #
          # O plug cobre a requisição HTTP; esta hook cobre o socket. Sem as duas, a
@@ -47,7 +48,8 @@ defmodule TheBandWeb.Live.Hooks do
            # organization (FR-023) — a condição vive em Access.operacional?/2,
            # o ponto único que a 046 previu.
            |> assign(:operacao_menu, TheBand.Tenants.operacional?(user.tenant, user) != false)
-           |> attach_hook(:nav_area, :handle_params, &nav_area_hook/3)}
+           |> attach_hook(:nav_area, :handle_params, &nav_area_hook/3)
+           |> escutar_o_encerramento(sessao, session)}
 
         {:redirect, destino} ->
           {:halt, redirect(socket, to: destino)}
@@ -101,20 +103,28 @@ defmodule TheBandWeb.Live.Hooks do
     case on_mount(:current_scope, params, session, socket) do
       {:cont, socket} ->
         if User.admin?(socket.assigns.current_user) do
-          {:cont, socket}
+          # A marca para o `reconferir/2`: esta tela é da área admin, e quem perder o papel
+          # com ela aberta sai daqui (072, FR-008).
+          {:cont, assign(socket, :area_admin, true)}
         else
-          {:halt,
-           socket
-           |> put_flash(
-             :error,
-             dgettext("errors", "Only organisation administrators can do that.")
-           )
-           |> redirect(to: "/people")}
+          {:halt, recusar_por_papel(socket)}
         end
 
       halted ->
         halted
     end
+  end
+
+  @doc """
+  A recusa de quem não administra, numa área admin: a frase de hoje e `/people` (072, Q3). É a
+  mesma do `mount`, e as telas a usam quando um ato devolve `:nao_autorizado` — a janela entre o
+  `commit` do rebaixamento e a entrega do aviso.
+  """
+  @spec recusar_por_papel(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
+  def recusar_por_papel(socket) do
+    socket
+    |> put_flash(:error, dgettext("errors", "Only organisation administrators can do that."))
+    |> redirect(to: "/people")
   end
 
   # A área ativa do menu vem do caminho da request (spec 046, FR-006). Vive na
@@ -124,10 +134,69 @@ defmodule TheBandWeb.Live.Hooks do
     {:cont, assign(socket, :nav_area, TheBandWeb.Layouts.nav_area(URI.parse(uri).path))}
   end
 
+  # A TELA ABERTA CAI QUANDO A SESSÃO CAI — issue #1042.
+  #
+  # A conferência acima roda só no `mount`. Sem isto, a conta desativada seguia agindo pela aba
+  # já aberta até recarregá-la: medido em 2026-10-01, o evento depois da desativação respondia.
+  # O aviso é só gatilho, e a decisão é da mesma conferência do `mount`, refeita no banco. Por
+  # isso um aviso espúrio não derruba quem ainda vale.
+  defp escutar_o_encerramento(socket, sessao, session) do
+    if connected?(socket) do
+      Enum.each(
+        Sessions.topicos(sessao),
+        &Phoenix.PubSub.subscribe(TheBand.PubSub, &1)
+      )
+
+      attach_hook(socket, :sessao_encerrada, :handle_info, fn
+        :sessao_encerrada, socket -> {:halt, reconferir(socket, session)}
+        _outra, socket -> {:cont, socket}
+      end)
+    else
+      socket
+    end
+  end
+
+  # A conta relida também decide o PAPEL (072, FR-008): o rebaixamento avisa no tópico da conta,
+  # e a tela aberta numa área admin vai para `/people`. A struct do `mount` é trocada pela relida,
+  # para nenhum evento seguinte decidir pelo papel de antes.
+  defp reconferir(socket, session) do
+    with {:ok, _sessao, user} <- Sessao.conferir(session),
+         :ok <- organizacao_ativa(user),
+         :ok <- conta_ativa(user) do
+      socket |> assign(:current_user, user) |> manter_na_area(user)
+    else
+      {:error, motivo, dona} ->
+        {:halt, derrubada} = derrubar(socket, dona, motivo)
+        derrubada
+    end
+  end
+
+  defp manter_na_area(%{assigns: %{area_admin: true}} = socket, user) do
+    if User.admin?(user), do: socket, else: recusar_por_papel(socket)
+  end
+
+  defp manter_na_area(socket, _user), do: socket
+
   defp derrubar(socket, dona, motivo) do
     {user_id, tenant_id} = dona || {nil, nil}
     AccessEvents.sessao_derrubada(user_id, tenant_id, motivo)
+    passo_da_queda(motivo, user_id, tenant_id)
     {:halt, redirect(socket, to: "/sign-in")}
+  end
+
+  # O PASSO DA QUEDA NO SOCKET — spec 074, T017. A tela aberta que cai (a conta desativada com a
+  # aba aberta, #1042) passa por aqui, e não pelo plug. `:sem_sessao` não é queda: é o socket que
+  # chegou sem cookie, e não vira passo — a mesma regra de `CurrentScope`.
+  defp passo_da_queda(:sem_sessao, _user_id, _tenant_id), do: :ok
+
+  defp passo_da_queda(motivo, user_id, tenant_id) do
+    AccessEvents.passo(%{
+      passo: :sessao_derrubada,
+      desfecho: :falhou,
+      motivo: motivo,
+      tenant_id: tenant_id,
+      user_id: user_id
+    })
   end
 
   # `fetch_user/1` pré-carrega o tenant — nenhuma consulta a mais por mount.

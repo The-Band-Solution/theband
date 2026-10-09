@@ -33,6 +33,7 @@ defmodule TheBandWeb.ApiTokenLive.Index do
 
   alias TheBand.Tenants
   alias TheBandWeb.ApiTokenLive.View
+  alias TheBandWeb.Live.Hooks
 
   # As janelas do painel de uso — R2.21. **A janela é escolhida e mostrada**: contagem sem
   # janela é número sem denominador, e "412 leituras" não diz nada sem dizer em quanto tempo.
@@ -70,7 +71,9 @@ defmodule TheBandWeb.ApiTokenLive.Index do
     tenant = socket.assigns.current_tenant
     contas = Tenants.list_users(tenant)
 
-    rotulos = Map.new(Tenants.api_token_revocation_labels())
+    # Os rótulos de TODA cláusula registrada, inclusive `organizacao_suspensa`, que o select não
+    # oferece (070, T047). Com só as oferecidas, o token revogado pela suspensão sairia sem razão.
+    rotulos = Map.new(Tenants.api_token_recorded_revocation_labels())
 
     linhas =
       tenant
@@ -206,6 +209,9 @@ defmodule TheBandWeb.ApiTokenLive.Index do
          )
          |> carregar()}
 
+      {:error, :nao_autorizado} ->
+        {:noreply, Hooks.recusar_por_papel(socket)}
+
       {:error, changeset} ->
         {:noreply, assign(socket, erro: motivo(changeset), valor_em_claro: nil)}
     end
@@ -234,6 +240,9 @@ defmodule TheBandWeb.ApiTokenLive.Index do
          ) do
       {:ok, _} ->
         {:noreply, socket |> assign(confirmando: nil, valor_em_claro: nil) |> carregar()}
+
+      {:error, :nao_autorizado} ->
+        {:noreply, Hooks.recusar_por_papel(socket)}
 
       {:error, :not_found} ->
         {:noreply,

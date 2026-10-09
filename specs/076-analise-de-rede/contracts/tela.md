@@ -1,0 +1,164 @@
+# Contrato — as telas da área Network analysis
+
+A régua é o protótipo aprovado ([`prototipo/PROMPT.md`](../prototipo/PROMPT.md) §3), com as
+divergências de [research.md R21](../research.md#r21--divergências-do-protótipo-aprovado-e-o-que-vale):
+o código segue a spec e a base. Tudo que vai para a tela é em inglês (§11.1).
+
+## Rotas
+
+Todas `live`, no `live_session :autenticado` (`require_user`). Nenhuma outra rota da área (FR-053).
+
+| rota | LiveView | o que mostra |
+|---|---|---|
+| `/network-analysis` | `NetworkAnalysisLive.Index` | a área (3.1): as duas arestas definidas, os seis cartões, a frase de não-avaliação; escolhe a organização; com uma só, `push_navigate` para ela |
+| `/network-analysis/:organization_id` | `ReviewNetworkLive.Show` (073) | a rede de revisão da 073, **com o aviso dela** (US1, cen. 5) |
+| `/network-analysis/:organization_id/graph` | `NetworkAnalysisLive.Graph` | US2 (contagens) e US3 (grafo ponderado, alternância para comunidades) |
+| `/network-analysis/:organization_id/communities` | `NetworkAnalysisLive.Communities` | US4 |
+| `/network-analysis/:organization_id/hubs` | `NetworkAnalysisLive.Hubs` | US5 |
+| `/network-analysis/:organization_id/distance` | `NetworkAnalysisLive.Distance` | US6 e US7 |
+| `/network-analysis/:organization_id/positions` | `NetworkAnalysisLive.Positions` | US8, lista por nome |
+| `/network-analysis/:organization_id/people/:person_id` | `NetworkAnalysisLive.Profile` | US9 |
+| `/organizations/:id/review-network` | `ReviewNetworkLive.Show`, ação `:legacy` | `push_navigate` para `~p"/network-analysis/#{org.id}?window=#{janela}"`, com o id validado (FR-003, A13) |
+
+Parâmetros: `network`, `window`, `view`, normalizados por `NetworkAnalysis.selection/1`. A escolha
+de rede e janela acompanha a navegação (3.0.3): os links entre as páginas levam os dois.
+
+## Toda página da área
+
+- `NetworkAnalysisLive.Shared.header/1`: título, a pergunta da página, os seletores, a linha da
+  leitura (data, *derived*, janela, coleta mais nova), e o aviso de alcance parcial
+  *"Names appear only for the people you reach. Measures are computed over the whole network. People
+  outside your reach appear grouped, without names, and only in groups of at least 3."* (US1, cen. 5);
+- `mount/3` não guarda alcance; `handle_params/3` chama `NetworkAnalysis.read/4` a cada navegação e a
+  cada aviso de leitura pronta (A22);
+- `assigns` guardam só a visão recortada (R6, item 4);
+- `{:error, :not_found}` → a página *"not found"*, igual para os quatro casos (FR-014);
+- `{:ausente, motivo}` → `<.absent reason=...>` com a frase do motivo; nunca 0, `—`, célula vazia;
+  o motivo `:review_reading_outdated` (E4 da revisão semântica do PR #1383) diz *"not shown: the
+  review network reading was calculated before the latest change to the accounts declared as the
+  organisation's, so it does not know about it; it is recalculated at the next synchronization of
+  this organisation"*;
+- todo número com a marca `<.marca tipo={:derivado} />`, como a 073 (`review_network_live/show.ex`);
+  ausência com `<.absent reason=...>` (§11.1, regras 1 e 2; FR-051);
+- a frase *"Position in this network and window. It does not measure performance, importance or
+  merit, and must not be used to evaluate a person."* ao lado de hubs e papéis (FR-047);
+- a rede de designação diz em uma frase o que a aresta liga e que **não** diz quem designou nem quem
+  executou (US2, cen. 5). Nenhum texto usa *collaboration* nem *delegation*.
+
+**Emenda de 2026-10-04 (T019, T020)**, feita no mesmo commit da implementação:
+
+- `NetworkAnalysisLive.Shared` expõe, além de `header/1`: `area_nav/1` (as seis páginas, na ordem
+  de 3.0.1, com a rede e a janela em todo link, 3.0.3), `marca/1` (a mesma marca da 073),
+  `page_path/3` (o caminho de uma página com a seleção), `link_label/1` (as frases das duas
+  arestas) e `pages/0`. `page_path`, e não `path`: o nome colide com `Phoenix.VerifiedRoutes.path/3`;
+- **página que ainda não existe** aparece na ordem, sem link, e nunca como link quebrado: as fatias
+  são PRs empilhados (US1 só tem a rede de revisão; US2 traz *Graph*);
+- os seis cartões de `/network-analysis` (3.1.3) descrevem as páginas e não têm link: a área não
+  tem organização escolhida, e o link de cada página é por organização. A escolha da organização,
+  logo acima, é o que leva à área dela;
+- `{:error, :not_found}`, nos dois endereços da rede de revisão, volta a `/network-analysis` com
+  *"Not found."*, igual para outro tenant, inexistente e id malformado (FR-014). A breadcrumb da
+  página da 073 continua a dela (Q4 (a)).
+
+## O grafo (FR-020 a FR-026)
+
+Componente `GraphComponents.graph/1`, SVG inline. Restrições, todas testáveis no HTML entregue:
+
+- nenhum `raw/1`, `<foreignObject>`, `data-*` com JSON, `<img src="data:">`;
+- `style` só com número formatado no servidor; cor por classe da paleta;
+- `href` só por `~p` e só para o perfil de alcançado;
+- id de nó: `person_id` de alcançado; `outside-<n>` de agregado;
+- hook `.NetworkGraph` co-localizado: só `transform`; nenhum `pushEvent`, nenhum `handleEvent`;
+- destaque por `JS.add_class/remove_class`; **não existe** `handle_event` de destaque;
+- `<title>` de agregado diz só quantas pessoas contém (3.7.3);
+- `hidden sm:block` no SVG, lista empilhada `sm:hidden` com `data-label` (FR-025).
+
+**Emenda de 2026-10-04 (T032)**, feita no mesmo commit da implementação:
+
+- assinatura: `GraphComponents.graph/1` com `id` (texto), `graph` (o `graph` de `read/4` em
+  `{:ok, _}`) e `network` (`"review"` ou `"assignment"`). O componente não recebe leitura, alcance
+  nem parâmetro: só a visão já recortada e já anotada pelo `Reader` (`band`, `labelled?`, `layout`,
+  `bands`; [network-analysis.md](network-analysis.md), emenda da T033);
+- a aresta é um `<path>` com curva leve (a do protótipo aprovado, 3.2.1), e não `<line>`: o par
+  recíproco não se sobrepõe. Continua com `marker-end` e espessura 0,6 + 0,9·log2(1 + peso);
+- tamanho: 5 + 3·√grau na pessoa; 8 + 4·√tamanho no agregado (os do protótipo);
+- **o LiveView 1.2.9 não tem `phx-mouseenter`.** O destaque fica em `phx-focus`/`phx-blur` do nó
+  (teclado e clique, que focaliza o nó com `tabindex="0"`), e o hook `.NetworkGraph`, no
+  `pointerover`/`pointerout`, executa **o mesmo comando** que o nó já carrega
+  (`liveSocket.execJS`). O hook continua sem dado, sem `pushEvent` e sem `handleEvent`;
+- o cartão da pessoa (3.2.5) é renderizado escondido, um por nó da visão, e mostrado pelo mesmo
+  comando JS. Proximidade, autovetor e posição aparecem como ausência da plataforma (*"not
+  calculated by the platform yet"*) até as tarefas que os calculam (T038, T039, T045);
+- o agregado se escreve *"People outside your reach — community N (k)"*; sem comunidade calculada
+  (antes da T035), *"People outside your reach (k)"*; o `<title>` diz só quantas pessoas contém
+  (3.7.3);
+- `data-zoom` (`in`, `out`, `fit`) e `data-viewport` são os únicos `data-*` do desenho, e são
+  nomes, não dado.
+
+**Emenda de 2026-10-05 (T037)**, feita no mesmo commit da implementação:
+
+- `NetworkAnalysisLive.Communities` em `/network-analysis/:organization_id/communities`, na ordem
+  de 3.3.1–3.3.4: os três blocos (número de comunidades, modularidade com o Q_rand ao lado e as
+  faixas **citadas** com a fonte, *"Not the declared teams — a reading"*), o grafo de comunidades,
+  o método dito (o guloso de Clauset, Newman e Moore, com peso — R21: o protótipo dizia Louvain) e
+  um cartão por comunidade com alguém alcançado;
+- **comunidades por letra** (`Shared.community_letter/1`: 1 → A, 27 → AA), decisão aprovada no
+  protótipo (3.3.2). O agregado passa a dizer *"People outside your reach — community B (4)"*;
+- `GraphComponents.graph/1` ganha `view` (`weighted` | `communities`). Na vista de comunidades,
+  as **mesmas posições**; cor da comunidade (oito classes da paleta do Tailwind, que se repetem
+  depois da oitava — a letra continua a distinguir), contorno tracejado (a envoltória convexa
+  dos nós da comunidade na visão, alargada, calculada no servidor) e a letra; o agregado de fora
+  entra no contorno da sua comunidade. O cartão e a lista do telefone dizem a comunidade em texto
+  (FR-021). `GraphComponents.community_mark/1` é a mesma marca fora do desenho;
+- a página **Graph** alterna as duas vistas por `?view=` (FR-026), sem recalcular; o seletor de
+  rede e de janela leva a vista junto quando é `communities`;
+- `NetworkAnalysisLive.Leitura` (`ler/3`, `para_o_cabecalho/1`, `motivo_da_ausencia/2`,
+  `sem_aresta/1`): a leitura comum das páginas de análise, na terceira cópia (§7.7). A página
+  Graph passou a usá-la.
+
+**Emenda de 2026-10-05 (T040)**, feita no mesmo commit da implementação:
+
+- `NetworkAnalysisLive.Hubs` em `/network-analysis/:organization_id/hubs` (3.4.1–3.4.4): quatro
+  listas do tamanho da base, empate pelo identificador e marcado *"tied"* (o protótipo dizia
+  *"ties ordered by name"*; vale a base, R21);
+- **o autovetor aparece como está na leitura, de 0 a 1, com duas casas**, e não na escala 0–100
+  relativa ao maior do protótipo (3.2.5, 3.4.1). Com alcance parcial o maior do componente pode
+  ser alguém de fora, e o 100 diria onde ele está (R1 da segurança). **Divergência do protótipo
+  aprovado, a confirmar com a pessoa mantenedora** (recomendação: manter 0–1);
+- o cartão do grafo (3.2.5) passa a mostrar a proximidade (*"reaches N people, in M steps on
+  average"*) e o autovetor; a posição continua ausente até a T045;
+- sem escopo concedido, a página diz que os hubs com nome de outras pessoas não estão
+  disponíveis e mostra a frase de não-avaliação; sem alcance (DS5), nenhuma lista.
+
+**Emenda de 2026-10-05 (T042, T044)**, feita no mesmo commit da implementação:
+
+- `NetworkAnalysisLive.Distance` em `/network-analysis/:organization_id/distance` (3.5.1–3.5.5):
+  a conectividade dita, as três medidas com o valor médio dos aleatórios ao lado, a fração de
+  pares que se alcançam quando não são todos, a distribuição dos comprimentos em barras
+  hachuradas; e o mundo pequeno: a tabela real × aleatórios com as razões, σ com uma casa, o
+  critério dito como critério, a frase de Telesford et al. (2011), quantos aleatórios, a semente,
+  o gerador e quantas pessoas ficaram fora do clustering;
+- **a distribuição dos comprimentos segue a regra 4**: o total de pares revela o número de
+  pessoas, e por isso some junto com ele quando o número de pessoas é suprimido;
+- o protótipo dizia 50 aleatórios e σ *"not tested"* em rede partida; vale a base (100, e σ pelos
+  pares que se alcançam; R21). As medidas aparecem para todo alcance, inclusive DS5.
+
+**Emenda de 2026-10-05 (T046, T048)**, feita no mesmo commit da implementação:
+
+- `NetworkAnalysisLive.Positions` em `/network-analysis/:organization_id/positions` (3.6.1–3.6.3):
+  a tabela por nome, sem ordenação por coluna; a posição é o **rótulo e a frase da base**, com os
+  dois percentis e o corte (o protótipo escrevia frases próprias, *"Linked mostly inside community
+  A…"*; vale `network.position_role`, FR-044, R21). A regra a um clique usa os limiares e os
+  rótulos da base, e nenhum número escrito na tela;
+- `NetworkAnalysisLive.Profile` em `/network-analysis/:organization_id/people/:person_id` (3.6.4,
+  Tela 8): as duas redes lado a lado (empilhadas no telefone), as contagens com os rótulos de
+  `network.degree.count`, grau e intermediação com o percentil, a posição, e as duas listas por
+  peso com o total; os pares de fora só somados. `Shared.profile_path/3` é o único caminho para
+  ele, usado só com pessoas da visão (alcançadas): a lista de posições, os membros das
+  comunidades e as linhas dos hubs levam ao perfil;
+- o cartão do grafo (3.2.5) passa a mostrar a posição, com a mesma regra DS1.
+
+## O que estas telas não oferecem
+
+Botão de exportar, `download`, `Content-Disposition`, *"copy as image"*, folha de impressão do
+grafo, ordenação por coluna na lista de pessoas, nenhum evento que dispare cálculo.

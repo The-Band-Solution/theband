@@ -82,6 +82,17 @@ defmodule TheBandWeb.Plugs.CurrentScope do
   defp sem_sessao(conn, dona, motivo) do
     {user_id, tenant_id} = dona || {nil, nil}
     AccessEvents.sessao_derrubada(user_id, tenant_id, motivo)
+
+    # O PASSO DA QUEDA, ao lado do log — spec 074, T017. `:sem_sessao`, o visitante sem cookie,
+    # nunca chega aqui (a cláusula de `call/2` acima): não é uma queda, e não vira passo.
+    AccessEvents.passo(%{
+      passo: :sessao_derrubada,
+      desfecho: :falhou,
+      motivo: motivo,
+      tenant_id: tenant_id,
+      user_id: user_id
+    })
+
     sem_sessao(conn)
   end
 

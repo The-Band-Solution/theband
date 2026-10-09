@@ -63,14 +63,43 @@ RUN sed -i '/pt_BR.UTF-8/s/^# //' /etc/locale.gen && \
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8
 
 WORKDIR /app
-RUN useradd --create-home band && chown -R band /app
-USER band
+# O contêiner COMEÇA como root — #1140, `specs/071-papeis-do-banco/seguranca-1140.md`. É a
+# regressão CIS 4.1 declarada (A7): o entrypoint lê a credencial que migra num arquivo só de root,
+# migra, e troca para `band` com `setpriv` antes do `exec`. O processo que serve é `band`, sem
+# capacidade nenhuma e com `NoNewPrivs`.
+#
+# `/app` inteiro é de root e não gravável por `band` (A5): o root executa a release no `eval` da
+# migração, e um `/app` gravável por `band` deixaria quem executa código como `band` alterar o
+# que o root roda no próximo start — uma escalada que hoje não existe. Nenhum diretório de `band`
+# dentro de `/app`: um `tmp` gravável seria ataque de link simbólico contra o `eval` root.
+RUN useradd --create-home band
+USER root
 
-COPY --from=builder --chown=band:band /app/_build/prod/rel/the_band ./
-COPY --from=builder --chown=band:band /app/rel/entrypoint.sh /app/entrypoint.sh
+COPY --from=builder --chown=root:root /app/_build/prod/rel/the_band ./
+COPY --from=builder --chown=root:root --chmod=0755 /app/rel/entrypoint.sh /app/entrypoint.sh
+COPY --from=builder --chown=root:root --chmod=0755 /app/rel/saude.sh /app/bin/saude
+# #1162 (B1): o cookie gravado na imagem era o mesmo em todo contêiner da versão. Ele sai, e o
+# entrypoint gera um a cada start; sem o arquivo, a release recusa, em vez de voltar a este.
+RUN chown -R root:root /app && chmod -R go-w /app && rm /app/releases/COOKIE
 
 EXPOSE 4000
 ENV PHX_SERVER=true
+
+# A FILA ANDA? — issue #801, contrato em docs/producao/saude-da-fila.md.
+#
+# Em 2026-09-04 o Oban parou por quatro dias com a aplicação respondendo 200, e o guarda que
+# deveria perceber é um job do próprio Oban. Este verificador fica fora dele: o `rpc` executa
+# `TheBand.Release.saude_da_fila/0` dentro do nó que está servindo, pelo cookie da release, sem
+# porta nova e sem pacote novo na imagem (decisão de 2026-09-30, contra instalar `curl`).
+#
+# A função devolve "ok" ou "parada" e nunca derruba o nó; quem decide é o `grep`. O limiar da
+# fila é 15 minutos, e por isso o intervalo é de 1 minuto, com 3 falhas seguidas antes de
+# `unhealthy`. O `start-period` cobre as migrações do entrypoint e o primeiro ciclo do Cron.
+#
+# Desde a #1140, pelo `/app/bin/saude`, que roda o `rpc` como `band`: o HEALTHCHECK é root, e um
+# `rpc` root seria um nó root conectado ao nó de `band` (A1).
+HEALTHCHECK --interval=60s --timeout=20s --start-period=300s --retries=3 \
+  CMD /app/bin/saude | grep -qx ok || exit 1
 
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["/app/bin/the_band", "start"]

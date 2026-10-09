@@ -32,6 +32,36 @@ config :the_band, TheBand.Vault,
   # Chave anterior, mantida apenas para leitura durante a rotação (FR-005b).
   previous_key: System.get_env("THE_BAND_PREVIOUS_MASTER_KEY")
 
+# ---------------------------------------------------------------------------
+# Telemetria da jornada — spec 074, T005; FR-015; seguranca.md, S10; research R11.
+#
+# 1. As variáveis `OTEL_*` são APAGADAS do ambiente do processo, em todo ambiente, antes de o SDK
+#    subir: o SDK 1.7.0 e o exportador 1.11.0 as leem por cima da configuração explícita, e
+#    `OTEL_TRACES_EXPORTER` ou `OTEL_EXPORTER_OTLP_ENDPOINT` levariam os traços por fora do filtro
+#    ou para fora da rede. Os nomes apagados vão para o log de boot; os valores, nunca.
+# 2. Fora do teste, a telemetria liga só com `THE_BAND_OTLP_ENDPOINT` apontando para um host da
+#    lista de `TheBand.Telemetria.Configuracao`. Sem ela, ou fora da lista, fica desligada, e o
+#    boot diz por quê — pelo nome da variável. A aplicação sobe igual.
+#
+# No teste, a configuração é a de `config/test.exs` (o processador simples, sem exportador): os
+# testes ligam o filtro real com destino no próprio processo (research R4).
+# ---------------------------------------------------------------------------
+otel_apagadas = TheBand.Telemetria.Configuracao.neutralizar_ambiente_otel()
+
+telemetria =
+  if config_env() == :test,
+    do: :teste,
+    else: TheBand.Telemetria.Configuracao.montar(System.get_env())
+
+case telemetria do
+  {:ligada, sdk} ->
+    config :opentelemetry, sdk
+    config :the_band, :telemetria, estado: :ligada, otel_apagadas: otel_apagadas
+
+  desligada ->
+    config :the_band, :telemetria, estado: desligada, otel_apagadas: otel_apagadas
+end
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration
@@ -73,6 +103,11 @@ if config_env() == :dev do
 end
 
 if config_env() == :prod do
+  # A ORIGEM DO LIMITE POR IP — spec 077, FR-005. Sem `THE_BAND_ORIGEM`, o limite só observa: atrás
+  # do Traefik o socket é o proxy, e recusar por ele negaria a entrada a todos (seguranca.md, L1).
+  # Configuração errada levanta aqui, e a aplicação não sobe (L3). Ver runbook §15.
+  config :the_band, :origem, TheBand.Origem.Configuracao.ler!(System.get_env())
+
   database_url =
     System.get_env("DATABASE_URL") ||
       raise """

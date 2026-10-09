@@ -54,6 +54,7 @@ defmodule TheBand.Tenants.Access do
   alias TheBand.Repo
   alias TheBand.Tenants
   alias TheBand.Tenants.Access.ScopeGrant
+  alias TheBand.Tenants.PapelDeAdministrador
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
 
@@ -323,11 +324,35 @@ defmodule TheBand.Tenants.Access do
   lado, e este documento prefere repetir a razão a deixá-la implícita.
   """
   @spec pessoas_alcancadas(Tenant.t(), User.t()) :: :todas | {:algumas, MapSet.t()}
-  def pessoas_alcancadas(%Tenant{} = tenant, %User{} = user) do
-    if User.admin?(user) do
+  def pessoas_alcancadas(%Tenant{} = tenant, %User{} = user),
+    do: alcancadas(tenant, user, &scopes(tenant, &1))
+
+  @doc """
+  As pessoas que esta conta alcança **por concessão** — feature 076, DS1 (b), R11
+  (`contracts/fronteiras.md`, `Tenants`).
+
+  A mesma regra de `pessoas_alcancadas/2`, mas só com os escopos `origin: :granted`: o vínculo
+  de equipe (`:derived_team`) e o de projeto **não** contam. A própria pessoa entra sempre, e a
+  administração **deste** tenant é `:todas`.
+
+  Existe porque a DS1 separa quem tem escopo **concedido** — e por isso lê papel e hubs com o
+  nome de outra pessoa na análise de rede — de quem só é colega de equipe. Uma opção, e não uma
+  função nova: duas portas com nomes parecidos é como a R5 da segurança nasceu.
+
+  A `/2` não muda.
+  """
+  @spec pessoas_alcancadas(Tenant.t(), User.t(), origem: :concedida) ::
+          :todas | {:algumas, MapSet.t()}
+  def pessoas_alcancadas(%Tenant{} = tenant, %User{} = user, origem: :concedida),
+    do: alcancadas(tenant, user, &granted_scopes(tenant, &1))
+
+  defp alcancadas(tenant, user, escopos) do
+    # Administrador DESTE tenant, como nas cláusulas vizinhas (#1181): sem a comparação, um admin
+    # de outra organização receberia `:todas` aqui, se um chamador passasse o tenant errado.
+    if User.admin?(user) and user.tenant_id == tenant.id do
       :todas
     else
-      meus = scopes(tenant, user)
+      meus = escopos.(user)
       agora = DateTime.utc_now()
 
       equipes_diretas = for s <- meus, s.level == :team, s.target_id, do: s.target_id
@@ -543,7 +568,10 @@ defmodule TheBand.Tenants.Access do
     cond do
       # Administrador DESTE tenant: a marca é da conta, e a conta é de um tenant —
       # um admin de fora não concede aqui, seja lá como a chamada chegou.
-      not (User.admin?(actor) and actor.tenant_id == tenant.id) ->
+      #
+      # Relido no banco desde a 072 (FR-002a): a struct é a do `mount`, e um rebaixado com a
+      # aba aberta continuaria concedendo. A recusa segue `:not_admin`, que é o contrato.
+      PapelDeAdministrador.exigir_ator(tenant.id, actor.id) != :ok ->
         {:error, :not_admin}
 
       # A CONTA também é conferida contra o tenant, e aqui — não só na tela. Uma
@@ -576,7 +604,7 @@ defmodule TheBand.Tenants.Access do
           {:ok, ScopeGrant.t()} | {:error, :not_admin | :not_found}
   def revoke(%Tenant{id: tenant_id}, grant_id, %User{} = actor) do
     cond do
-      not (User.admin?(actor) and actor.tenant_id == tenant_id) ->
+      PapelDeAdministrador.exigir_ator(tenant_id, actor.id) != :ok ->
         {:error, :not_admin}
 
       grant =
@@ -597,9 +625,15 @@ defmodule TheBand.Tenants.Access do
   Uma consulta só, e direto nas concessões: organization NÃO tem caminho
   derivado (contrato), então a união inteira não precisa ser montada — e isso
   importa porque o menu pergunta isto a cada tela.
+
+  Conta de outro tenant recebe `false`, mesmo sendo admin lá — issue #1034. Era o único
+  veredito da casa que não comparava o tenant da conta com o tenant recebido.
   """
   @spec operacional?(Tenant.t(), User.t()) ::
           {true, :admin | {:organizations, [Ecto.UUID.t()]}} | false
+  def operacional?(%Tenant{id: tenant_id}, %User{tenant_id: outro}) when outro != tenant_id,
+    do: false
+
   def operacional?(%Tenant{id: tenant_id}, %User{} = user) do
     cond do
       User.admin?(user) ->

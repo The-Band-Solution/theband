@@ -420,5 +420,25 @@ defmodule TheBand.Tenants.ApiTokensTest do
       assert meu.id in ids
       refute alheio.id in ids
     end
+
+    # Issue #1035: a criação recusava só no uso, em `ApiAuth`. Agora recusa ao criar, e nada
+    # é gravado.
+    test "dono ou autor de outro tenant é recusado, e nenhum token nasce", ctx do
+      outro = tenant_fixture()
+      de_fora = user_fixture(outro)
+      antes = Repo.aggregate(Token, :count)
+
+      assert {:error, %Ecto.Changeset{} = cs} =
+               Tenants.create_api_token(ctx.tenant, de_fora, %{label: "x"}, ctx.admin)
+
+      assert {"is not an account of this organization", _} = cs.errors[:user_id]
+
+      assert {:error, %Ecto.Changeset{} = cs} =
+               Tenants.create_api_token(ctx.tenant, ctx.admin, %{label: "x"}, de_fora)
+
+      assert {"is not an account of this organization", _} = cs.errors[:created_by_user_id]
+
+      assert Repo.aggregate(Token, :count) == antes
+    end
   end
 end

@@ -33,12 +33,18 @@ target:
   concept: cmpo.change_request
 semantics:
   equivalence: total
-  justification: >
-    Um Pull Request é a solicitação formal de que alterações em cópias de artefato sob
-    controle de versão sejam avaliadas e integradas a uma branch de destino — a
-    definição literal de cmpo.change_request, que cita o Pull Request como o exemplo.
-    A equivalência é total porque o conceito foi escrito reconhecendo esta classe de
-    coisa.
+  justification:
+    pt-BR: >
+      Um Pull Request é a solicitação formal de que alterações em cópias de artefato sob
+      controle de versão sejam avaliadas e integradas a uma branch de destino — a
+      definição literal de cmpo.change_request, que cita o Pull Request como o exemplo.
+      A equivalência é total porque o conceito foi escrito reconhecendo esta classe de
+      coisa.
+    en: >
+      A Pull Request is the formal request that changes to artifact copies under version
+      control be evaluated and integrated into a target branch — the literal definition of
+      cmpo.change_request, which cites the Pull Request as the example. The equivalence is
+      total because the concept was written by recognizing this class of thing.
 identity:
   external_id_path: id
   natural_key: [repository.node_id, number]
@@ -101,54 +107,104 @@ relations:
       Idem para a branch de destino. A limitação sobre a ausência dessa relação está
       declarada abaixo, e nomeia cmpo.target_branch.
 limitations:
-  - >
-    **As relações que faltavam foram declaradas** (2026-08-17, issue #426): o módulo
-    cmpo.change_traceability traz as participações (submeter, integrar, commitar) e o
-    módulo sro.scope_traceability traz o atendimento ao item de escopo. Antes disso este
-    mapeamento afirmava os vínculos sem lastro; agora cada um materializa relação
-    declarada, e a nota de cada campo diz qual.
-  - >
-    `requested_by` liga a solicitação a eo.person como ATALHO materializado da cadeia
-    declarada — spo.project_stakeholder → cmpo.change_request_submission (participação) →
-    cmpo.change_request (causação). Não há, e não deve haver, relação direta entre
-    cmpo.change_request e eo.person: participação é entre agente e EVENTO, e a
-    solicitação é objeto social. O atalho existe porque a origem entrega o PR com autor,
-    não o ato de submeter.
-  - >
-    `integrated_by` liga a solicitação a eo.person pelo mesmo tipo de atalho, sobre outra
-    cadeia — spo.project_stakeholder → cmpo.checkin (participação) → cmpo.change_request
-    (associação). Guardar os dois como atributos da solicitação é decisão de coleta, e a
-    derivação dos atos fica para quando algo os consumir.
-  - >
-    **Continua sem relação entre cmpo.change_request e as branches** (cmpo.source_branch,
-    cmpo.target_branch): a única declarada é cmpo.commit_sends_copy_to_target_branch, que
-    parte do ato de commitar e não da solicitação. Os dois nomes ficam como atributos com
-    o papel nomeado — não foi declarada porque nada na plataforma consome o vínculo, e
-    declarar relação sem consumidor é infraestrutura sem consumidor visível.
-  - >
-    **PR mergeado não é cmpo.change_request "concluída": o merge é outra coisa.** O ato
-    de integrar é cmpo.checkin (composto de cmpo.commit_artifact_copy e, quando a
-    branch é apagada, cmpo.delete_branch), e o fechamento aprovado é
-    cmpo.change_request_closing. Este mapeamento grava `merged_at` e `integrated_by`
-    como atributos da solicitação, e a derivação dos dois atos fica para quando algo
-    os consumir — declarar isso é o que impede tratar "mergeado" como propriedade do
-    pedido.
-  - >
-    Revisões (approvals, change requests, review threads) NÃO entram: são
-    `cmpo.change_control` em outra atividade, e review thread tem âncora em código —
-    a mesma lacuna já declarada no mapeamento de comentário.
-  - >
-    Conflito (cmpo.conflict, cmpo.artifact_copy_with_conflict) não é coletável pela
-    API de PR: o GitHub expõe `mergeable`, que é o estado de AGORA, não o histórico de
-    conflitos resolvidos. Afirmar cmpo.resolve_conflict a partir dele seria inventar.
-  - >
-    `closingIssuesReferences` só existe no GraphQL. A API REST de PR não traz o
-    vínculo com issue — quem coletar por REST fica sem o elo, e a ausência precisa ser
-    dita em vez de virar "PR sem issue".
-  - >
-    Menção de issue no corpo sem closing keyword (`Refs #318`) é vínculo mais fraco e
-    fica FORA: promovê-lo ao mesmo conceito faria "mencionou" e "atende" a mesma
-    coisa. Se um dia sustentar decisão, é conceito próprio.
+  - pt-BR: >
+      **As relações que faltavam foram declaradas** (2026-08-17, issue #426): o módulo
+      cmpo.change_traceability traz as participações (submeter, integrar, commitar) e o
+      módulo sro.scope_traceability traz o atendimento ao item de escopo. Antes disso este
+      mapeamento afirmava os vínculos sem lastro; agora cada um materializa relação
+      declarada, e a nota de cada campo diz qual.
+    en: >
+      **The missing relations were declared** (2026-08-17, issue #426): the module
+      cmpo.change_traceability brings the participations (submit, integrate, commit) and the
+      module sro.scope_traceability brings the fulfillment of the scope item. Before that,
+      this mapping asserted the links without backing; now each one materializes a declared
+      relation, and the note on each field says which.
+  - pt-BR: >
+      `requested_by` liga a solicitação a eo.person como ATALHO materializado da cadeia
+      declarada — spo.project_stakeholder → cmpo.change_request_submission (participação) →
+      cmpo.change_request (causação). Não há, e não deve haver, relação direta entre
+      cmpo.change_request e eo.person: participação é entre agente e EVENTO, e a
+      solicitação é objeto social. O atalho existe porque a origem entrega o PR com autor,
+      não o ato de submeter.
+    en: >
+      `requested_by` links the request to eo.person as a materialized SHORTCUT of the
+      declared chain — spo.project_stakeholder → cmpo.change_request_submission
+      (participation) → cmpo.change_request (causation). There is not, and there should not
+      be, a direct relation between cmpo.change_request and eo.person: participation is
+      between an agent and an EVENT, and the request is a social object. The shortcut exists
+      because the source delivers the PR with an author, not the act of submitting.
+  - pt-BR: >
+      `integrated_by` liga a solicitação a eo.person pelo mesmo tipo de atalho, sobre outra
+      cadeia — spo.project_stakeholder → cmpo.checkin (participação) → cmpo.change_request
+      (associação). Guardar os dois como atributos da solicitação é decisão de coleta, e a
+      derivação dos atos fica para quando algo os consumir.
+    en: >
+      `integrated_by` links the request to eo.person by the same kind of shortcut, over
+      another chain — spo.project_stakeholder → cmpo.checkin (participation) →
+      cmpo.change_request (association). Storing both as attributes of the request is a
+      collection decision, and the derivation of the acts is left for when something
+      consumes them.
+  - pt-BR: >
+      **Continua sem relação entre cmpo.change_request e as branches** (cmpo.source_branch,
+      cmpo.target_branch): a única declarada é cmpo.commit_sends_copy_to_target_branch, que
+      parte do ato de commitar e não da solicitação. Os dois nomes ficam como atributos com
+      o papel nomeado — não foi declarada porque nada na plataforma consome o vínculo, e
+      declarar relação sem consumidor é infraestrutura sem consumidor visível.
+    en: >
+      **There is still no relation between cmpo.change_request and the branches**
+      (cmpo.source_branch, cmpo.target_branch): the only one declared is
+      cmpo.commit_sends_copy_to_target_branch, which starts from the act of committing and
+      not from the request. The two names remain as attributes with the role named — it was
+      not declared because nothing in the platform consumes the link, and declaring a
+      relation without a consumer is infrastructure without a visible consumer.
+  - pt-BR: >
+      **PR mergeado não é cmpo.change_request "concluída": o merge é outra coisa.** O ato
+      de integrar é cmpo.checkin (composto de cmpo.commit_artifact_copy e, quando a
+      branch é apagada, cmpo.delete_branch), e o fechamento aprovado é
+      cmpo.change_request_closing. Este mapeamento grava `merged_at` e `integrated_by`
+      como atributos da solicitação, e a derivação dos dois atos fica para quando algo
+      os consumir — declarar isso é o que impede tratar "mergeado" como propriedade do
+      pedido.
+    en: >
+      **A merged PR is not a "concluded" cmpo.change_request: the merge is something else.**
+      The act of integrating is cmpo.checkin (composed of cmpo.commit_artifact_copy and,
+      when the branch is deleted, cmpo.delete_branch), and the approved closing is
+      cmpo.change_request_closing. This mapping stores `merged_at` and `integrated_by` as
+      attributes of the request, and the derivation of the two acts is left for when
+      something consumes them — declaring this is what prevents treating "merged" as a
+      property of the request.
+  - pt-BR: >
+      Revisões (approvals, change requests, review threads) NÃO entram: são
+      `cmpo.change_control` em outra atividade, e review thread tem âncora em código —
+      a mesma lacuna já declarada no mapeamento de comentário.
+    en: >
+      Reviews (approvals, change requests, review threads) do NOT come in: they are
+      `cmpo.change_control` in another activity, and a review thread is anchored in code —
+      the same gap already declared in the comment mapping.
+  - pt-BR: >
+      Conflito (cmpo.conflict, cmpo.artifact_copy_with_conflict) não é coletável pela
+      API de PR: o GitHub expõe `mergeable`, que é o estado de AGORA, não o histórico de
+      conflitos resolvidos. Afirmar cmpo.resolve_conflict a partir dele seria inventar.
+    en: >
+      Conflict (cmpo.conflict, cmpo.artifact_copy_with_conflict) is not collectable through
+      the PR API: GitHub exposes `mergeable`, which is the state of NOW, not the history of
+      resolved conflicts. Asserting cmpo.resolve_conflict from it would be inventing.
+  - pt-BR: >
+      `closingIssuesReferences` só existe no GraphQL. A API REST de PR não traz o
+      vínculo com issue — quem coletar por REST fica sem o elo, e a ausência precisa ser
+      dita em vez de virar "PR sem issue".
+    en: >
+      `closingIssuesReferences` only exists in GraphQL. The PR REST API does not bring the
+      link to the issue — whoever collects through REST is left without the link, and the
+      absence needs to be stated instead of becoming "PR without issue".
+  - pt-BR: >
+      Menção de issue no corpo sem closing keyword (`Refs #318`) é vínculo mais fraco e
+      fica FORA: promovê-lo ao mesmo conceito faria "mencionou" e "atende" a mesma
+      coisa. Se um dia sustentar decisão, é conceito próprio.
+    en: >
+      An issue mention in the body without a closing keyword (`Refs #318`) is a weaker link
+      and is left OUT: promoting it to the same concept would make "mentioned" and
+      "fulfills" the same thing. If it ever supports a decision, it is a concept of its own.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at, schema_version]

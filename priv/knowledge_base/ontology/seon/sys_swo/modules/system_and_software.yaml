@@ -8,6 +8,10 @@ module:
       A distinção central: código não é idêntico ao programa. O código pode mudar
       sem alterar a identidade do programa, que está ancorada na sua especificação
       pretendida.
+    en: >
+      The central distinction: code is not identical to the program. The code may change
+      without altering the identity of the program, which is anchored in its intended
+      specification.
   provenance:
     source_type: reference_ontology
     reference: "Tese, Seção 2.2.2.1, Figura 16"
@@ -20,6 +24,9 @@ concepts:
       pt-BR: >
         Um ou mais programas de computador junto com itens auxiliares (como
         documentação), entregues sob um único nome e prontos para uso.
+      en: >
+        One or more computer programs together with auxiliary items (such as documentation),
+        delivered under a single name and ready for use.
     classification: { ufo_category: object, parent: spo.artifact }
     examples: ["Eclipse IDE", "MSWord"]
 
@@ -28,6 +35,7 @@ concepts:
     label: { pt-BR: "Item de Software", en: "Software Item" }
     definition:
       pt-BR: Peça de software considerada resultado intermediário do processo de software.
+      en: "Piece of software considered an intermediate result of the software process."
     classification: { ufo_category: object, parent: spo.artifact }
     examples: ["um programa", "um script", "um schema de banco de dados"]
 
@@ -39,6 +47,10 @@ concepts:
         Item de software que representa um conjunto de instruções e definições de
         dados expressas em uma linguagem de programação ou na saída de um
         compilador/tradutor. Não é idêntico ao programa que constitui.
+      en: >
+        Software item that represents a set of instructions and data definitions expressed
+        in a programming language or in the output of a compiler/translator. It is not
+        identical to the program it constitutes.
     classification: { ufo_category: object, parent: sys_swo.software_item }
 
   - id: sys_swo.program
@@ -49,6 +61,10 @@ concepts:
         Item de software que visa produzir certo resultado por execução em um
         computador, do modo dado pela sua especificação. É constituído por código,
         mas sua identidade está ancorada na especificação pretendida.
+      en: >
+        Software item that aims to produce a certain result through execution on a computer,
+        in the way given by its specification. It is constituted by code, but its identity
+        is anchored in the intended specification.
     classification: { ufo_category: object, parent: sys_swo.software_item }
 
   - id: sys_swo.program_specification
@@ -56,6 +72,7 @@ concepts:
     label: { pt-BR: "Especificação de Programa", en: "Program Specification" }
     definition:
       pt-BR: Descrição normativa do resultado pretendido de um programa; ancora sua identidade.
+      en: "Normative description of the intended result of a program; it anchors its identity."
     classification: { ufo_category: normative_description }
 
   - id: sys_swo.software_system
@@ -63,6 +80,7 @@ concepts:
     label: { pt-BR: "Sistema de Software", en: "Software System" }
     definition:
       pt-BR: Item de software composto de um ou mais programas que operam em conjunto.
+      en: "Software item composed of one or more programs that operate together."
     classification: { ufo_category: object, parent: sys_swo.software_item }
 
   - id: sys_swo.loaded_software_system_copy
@@ -73,6 +91,10 @@ concepts:
         Disposição que materializa um sistema de software, inerente a uma máquina.
         É o conceito usado para representar instâncias reais de ferramentas —
         um GitLab instalado em um servidor, um ambiente de build, um servidor de CI.
+      en: >
+        Disposition that materializes a software system, inhering in a machine. It is the
+        concept used to represent real instances of tools — a GitLab installed on a server,
+        a build environment, a CI server.
     # `kind` porque não há supertipo declarado: este conceito fornece o próprio
     # princípio de identidade. Anotado sozinho, na feature 004, porque
     # `cmpo.source_repository` é `subkind` dele e precisa de uma tabela para
@@ -87,6 +109,7 @@ concepts:
     label: { pt-BR: "Equipamento de Hardware", en: "Hardware Equipment" }
     definition:
       pt-BR: Equipamento físico usado no processo de software.
+      en: "Physical equipment used in the software process."
     classification: { ufo_category: object }
 
   - id: sys_swo.machine
@@ -94,6 +117,7 @@ concepts:
     label: { pt-BR: "Máquina", en: "Machine" }
     definition:
       pt-BR: Equipamento de hardware capaz de executar sistemas de software.
+      en: "Hardware equipment capable of running software systems."
     classification: { ufo_category: object, parent: sys_swo.hardware_equipment }
 
   - id: sys_swo.software_resource
@@ -101,6 +125,7 @@ concepts:
     label: { pt-BR: Recurso de Software }
     definition:
       pt-BR: Produto de software usado como recurso de alguma atividade do processo.
+      en: "Software product used as a resource of some activity of the process."
     classification: { ufo_category: role, parent: spo.resource, is_role_of: sys_swo.software_product }
 
   - id: sys_swo.hardware_resource
@@ -108,6 +133,7 @@ concepts:
     label: { pt-BR: Recurso de Hardware }
     definition:
       pt-BR: Equipamento de hardware usado como recurso de alguma atividade do processo.
+      en: "Hardware equipment used as a resource of some activity of the process."
     classification: { ufo_category: role, parent: spo.resource, is_role_of: sys_swo.hardware_equipment }
     examples: ["um smartphone usado por uma atividade de teste"]
 

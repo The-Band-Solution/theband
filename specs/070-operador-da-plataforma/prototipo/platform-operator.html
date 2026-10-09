@@ -1,0 +1,651 @@
+<title>Platform Operator Screens</title>
+<style>
+  /* Layout: one column of five screens, each in a frame whose bar carries the real method and path. */
+  :root{
+    --verdete:#1f6f68; --paper:#f7f8f7; --paper-shade:#eef0ee; --paper-line:#d7dcd8;
+    --ink:#101614; --ink-soft:#4a5551; --info-blue:#23566f; --amber:#8a5a0c; --clay:#9a4a32;
+    --left-grey:#5f6866;
+    --grotesk:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+    --serif:ui-serif,Georgia,'Iowan Old Style','Times New Roman',serif;
+    --mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;
+    --tick:.625rem; --micro:.6875rem; --meta:.8125rem; --body:.875rem;
+    --prose:1rem; --title:1.25rem; --section:1.5rem; --mark:.125rem; --box:.5rem;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+    --verdete:#5cbcb2; --paper:#0e1413; --paper-shade:#171f1d; --paper-line:#2b3734;
+    --ink:#e8edeb; --ink-soft:#9aa8a4; --info-blue:#7fb4cc; --amber:#d9a441; --clay:#e08a6d;
+    --left-grey:#a3adaa;}}
+  :root[data-theme="dark"]{color-scheme:dark;
+    --verdete:#5cbcb2; --paper:#0e1413; --paper-shade:#171f1d; --paper-line:#2b3734;
+    --ink:#e8edeb; --ink-soft:#9aa8a4; --info-blue:#7fb4cc; --amber:#d9a441; --clay:#e08a6d;
+    --left-grey:#a3adaa;}
+  *{box-sizing:border-box}
+  body{background:var(--paper);color:var(--ink);font-family:var(--grotesk);
+       font-size:var(--body);line-height:1.5;margin:0;padding-block:2rem 5rem;padding-inline:1rem}
+  body.gray .wrap{filter:grayscale(1)}
+  .wrap{max-width:60rem;margin:0 auto;display:flex;flex-direction:column;gap:2.5rem}
+  .eyebrow{font-family:var(--mono);font-size:var(--tick);letter-spacing:.06em;
+           text-transform:uppercase;color:var(--ink-soft);margin:0 0 .5rem}
+  h1{font-size:var(--section);font-weight:650;letter-spacing:-.02em;line-height:1.2;margin:0 0 .75rem;text-wrap:balance}
+  h2{font-size:var(--title);font-weight:650;letter-spacing:-.02em;margin:0;text-wrap:balance}
+  h3{font-size:var(--body);font-weight:650;margin:0}
+  .prose{font-family:var(--serif);font-size:var(--prose);line-height:1.6;max-width:40rem;margin:0}
+  .note{font-family:var(--serif);font-size:var(--meta);line-height:1.55;color:var(--ink-soft);max-width:42rem;margin:0}
+  section{display:flex;flex-direction:column;gap:1rem;min-width:0}
+  code{font-family:var(--mono);font-size:.9em;background:var(--paper-shade);
+       padding:.05rem .25rem;border-radius:var(--mark);border:1px solid var(--paper-line);overflow-wrap:anywhere}
+  .band{font-family:var(--mono);font-size:var(--micro);letter-spacing:.06em;text-transform:uppercase;
+        color:var(--paper);background:var(--ink);padding:.35rem .7rem;border-radius:var(--mark);align-self:flex-start}
+  .tools{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:1rem}
+  .tools button{font:inherit;font-family:var(--mono);font-size:var(--micro);color:var(--ink);
+    background:var(--paper-shade);border:1px solid var(--paper-line);border-radius:var(--mark);
+    padding:.3rem .6rem;cursor:pointer}
+  .tools button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  :focus-visible{outline:2px solid var(--verdete);outline-offset:2px}
+  .ex{font-family:var(--mono);font-size:var(--tick);letter-spacing:.05em;text-transform:uppercase;
+      color:var(--amber);border:1px dashed currentColor;border-radius:var(--mark);padding:0 .3rem;white-space:nowrap}
+
+  /* The frame of a screen: the bar names the real route, so the QA reads which controller renders it. */
+  .frame{border:1.5px solid var(--paper-line);border-radius:var(--box);background:var(--paper);overflow:hidden;min-width:0}
+  .bar{display:flex;flex-wrap:wrap;gap:.25rem .75rem;align-items:center;justify-content:space-between;
+       background:var(--paper-shade);border-bottom:1.5px solid var(--paper-line);padding:.45rem .75rem}
+  .route{font-family:var(--mono);font-size:var(--micro);color:var(--ink-soft);overflow-wrap:anywhere}
+  .route b{color:var(--ink);font-weight:600}
+  .state-tag{font-family:var(--mono);font-size:var(--tick);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+  .screen{padding:1.25rem 1rem 1.5rem;display:flex;flex-direction:column;gap:1rem}
+  @media(min-width:40rem){.screen{padding:1.5rem 1.75rem 1.75rem}}
+  .appbar{display:flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:baseline;justify-content:space-between;
+          border-bottom:1px solid var(--paper-line);padding-bottom:.6rem}
+  .brand{font-weight:700;letter-spacing:-.01em}
+  .brand span{font-family:var(--mono);font-size:var(--micro);font-weight:500;color:var(--ink-soft);margin-left:.4rem;letter-spacing:.04em}
+  .who{font-size:var(--meta);color:var(--ink-soft);display:flex;gap:.6rem;align-items:baseline;flex-wrap:wrap}
+  .linkbtn{font:inherit;font-size:var(--meta);background:none;border:none;color:var(--verdete);text-decoration:underline;cursor:pointer;padding:0}
+  .scope{font-family:var(--serif);font-size:var(--meta);color:var(--ink-soft);border-left:3px solid var(--paper-line);padding-left:.6rem;margin:0}
+
+  /* Forms: one column, phone first; the real screens are controllers without inline script. */
+  form{display:flex;flex-direction:column;gap:.85rem;max-width:28rem;margin:0}
+  form.wide{max-width:40rem}
+  .field{display:flex;flex-direction:column;gap:.25rem}
+  label,.lbl{font-size:var(--meta);font-weight:600}
+  .hint{font-size:var(--micro);color:var(--ink-soft);font-weight:400}
+  .req{color:var(--clay);font-weight:500}
+  input[type=text],input[type=email],input[type=password],textarea{
+    font:inherit;font-size:var(--body);color:var(--ink);background:var(--paper);
+    border:1.5px solid var(--paper-line);border-radius:var(--mark);padding:.5rem .6rem;width:100%;min-height:2.75rem}
+  textarea{min-height:4.5rem;font-family:var(--serif)}
+  input.code{font-family:var(--mono);letter-spacing:.12em}
+  input.bad{border-color:var(--clay)}
+  .btn{font:inherit;font-weight:600;font-size:var(--body);border-radius:var(--mark);padding:.55rem 1rem;
+       min-height:2.75rem;cursor:pointer;align-self:flex-start;border:1.5px solid var(--verdete);
+       background:var(--verdete);color:var(--paper)}
+  .btn.danger{background:var(--clay);border-color:var(--clay)}
+  .btn.quiet{background:transparent;color:var(--verdete)}
+  .hidden-field{font-family:var(--mono);font-size:var(--micro);color:var(--ink-soft);border:1px dashed var(--paper-line);
+                border-radius:var(--mark);padding:.3rem .5rem}
+
+  /* Notices: refused and warning carry an icon and a word besides the colour (WCAG 1.4.1). */
+  .notice{display:flex;gap:.6rem;align-items:flex-start;border:1.5px solid currentColor;border-radius:var(--box);
+          padding:.65rem .8rem;max-width:40rem}
+  .notice .ic{font-family:var(--mono);font-weight:700;flex:none;width:1.4rem;height:1.4rem;display:inline-flex;
+              align-items:center;justify-content:center;border:1.5px solid currentColor;border-radius:50%;font-size:var(--meta)}
+  .notice div{font-family:var(--serif);font-size:var(--meta);line-height:1.55;color:var(--ink)}
+  .notice b{font-family:var(--grotesk)}
+  .notice.refused{color:var(--clay);background-image:repeating-linear-gradient(135deg,color-mix(in srgb,var(--clay) 9%,transparent) 0 3px,transparent 3px 7px)}
+  .notice.warn{color:var(--amber);border-style:double;border-width:3px}
+  .notice.done{color:var(--verdete)}
+
+  /* Marks: the house grammar. Filled verdete = observed, grey filled = ended and on record,
+     dashed = absence, clay hatched = refusal. Text always rides with the shape. */
+  .chip{display:inline-flex;align-items:center;gap:.3rem;font-family:var(--mono);font-size:var(--micro);
+        letter-spacing:.03em;padding:.1rem .45rem;border-radius:var(--mark);white-space:nowrap}
+  .obs{background:var(--verdete);color:var(--paper);border:1px solid var(--verdete)}
+  .left{background:var(--left-grey);color:var(--paper);border:1px solid var(--left-grey)}
+  .abs{color:var(--ink-soft);border:1px dashed currentColor;background:transparent;font-style:italic}
+  .mis{color:var(--clay);border:1px solid currentColor;
+       background-image:repeating-linear-gradient(135deg,color-mix(in srgb,var(--clay) 22%,transparent) 0 2px,transparent 2px 4px)}
+  .dot{width:.45rem;height:.45rem;border-radius:50%;background:currentColor;display:inline-block}
+  .obs .dot,.left .dot{background:var(--paper)}
+
+  /* Secrets shown once. */
+  .secret{font-family:var(--mono);font-size:var(--prose);letter-spacing:.08em;word-spacing:.35em;
+          background:var(--paper-shade);border:1.5px solid var(--paper-line);border-radius:var(--mark);
+          padding:.6rem .75rem;overflow-wrap:anywhere}
+  .uri{font-family:var(--mono);font-size:var(--micro);background:var(--paper-shade);border:1.5px solid var(--paper-line);
+       border-radius:var(--mark);padding:.5rem .65rem;overflow-wrap:anywhere;color:var(--ink)}
+  .codes{list-style:none;margin:0;padding:.75rem;display:grid;grid-template-columns:1fr;gap:.35rem .9rem;
+         background:var(--paper-shade);border:1.5px solid var(--paper-line);border-radius:var(--mark);max-width:30rem}
+  @media(min-width:30rem){.codes{grid-template-columns:1fr 1fr}}
+  .codes li{font-family:var(--mono);font-size:var(--body);font-variant-numeric:tabular-nums;letter-spacing:.06em;display:flex;gap:.5rem}
+  .codes li i{font-style:normal;color:var(--ink-soft);width:1.4rem;text-align:right}
+  dl.kv{margin:0;display:flex;flex-direction:column;max-width:40rem}
+  dl.kv div{display:grid;grid-template-columns:7.5rem 1fr;gap:.5rem;padding:.35rem 0;border-bottom:1px solid var(--paper-line)}
+  dl.kv dt{font-family:var(--mono);font-size:var(--micro);color:var(--ink-soft);padding-top:.1rem}
+  dl.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+
+  /* The organisation list: four columns, so it stacks below 40rem (design-system §5). */
+  .tablewrap{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:var(--body)}
+  th{font-family:var(--mono);font-size:var(--micro);font-weight:500;color:var(--ink-soft);text-align:left;
+     padding:.45rem .6rem;border-bottom:1.5px solid var(--paper-line)}
+  td{padding:.55rem .6rem;border-bottom:1px solid var(--paper-line);vertical-align:top}
+  td.num,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  td a,.a{color:var(--verdete);font-weight:600}
+  @media(max-width:40rem){
+    table.stacked thead{display:none}
+    table.stacked tr{display:block;border:1.5px solid var(--paper-line);border-radius:var(--box);padding:.4rem .6rem;margin-bottom:.6rem}
+    table.stacked td{display:grid;grid-template-columns:6.5rem 1fr;gap:.5rem;border:none;padding:.3rem 0}
+    table.stacked td::before{content:attr(data-label);font-family:var(--mono);font-size:var(--micro);color:var(--ink-soft)}
+  }
+
+  /* An episode: two halves, the opening and the closing, side by side from 44rem. */
+  .episode{border:1.5px solid var(--paper-line);border-radius:var(--box);display:grid;grid-template-columns:1fr;min-width:0}
+  @media(min-width:44rem){.episode{grid-template-columns:1fr 1fr}}
+  .half{padding:.75rem .9rem;display:flex;flex-direction:column;gap:.35rem;min-width:0}
+  .half + .half{border-top:1px solid var(--paper-line)}
+  @media(min-width:44rem){.half + .half{border-top:none;border-left:1px solid var(--paper-line)}}
+  .half .h{font-family:var(--mono);font-size:var(--tick);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+  .half .line{font-size:var(--meta)}
+  .half .why{font-family:var(--serif);font-size:var(--meta)}
+  .half q{font-family:var(--serif);font-style:italic;color:var(--ink-soft);quotes:"“" "”"}
+
+  fieldset{border:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.4rem}
+  legend{font-size:var(--meta);font-weight:600;margin-bottom:.35rem;padding:0}
+  .opt{display:flex;gap:.55rem;align-items:flex-start;border:1px solid var(--paper-line);border-radius:var(--mark);padding:.5rem .6rem;min-height:2.75rem}
+  .opt input{margin-top:.2rem;flex:none}
+  .opt .t{font-weight:600;font-size:var(--meta)}
+  .opt .cod{font-family:var(--mono);font-size:var(--tick);color:var(--ink-soft);display:block}
+  .opt .d{font-family:var(--serif);font-size:var(--micro);color:var(--ink-soft);display:block}
+  .opt .needs{font-family:var(--mono);font-size:var(--tick);color:var(--clay)}
+  .conseq{margin:0;padding:.7rem .8rem .7rem 2rem;border:1.5px solid var(--paper-line);border-radius:var(--box);
+          display:flex;flex-direction:column;gap:.3rem;font-family:var(--serif);font-size:var(--meta);background:var(--paper-shade)}
+  .conseq-h{font-family:var(--mono);font-size:var(--tick);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);margin:0}
+  .two{display:grid;grid-template-columns:1fr;gap:1.25rem}
+  @media(min-width:56rem){.two{grid-template-columns:1fr 1fr}}
+  .two > *{min-width:0}
+
+  /* Notes, decisions, questions */
+  .aside{border-left:3px dashed var(--info-blue);padding:.2rem 0 .2rem .8rem;display:flex;flex-direction:column;gap:.35rem}
+  .aside h3{color:var(--info-blue)}
+  .aside p{font-family:var(--serif);font-size:var(--meta);line-height:1.55;margin:0}
+  .dec{display:flex;flex-direction:column;gap:.9rem}
+  .item{border-left:3px solid var(--paper-line);padding-left:.8rem;display:flex;flex-direction:column;gap:.25rem}
+  .item.decided{border-left-color:var(--verdete)}
+  .item.open{border-left-color:var(--amber);border-left-style:dashed}
+  .item .h{font-weight:650}
+  .item .s{font-family:var(--mono);font-size:var(--tick);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+  .item p,.item li{font-family:var(--serif);font-size:var(--meta);line-height:1.55;margin:0}
+  .item ul{margin:.2rem 0 0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.2rem}
+  .rec{color:var(--verdete);font-weight:600}
+  .key{display:flex;flex-wrap:wrap;gap:.6rem 1.2rem;align-items:center}
+  .key div{display:flex;align-items:center;gap:.4rem;font-size:var(--micro);color:var(--ink-soft)}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Prototype · spec 070 · task T012 · maintainer's decisions of 2026-10-01 applied · approval date pending review of this version</p>
+    <h1>Platform Operator Screens</h1>
+    <p class="prose">Five screens for the person who runs the platform: sign in with a second factor, set the password from a one-time code, enrol the authenticator, list the organisations, and suspend or reactivate one. The operator sees each organisation's name, slug and state, and nothing an organisation owns.</p>
+    <div class="tools">
+      <button type="button" id="gray" aria-pressed="false">View in greyscale</button>
+      <span class="note">Every state must read without colour. Toggle to check.</span>
+    </div>
+    <p class="note" style="margin-top:.75rem">All names, slugs, e-mails, dates, secrets and codes on this page are <span class="ex">example</span>. None comes from a real organisation or a real operator.</p>
+  </header>
+
+  <section aria-label="Marks used on these screens">
+    <div class="key">
+      <div><span class="chip obs"><span class="dot"></span>active</span> state recorded on the organisation</div>
+      <div><span class="chip left"><span class="dot"></span>suspended</span> ended access, kept on the record</div>
+      <div><span class="chip abs">never suspended</span> absence, written out</div>
+      <div><span class="chip mis">refused</span> the act did not happen</div>
+    </div>
+  </section>
+
+  <!-- ===================== SCREEN 1 ===================== -->
+  <span class="band">screen 1 · sign in</span>
+  <section id="s1">
+    <h2>Sign in with password and code in one form</h2>
+    <p class="note">One form, three fields. There is no half-signed-in state between the password and the code. Any failure gives the same sentence, whichever field was wrong, and so does the wait after repeated failures.</p>
+
+    <div class="two">
+      <div class="frame">
+        <div class="bar"><span class="route"><b>GET</b> /platform/sign-in</span><span class="state-tag">at rest</span></div>
+        <div class="screen">
+          <div class="appbar"><span class="brand">The Band<span>platform operation</span></span></div>
+          <form onsubmit="return false" autocomplete="on">
+            <div class="field"><label for="s1-email">Email</label>
+              <input type="email" id="s1-email" name="email" autocomplete="username" value=""></div>
+            <div class="field"><label for="s1-pw">Password</label>
+              <input type="password" id="s1-pw" name="password" autocomplete="current-password"></div>
+            <div class="field"><label for="s1-code">Authenticator code <span class="hint">or a recovery code</span></label>
+              <input type="text" class="code" id="s1-code" name="second_factor_token" inputmode="text" autocomplete="one-time-code" placeholder="6 digits, or xxxx-xxxx-xxxx-xxxx"></div>
+            <button class="btn" type="submit">Sign in</button>
+          </form>
+          <p class="note">Lost the password or the authenticator? Ask whoever runs the server for a new setup code. There is no reset by e-mail.</p>
+        </div>
+      </div>
+
+      <div class="frame">
+        <div class="bar"><span class="route"><b>POST</b> /platform/session → re-rendered</span><span class="state-tag">refused</span></div>
+        <div class="screen">
+          <div class="appbar"><span class="brand">The Band<span>platform operation</span></span></div>
+          <div class="notice refused" role="alert"><span class="ic">!</span>
+            <div><b>Not signed in.</b> Check the email, password and code, then try again in a moment.</div></div>
+          <form onsubmit="return false">
+            <div class="field"><label for="s1r-email">Email</label>
+              <input type="email" id="s1r-email" value="ops@example.org"></div>
+            <div class="field"><label for="s1r-pw">Password</label>
+              <input type="password" id="s1r-pw"></div>
+            <div class="field"><label for="s1r-code">Authenticator code <span class="hint">or a recovery code</span></label>
+              <input type="text" class="code" id="s1r-code"></div>
+            <button class="btn" type="submit">Sign in</button>
+          </form>
+          <p class="note">The email stays filled; password and code are cleared. No field is marked: marking one would say which one was right.</p>
+        </div>
+      </div>
+    </div>
+    <p class="note">The same sentence covers: unknown email, wrong password, password never set, second factor not enrolled, wrong code, a code already used, a recovery code already used, no current grant, and the wait after failures. The internal reason goes to the access log only. On success: <code>/platform/organizations</code>.</p>
+  </section>
+
+  <!-- ===================== SCREEN 2 ===================== -->
+  <span class="band">screen 2 · set the password</span>
+  <section>
+    <h2>Set the password with the one-time setup code</h2>
+    <p class="note">The setup code is printed once by the release command that grants the role or resets the credential. It works once and lasts 30 minutes. It is typed into the form and never travels in the address.</p>
+
+    <div class="two">
+      <div class="frame">
+        <div class="bar"><span class="route"><b>GET</b> /platform/setup</span><span class="state-tag">at rest</span></div>
+        <div class="screen">
+          <div class="appbar"><span class="brand">The Band<span>platform operation</span></span></div>
+          <p class="note" style="color:var(--ink)"><b style="font-family:var(--grotesk)">Step 1 of 3.</b> Set your password. Step 2 adds your authenticator, and step 3 asks you to store the recovery codes. You cannot sign in until all three are done.</p>
+          <form onsubmit="return false">
+            <div class="field"><label for="s2-email">Email</label>
+              <input type="email" id="s2-email" name="email" autocomplete="username"></div>
+            <div class="field"><label for="s2-tok">Setup code <span class="hint">from the release command, valid 30 minutes</span></label>
+              <input type="text" class="code" id="s2-tok" name="setup_token" autocomplete="off" spellcheck="false"></div>
+            <div class="field"><label for="s2-pw">New password <span class="hint">12 to 128 characters</span></label>
+              <input type="password" id="s2-pw" name="password" autocomplete="new-password"></div>
+            <div class="field"><label for="s2-pw2">Repeat the new password</label>
+              <input type="password" id="s2-pw2" name="password_confirmation" autocomplete="new-password"></div>
+            <button class="btn" type="submit">Set password and continue</button>
+          </form>
+          <p class="note">Setting the password signs out every open operator session and replaces any authenticator enrolled before.</p>
+        </div>
+      </div>
+
+      <div class="frame">
+        <div class="bar"><span class="route"><b>POST</b> /platform/setup → re-rendered</span><span class="state-tag">refused</span></div>
+        <div class="screen">
+          <div class="appbar"><span class="brand">The Band<span>platform operation</span></span></div>
+          <div class="notice refused" role="alert"><span class="ic">!</span>
+            <div><b>Password not set.</b> The email or setup code was not accepted. A setup code works once and lasts 30 minutes; if it has expired, ask for a new one.</div></div>
+          <div class="notice refused" role="alert"><span class="ic">!</span>
+            <div><b>Password not set.</b> The password needs 12 to 128 characters. Your setup code still works.</div></div>
+          <p class="note">Two refusals, never shown together; both are here only to be read. The first covers unknown email, wrong code, expired code, used code, no grant and the wait. The second can only appear after the code checked out (the contract rolls the code back), so it reveals nothing new.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== SCREEN 3 ===================== -->
+  <span class="band">screen 3 · enrol the authenticator</span>
+  <section>
+    <h2>Add the authenticator, confirm one code, store the recovery codes</h2>
+    <p class="note">No QR code: the secret is shown as text to type into the authenticator app, and the <code>otpauth://</code> address is there to copy. Every authenticator offers “enter a setup key”. No QR, by the maintainer's decision of 2026-10-01 (Q1).</p>
+
+    <div class="two">
+      <div class="frame">
+        <div class="bar"><span class="route"><b>POST</b> /platform/setup → success</span><span class="state-tag">secret shown once</span></div>
+        <div class="screen">
+          <div class="appbar"><span class="brand">The Band<span>platform operation</span></span></div>
+          <p class="note" style="color:var(--ink)"><b style="font-family:var(--grotesk)">Step 2 of 3.</b> Password set. Now add The Band to your authenticator app.</p>
+          <div class="notice warn"><span class="ic">1×</span>
+            <div><b>This secret is shown once.</b> It is not shown again after this page, even if the code below is refused. If you leave before confirming, ask for a new setup code. This step expires at <span class="num">14:42 UTC</span>, ten minutes after the password was set.</div></div>
+          <dl class="kv">
+            <div><dt>issuer</dt><dd>The Band Platform</dd></div>
+            <div><dt>account</dt><dd>ops@example.org <span class="ex">example</span></dd></div>
+            <div><dt>type</dt><dd>time-based, 6 digits, every 30 seconds</dd></div>
+          </dl>
+          <div class="field"><span class="lbl">Setup key <span class="hint">type it into the app</span></span>
+            <div class="secret" aria-label="setup key">JBSW Y3DP EHPK 3PXP JBSW Y3DP EHPK 3PXP</div></div>
+          <div class="field"><span class="lbl">Or copy the address <span class="hint">some apps accept it whole</span></span>
+            <div class="uri">otpauth://totp/The%20Band%20Platform:ops@example.org?secret=JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP&amp;issuer=The%20Band%20Platform</div></div>
+          <form onsubmit="return false">
+            <span class="hidden-field">hidden: enrollment_token · in the form body, never in the address</span>
+            <div class="field"><label for="s3-code">Code from the app</label>
+              <input type="text" class="code" id="s3-code" name="second_factor_token" inputmode="numeric" autocomplete="one-time-code" placeholder="6 digits"></div>
+            <button class="btn" type="submit">Confirm authenticator</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="frame">
+        <div class="bar"><span class="route"><b>POST</b> /platform/setup/second-factor → re-rendered</span><span class="state-tag">refused</span></div>
+        <div class="screen">
+          <div class="appbar"><span class="brand">The Band<span>platform operation</span></span></div>
+          <div class="notice refused" role="alert"><span class="ic">!</span>
+            <div><b>Authenticator not confirmed.</b> The code was not accepted. Wait for the next code and try again; if the app's clock is off, codes will keep failing. The setup key is not shown again: if it never reached your app, ask for a new setup code.</div></div>
+          <form onsubmit="return false">
+            <span class="hidden-field">hidden: enrollment_token · resent from the form body</span>
+            <div class="field"><label for="s3r-code">Code from the app</label>
+              <input type="text" class="code" id="s3r-code" placeholder="6 digits"></div>
+            <button class="btn" type="submit">Confirm authenticator</button>
+          </form>
+          <p class="note">A wrong code does not use up the step: it stays valid until it expires. The same sentence covers an expired or used step and the wait.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="frame">
+      <div class="bar"><span class="route"><b>POST</b> /platform/setup/second-factor → success</span><span class="state-tag">recovery codes shown once · not yet valid</span></div>
+      <div class="screen">
+        <div class="appbar"><span class="brand">The Band<span>platform operation</span></span></div>
+        <p class="note" style="color:var(--ink)"><b style="font-family:var(--grotesk)">Step 3 of 3.</b> Code accepted. Store your recovery codes to finish.</p>
+        <div class="notice warn"><span class="ic">1×</span>
+          <div><b>Store these ten recovery codes now. They are shown once and never again.</b> Each one replaces the authenticator code for one sign-in, then stops working. The platform keeps only a fingerprint of each, so nobody can show them to you later. Lose both the app and the codes, and the way back is a new setup code from whoever runs the server.</div></div>
+        <ol class="codes" aria-label="recovery codes">
+          <li><i>1</i>k7qm-3xfa-p2rd-wntv</li><li><i>2</i>h4zc-ye6b-q3ls-umka</li>
+          <li><i>3</i>rv2j-d7np-xc5e-tgqo</li><li><i>4</i>m6wa-fz3k-b2yd-lqhr</li>
+          <li><i>5</i>s3ux-n7ec-jp4v-zdwa</li><li><i>6</i>qa5t-gk2m-w7ry-ebfn</li>
+          <li><i>7</i>d2hy-v6qz-l3xc-pmsu</li><li><i>8</i>e7bn-t4ka-r5fw-yjzq</li>
+          <li><i>9</i>u3pc-x2gl-m6dt-hvka</li><li><i>10</i>w5re-q7sj-c3nb-afyd</li>
+        </ol>
+        <p class="note">Ten codes, 16 letters and digits each, hyphen every four for reading. Typed into the third field of the sign-in form, with or without hyphens, in any case. <span class="ex">example</span></p>
+        <form onsubmit="return false">
+          <span class="hidden-field">hidden: acknowledgement_token · in the form body, never in the address</span>
+          <label class="opt" for="s3-stored"><input type="checkbox" id="s3-stored" name="codes_stored" value="true" required>
+            <span><span class="t">I stored these ten recovery codes somewhere other than this page.</span>
+            <span class="d">Until you finish, neither your authenticator nor these codes can be used to sign in. This step expires at <span class="num">14:44 UTC</span>, ten minutes after the code was accepted.</span></span></label>
+          <button class="btn" type="submit">Finish setup</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="two">
+      <div class="frame">
+        <div class="bar"><span class="route"><b>POST</b> /platform/setup/recovery-codes → re-rendered</span><span class="state-tag">refused · box not ticked</span></div>
+        <div class="screen">
+          <div class="appbar"><span class="brand">The Band<span>platform operation</span></span></div>
+          <div class="notice refused" role="alert"><span class="ic">!</span>
+            <div><b>Setup not finished.</b> Tick the box to confirm you stored the recovery codes. The codes are not shown again: if you did not store them, ask whoever runs the server for a new setup code. Nothing changed.</div></div>
+          <form onsubmit="return false">
+            <span class="hidden-field">hidden: acknowledgement_token · resent from the form body</span>
+            <label class="opt" for="s3r-stored"><input type="checkbox" id="s3r-stored" required>
+              <span><span class="t">I stored these ten recovery codes somewhere other than this page.</span></span></label>
+            <button class="btn" type="submit">Finish setup</button>
+          </form>
+          <p class="note">The box is <code>required</code> in the form, so a browser does not send it unticked; this state covers a request that arrives without it. An unticked box does not use up the step. An expired or used step gets the same sentence as every other refusal of the setup: <b>Setup not finished.</b> The step was not accepted; ask for a new setup code.</p>
+        </div>
+      </div>
+
+      <div class="frame">
+        <div class="bar"><span class="route"><b>POST</b> /platform/setup/recovery-codes → success</span><span class="state-tag">credential ready</span></div>
+        <div class="screen">
+          <div class="appbar"><span class="brand">The Band<span>platform operation</span></span></div>
+          <div class="notice done"><span class="ic">✓</span><div><b>Setup finished.</b> Your authenticator and your recovery codes are now valid. Every open operator session was signed out.</div></div>
+          <a class="btn" href="#s1" style="text-decoration:none">Go to sign in</a>
+          <p class="note">The link leads to <code>/platform/sign-in</code>. It does not sign you in: the first sign-in uses password and code like every other.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== SCREEN 4 ===================== -->
+  <span class="band">screen 4 · organisations</span>
+  <section id="s4">
+    <h2>Every organisation, with its state and nothing it owns</h2>
+    <div class="frame">
+      <div class="bar"><span class="route"><b>GET</b> /platform/organizations</span><span class="state-tag">operator signed in</span></div>
+      <div class="screen">
+        <div class="appbar">
+          <span class="brand">The Band<span>platform operation</span></span>
+          <span class="who">Rui Example <span class="ex">example</span> · ops@example.org
+            <form onsubmit="return false" style="display:inline"><button class="linkbtn" type="submit">Sign out</button></form></span>
+        </div>
+        <h3 style="font-size:var(--title)">Organisations</h3>
+        <p class="scope">You see each organisation's name, slug, state and suspension history. You do not see its people, teams, work or numbers. Operating the platform does not open any organisation.</p>
+        <div class="tablewrap">
+          <table class="stacked">
+            <thead><tr><th>organisation</th><th>slug</th><th>state</th><th>last suspended</th></tr></thead>
+            <tbody>
+              <tr><td data-label="organisation"><a href="#s5">Acme Labs</a></td><td data-label="slug" class="num">acme-labs</td>
+                <td data-label="state"><span class="chip left"><span class="dot"></span>suspended</span></td>
+                <td data-label="last suspended" class="num">2026-09-30</td></tr>
+              <tr><td data-label="organisation"><a href="#s5">Example Org</a></td><td data-label="slug" class="num">example-org</td>
+                <td data-label="state"><span class="chip obs"><span class="dot"></span>active</span></td>
+                <td data-label="last suspended"><span class="chip abs" title="no suspension episode recorded for this organisation">never suspended</span></td></tr>
+              <tr><td data-label="organisation"><a href="#s5">Legacy Works</a></td><td data-label="slug" class="num">legacy-works</td>
+                <td data-label="state"><span class="chip left"><span class="dot"></span>suspended</span></td>
+                <td data-label="last suspended" class="num">2026-10-01 <span class="hint">· reason not recorded</span></td></tr>
+              <tr><td data-label="organisation"><a href="#s5">Northwind Studio</a></td><td data-label="slug" class="num">northwind</td>
+                <td data-label="state"><span class="chip obs"><span class="dot"></span>active</span></td>
+                <td data-label="last suspended" class="num">2026-08-12</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note">Ordered by name. All rows <span class="ex">example</span>. No count of people, accounts, teams, issues or tokens, on the row or anywhere on the page (FR-007). No bulk action: suspending is one organisation at a time, with a reason (FR-008).</p>
+      </div>
+    </div>
+    <p class="note"><b>Legacy Works</b> shows the migration case: an organisation that was <code>suspended</code> by hand in the database before this feature. The migration records an episode dated when it ran, with the reason <em>The reason was not recorded</em> and no author. <b>Northwind</b> was suspended and later reactivated; the column shows when the last suspension began.</p>
+  </section>
+
+  <!-- ===================== SCREEN 5 ===================== -->
+  <span class="band">screen 5 · one organisation · history and the act</span>
+  <section id="s5">
+    <h2>History, and the one act that fits the state</h2>
+    <p class="note">An active organisation offers only <em>Suspend</em>; a suspended one offers only <em>Reactivate</em>. Reasons come from the closed list <code>platform.tenant_suspension</code> in the knowledge base. Newest episode first. Nothing on this page is ever erased.</p>
+
+    <!-- 5a: active org, suspend form -->
+    <div class="frame">
+      <div class="bar"><span class="route"><b>GET</b> /platform/organizations/northwind</span><span class="state-tag">active · suspend offered</span></div>
+      <div class="screen">
+        <div class="appbar">
+          <span class="brand">The Band<span>platform operation</span></span>
+          <span class="who"><a class="a" href="#s4">← Organisations</a> · Rui Example · <button class="linkbtn" type="button">Sign out</button></span>
+        </div>
+        <div>
+          <h3 style="font-size:var(--title)">Northwind Studio</h3>
+          <div class="who"><span class="num">northwind</span> · <span class="chip obs"><span class="dot"></span>active</span></div>
+        </div>
+
+        <h3>Suspension history</h3>
+        <div class="episode">
+          <div class="half">
+            <span class="h">suspended</span>
+            <span class="line num">2026-08-12 09:14 UTC · by Rui Example</span>
+            <span class="why">The contract ended <span class="hint">contract_ended</span></span>
+            <span class="chip abs" style="align-self:flex-start">no note</span>
+          </div>
+          <div class="half">
+            <span class="h">reactivated</span>
+            <span class="line num">2026-08-15 16:02 UTC · by Bia Example</span>
+            <span class="why">The contract resumed <span class="hint">contract_resumed</span></span>
+            <q>Renewal signed on the 15th.</q>
+          </div>
+        </div>
+
+        <form class="wide" onsubmit="return false">
+          <h3 style="font-size:var(--prose)">Suspend Northwind Studio</h3>
+          <fieldset>
+            <legend>Reason <span class="req">— required</span></legend>
+            <label class="opt"><input type="radio" name="reason" checked><span><span class="t">Suspected compromise</span> <span class="needs">note required</span><span class="cod">suspected_compromise</span></span></label>
+            <label class="opt"><input type="radio" name="reason"><span><span class="t">The contract ended</span><span class="cod">contract_ended</span></span></label>
+            <label class="opt"><input type="radio" name="reason"><span><span class="t">Requested by the organisation</span><span class="cod">requested_by_the_organisation</span></span></label>
+            <label class="opt"><input type="radio" name="reason"><span><span class="t">Other</span> <span class="needs">note required</span><span class="cod">other</span></span></label>
+          </fieldset>
+          <div class="field"><label for="s5-note">Note <span class="hint">required for Suspected compromise and Other; optional otherwise. Kept with the episode.</span></label>
+            <textarea id="s5-note" name="note">Token for example-ci seen in a public paste on 2026-10-01. Suspending until the organisation rotates it.</textarea></div>
+          <p class="conseq-h">What suspending does, at once and in one step</p>
+          <ul class="conseq">
+            <li>Every person in Northwind Studio is signed out, on every device.</li>
+            <li>Every API token of Northwind Studio is revoked.</li>
+            <li>Nobody in it can sign in, and no collection or background job runs for it.</li>
+            <li>Its data stays as it is. Nothing is deleted.</li>
+            <li>Reactivating later does <b>not</b> bring sessions or tokens back: each person signs in again, and each token is issued again.</li>
+          </ul>
+          <div class="field"><label for="s5-slug">Type <span class="num">northwind</span> to confirm</label>
+            <input type="text" id="s5-slug" name="confirm_slug" class="code" autocomplete="off" spellcheck="false" value="northwind"></div>
+          <button class="btn danger" type="submit">Suspend, sign everyone out, revoke all tokens</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 5b: suspended org, reactivate form -->
+    <div class="frame">
+      <div class="bar"><span class="route"><b>GET</b> /platform/organizations/acme-labs</span><span class="state-tag">suspended · reactivate offered</span></div>
+      <div class="screen">
+        <div class="appbar">
+          <span class="brand">The Band<span>platform operation</span></span>
+          <span class="who"><a class="a" href="#s4">← Organisations</a> · Rui Example · <button class="linkbtn" type="button">Sign out</button></span>
+        </div>
+        <div>
+          <h3 style="font-size:var(--title)">Acme Labs</h3>
+          <div class="who"><span class="num">acme-labs</span> · <span class="chip left"><span class="dot"></span>suspended</span> <span>since 2026-09-30</span></div>
+        </div>
+
+        <h3>Suspension history</h3>
+        <div class="episode">
+          <div class="half">
+            <span class="h">suspended</span>
+            <span class="line num">2026-09-30 22:41 UTC · by Rui Example</span>
+            <span class="why">Suspected compromise <span class="hint">suspected_compromise</span></span>
+            <q>Admin account logged in from an unknown network twice overnight.</q>
+          </div>
+          <div class="half">
+            <span class="h">reactivated</span>
+            <span class="chip abs" style="align-self:flex-start">not reactivated — still suspended</span>
+          </div>
+        </div>
+        <div class="episode">
+          <div class="half">
+            <span class="h">suspended</span>
+            <span class="line num">2026-05-04 11:20 UTC · by Bia Example</span>
+            <span class="why">Requested by the organisation <span class="hint">requested_by_the_organisation</span></span>
+            <span class="chip abs" style="align-self:flex-start">no note</span>
+          </div>
+          <div class="half">
+            <span class="h">reactivated</span>
+            <span class="line num">2026-05-06 08:03 UTC · by Bia Example</span>
+            <span class="why">Suspended by mistake <span class="hint">suspended_by_mistake</span></span>
+            <q>Wrong organisation — the request was for acme-old.</q>
+          </div>
+        </div>
+
+        <form class="wide" onsubmit="return false">
+          <h3 style="font-size:var(--prose)">Reactivate Acme Labs</h3>
+          <fieldset>
+            <legend>Reason <span class="req">— required</span></legend>
+            <label class="opt"><input type="radio" name="reason2" checked><span><span class="t">Investigation closed — no compromise found</span><span class="cod">investigation_closed_no_compromise</span><span class="d">Offered because the open suspension's reason is Suspected compromise; it is the answer to that reason.</span></span></label>
+            <label class="opt"><input type="radio" name="reason2"><span><span class="t">The contract resumed</span><span class="cod">contract_resumed</span></span></label>
+            <label class="opt"><input type="radio" name="reason2"><span><span class="t">Suspended by mistake</span><span class="cod">suspended_by_mistake</span></span></label>
+            <label class="opt"><input type="radio" name="reason2"><span><span class="t">Other</span> <span class="needs">note required</span><span class="cod">other</span></span></label>
+          </fieldset>
+          <div class="field"><label for="s5b-note">Note <span class="hint">required for Other; optional otherwise. Kept with the episode.</span></label>
+            <textarea id="s5b-note" name="note">Logins traced to the admin's new office network. Confirmed by phone with the organisation.</textarea></div>
+          <p class="conseq-h">What reactivating does, and what it does not</p>
+          <ul class="conseq">
+            <li>People in Acme Labs can sign in again, each one from the start.</li>
+            <li>No session comes back. Any session recorded while it was suspended is ended too.</li>
+            <li>No API token comes back. Each one must be issued again by the organisation.</li>
+            <li>Collection resumes on its normal schedule; reactivating does not start one.</li>
+            <li>The suspension above stays on the record; this closes it with your name, this moment and this reason.</li>
+          </ul>
+          <div class="field"><label for="s5b-slug">Type <span class="num">acme-labs</span> to confirm</label>
+            <input type="text" id="s5b-slug" name="confirm_slug" class="code" autocomplete="off" spellcheck="false" value="acme-labs"></div>
+          <button class="btn" type="submit">Reactivate Acme Labs</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 5c: refusals -->
+    <div class="frame">
+      <div class="bar"><span class="route"><b>POST</b> /platform/organizations/:slug/suspension · …/reactivation → re-rendered</span><span class="state-tag">refused · nothing changed</span></div>
+      <div class="screen">
+        <p class="note">Each refusal re-renders the same page, with the form as the person left it, and the notice above the form. The state and the history do not move. Shown together here only to be read.</p>
+        <div class="notice refused" role="alert"><span class="ic">!</span><div><b>Not suspended. Acme Labs is already suspended</b>, since 2026-09-30 22:41 UTC by Rui Example. Nothing changed. The page now shows the reactivate form.</div></div>
+        <div class="notice refused" role="alert"><span class="ic">!</span><div><b>Not reactivated. Northwind Studio is not suspended.</b> Nothing changed. The page now shows the suspend form.</div></div>
+        <div class="notice refused" role="alert"><span class="ic">!</span><div><b>Not suspended. A note is required for this reason</b> (Suspected compromise). Write what was seen and why it calls for suspension. Nothing changed.</div></div>
+        <div class="notice refused" role="alert"><span class="ic">!</span><div><b>Not suspended. Choose a reason from the list.</b> Nothing changed.</div></div>
+        <div class="notice refused" role="alert"><span class="ic">!</span><div><b>Not suspended. The confirmation did not match.</b> Type <span class="num">northwind</span> exactly. Nothing changed.</div></div>
+        <div class="notice refused" role="alert"><span class="ic">!</span><div><b>Not reactivated. The confirmation did not match.</b> Type <span class="num">acme-labs</span> exactly. Nothing changed.</div></div>
+        <div class="notice refused" role="alert"><span class="ic">!</span><div><b>Not suspended. The list of reasons is not available</b> in this installation's knowledge base, so no reason can be recorded. Nothing changed. Tell whoever runs the server.</div></div>
+        <div class="episode" style="max-width:40rem">
+          <div class="half">
+            <span class="h">suspended · migration case</span>
+            <span class="line num">2026-10-01 03:00 UTC</span>
+            <span class="chip abs" style="align-self:flex-start">by: not recorded — suspended by hand before this record existed</span>
+            <span class="why">The reason was not recorded <span class="hint">not_recorded</span></span>
+          </div>
+          <div class="half">
+            <span class="h">reactivated</span>
+            <span class="chip abs" style="align-self:flex-start">not reactivated — still suspended</span>
+          </div>
+        </div>
+        <p class="note">The last block is how <b>Legacy Works</b> reads: the date is when the migration recorded the episode, not when the database was edited, and the author's absence is written, not left blank.</p>
+      </div>
+    </div>
+    <p class="note">If the operator's session or grant ended between opening the page and submitting, the act is refused inside the transaction, the operator cookie is dropped, and the answer is the same <code>404</code> as below.</p>
+  </section>
+
+  <!-- ===================== NOTE ===================== -->
+  <section>
+    <div class="aside">
+      <h3>Not a screen: whoever is not an operator</h3>
+      <p>An anonymous visitor, or an admin of any organisation, who opens any <code>/platform/*</code> address other than sign-in and setup gets the platform's ordinary <b>404 page</b>: the same status, the same headers and the same body as <code>/platform/a-path-that-does-not-exist</code>. No redirect to sign-in, no “permission denied”, nothing that confirms the area exists. A slug that does not exist gets the same page.</p>
+      <p>The operator's own cookie opens nothing outside <code>/platform</code>: on <code>/people</code> it is treated as no session at all (redirect to <code>/sign-in</code>), and on the API and MCP it gets <code>401</code>.</p>
+    </div>
+  </section>
+
+  <!-- ===================== DECISIONS ===================== -->
+  <section>
+    <h2>Decisions and open questions</h2>
+    <div class="dec">
+      <div class="item decided"><span class="s">decided 2026-10-01 · maintainer · already in the spec</span>
+        <span class="h">Separate operator, own cookie, screens by controller</span>
+        <p>FR-011 as amended (T005). So the real screens have no live updates and no inline script; every refusal is a re-rendered page. This prototype uses a small script only for the greyscale toggle.</p></div>
+      <div class="item decided"><span class="s">decided 2026-10-01 · maintainer · already in the spec</span>
+        <span class="h">Second factor is required (FR-016), and the reason lists are closed (data-model §5)</span>
+        <p>The four suspend reasons and four reactivate reasons on screen 5 are the approved list, with the note required for Suspected compromise and Other, and <em>Investigation closed — no compromise found</em> offered only when the open suspension's reason is Suspected compromise.</p></div>
+
+      <div class="item decided"><span class="s">decided 2026-10-01 · maintainer · D1–D5 approved</span><span class="h">The design decisions</span>
+        <ul>
+          <li><b>D1</b> One refusal sentence per form, and no field marked. “In a moment” covers the wait without being a second message.</li>
+          <li><b>D2</b> “Shown once” comes before the setup key and the recovery codes; the refused states say they do not come back.</li>
+          <li><b>D3</b> Only the act that fits the state is offered; the other is absent, not disabled.</li>
+          <li><b>D4</b> Each episode is one block with two halves, and the missing half is written.</li>
+          <li><b>D5</b> A line above the organisation list says what the operator does not see.</li>
+        </ul></div>
+
+      <div class="item decided"><span class="s">decided 2026-10-01 · maintainer · Q1 (a)</span><span class="h">No QR code on the enrolment screen</span>
+        <p>The setup key as text and the <code>otpauth://</code> address to copy. No new dependency.</p></div>
+
+      <div class="item decided"><span class="s">decided 2026-10-01 · maintainer · Q2 (a)</span><span class="h">Confirm by typing the organisation's slug</span>
+        <p>For both suspending and reactivating, with the consequences listed above the field. The field is <code>confirm_slug</code>; a mismatch is refused with “The confirmation did not match” and nothing changes. The controller checks it before calling <code>suspender/3</code> or <code>reativar/3</code>, whose contracts do not change.</p></div>
+
+      <div class="item decided"><span class="s">decided 2026-10-01 · maintainer · Q3 (b)</span><span class="h">The operator must confirm the recovery codes were stored</span>
+        <p>A third step: a required box and one more POST, <code>/platform/setup/recovery-codes</code>. The authenticator and the codes become valid only when this step finishes. Abandoning it leaves the operator without sign-in until a new setup code, the same price as abandoning step 2. An unticked box is refused and does not use up the step; the codes are not shown again.</p></div>
+
+      <div class="item decided"><span class="s">decided 2026-10-01 · maintainer · Q4 (b)</span><span class="h">No session or token counts in the history</span>
+        <p>They stay in the access log. The history shows who, when, why and the note, at both ends of each episode.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>New names for the knowledge base</h2>
+    <p class="note">No new measure. Every reason label on screen 5 comes from <code>platform.tenant_suspension</code> (task T014), including <code>not_recorded</code> for the migration case. The sentences on these screens are interface copy in the controllers, not vocabulary of the base.</p>
+  </section>
+</div>
+
+<script>
+  (function(){
+    var b=document.getElementById('gray');
+    b.addEventListener('click',function(){
+      var on=document.body.classList.toggle('gray');
+      b.setAttribute('aria-pressed',on?'true':'false');
+      b.textContent=on?'Back to colour':'View in greyscale';
+    });
+  })();
+</script>

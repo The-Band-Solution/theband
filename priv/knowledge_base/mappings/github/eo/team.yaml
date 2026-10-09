@@ -12,18 +12,31 @@ target:
   concept: eo.organizational_team
 semantics:
   equivalence: partial
-  justification: >
-    Um time do GitHub é um coletivo de pessoas mantido pela organização, com
-    acesso comum a um conjunto de repositórios. Corresponde a eo.organizational_team,
-    que é a equipe ligada à organização — e não a eo.project_team, que é ligada a
-    um projeto.
+  justification:
+    pt-BR: >
+      Um time do GitHub é um coletivo de pessoas mantido pela organização, com
+      acesso comum a um conjunto de repositórios. Corresponde a eo.organizational_team,
+      que é a equipe ligada à organização — e não a eo.project_team, que é ligada a
+      um projeto.
 
-    A API oferece os campos repositories e projectsV2 no time, o que permitiria
-    derivar eo.project_team quando houver vínculo. Mas o vínculo é opcional e
-    frequentemente não é usado: na organização verificada, os dois times têm zero
-    repositórios e zero projetos associados, servindo apenas para agrupar pessoas.
-    Por isso o alvo padrão é eo.organizational_team, e a promoção a
-    eo.project_team exige vínculo efetivamente presente ou declaração do tenant.
+      A API oferece os campos repositories e projectsV2 no time, o que permitiria
+      derivar eo.project_team quando houver vínculo. Mas o vínculo é opcional e
+      frequentemente não é usado: na organização verificada, os dois times têm zero
+      repositórios e zero projetos associados, servindo apenas para agrupar pessoas.
+      Por isso o alvo padrão é eo.organizational_team, e a promoção a
+      eo.project_team exige vínculo efetivamente presente ou declaração do tenant.
+    en: >
+      A GitHub team is a collective of people maintained by the organization, with common
+      access to a set of repositories. It corresponds to eo.organizational_team, which is
+      the team tied to the organization — and not to eo.project_team, which is tied to a
+      project.
+
+      The API offers the repositories and projectsV2 fields on the team, which would allow
+      deriving eo.project_team when there is a link. But the link is optional and frequently
+      not used: in the verified organization, both teams have zero repositories and zero
+      associated projects, serving only to group people. That is why the default target is
+      eo.organizational_team, and promotion to eo.project_team requires a link actually
+      present or a declaration by the tenant.
 identity:
   external_id_path: id
   natural_key: [organization.login, slug]
@@ -47,19 +60,46 @@ relations:
     target_ontology: cmpo
     target_concept: cmpo.source_repository
 limitations:
-  - >
-    Este mapeamento cobre apenas equipe OBSERVADA no GitHub. A equipe derivada, que a
-    plataforma cria com o nome da organização para acolher quem não está em time
-    algum, não vem de payload nenhum e por isso não tem mapeamento: é produzida pela
-    regra github.default_team. Declarar aquela regra aqui, em derivation.rule_id,
-    marcaria toda equipe observada como derivada.
-  - >
-    Os repositórios concedidos apontam para cmpo.source_repository, e EO não declara relação entre eo.organizational_team e cmpo.source_repository. EO não depende de CMPO, e criar a relação inverteria a direção de dependência entre as ontologias - decisão que precede a coluna.
-  - Time do GitHub é agrupamento de permissão de acesso; não implica que seus membros trabalhem juntos em um projeto.
-  - Os campos repositories e projectsV2 existem mas são opcionais; quando vazios, não há como distinguir equipe de projeto de equipe organizacional pelos dados.
-  - A correspondência entre um time e um projeto de software precisa ser declarada pelo tenant quando o vínculo não existe na API; nomes coincidentes não bastam.
-  - A hierarquia de times (parentTeam, childTeams, ancestors) existe na API, mas EO não define composição entre equipes; a hierarquia é registrada como atributo e não como relação ontológica.
-  - Uma pessoa pode integrar vários times, e os conjuntos de membros de time, de organização e de colaboradores de repositório são distintos entre si.
+  - pt-BR: >
+      Este mapeamento cobre apenas equipe OBSERVADA no GitHub. A equipe derivada, que a
+      plataforma cria com o nome da organização para acolher quem não está em time
+      algum, não vem de payload nenhum e por isso não tem mapeamento: é produzida pela
+      regra github.default_team. Declarar aquela regra aqui, em derivation.rule_id,
+      marcaria toda equipe observada como derivada.
+    en: >
+      This mapping covers only a team OBSERVED on GitHub. The derived team, which the
+      platform creates with the organization's name to take in those who are on no team at
+      all, comes from no payload and therefore has no mapping: it is produced by the
+      github.default_team rule. Declaring that rule here, in derivation.rule_id, would mark
+      every observed team as derived.
+  - pt-BR: >
+      Os repositórios concedidos apontam para cmpo.source_repository, e EO não declara relação entre eo.organizational_team e cmpo.source_repository. EO não depende de CMPO, e criar a relação inverteria a direção de dependência entre as ontologias - decisão que precede a coluna.
+    en: >
+      The granted repositories point to cmpo.source_repository, and EO declares no relation
+      between eo.organizational_team and cmpo.source_repository. EO does not depend on CMPO,
+      and creating the relation would invert the direction of dependency between the
+      ontologies - a decision that precedes the column.
+  - pt-BR: Time do GitHub é agrupamento de permissão de acesso; não implica que seus membros trabalhem juntos em um projeto.
+    en: >
+      A GitHub team is an access-permission grouping; it does not imply that its members
+      work together on a project.
+  - pt-BR: Os campos repositories e projectsV2 existem mas são opcionais; quando vazios, não há como distinguir equipe de projeto de equipe organizacional pelos dados.
+    en: >
+      The repositories and projectsV2 fields exist but are optional; when empty, there is no
+      way to distinguish a project team from an organizational team from the data.
+  - pt-BR: A correspondência entre um time e um projeto de software precisa ser declarada pelo tenant quando o vínculo não existe na API; nomes coincidentes não bastam.
+    en: >
+      The correspondence between a team and a software project must be declared by the
+      tenant when the link does not exist in the API; matching names are not enough.
+  - pt-BR: A hierarquia de times (parentTeam, childTeams, ancestors) existe na API, mas EO não define composição entre equipes; a hierarquia é registrada como atributo e não como relação ontológica.
+    en: >
+      The team hierarchy (parentTeam, childTeams, ancestors) exists in the API, but EO does
+      not define composition between teams; the hierarchy is recorded as an attribute and
+      not as an ontological relation.
+  - pt-BR: Uma pessoa pode integrar vários times, e os conjuntos de membros de time, de organização e de colaboradores de repositório são distintos entre si.
+    en: >
+      A person may belong to several teams, and the sets of team members, organization
+      members, and repository collaborators are distinct from one another.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at]

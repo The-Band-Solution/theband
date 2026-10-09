@@ -20,23 +20,33 @@ target:
   concept: spo.specific_intended_project_process
 semantics:
   equivalence: derived
-  justification: >
-    Decisão da pessoa mantenedora, 2026-08-11: "interações futuras são plannings
-    que não foram feitas".
+  justification:
+    pt-BR: >
+      Decisão da pessoa mantenedora, 2026-08-11: "interações futuras são plannings
+      que não foram feitas".
 
-    Uma iteração cuja data de início ainda não chegou é intenção, não ocorrência —
-    e é exatamente o que `spo.intended_project_process` define: "processo planejado
-    para ser executado no projeto — uma intenção, não uma ocorrência". A categoria
-    UFO é `intention`, e não `complex_action`.
+      Uma iteração cuja data de início ainda não chegou é intenção, não ocorrência —
+      e é exatamente o que `spo.intended_project_process` define: "processo planejado
+      para ser executado no projeto — uma intenção, não uma ocorrência". A categoria
+      UFO é `intention`, e não `complex_action`.
 
-    O par é simétrico e é o que dá sentido aos dois mapeamentos:
+      O par é simétrico e é o que dá sentido aos dois mapeamentos:
 
-      iteração já iniciada  → sro.sprint                            ocorreu
-      iteração futura       → spo.specific_intended_project_process pretendida
+        iteração já iniciada  → sro.sprint                            ocorreu
+        iteração futura       → spo.specific_intended_project_process pretendida
 
-    Sem este mapeamento, a iteração futura ficaria só no payload, e a pergunta "o
-    que este time planejou e ainda não executou" não teria resposta. Com ele, a
-    resposta existe e é honesta sobre o que é: plano, não fato.
+      Sem este mapeamento, a iteração futura ficaria só no payload, e a pergunta "o
+      que este time planejou e ainda não executou" não teria resposta. Com ele, a
+      resposta existe e é honesta sobre o que é: plano, não fato.
+    en: |
+      Maintainer's decision, 2026-08-11: "future iterations are plannings that were not done" (original: "interações futuras são plannings que não foram feitas").
+      An iteration whose start date has not yet arrived is an intention, not an occurrence — and that is exactly what `spo.intended_project_process` defines: "process planned to be performed in the project — an intention, not an occurrence". The UFO category is `intention`, and not `complex_action`.
+      The pair is symmetric, and it is what gives meaning to both mappings:
+
+        iteration already started → sro.sprint                            occurred
+        future iteration          → spo.specific_intended_project_process intended
+
+      Without this mapping, the future iteration would remain only in the payload, and the question "what has this team planned and not yet performed" would have no answer. With it, the answer exists and is honest about what it is: a plan, not a fact.
 identity:
   external_id_path: id
   natural_key: [project.id, title]
@@ -52,25 +62,43 @@ relations:
       começar, sprint depois. A identidade externa é a mesma, e é por ela que a
       coleta seguinte reconhece a transição.
 limitations:
-  - >
-    A transição de pretendida para ocorrida acontece na COLETA seguinte ao início,
-    não no instante do início. Uma iteração que começou hoje e cuja coleta rodou
-    ontem continua registrada como pretendida até a próxima coleta. A plataforma
-    afirma o que observou.
-  - >
-    `spo.specific_intended_project_process` não é `sro.planning_meeting`. A
-    cerimônia de planejamento é `action` — ocorreu, com pessoas, num instante — e
-    o GitHub não a registra. Uma iteração pretendida é o RESULTADO planejado, não
-    a reunião.
-  - >
-    Iteração pretendida não tem itens contados como sprint backlog. Itens
-    atribuídos a ela permanecem no product backlog, porque o sprint dela não
-    existe — regra github.item_iteration_assignment.
-  - >
-    Iteração excluída da configuração antes de começar desaparece da origem sem
-    ter ocorrido. Ela permanece consultável, marcada como não mais presente: o
-    plano existiu, e foi abandonado. Apagar destruiria a resposta a "o que foi
-    planejado e nunca aconteceu".
+  - pt-BR: >
+      A transição de pretendida para ocorrida acontece na COLETA seguinte ao início,
+      não no instante do início. Uma iteração que começou hoje e cuja coleta rodou
+      ontem continua registrada como pretendida até a próxima coleta. A plataforma
+      afirma o que observou.
+    en: >
+      The transition from intended to occurred happens at the COLLECTION following the
+      start, not at the start instant. An iteration that started today and whose collection
+      ran yesterday remains recorded as intended until the next collection. The platform
+      asserts what it observed.
+  - pt-BR: >
+      `spo.specific_intended_project_process` não é `sro.planning_meeting`. A
+      cerimônia de planejamento é `action` — ocorreu, com pessoas, num instante — e
+      o GitHub não a registra. Uma iteração pretendida é o RESULTADO planejado, não
+      a reunião.
+    en: >
+      `spo.specific_intended_project_process` is not `sro.planning_meeting`. The planning
+      ceremony is an `action` — it occurred, with people, at an instant — and GitHub does
+      not record it. An intended iteration is the planned RESULT, not the meeting.
+  - pt-BR: >
+      Iteração pretendida não tem itens contados como sprint backlog. Itens
+      atribuídos a ela permanecem no product backlog, porque o sprint dela não
+      existe — regra github.item_iteration_assignment.
+    en: >
+      An intended iteration has no items counted as sprint backlog. Items assigned to it
+      remain in the product backlog, because its sprint does not exist — rule
+      github.item_iteration_assignment.
+  - pt-BR: >
+      Iteração excluída da configuração antes de começar desaparece da origem sem
+      ter ocorrido. Ela permanece consultável, marcada como não mais presente: o
+      plano existiu, e foi abandonado. Apagar destruiria a resposta a "o que foi
+      planejado e nunca aconteceu".
+    en: >
+      An iteration deleted from the configuration before starting disappears from the source
+      without having occurred. It remains queryable, marked as no longer present: the plan
+      existed, and was abandoned. Deleting it would destroy the answer to "what was planned
+      and never happened".
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at]

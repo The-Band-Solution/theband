@@ -39,6 +39,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   alias TheBand.Ingestion.GithubWorkItems
   alias TheBand.Ingestion.Janela
   alias TheBand.Integrations.GitHub.Client
+  alias TheBand.Jobs.ComputeReviewNetwork
   alias TheBand.Ontology.SEON.EO
   alias TheBand.RawData
   alias TheBand.SemanticIntegration.Mapper
@@ -53,6 +54,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
     # O tenant vem nos args e é validado antes de qualquer coisa acontecer.
     with {:ok, tenant} <- Tenants.fetch(tenant_id),
          {:ok, sync} <- Ingestion.fetch_sync(tenant, sync_id),
+         :ok <- ativa(tenant, sync),
          {:ok, tool} <- Sources.fetch_connected_tool(tenant, sync.connected_tool_id),
          %ToolCredential{} = credential <- Sources.active_credential(tool) do
       # Fora do `with` de propósito: o ramo de erro precisa da `tool` para marcá-la, e o
@@ -65,8 +67,30 @@ defmodule TheBand.Jobs.SyncGitHubEO do
       nil ->
         {:error, :no_active_credential}
 
+      {:cancel, :tenant_inactive} ->
+        {:cancel, :tenant_inactive}
+
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  # Organização suspensa não é coletada — issue #1033. Conferido a cada `perform`, e não só no
+  # primeiro: o job volta de cada `snooze` por aqui, e a suspensão durante a espera da janela
+  # para a coleta na retomada. O sync fecha `interrupted` com o motivo, e não fica `running`
+  # para o reconciliador fechar horas depois.
+  defp ativa(tenant, sync) do
+    case Tenants.ensure_active(tenant) do
+      :ok ->
+        :ok
+
+      {:error, :tenant_inactive} ->
+        sync
+        |> Ingestion.reload()
+        |> Ingestion.finish(:interrupted, error_reason: "organização suspensa")
+
+        Ingestion.broadcast(tenant.id, {:sync_finished, sync.id})
+        {:cancel, :tenant_inactive}
     end
   end
 
@@ -147,7 +171,10 @@ defmodule TheBand.Jobs.SyncGitHubEO do
         #
         # A ordem importa: a organização precisa existir para o repositório apontar para
         # ela, e é a primeira fase que a grava.
-        trabalho = coletar_trabalho(ctx)
+        #
+        # `organization_id` segue no `ctx` para a etapa de mudanças disparar a rede de revisão
+        # da organização que acabou de ser observada (073, D6).
+        trabalho = coletar_trabalho(Map.put(ctx, :organization_id, organization_id))
 
         # A janela fechou numa etapa do trabalho (ADR 0006, item 5). O sync NÃO fecha —
         # ele não terminou, está esperando. Marcá-lo `completed` diria que a coleta
@@ -338,6 +365,13 @@ defmodule TheBand.Jobs.SyncGitHubEO do
 
   defp coletar_mudancas(ctx) do
     with {:ok, resumo} <- GithubChangeRequests.collect(ctx) do
+      # ACOPLAMENTO ESCRITO (073, D6, research.md R8): a coleta conhece a rede de revisão. As
+      # avaliações acabaram de ser gravadas, e as etapas seguintes podem hibernar por horas pela
+      # cota REST; esperar o fim da sincronização atrasaria a rede por algo que não a muda. A
+      # unicidade do job segura duas coletas seguidas. `{:ok, _} =`: falhar ao enfileirar é
+      # infraestrutura, e a etapa refeita é idempotente.
+      {:ok, _} = ComputeReviewNetwork.enqueue(ctx.tenant.id, ctx.organization_id)
+
       {:ok,
        %{
          change_requests: resumo.change_requests,

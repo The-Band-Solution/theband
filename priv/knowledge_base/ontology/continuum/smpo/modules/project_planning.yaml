@@ -9,6 +9,11 @@ module:
       espécie dele, e a alocação de um item de trabalho a um horizonte. A alocação é
       RELATOR e nunca booleano: "está no Q3?" perde quem alocou e quando, e é justamente
       isso que permite ver replanejamento.
+    en: >
+      The horizon that the organization declares for planning work, the quarter as a kind of
+      horizon, and the allocation of a work item to a horizon. The allocation is a RELATOR
+      and never a boolean: "is it in Q3?" loses who allocated and when, and that is
+      precisely what makes replanning visible.
   provenance:
     source_type: project_decision
     reference: "Issue #514; a lacuna medida em 2026-08-26"
@@ -29,6 +34,16 @@ concepts:
         DENTRO dele, e ele termina tendo produzido um entregável. Um horizonte não é
         executado nem produz coisa alguma — ele diz para quando o trabalho havia sido
         pensado, e continua existindo mesmo que nada tenha sido feito.
+      en: >
+        Period that the organization DECLARES for organizing work ahead. It is a social
+        object: it exists because someone agreed that that interval has a name and serves
+        for planning — the same interval is not a horizon in another organization, and
+        neither of the two is wrong.
+
+        It is NOT a performed process. `sro.sprint` is a `complex_action`: the work happens
+        WITHIN it, and it ends having produced a deliverable. A horizon is neither performed
+        nor produces anything — it says by when the work had been intended, and it continues
+        to exist even if nothing was done.
     classification: { ufo_category: social_object, ontouml_stereotype: kind }
     provenance:
       source_type: project_decision
@@ -72,6 +87,14 @@ concepts:
         A duração não é o critério de identidade, e sim consequência: o que faz um
         trimestre ser trimestre é a organização tê-lo declarado como horizonte macro, e
         não o número de dias. Um trimestre encurtado continua sendo o trimestre.
+      en: >
+        Planning horizon of approximately three months. It is this organization's MACRO
+        horizon: measured on 2026-08-26, the 27 collected quarters range from 61 to 92 days,
+        with an average of 84 — against an average of 13 days for the 171 sprints.
+
+        Duration is not the identity criterion, but a consequence: what makes a quarter a
+        quarter is that the organization declared it as the macro horizon, and not the
+        number of days. A shortened quarter is still the quarter.
     classification: { ufo_category: social_object, ontouml_stereotype: subkind, parent: smpo.planning_horizon }
     provenance:
       source_type: project_decision
@@ -100,6 +123,18 @@ concepts:
         Alocar a um horizonte é independente de executar num sprint: medido em 2026-08-26,
         **639 issues** estão ao mesmo tempo num trimestre e num sprint. As duas caixas não
         competem — respondem perguntas diferentes sobre a mesma issue.
+      en: >
+        Link between a work item and the horizon for which it was planned, with who
+        allocated it and when.
+
+        It is a RELATOR, and not a boolean: "is this issue in Q3?" answers yes or no and
+        loses the questions that matter — when it got in, who put it there, whether it left
+        another horizon. It is that loss that erases replanning, which is the most
+        informative fact of macro planning.
+
+        Allocating to a horizon is independent of performing in a sprint: measured on
+        2026-08-26, **639 issues** are at the same time in a quarter and in a sprint. The
+        two boxes do not compete — they answer different questions about the same issue.
     classification: { ufo_category: relator, ontouml_stereotype: relator }
     attributes:
       - { name: allocated_at, type: datetime, required: false }

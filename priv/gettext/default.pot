@@ -11,7 +11,7 @@
 msgid ""
 msgstr ""
 
-#: lib/the_band_web/components/core_components.ex:639
+#: lib/the_band_web/components/core_components.ex:650
 #, elixir-autogen, elixir-format
 msgid "Actions"
 msgstr ""
@@ -21,17 +21,38 @@ msgstr ""
 msgid "close"
 msgstr ""
 
-#: lib/the_band_web/live/sync_live/index.ex:529
+#: lib/the_band_web/live/sync_live/index.ex:625
 #, elixir-autogen, elixir-format
 msgid "last progress %{tempo} ago"
 msgstr ""
 
-#: lib/the_band_web/live/sync_live/index.ex:528
+#: lib/the_band_web/live/sync_live/index.ex:624
 #, elixir-autogen, elixir-format
 msgid "no progress for %{tempo}"
 msgstr ""
 
-#: lib/the_band_web/live/sync_live/index.ex:476
+#: lib/the_band_web/live/sync_live/index.ex:572
 #, elixir-autogen, elixir-format
 msgid "running"
 msgstr ""
+
+#: lib/the_band_web/live/review_network_live/show.ex:665
+#, elixir-autogen, elixir-format
+msgid "%{count} day ago"
+msgid_plural "%{count} days ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/the_band_web/live/review_network_live/show.ex:662
+#, elixir-autogen, elixir-format
+msgid "%{count} hour ago"
+msgid_plural "%{count} hours ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/the_band_web/live/review_network_live/show.ex:659
+#, elixir-autogen, elixir-format
+msgid "%{count} minute ago"
+msgid_plural "%{count} minutes ago"
+msgstr[0] ""
+msgstr[1] ""

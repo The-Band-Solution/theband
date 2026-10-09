@@ -1,0 +1,54 @@
+measurement:
+  id: network.small_world_sigma.score
+  version: 1
+  name:
+    pt-BR: "Índice σ de mundo pequeno, contra grafos aleatórios equivalentes"
+    en: "Small-world σ index, against equivalent random graphs"
+  answers_information_need: [network.structure]
+  value_type: score
+  unit: sigma
+
+  formula:
+    expression: >
+      Com C = network.clustering.ratio e L = network.average_distance.mean da rede, e
+      G_1 … G_N os N grafos aleatórios G(n, m) de network.analysis.parameters.small_world
+      (mesmos n e m, semente declarada, TODOS gerados entram):
+        C_rand = média de C(G_i) sobre os i em que C(G_i) está definido
+        L_rand = média de L(G_i) sobre os i em que L(G_i) está definido (a mesma regra de
+                 pares que se alcançam da rede real)
+        σ      = (C / C_rand) / (L / L_rand)                                     [escore]
+      Grava, com σ: C, C_rand, L, L_rand, as duas razões, N, quantos entraram em cada média,
+      a fração média de pares que se alcançam nos aleatórios (ao lado da reachable_share
+      da rede real), a semente, o gerador e o modelo.
+      AUSENTE com motivo: `network_too_small` (n abaixo do mínimo da base);
+      `random_clustering_undefined` (C_rand zero ou sem grafo definido);
+      `clustering_undefined` ou `no_edge_in_window` (C ou L da rede);
+      `network_too_large_for_platform` (acima de network.analysis.parameters.size_limit).
+      Leitura: "meets the σ > 1 criterion" ou "does not meet the σ > 1 criterion".
+    inputs: [network.clustering.ratio, network.average_distance.mean, network_size, network_edge_count]
+
+  scope:
+    levels: [observed_organization]
+    filters:
+      - "calculada sobre a rede inteira (FR-011)"
+    period: "a janela da leitura"
+
+  limitations:
+    - "O critério σ > 1 é fraco: redes quase reticuladas também o atendem (Telesford et al., 2011). Atender ao critério não prova estrutura de mundo pequeno."
+    - "Depende do modelo nulo: com G(n, p) em vez de G(n, m), ou com outra regra para grafos desconexos, o valor muda."
+    - "Com a semente fixa, o valor é reprodutível; com outra semente, varia dentro do erro das 100 amostras."
+    - "Usa o clustering que exclui quem tem menos de 2 vizinhos, nos dois lados."
+    - "A rede real não tem pessoa sem aresta (pessoa sem aresta não é nó), e um G(n, m) esparso tem: nós isolados e componentes pequenos entram nos aleatórios e não na real. A mesma regra de pares que se alcançam nos dois lados não torna as duas estruturas iguais; quando a fração de pares que se alcançam dos aleatórios difere muito da real, L / L_rand compara coisas diferentes, e a tela mostra as duas frações."
+    - "Humphries e Gurney (2008) definem σ com dois coeficientes de clustering, a transitividade e a média local; aqui é a média local de Watts e Strogatz, a do networkx e da referência, e o valor muda com a outra."
+
+  misinterpretations:
+    - "Ler σ ausente como 'não é mundo pequeno'. Ausência não é conclusão — a referência devolve 0 e conclui 'NÃO' (`dashboard_team_graph.py:222`)."
+    - "Ler 'meets the criterion' como estrutura ideal de trabalho, ou 'does not meet' como hierarquia rígida (as 'implicações para a equipe' da referência, `:389-395`)."
+    - "Comparar σ entre redes de tamanhos muito diferentes: σ cresce com n em redes esparsas."
+
+  provenance:
+    source_type: literature
+    authors: ["Mark D. Humphries", "Kevin Gurney"]
+    year: 2008
+    reference: "Humphries, M. D.; Gurney, K. Network 'small-world-ness': a quantitative method for determining canonical network equivalence. PLoS ONE 3(4), e0002051, 2008; Telesford, Q. K. et al. The ubiquity of small-world networks. Brain Connectivity 1(5), 2011; spec 076, FR-040 a FR-043"
+    note: "Corrige os cinco defeitos de `dashboard_team_graph.py:173-231`, listados em network.analysis.parameters.small_world."

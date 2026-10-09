@@ -57,6 +57,11 @@ module:
       avaliação. Existe para que a plataforma tenha vocabulário próprio de revisão — sem
       ele, toda medida dependeria do enum de um forjador específico. Extensão do projeto
       The Band, não da QAPO publicada.
+    en: >
+      The position the evaluator took on the artifact, and the lifecycle state of the
+      evaluation. It exists so that the platform has its own review vocabulary — without it,
+      every measure would depend on the enum of a specific forge. An extension of The Band
+      project, not of the published QAPO.
   provenance:
     source_type: project_decision
     reference: "Decisão da pessoa mantenedora em 2026-08-27: mapear o estado para a ontologia, para ser universal"
@@ -78,6 +83,10 @@ concepts:
       pt-BR: >
         A posição que o avaliador assume sobre o artefato avaliado. É proposição, e não
         medida: descreve o que aquela pessoa afirmou, e não o estado do artefato.
+      en: >
+        The position the evaluator takes on the evaluated artifact. It is a proposition, and
+        not a measure: it describes what that person asserted, and not the state of the
+        artifact.
     # `social_object` sob `spo.information_item`, e NÃO `normative_description`.
     #
     # `qapo.quality_criterion` é normativo porque PRESCREVE — diz o que o artefato deve
@@ -94,6 +103,10 @@ concepts:
       pt-BR: >
         O avaliador considera o artefato apto a seguir. NÃO afirma ausência de não
         conformidade: endossar é não bloquear, e a ressalva registrada continua registrada.
+      en: >
+        The evaluator considers the artifact fit to proceed. It does NOT assert the absence
+        of noncompliance: to endorse is to not block, and the recorded reservation remains
+        recorded.
     classification: { ufo_category: social_object, parent: qapo.evaluation_verdict }
 
   - id: qapo.objecting_verdict
@@ -103,6 +116,9 @@ concepts:
       pt-BR: >
         O avaliador identifica não conformidade que deve ser resolvida antes de o artefato
         seguir. É a única posição que implica `qapo.noncompliance_identification`.
+      en: >
+        The evaluator identifies noncompliance that must be resolved before the artifact
+        proceeds. It is the only position that implies `qapo.noncompliance_identification`.
     classification: { ufo_category: social_object, parent: qapo.evaluation_verdict }
 
   - id: qapo.abstaining_verdict
@@ -113,6 +129,10 @@ concepts:
         O avaliador participou da avaliação e não tomou posição. É diferente de não ter
         avaliado: a avaliação aconteceu, e contá-la como ausência apagaria o trabalho de
         quem leu o artefato e comentou.
+      en: >
+        The evaluator took part in the evaluation and did not take a position. This is
+        different from not having evaluated: the evaluation happened, and counting it as
+        absence would erase the work of whoever read the artifact and commented.
     classification: { ufo_category: social_object, parent: qapo.evaluation_verdict }
 
 relations:

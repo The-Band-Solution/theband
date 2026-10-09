@@ -1,0 +1,120 @@
+derivation_rule:
+  id: journey.entrar_e_sair
+  version: 1
+  provider: platform
+  status: proposed
+  confidence: high
+
+  name:
+    pt-BR: "A jornada de entrar e sair — passos, desfechos e motivos de falha"
+
+  description:
+    pt-BR: >
+      A taxonomia da J1 do épico #802, na forma que a spec 074 fixou: cada passo que a pessoa
+      tenta, os desfechos que ele pode ter, e — quando falha — o motivo, que é **o mesmo valor que
+      a decisão de acesso já produz hoje** e até a 074 só ia para o log.
+
+      Mora aqui, e não numa constante de módulo, porque o motivo é o que quem opera vai **ler** no
+      painel, e cada um pede uma ação diferente. O exportador de telemetria
+      (`TheBand.Telemetria.Exportador`) lê esta lista para decidir o que pode sair: um
+      `failure.reason` fora da lista **do passo** não sai, e o descarte é contado. O gate
+      (`test/the_band/telemetria/taxonomia_test.exs`) compara esta lista com o que o código
+      **emite** de fato: motivo emitido e não declarado reprova, e motivo declarado que nenhum caso
+      produz também.
+
+      `abandonou` é declarado e **nunca é emitido pela aplicação**: é derivado na consulta, pela
+      abertura sem tentativa com o mesmo `journey.id` em 30 minutos (research R6). Um processo que
+      esperasse 30 minutos por visitante morreria no deploy, e mentiria ao voltar.
+
+      `absent_on_purpose` lista o que o backlog da J1 nomeava e o código **não pode produzir**.
+      Declarar um desfecho impossível criaria uma série que é sempre zero, e zero aqui mentiria
+      ("ninguém falhou assim") em vez de dizer "isto não existe".
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: >
+      spec 074 (`specs/074-jornada-entrar-e-sair/spec.md`, a tabela *A régua*; data-model §1);
+      ADR 0005, decisão 5, emendada e aceita em 2026-10-03
+    note: >
+      A ADR previa `priv/knowledge_base/journeys/`; a 074 (research R7) pôs a taxonomia em
+      `rules/` pela regra dos três — uma jornada não paga schema e validador novos. Na terceira
+      jornada declarada, a pasta própria se paga, e a mudança é mecânica.
+
+  outcomes: [concluiu, falhou, abandonou]
+
+  steps:
+    - id: abrir_a_entrada
+      # `abandonou` é derivado na consulta (R6); a aplicação só emite `concluiu`.
+      outcomes: [concluiu, abandonou]
+      origin: "045/US1 #7"
+      failure_reasons: []
+
+    - id: entrar_com_senha
+      outcomes: [concluiu, falhou]
+      origin: "045/US1 #1, #2"
+      failure_reasons:
+        - id: senha_errada
+          origin: "045/US1 #3"
+          action: "a pessoa"
+        - id: identificador_nao_resolveu
+          origin: "045/US1 #4, #5"
+          action: "investigar enumeração quando em pico"
+        - id: conta_sem_senha
+          origin: "045/US1 #8"
+          action: "quem administra reinicia a senha"
+        - id: conta_desativada
+          origin: "achado H3, parte B"
+          action: "conferir se o desligamento é o esperado"
+        - id: organizacao_suspensa
+          origin: "achado H3, parte A"
+          action: "operador da plataforma"
+        - id: em_espera
+          origin: "045 FR-016"
+          action: "campanha, se repetido"
+        - id: limite_por_origem
+          origin: "077 FR-010"
+          action: "campanha de uma origem; ver a linha da transição no log, com o prefixo"
+
+    - id: sair
+      outcomes: [concluiu, falhou]
+      origin: "045/US1 #6"
+      failure_reasons:
+        - id: sessao_ja_nao_existia
+          origin: "045/US1 #6; 064 S5"
+          action: "nenhuma, salvo pico"
+
+    - id: sessao_derrubada
+      outcomes: [falhou]
+      origin: "064 S5 / 070"
+      # `Sessions.motivo()` (sessions.ex) e as duas cláusulas de `CurrentScope`. `:sem_sessao`
+      # NÃO entra: é o visitante sem cookie, e não uma queda.
+      failure_reasons:
+        - { id: malformado, origin: "Sessions.motivo()", action: "nenhuma, salvo pico" }
+        - { id: inexistente, origin: "Sessions.motivo()", action: "nenhuma, salvo pico" }
+        - { id: resumo_errado, origin: "Sessions.motivo()", action: "investigar cookie forjado" }
+        - { id: encerrada, origin: "Sessions.motivo()", action: "nenhuma" }
+        - { id: vencida, origin: "Sessions.motivo()", action: "nenhuma" }
+        - { id: epoca_velha, origin: "Sessions.motivo()", action: "nenhuma: a senha foi trocada" }
+        - { id: organizacao_suspensa, origin: "achado H3, parte A", action: "operador da plataforma" }
+        - { id: conta_desativada, origin: "achado H3, parte B", action: "conferir o desligamento" }
+
+    - id: definir_a_senha
+      outcomes: [concluiu, falhou]
+      origin: "045 FR-013"
+      failure_reasons:
+        - { id: confirmacao_diferente, origin: "045 FR-013", action: "a pessoa" }
+        - { id: recusada_pela_regra, origin: "045 FR-013", action: "a pessoa" }
+        - { id: fora_do_fluxo, origin: "achado H1", action: "investigar: sessão de conta em regime normal na rota da temporária" }
+
+    - id: trocar_a_senha
+      outcomes: [concluiu, falhou]
+      origin: "045/US3 #2, #3"
+      failure_reasons:
+        - { id: senha_atual_nao_confere, origin: "045/US3 #3", action: "a pessoa" }
+        - { id: recusada_pela_regra, origin: "045/US3 #2", action: "a pessoa" }
+
+  absent_on_purpose:
+    - { id: entrar_pelo_github, why: "não há OAuth; spec 049 em Draft" }
+    - { id: tenant_errado, why: "identificador global; o tenant sai da conta" }
+    - { id: vinculo_expirado, why: "o fluxo é por senha temporária, sem link" }
