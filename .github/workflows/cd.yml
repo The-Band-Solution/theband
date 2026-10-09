@@ -151,5 +151,5 @@ jobs:
           echo "A PRODUÇÃO NÃO CONFIRMOU $ESPERADA em cinco minutos." >&2
           echo "(comparação: a rota devolve o número puro do mix.exs, sem o 'v' da tag)" >&2
           echo "A imagem e a tag existem; o webhook foi aceito; e o que está servindo" >&2
-          echo "NÃO é esta versão. Ver o achado H7 e o runbook §7 (rollback)." >&2
+          echo "NÃO é esta versão. Ver o achado H7, a credencial do registry (runbook §2) e o runbook §5 (rollback)." >&2
           exit 1
