@@ -1,8 +1,8 @@
 # Sprint 038 — a jornada de entrar e sair, vista por quem opera
 
 **Período**: aberto em 2026-10-03, na iteration *Sprint 035* do GitHub (`ee36a246`)
-**Feature**: [074](../../specs/074-jornada-entrar-e-sair/spec.md) · **Plano**: [plan.md](../../specs/074-jornada-entrar-e-sair/plan.md) · **Segurança**: [seguranca.md](../../specs/074-jornada-entrar-e-sair/seguranca.md)
-**Épico**: [#802](https://github.com/The-Band-Solution/theband/issues/802) · **ADR**: [0005](../../docs/adr/0005-telemetria-da-jornada.md), aceita em 2026-10-03
+**Feature**: [074](../../../specs/074-jornada-entrar-e-sair/spec.md) · **Plano**: [plan.md](../../../specs/074-jornada-entrar-e-sair/plan.md) · **Segurança**: [seguranca.md](../../../specs/074-jornada-entrar-e-sair/seguranca.md)
+**Épico**: [#802](https://github.com/The-Band-Solution/theband/issues/802) · **ADR**: [0005](../../adr/0005-telemetria-da-jornada.md), aceita em 2026-10-03
 **Branch dos documentos**: `feature/802-tracing-signoz`
 
 *O número 038 é o próximo livre olhando também os branches abertos: `development` vai até 037

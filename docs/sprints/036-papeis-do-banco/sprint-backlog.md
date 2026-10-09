@@ -1,7 +1,7 @@
 # Sprint 036 — os papéis do banco
 
 **Período**: 2026-10-03 a 2026-10-09, na mesma iteration da 070 (Sprint 035 no GitHub)
-**Feature**: [071](../../specs/071-papeis-do-banco/spec.md) · **Plano**: [plan.md](../../specs/071-papeis-do-banco/plan.md)
+**Feature**: [071](../../../specs/071-papeis-do-banco/spec.md) · **Plano**: [plan.md](../../../specs/071-papeis-do-banco/plan.md)
 **Issue de origem**: [#1131](https://github.com/The-Band-Solution/theband/issues/1131), segurança, achado G1 da 070
 
 ## Objetivo do sprint
