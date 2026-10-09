@@ -29,7 +29,7 @@ defmodule TheBand.Profiles.GenerateWorkerTest do
 
   setup do
     {:ok, _} = KnowledgeBase.load()
-    {tenant, _user} = tenant_with_admin()
+    {tenant, user} = tenant_with_admin()
     cenario = cenario_real(tenant)
 
     {:ok, pessoa} =
@@ -47,7 +47,7 @@ defmodule TheBand.Profiles.GenerateWorkerTest do
 
     material(tenant, cenario.observed_repository_id, pessoa.id)
 
-    %{tenant: tenant, pessoa: pessoa}
+    %{tenant: tenant, user: user, pessoa: pessoa}
   end
 
   defp material(tenant, repo_id, person_id) do
@@ -237,7 +237,8 @@ defmodule TheBand.Profiles.GenerateWorkerTest do
 
       expect(TheBand.LLMHTTPMock, :verify, fn _s, _o -> {:ok, ["gpt-5.4"]} end)
 
-      {:ok, _} = AI.put(ctx.tenant, %{"secret" => chave, "default_model" => "gpt-5.4"})
+      {:ok, _} =
+        AI.put(ctx.tenant, %{"secret" => chave, "default_model" => "gpt-5.4"}, ctx.user.id)
 
       expect(TheBand.LLMHTTPMock, :complete, fn _p, _m, opts ->
         assert Segredo.expor(opts[:key]) == chave

@@ -96,7 +96,7 @@ defmodule TheBandWeb.IdadeDaCredencialTest do
   # data de quem chama (achado 2), e é isso mesmo que se quer.
   defp chave_do_modelo(tenant, datas) do
     expect(TheBand.LLMHTTPMock, :verify, fn _s, _o -> {:ok, ["gpt-5.4"]} end)
-    {:ok, cred} = AI.put(tenant, %{"secret" => @chave})
+    {:ok, cred} = AI.put(tenant, %{"secret" => @chave}, TheBand.DataCase.user_fixture(tenant).id)
 
     {1, _} =
       Repo.update_all(

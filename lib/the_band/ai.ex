@@ -124,15 +124,23 @@ defmodule TheBand.AI do
 
   Não grava chave que não passou: "configurado" precisa ser verdade no momento em que a tela
   o afirma.
+
+  **O ator é obrigatório** (#1387, R-a do parecer da #1221). Com `nil` aceito, a assinatura
+  deixava passar uma gravação sem autor, e o declarante ficava nulo. Toda gravação tem quem a
+  fez, e a guarda faz da ausência um erro de quem chama, e não uma linha sem nome no log.
+
+  **A recusa deixa rastro** (#1388, R-b). Sem ele, o formulário servia para conferir chaves
+  alheias sem que uma série de tentativas de um mesmo ator aparecesse em lugar nenhum. O evento
+  leva só o átomo do motivo: a string vem do provedor e pode citar a chave mascarada por ele.
   """
-  @spec put(Tenant.t(), map(), binary() | nil) ::
+  @spec put(Tenant.t(), map(), Ecto.UUID.t()) ::
           {:ok, ProviderCredential.t()}
           | {:error, Ecto.Changeset.t()}
           | {:error, {:rejeitada, String.t()}}
           | {:error, {:indisponivel, String.t()}}
           | {:error, {:sem_modelos, String.t()}}
           | {:error, {:modelo_desconhecido, String.t(), [String.t()]}}
-  def put(%Tenant{id: tenant_id} = tenant, attrs, user_id \\ nil) do
+  def put(%Tenant{id: tenant_id} = tenant, attrs, user_id) when is_binary(user_id) do
     secret = attrs["secret"] || attrs[:secret] || ""
     provider = attrs["provider"] || attrs[:provider] || "openai"
 
@@ -158,20 +166,28 @@ defmodule TheBand.AI do
       # As datas da troca e o declarante são calculados aqui e postos fora do `cast`. Vindas de
       # quem chama, uma data recente forjada esconderia uma credencial vencida (achado 2 da
       # avaliação).
-      # `log: false`: em nível `:debug`, o Ecto registra os parâmetros da consulta **antes** de
-      # o tipo cifrar — a chave nova sairia em claro no log (medido em 2026-10-03, condição 4
-      # do parecer C.1, `test/the_band_web/live/mesma_chave_test.exs`). Produção roda em
-      # `:info` e não emitia; desenvolvimento, sim.
+      # A defesa contra a chave sair em claro no log da consulta é `TheBand.Repo.LogDaConsulta`
+      # (#1222): o log embutido do Repo está desligado, e o handler redige os parâmetros de toda
+      # consulta que toca tabela com campo cifrado. O `log: false` ficou redundante e não faz
+      # mal (#1391, R-e do parecer da #1221). Não o troque por um nível, como `log: :debug`, que
+      # contornaria o handler (`segredo_fora_do_log_test.exs` reprova).
       resultado =
         anterior
         |> ProviderCredential.changeset(atributos)
         |> Ecto.Changeset.change(campos_do_ato(ato, anterior, agora, user_id))
         |> Repo.insert_or_update(log: false)
 
-      # Só depois do commit: recusa e erro de changeset não deixam evento (condição 4).
+      # Só depois do commit: erro de changeset não deixa evento de gravação (condição 4). A
+      # recusa do provedor tem o evento dela, no `else`.
       with {:ok, _} <- resultado, do: AccessEvents.chave_do_modelo(ato, tenant_id, user_id)
 
       resultado
+    else
+      # Só o átomo sai daqui: o segundo elemento é texto do provedor (#1388). Um quinto formato
+      # de recusa levanta na guarda do evento, que é onde ele precisa ser visto.
+      {:error, recusa} = erro ->
+        AccessEvents.chave_do_modelo_recusada(elem(recusa, 0), tenant_id, user_id)
+        erro
     end
   end
 
@@ -222,9 +238,12 @@ defmodule TheBand.AI do
   Quem apagou fica no evento `:removida` (#1221, condição 1). Sem ele, apagar e gravar de novo
   apareceria no log como `:primeira`, sem ninguém para a remoção. Nesse intervalo o tenant cai
   no `API_KEY` do ambiente, que é compartilhado. Sem linha a remover, não há evento.
+
+  O ator é obrigatório, como em `put/3` (#1387).
   """
-  @spec delete(Tenant.t(), Ecto.UUID.t() | nil, String.t()) :: :ok | {:error, :not_found}
-  def delete(%Tenant{id: tenant_id} = tenant, actor_user_id \\ nil, provider \\ "openai") do
+  @spec delete(Tenant.t(), Ecto.UUID.t(), String.t()) :: :ok | {:error, :not_found}
+  def delete(%Tenant{id: tenant_id} = tenant, actor_user_id, provider \\ "openai")
+      when is_binary(actor_user_id) do
     case fetch(tenant, provider) do
       {:ok, cred} ->
         Repo.delete!(cred)

@@ -291,6 +291,35 @@ defmodule TheBand.Tenants.AccessEvents do
     )
   end
 
+  @doc """
+  A chave do provedor de modelos recusada antes de ser gravada — #1388 (R-b do parecer da #1221).
+
+  Sem esta linha, o formulário de `/ai` conferia qualquer chave no provedor sem deixar rastro, e
+  servia de verificador de chaves alheias (R3 do parecer C.1). Uma série de recusas de um mesmo
+  ator é o sinal, e é isso que a linha permite contar.
+
+  **Só o átomo do motivo cabe na assinatura**, e nunca a string que o acompanha em `AI.put/3`. Ela
+  vem do provedor, e a mensagem de erro da OpenAI cita a chave mascarada por ele, com prefixo e
+  sufixo, numa forma que `HTTP.redigir/2` não reconhece. No flash, para quem digitou, é aceitável;
+  no log, é parte de segredo de terceiro. O ator é obrigatório: a recusa só existe porque alguém
+  submeteu uma chave.
+  """
+  @spec chave_do_modelo_recusada(
+          :rejeitada | :indisponivel | :sem_modelos | :modelo_desconhecido,
+          Ecto.UUID.t(),
+          Ecto.UUID.t()
+        ) :: :ok
+  def chave_do_modelo_recusada(motivo, tenant_id, actor_user_id)
+      when motivo in [:rejeitada, :indisponivel, :sem_modelos, :modelo_desconhecido] and
+             is_binary(tenant_id) and is_binary(actor_user_id) do
+    registrar("ato administrativo",
+      ato: :chave_do_modelo_recusada,
+      motivo: motivo,
+      tenant_id: tenant_id,
+      actor_user_id: actor_user_id
+    )
+  end
+
   # ------------------------------------------------- o operador da plataforma (spec 070)
   #
   # Contrato em `specs/070-operador-da-plataforma/contracts/eventos-de-acesso.md` (FR-010, O14,

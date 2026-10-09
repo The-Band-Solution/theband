@@ -16,7 +16,12 @@ defmodule TheBand.ProfileRunFixtures do
   @doc "Tenant com cenário de coleta e credencial de provedor gravada."
   def tenant_com_credencial(tenant) do
     Mox.expect(TheBand.LLMHTTPMock, :verify, fn _s, _o -> {:ok, ["gpt-5.4-mini"]} end)
-    {:ok, cred} = AI.put(tenant, %{"secret" => "sk-chave-de-teste-com-mais-de-vinte-caracteres"})
+    # O ator é obrigatório desde a #1387: toda gravação tem autor, inclusive a do cenário.
+    autor = TheBand.DataCase.user_fixture(tenant)
+
+    {:ok, cred} =
+      AI.put(tenant, %{"secret" => "sk-chave-de-teste-com-mais-de-vinte-caracteres"}, autor.id)
+
     cred
   end
 

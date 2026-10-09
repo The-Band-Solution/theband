@@ -118,14 +118,15 @@ defmodule TheBand.SegredoForaDoLogTest do
   describe "ai_provider_credentials.secret" do
     test "gravar e regravar a credencial do provedor não loga o segredo" do
       tenant = tenant_fixture()
+      autor = user_fixture(tenant)
 
       expect(TheBand.LLMHTTPMock, :verify, 2, fn _s, _o -> {:ok, ["gpt-5.4-mini"]} end)
 
       log =
         capture_log(fn ->
           # A primeira grava (insert); a segunda regrava a existente (update).
-          assert {:ok, _} = AI.put(tenant, %{"secret" => @segredo_ia})
-          assert {:ok, _} = AI.put(tenant, %{"secret" => @segredo_ia <> "-2"})
+          assert {:ok, _} = AI.put(tenant, %{"secret" => @segredo_ia}, autor.id)
+          assert {:ok, _} = AI.put(tenant, %{"secret" => @segredo_ia <> "-2"}, autor.id)
         end)
 
       mediu!(log, "ai_provider_credentials")

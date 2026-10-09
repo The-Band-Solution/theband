@@ -51,7 +51,7 @@ defmodule TheBandWeb.MesmaChaveTest do
 
   defp gravada(tenant, chave, datas) do
     aceita()
-    {:ok, cred} = AI.put(tenant, %{"secret" => chave})
+    {:ok, cred} = AI.put(tenant, %{"secret" => chave}, TheBand.DataCase.user_fixture(tenant).id)
 
     {1, _} = Repo.update_all(from(c in ProviderCredential, where: c.id == ^cred.id), set: datas)
 
