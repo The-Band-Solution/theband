@@ -30,7 +30,8 @@ no repositório ou em chat — nunca.**
 | Painel do Dokploy | `SECRET_KEY_BASE` | `mix phx.gen.secret` local, colar direto |
 | Painel do Dokploy | `THE_BAND_MASTER_KEY` | `mix the_band.gen_key` — chave NOVA de produção, nunca a de dev |
 | Painel do Dokploy | `PHX_HOST` | o host do §1.3 |
-| Painel do Dokploy (registry) | credencial `read:packages` | SÓ se o pacote ghcr for privado |
+| Painel do Dokploy (registry) | credencial `read:packages` | o pacote ghcr é privado: token **classic** só com `read:packages`, usuário = o login do GitHub. **Anote a data de vencimento** — ela venceu entre a v0.11.0 e a v0.12.0, e o deploy falhou com `ghcr.io/v2/: denied` (nota da v0.12.0, *O que se observou depois*) |
+| GitHub → Settings → Secrets → Actions | `PRODUCAO_URL` | o endereço público da aplicação; o último passo do CD mede `/version` nele |
 
 Nada além disto. Chave que vazar se ROTACIONA (a mestra pelo §12, e não por `mix`, que a
 release não tem), nunca se "monitora".
