@@ -369,17 +369,18 @@ defmodule TheBand.AITest do
       refute function_exported?(AI, :put, 2)
       refute function_exported?(AI, :delete, 1)
 
-      # `apply/3` porque o verificador de tipos do compilador já recusa a chamada escrita à mão.
-      assert_raise FunctionClauseError, fn ->
-        apply(AI, :put, [ctx.tenant, %{"secret" => @k1}, nil])
-      end
+      # `apply/3` porque o verificador de tipos do compilador já recusa a chamada escrita à mão; os
+      # argumentos vêm de variável, como no teste das guardas do evento, abaixo.
+      sem_ator_put = [ctx.tenant, %{"secret" => @k1}, nil]
+      assert_raise FunctionClauseError, fn -> apply(AI, :put, sem_ator_put) end
 
       assert {:error, :not_found} = AI.fetch(ctx.tenant)
 
       aceita()
       {:ok, _} = AI.put(ctx.tenant, %{"secret" => @k1}, ctx.user.id)
 
-      assert_raise FunctionClauseError, fn -> apply(AI, :delete, [ctx.tenant, nil]) end
+      sem_ator_delete = [ctx.tenant, nil]
+      assert_raise FunctionClauseError, fn -> apply(AI, :delete, sem_ator_delete) end
       assert {:ok, %{declared_by_user_id: declarante}} = AI.fetch_sem_segredo(ctx.tenant)
       assert declarante == ctx.user.id
     end
