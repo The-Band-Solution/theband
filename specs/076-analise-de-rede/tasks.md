@@ -55,7 +55,7 @@ A21 → T014; A22 → T017.
     fechada como não feita, com o motivo, e T029 escreve na área que a marca não se aplica à revisão
   - **Teste**: a revisão do PR confere a linha da spec contra o comentário de decisão na issue
 
-- [ ] T003 [security] 👤 Medir a rede de designação em produção
+- [x] T003 [security] 👤 Medir a rede de designação em produção
   - **Pronta quando**: acesso de leitura à produção; a #1190 (073/T002) aberta
   - **Descrição**: na maior organização observada de produção, contar, **só agregados**: issues
     abertas em 180 dias, designações vigentes, arestas autor → responsável entre pessoas ligadas,
