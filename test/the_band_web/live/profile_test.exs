@@ -53,7 +53,9 @@ defmodule TheBandWeb.ProfileTest do
         "password" => "novissima-comprida-1"
       })
 
-    assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "atual não confere"
+    # A frase única da #1409 (D2): verdadeira na senha errada e na espera, sem número.
+    assert Phoenix.Flash.get(conn.assigns.flash, :error) =~
+             "couldn't confirm your current password"
 
     assert {:ok, _} =
              Tenants.authenticate(ctx.member.email, @senha, origem: TheBand.OrigemDeTeste.nova())

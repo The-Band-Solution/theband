@@ -60,7 +60,7 @@ entre a spec antiga e o traço novo:
 | sair sem sessão válida no servidor | `sair` | `falhou` | `sessao_ja_nao_existia` |
 | 064 S5 / 070 — a sessão caiu sem a pessoa pedir | `sessao_derrubada` | `falhou` | o motivo de `CurrentScope` |
 | 045 FR-013 — define a senha temporária | `definir_a_senha` | `concluiu` / `falhou` | `confirmacao_diferente`, `recusada_pela_regra`, `fora_do_fluxo` |
-| 045/US3 #2 e #3 — troca a própria senha | `trocar_a_senha` | `concluiu` / `falhou` | `senha_atual_nao_confere`, `recusada_pela_regra` |
+| 045/US3 #2 e #3 — troca a própria senha | `trocar_a_senha` | `concluiu` / `falhou` | `senha_atual_nao_confere`, `recusada_pela_regra`, `em_espera` e `tentativas_esgotadas` (os dois da issue #1409) |
 
 ## User Scenarios & Testing *(mandatory)*
 

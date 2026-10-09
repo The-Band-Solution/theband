@@ -99,10 +99,31 @@ defmodule TheBandWeb.SessionController do
 
       {:error, :invalid_current} ->
         passo(:trocar_a_senha, :falhou, :senha_atual_nao_confere, user)
+        conn |> put_flash(:error, atual_nao_confirmada()) |> redirect(to: ~p"/profile")
+
+      # EM ESPERA, A SENHA NÃO FOI CONFERIDA, E A SESSÃO FICA — issue #1409, D3.2. A espera pode
+      # ter sido posta por terceiro, pela entrada, sem sessão nenhuma: encerrar aqui deslogaria o
+      # dono que digitou a senha certa. A frase é a mesma da senha errada (D2).
+      {:error, {:throttled, _segundos}} ->
+        passo(:trocar_a_senha, :falhou, :em_espera, user)
+        conn |> put_flash(:error, atual_nao_confirmada()) |> redirect(to: ~p"/profile")
+
+      # A FALHA CONFERIDA QUE ESGOTA AS LIVRES ENCERRA A SESSÃO CORRENTE — issue #1409, D3. É o
+      # raciocínio do H1: quem chegou aqui com sessão alheia não ganha mais tentativas por ela, e
+      # precisa de outra. SÓ a corrente, e nunca `encerrar_da_conta/2`: encerrar todas daria a
+      # quem tem uma sessão o poder de deslogar o dono de todos os dispositivos (C5).
+      #
+      # `soltar/1` em vez de `drop: true`: o cookie fica, sem a sessão, para a frase chegar à
+      # entrada.
+      {:error, :tentativas_esgotadas} ->
+        passo(:trocar_a_senha, :falhou, :tentativas_esgotadas, user)
+        encerrar_a_corrente(conn, user)
 
         conn
-        |> put_flash(:error, dgettext("errors", "A senha atual não confere."))
-        |> redirect(to: ~p"/profile")
+        |> Sessao.soltar()
+        |> configure_session(renew: true)
+        |> put_flash(:error, atual_nao_confirmada())
+        |> redirect(to: ~p"/sign-in")
 
       {:error, %Ecto.Changeset{}} ->
         passo(:trocar_a_senha, :falhou, :recusada_pela_regra, user)
@@ -112,6 +133,27 @@ defmodule TheBandWeb.SessionController do
       # motivo declarado na taxonomia — por isso sem passo, e dito no contrato §2.
       {:error, :not_found} ->
         recusar_a_troca(conn)
+    end
+  end
+
+  # A FRASE ÚNICA DA SENHA ATUAL — issue #1409, D2. Senha errada, espera e esgotamento mostram
+  # esta, e só esta: dizer "aguarde N s" informaria a quem tem a sessão quando a próxima tentativa
+  # conta. E ela é VERDADEIRA nos três casos — a anterior, "a senha atual não confere", era falsa
+  # na espera com a senha certa, e o dono concluiria que a senha mudou (P6). Sem número nenhum.
+  # A tela fala inglês, mesmo a frase nascendo no domínio: não traduzir de volta.
+  defp atual_nao_confirmada,
+    do: dgettext("errors", "We couldn't confirm your current password. Try again in a moment.")
+
+  # A sessão vem de `CurrentScope`, que só a atribui se a conferiu. O registro do encerramento é o
+  # par do `fora_do_fluxo` do H1: o sinal de uma sessão possivelmente alheia.
+  defp encerrar_a_corrente(conn, user) do
+    case conn.assigns[:current_session] do
+      nil ->
+        :ok
+
+      sessao ->
+        Sessions.encerrar(sessao)
+        AccessEvents.sessao_derrubada(user.id, user.tenant_id, :tentativas_esgotadas)
     end
   end
 

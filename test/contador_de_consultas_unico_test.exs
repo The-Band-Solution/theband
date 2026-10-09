@@ -36,6 +36,8 @@ defmodule TheBand.ContadorDeConsultasUnicoTest do
       "captura o FOR UPDATE do guarda do papel (072/T004) e abre a janela de S3 depois da leitura do alvo",
     "test/the_band/tenants/auth_test.exs" =>
       "captura o SELECT … FOR UPDATE da conta no login (#1046), pelo conteúdo",
+    "test/the_band/tenants/troca_de_senha_com_espera_test.exs" =>
+      "captura o SELECT … FOR UPDATE da conta na troca de senha (#1409, P1), pelo conteúdo",
     "test/the_band/work_items/custo_da_vigente_test.exs" =>
       "captura a consulta que toca issue_promotions, pelo conteúdo",
     "test/the_band_web/api/isolamento_por_tenant_test.exs" =>

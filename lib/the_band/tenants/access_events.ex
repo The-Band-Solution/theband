@@ -163,6 +163,36 @@ defmodule TheBand.Tenants.AccessEvents do
     registrar("entrada recusada", user_id: user_id, tenant_id: tenant_id, motivo: motivo)
   end
 
+  @doc """
+  Troca de senha recusada na conferência da senha atual — issue #1409.
+
+  `motivo` é `:senha_errada` (ainda há tentativas livres), `:tentativas_esgotadas` (esta falha
+  esgotou as livres, e quem chamou encerra a sessão corrente) ou `:conta_sem_senha`. A recusa
+  por espera não passa por aqui: `espera_acionada/3` já a registra.
+
+  Antes da #1409, a falha na troca só emitia o passo de telemetria, que não é log: uma campanha
+  de adivinhação pela sessão alheia não deixava rastro nenhum.
+  """
+  @spec troca_de_senha_recusada(Ecto.UUID.t(), Ecto.UUID.t(), atom()) :: :ok
+  def troca_de_senha_recusada(user_id, tenant_id, motivo) when is_atom(motivo) do
+    registrar("troca de senha recusada", user_id: user_id, tenant_id: tenant_id, motivo: motivo)
+  end
+
+  @doc """
+  A senha atual conferiu na troca — issue #1409, e o mesmo rastro do achado H4.
+
+  `apagadas` é quantas tentativas falhas o acerto zerou. Como em `entrada_aceita/3`, zero é o
+  caso normal, e número alto é a campanha que deu certo.
+  """
+  @spec senha_atual_conferida(Ecto.UUID.t(), Ecto.UUID.t(), non_neg_integer()) :: :ok
+  def senha_atual_conferida(user_id, tenant_id, apagadas) when is_integer(apagadas) do
+    registrar("senha atual conferida",
+      user_id: user_id,
+      tenant_id: tenant_id,
+      falhas_apagadas: apagadas
+    )
+  end
+
   @doc "Desaceleração acionada — o `{:throttled, segundos}` que morria no retorno."
   @spec espera_acionada(Ecto.UUID.t(), Ecto.UUID.t() | nil, pos_integer()) :: :ok
   def espera_acionada(user_id, tenant_id, segundos) do
@@ -473,11 +503,13 @@ defmodule TheBand.Tenants.AccessEvents do
           "painel recusado",
           "equipe recusada",
           "ato administrativo",
-          "espera acionada"
+          "espera acionada",
+          "troca de senha recusada"
         ] ->
           :warning
 
-        evento == "entrada aceita" and Keyword.get(campos, :falhas_apagadas, 0) > 0 ->
+        evento in ["entrada aceita", "senha atual conferida"] and
+            Keyword.get(campos, :falhas_apagadas, 0) > 0 ->
           :warning
 
         true ->
