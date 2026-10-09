@@ -450,8 +450,24 @@ que **levanta** quando falta chave, e por teste que injeta a falta.
 Desenvolvimento, 2026-10-04, maior organização observada, issues abertas nos últimos 180 dias:
 **2 906 issues**, **2 585** designações vigentes, **155** arestas dirigidas autor → responsável entre
 pessoas ligadas, **54** pessoas; consulta de **46,8 ms** sem índice novo. Rede de revisão (073,
-2026-10-03): 40 pessoas, 233 arestas. **Produção não medida**: é a #1190, ampliada por T003 com a
-contagem da designação.
+2026-10-03): 40 pessoas, 233 arestas.
+
+**Produção, 2026-10-09 (T003)**: o log do job `análise de rede` da v0.12.0, na organização
+`leds-conectafapes`, a única observada. Só agregados; medido pela pessoa mantenedora, a partir do log
+do container.
+
+| rede | janela | pessoas | arestas | duração do cálculo |
+|---|---|---|---|---|
+| designação | 30 d | 48 | 87 | 99 ms |
+| designação | 90 d | 48 | 137 | 126 ms |
+| designação | 180 d | 54 | 171 | 233 ms |
+| revisão | 30 d | 42 | 126 | 105 ms |
+| revisão | 90 d | 46 | 205 | 133 ms |
+| revisão | 180 d | 49 | 258 | 143 ms |
+
+A janela de 180 dias tem 3 036 issues, e `unlinked_person: 0` na designação. O teto (300 pessoas / 3
+000 arestas) está longe, e a R5 e a T050 **não** reabrem. **Não medidos**: os núcleos da máquina e
+o tempo isolado de `WorkItems.assignment_pairs/3` (a duração acima já inclui a consulta).
 
 ## R21 — Divergências do protótipo aprovado, e o que vale
 
