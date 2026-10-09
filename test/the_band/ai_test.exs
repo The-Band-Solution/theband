@@ -89,21 +89,27 @@ defmodule TheBand.AITest do
     test "chave recusada pelo provedor não grava nada", ctx do
       expect(TheBand.LLMHTTPMock, :verify, fn _s, _o -> {:error, {:rejeitada, "HTTP 401"}} end)
 
-      assert {:error, {:rejeitada, "HTTP 401"}} = AI.put(ctx.tenant, %{"secret" => @chave})
+      assert {:error, {:rejeitada, "HTTP 401"}} =
+               AI.put(ctx.tenant, %{"secret" => @chave}, ctx.user.id)
+
       assert {:error, :not_found} = AI.fetch(ctx.tenant)
     end
 
     test "provedor inalcançável não grava, e a recusa não é a mesma de chave recusada", ctx do
       expect(TheBand.LLMHTTPMock, :verify, fn _s, _o -> {:error, {:indisponivel, "timeout"}} end)
 
-      assert {:error, {:indisponivel, "timeout"}} = AI.put(ctx.tenant, %{"secret" => @chave})
+      assert {:error, {:indisponivel, "timeout"}} =
+               AI.put(ctx.tenant, %{"secret" => @chave}, ctx.user.id)
+
       assert {:error, :not_found} = AI.fetch(ctx.tenant)
     end
 
     test "chave aceita que não alcança modelo algum não grava", ctx do
       expect(TheBand.LLMHTTPMock, :verify, fn _s, _o -> {:error, {:sem_modelos, "nenhum"}} end)
 
-      assert {:error, {:sem_modelos, "nenhum"}} = AI.put(ctx.tenant, %{"secret" => @chave})
+      assert {:error, {:sem_modelos, "nenhum"}} =
+               AI.put(ctx.tenant, %{"secret" => @chave}, ctx.user.id)
+
       assert {:error, :not_found} = AI.fetch(ctx.tenant)
     end
 
@@ -111,7 +117,7 @@ defmodule TheBand.AITest do
       aceita(["gpt-5.4-mini"])
 
       assert {:error, {:modelo_desconhecido, "gpt-4o", ["gpt-5.4-mini"]}} =
-               AI.put(ctx.tenant, %{"secret" => @chave, "default_model" => "gpt-4o"})
+               AI.put(ctx.tenant, %{"secret" => @chave, "default_model" => "gpt-4o"}, ctx.user.id)
 
       assert {:error, :not_found} = AI.fetch(ctx.tenant)
     end
@@ -119,14 +125,22 @@ defmodule TheBand.AITest do
     test "modelo em branco é escolha, e vale o padrão do provedor", ctx do
       aceita()
 
-      assert {:ok, cred} = AI.put(ctx.tenant, %{"secret" => @chave, "default_model" => ""})
+      assert {:ok, cred} =
+               AI.put(ctx.tenant, %{"secret" => @chave, "default_model" => ""}, ctx.user.id)
+
       assert is_nil(cred.default_model)
     end
 
     test "modelo listado pelo provedor é gravado", ctx do
       aceita()
 
-      assert {:ok, cred} = AI.put(ctx.tenant, %{"secret" => @chave, "default_model" => "gpt-5.4"})
+      assert {:ok, cred} =
+               AI.put(
+                 ctx.tenant,
+                 %{"secret" => @chave, "default_model" => "gpt-5.4"},
+                 ctx.user.id
+               )
+
       assert cred.default_model == "gpt-5.4"
     end
 
@@ -136,7 +150,7 @@ defmodule TheBand.AITest do
       aceita()
 
       assert {:error, %Ecto.Changeset{} = changeset} =
-               AI.put(ctx.tenant, %{"secret" => "sk-1234"})
+               AI.put(ctx.tenant, %{"secret" => "sk-1234"}, ctx.user.id)
 
       assert %{secret: ["curta demais para ser uma chave de API"]} = errors_on(changeset)
       assert {:error, :not_found} = AI.fetch(ctx.tenant)
@@ -144,10 +158,12 @@ defmodule TheBand.AITest do
 
     test "gravar de novo substitui, e o tenant continua com uma linha só", ctx do
       aceita()
-      {:ok, _} = AI.put(ctx.tenant, %{"secret" => @chave})
+      {:ok, _} = AI.put(ctx.tenant, %{"secret" => @chave}, ctx.user.id)
 
       aceita()
-      {:ok, segunda} = AI.put(ctx.tenant, %{"secret" => "sk-outra-chave-bem-mais-longa-4321"})
+
+      {:ok, segunda} =
+        AI.put(ctx.tenant, %{"secret" => "sk-outra-chave-bem-mais-longa-4321"}, ctx.user.id)
 
       assert segunda.last_four == "4321"
       assert %{rows: [[1]]} = Repo.query!("select count(*) from ai_provider_credentials")
@@ -168,7 +184,7 @@ defmodule TheBand.AITest do
     test "credencial gravada vence o ambiente", ctx do
       System.put_env("API_KEY", "sk-do-ambiente-abcd")
       aceita()
-      {:ok, _} = AI.put(ctx.tenant, %{"secret" => @chave})
+      {:ok, _} = AI.put(ctx.tenant, %{"secret" => @chave}, ctx.user.id)
 
       assert {:tenant, cred} = AI.origem_da_chave(ctx.tenant)
       assert cred.last_four == "9876"
@@ -182,7 +198,9 @@ defmodule TheBand.AITest do
 
     test "com credencial, leva chave, base e modelo", ctx do
       aceita()
-      {:ok, _} = AI.put(ctx.tenant, %{"secret" => @chave, "default_model" => "gpt-5.4"})
+
+      {:ok, _} =
+        AI.put(ctx.tenant, %{"secret" => @chave, "default_model" => "gpt-5.4"}, ctx.user.id)
 
       opcoes = AI.opcoes(ctx.tenant)
 
@@ -193,20 +211,20 @@ defmodule TheBand.AITest do
 
     test "sem modelo escolhido, a opção não vai — quem decide é o provedor", ctx do
       aceita()
-      {:ok, _} = AI.put(ctx.tenant, %{"secret" => @chave})
+      {:ok, _} = AI.put(ctx.tenant, %{"secret" => @chave}, ctx.user.id)
 
       refute Keyword.has_key?(AI.opcoes(ctx.tenant), :model)
     end
   end
 
-  describe "apagar (delete/2)" do
+  describe "apagar (delete/3)" do
     test "o segredo some, e apagar de novo diz que não há o que apagar", ctx do
       aceita()
-      {:ok, _} = AI.put(ctx.tenant, %{"secret" => @chave})
+      {:ok, _} = AI.put(ctx.tenant, %{"secret" => @chave}, ctx.user.id)
 
-      assert :ok = AI.delete(ctx.tenant)
+      assert :ok = AI.delete(ctx.tenant, ctx.user.id)
       assert {:error, :not_found} = AI.fetch(ctx.tenant)
-      assert {:error, :not_found} = AI.delete(ctx.tenant)
+      assert {:error, :not_found} = AI.delete(ctx.tenant, ctx.user.id)
     end
   end
 
@@ -215,7 +233,7 @@ defmodule TheBand.AITest do
       {outro, _} = tenant_with_admin("outro")
 
       aceita()
-      {:ok, _} = AI.put(ctx.tenant, %{"secret" => @chave})
+      {:ok, _} = AI.put(ctx.tenant, %{"secret" => @chave}, ctx.user.id)
 
       assert {:error, :not_found} = AI.fetch(outro)
       assert AI.origem_da_chave(outro) == :nenhuma
@@ -238,7 +256,9 @@ defmodule TheBand.AITest do
   defp linhas_do_evento(log) do
     log
     |> String.split("\n")
-    |> Enum.filter(&(&1 =~ "ato=:chave_do_modelo"))
+    # Exato: `ato=:chave_do_modelo_recusada` (#1388) começa com o mesmo texto, e casar por
+    # trecho contaria a recusa como gravação.
+    |> Enum.filter(&(&1 =~ ~r/ato=:chave_do_modelo(\s|$)/))
   end
 
   defp unica_linha!(log) do
@@ -338,16 +358,33 @@ defmodule TheBand.AITest do
       assert troca.previous_secret_set_at == antes
     end
 
-    test "ator ausente não suprime o evento: a linha sai com actor_user_id=nil", ctx do
-      aceita()
-      log = capture_log(fn -> assert {:ok, _} = AI.put(ctx.tenant, %{"secret" => @k1}) end)
+    # #1387 (R-a): o ator é obrigatório. Antes, `put/3` e `delete/3` aceitavam `nil` por padrão,
+    # e uma gravação sem autor deixava `declared_by_user_id` nulo. Sem `aceita()` antes da
+    # primeira chamada: o `verify_on_exit!` reprova se o provedor for consultado, e uma gravação
+    # sem ator não chega a ele.
+    test "sem ator, não se grava nem se remove a chave, e o provedor nem é consultado", ctx do
+      # Sem carregar o módulo, `function_exported?/3` devolve `false` de todo jeito, e o `refute`
+      # passaria com o defeito (visto ao injetar o `\\ nil` de volta).
+      Code.ensure_loaded!(AI)
+      refute function_exported?(AI, :put, 2)
+      refute function_exported?(AI, :delete, 1)
 
-      linha = unica_linha!(log)
-      assert linha =~ "tipo=:primeira"
-      assert linha =~ "actor_user_id=nil"
+      # `apply/3` porque o verificador de tipos do compilador já recusa a chamada escrita à mão.
+      assert_raise FunctionClauseError, fn ->
+        apply(AI, :put, [ctx.tenant, %{"secret" => @k1}, nil])
+      end
+
+      assert {:error, :not_found} = AI.fetch(ctx.tenant)
+
+      aceita()
+      {:ok, _} = AI.put(ctx.tenant, %{"secret" => @k1}, ctx.user.id)
+
+      assert_raise FunctionClauseError, fn -> apply(AI, :delete, [ctx.tenant, nil]) end
+      assert {:ok, %{declared_by_user_id: declarante}} = AI.fetch_sem_segredo(ctx.tenant)
+      assert declarante == ctx.user.id
     end
 
-    test "recusa do provedor, modelo desconhecido e erro de changeset não emitem", ctx do
+    test "recusa do provedor, modelo desconhecido e erro de changeset não emitem gravação", ctx do
       expect(TheBand.LLMHTTPMock, :verify, fn _s, _o -> {:error, {:rejeitada, "HTTP 401"}} end)
       aceita(["gpt-5.4-mini"])
       aceita()
@@ -457,6 +494,95 @@ defmodule TheBand.AITest do
     end
   end
 
+  # ------------------------------------------------------------------ #1388
+  #
+  # R-b do parecer da #1221: a recusa da chave pelo provedor deixa rastro, com o ator, o tenant e
+  # só o átomo do motivo. A string do provedor imita a da OpenAI, que cita a chave mascarada por
+  # ela, numa forma que `HTTP.redigir/2` não reconhece.
+  @recusa_do_provedor "Incorrect API key provided: sk-tes*****************wxyz"
+
+  defp linhas_da_recusa(log) do
+    log
+    |> String.split("\n")
+    |> Enum.filter(&(&1 =~ "ato=:chave_do_modelo_recusada"))
+  end
+
+  describe "a recusa deixa rastro (#1388)" do
+    # Em `:debug`, para o `refute` alcançar tudo o que o caminho loga, e não só a linha do evento.
+    setup do
+      nivel = Logger.level()
+      Logger.configure(level: :debug)
+      on_exit(fn -> Logger.configure(level: nivel) end)
+    end
+
+    test "cada um dos quatro motivos emite a recusa com o ator e o tenant", ctx do
+      expect(TheBand.LLMHTTPMock, :verify, fn _s, _o ->
+        {:error, {:rejeitada, @recusa_do_provedor}}
+      end)
+
+      expect(TheBand.LLMHTTPMock, :verify, fn _s, _o -> {:error, {:indisponivel, "timeout"}} end)
+      expect(TheBand.LLMHTTPMock, :verify, fn _s, _o -> {:error, {:sem_modelos, "nenhum"}} end)
+      aceita(["gpt-5.4-mini"])
+
+      log =
+        capture_log(fn ->
+          assert {:error, {:rejeitada, _}} = AI.put(ctx.tenant, %{"secret" => @k1}, ctx.user.id)
+
+          assert {:error, {:indisponivel, _}} =
+                   AI.put(ctx.tenant, %{"secret" => @k1}, ctx.user.id)
+
+          assert {:error, {:sem_modelos, _}} = AI.put(ctx.tenant, %{"secret" => @k1}, ctx.user.id)
+
+          assert {:error, {:modelo_desconhecido, _, _}} =
+                   AI.put(ctx.tenant, %{"secret" => @k1, "default_model" => "x"}, ctx.user.id)
+        end)
+
+      linhas = linhas_da_recusa(log)
+
+      assert Enum.map(linhas, &Regex.run(~r/motivo=(:\w+)/, &1, capture: :all_but_first)) ==
+               [[":rejeitada"], [":indisponivel"], [":sem_modelos"], [":modelo_desconhecido"]]
+
+      for linha <- linhas do
+        assert linha =~ ~s(tenant_id="#{ctx.tenant.id}")
+        assert linha =~ ~s(actor_user_id="#{ctx.user.id}")
+      end
+
+      assert {:error, :not_found} = AI.fetch(ctx.tenant)
+    end
+
+    test "a string do provedor e a chave nunca entram na linha nem no log", ctx do
+      expect(TheBand.LLMHTTPMock, :verify, fn _s, _o ->
+        {:error, {:rejeitada, @recusa_do_provedor}}
+      end)
+
+      log =
+        capture_log([level: :debug], fn ->
+          assert {:error, {:rejeitada, @recusa_do_provedor}} =
+                   AI.put(ctx.tenant, %{"secret" => @k1}, ctx.user.id)
+        end)
+
+      assert [_linha] = linhas_da_recusa(log)
+      refute log =~ "Incorrect API key"
+      refute log =~ "wxyz"
+      refute log =~ String.slice(@k1, 0, 12)
+    end
+
+    test "chave aceita e erro de changeset não emitem recusa", ctx do
+      aceita()
+      aceita()
+
+      log =
+        capture_log(fn ->
+          assert {:ok, _} = AI.put(ctx.tenant, %{"secret" => @k1}, ctx.user.id)
+
+          assert {:error, %Ecto.Changeset{}} =
+                   AI.put(ctx.tenant, %{"secret" => "sk-curta-wxyz"}, ctx.user.id)
+        end)
+
+      assert linhas_da_recusa(log) == []
+    end
+  end
+
   describe "as guardas do evento (#1221, condição 2)" do
     alias TheBand.Tenants.AccessEvents
 
@@ -483,6 +609,30 @@ defmodule TheBand.AITest do
         capture_log(fn -> AccessEvents.chave_do_modelo(:troca, ctx.tenant.id, ctx.user.id) end)
 
       assert unica_linha!(log) =~ "tipo=:troca"
+    end
+
+    test "a recusa aceita só os quatro motivos, ids binários e ator presente (#1388)", ctx do
+      log =
+        capture_log(fn ->
+          assert :ok =
+                   AccessEvents.chave_do_modelo_recusada(:rejeitada, ctx.tenant.id, ctx.user.id)
+        end)
+
+      assert [linha] = linhas_da_recusa(log)
+      assert linha =~ "motivo=:rejeitada"
+
+      # A string do provedor no lugar do átomo é exatamente o que a guarda existe para recusar.
+      for args <- [
+            [:outro, ctx.tenant.id, ctx.user.id],
+            [@recusa_do_provedor, ctx.tenant.id, ctx.user.id],
+            [{:rejeitada, @recusa_do_provedor}, ctx.tenant.id, ctx.user.id],
+            [:rejeitada, ctx.tenant.id, nil],
+            [:rejeitada, ctx.tenant, ctx.user.id]
+          ] do
+        assert_raise FunctionClauseError, fn ->
+          apply(AccessEvents, :chave_do_modelo_recusada, args)
+        end
+      end
     end
   end
 end

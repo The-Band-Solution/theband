@@ -79,7 +79,7 @@ defmodule TheBandWeb.ChaveDoModeloTest do
 
     test "chave gravada aparece mascarada, e o segredo não está no HTML", ctx do
       aceita()
-      {:ok, _} = AI.put(ctx.tenant, %{"secret" => @chave})
+      {:ok, _} = AI.put(ctx.tenant, %{"secret" => @chave}, ctx.admin.id)
 
       {:ok, _live, html} = live(ctx.conn, ~p"/ai")
 
@@ -170,7 +170,7 @@ defmodule TheBandWeb.ChaveDoModeloTest do
   describe "remover" do
     test "o segredo some, e a tela volta a dizer que a geração não roda", ctx do
       aceita()
-      {:ok, _} = AI.put(ctx.tenant, %{"secret" => @chave})
+      {:ok, _} = AI.put(ctx.tenant, %{"secret" => @chave}, ctx.admin.id)
 
       {:ok, live, _} = live(ctx.conn, ~p"/ai")
       html = live |> element("button", "remove the key") |> render_click()
@@ -184,7 +184,7 @@ defmodule TheBandWeb.ChaveDoModeloTest do
   describe "isolamento entre organizações" do
     test "a chave de uma organização não aparece na tela da outra", ctx do
       aceita()
-      {:ok, _} = AI.put(ctx.tenant, %{"secret" => @chave})
+      {:ok, _} = AI.put(ctx.tenant, %{"secret" => @chave}, ctx.admin.id)
 
       {_outro, admin_do_outro} = tenant_with_admin("outro")
 

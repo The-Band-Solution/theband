@@ -123,7 +123,7 @@ datas da tabela acima, o declarante e o evento (condição 7):
 
 | ato | quando | `declared_by_user_id` | evento |
 |---|---|---|---|
-| `:primeira` | o tenant não tem linha deste provedor | o ator (`nil` se o ator não vier) | `tipo=:primeira` |
+| `:primeira` | o tenant não tem linha deste provedor | o ator (obrigatório desde a #1387) | `tipo=:primeira` |
 | `:troca` | `mesma_chave?/2` é falso | o ator | `tipo=:troca` |
 | `:mesma_chave` | `mesma_chave?/2` (`secure_compare`) é verdadeiro | **o anterior, mantido** | `tipo=:mesma_chave`, com o ator que regravou |
 
@@ -135,9 +135,12 @@ antigo por cima de uma troca recém-commitada (condição 9, S4).
 ### A remoção recebe o ator
 
 ```elixir
-@spec delete(Tenant.t(), Ecto.UUID.t() | nil, String.t()) :: :ok | {:error, :not_found}
-def delete(tenant, actor_user_id \\ nil, provider \\ "openai")
+@spec delete(Tenant.t(), Ecto.UUID.t(), String.t()) :: :ok | {:error, :not_found}
+def delete(tenant, actor_user_id, provider \\ "openai") when is_binary(actor_user_id)
 ```
+
+**Emendado em 2026-10-09 (#1387).** A assinatura nasceu com `actor_user_id \\ nil`, e o ator
+passou a ser obrigatório. Ver "O ator é obrigatório", abaixo.
 
 **A assinatura muda.** Antes era `delete(tenant, provider \\ "openai")`. Os dois chamadores,
 `AILive.Index` e `test/the_band/ai_test.exs`, passam só o tenant, e nenhum passa o provedor. A
@@ -165,8 +168,9 @@ acesso: ato administrativo · ato=:chave_do_modelo tipo=:troca tenant_id="…" a
   `FunctionClauseError`.
 - **Só depois do commit** (condição 4): a linha sai quando `insert_or_update` devolve `{:ok, _}`
   ou quando `Repo.delete` conclui. Recusa do provedor, modelo desconhecido e erro de changeset não
-  emitem.
-- **Ator nulo não suprime a linha** (condição 8): ela sai com `actor_user_id=nil`.
+  emitem **esta** linha. A recusa tem a dela desde a #1388 (ver "A recusa deixa rastro").
+- **Ator nulo não suprime a linha** (condição 8): a guarda do evento ainda aceita `nil`, e a linha
+  sairia com `actor_user_id=nil`. Desde a #1387, `put/3` e `delete/3` não chegam a ela sem ator.
 - **O `tenant_id` é o do tenant que agiu**, e a classificação só lê a linha dele (condição 6).
 
 ### O que o evento não carrega, e por quê
@@ -175,7 +179,7 @@ acesso: ato administrativo · ato=:chave_do_modelo tipo=:troca tenant_id="…" a
 |---|---|
 | a chave, qualquer trecho dela, hash, prefixo ou `last_four` | a assinatura não aceita, só átomo e ids (condição 5). `last_four` aparece na tela, mas no log seria parte do segredo copiada para um lugar que quem opera `/ai` não controla |
 | o modelo escolhido | não é segredo, mas ninguém pediu. Se for preciso, é a R-c do parecer, em issue própria |
-| o motivo da recusa do provedor | a recusa não emite evento nesta correção. É a R-b do parecer, em issue própria, e a string do provedor nunca entra |
+| o motivo da recusa do provedor | a recusa tem evento próprio desde a #1388, com só o átomo do motivo. A string do provedor nunca entra |
 
 ### Como se prova
 
@@ -192,8 +196,57 @@ Os casos ficam em `test/the_band/ai_test.exs`, com `capture_log` no nível padr�
    do hexadecimal. Defeito: `last_four` nos campos do evento;
 5. com dois tenants, o evento de A não cita B, e a linha de B não muda;
 6. a mesma classificação decide as datas e o evento;
-7. com ator nulo, a linha sai com `actor_user_id=nil`;
+7. com ator nulo, a linha sai com `actor_user_id=nil`. **Substituído pela #1387**: sem ator,
+   `put/3` e `delete/3` levantam `FunctionClauseError`, e `put/3` levanta antes de consultar o
+   provedor;
 8. as guardas de `AccessEvents.chave_do_modelo/3` recusam átomo fora da lista, string e struct.
+
+### O ator é obrigatório (#1387, R-a do parecer)
+
+**Emendado em 2026-10-09.** `put/3` e `delete/3` nasceram com o ator opcional (`\\ nil`). O único
+chamador de produção (`AILive.Index`) já o passava, mas a assinatura deixava passar uma gravação
+sem autor, e `declared_by_user_id` ficava nulo.
+
+```elixir
+@spec put(Tenant.t(), map(), Ecto.UUID.t()) :: ...  # retornos inalterados
+def put(tenant, attrs, user_id) when is_binary(user_id)
+```
+
+Sem ator, as duas levantam `FunctionClauseError`, e `put/3` levanta **antes** de consultar o
+provedor. A ausência vira erro de quem chama, que é bug, e não uma linha sem nome no log. `put/2`
+e `delete/1` deixam de existir. Compatibilidade: os chamadores de teste que omitiam o ator passam
+a informá-lo; nenhum chamador de produção muda.
+
+### A recusa deixa rastro (#1388, R-b do parecer)
+
+**Emendado em 2026-10-09.** Quando `verify/2` recusa a chave, ou o modelo pedido não está na lista
+do provedor, `put/3` emite, antes de devolver o erro:
+
+```elixir
+@spec TheBand.Tenants.AccessEvents.chave_do_modelo_recusada(
+        :rejeitada | :indisponivel | :sem_modelos | :modelo_desconhecido,
+        Ecto.UUID.t(),
+        Ecto.UUID.t()
+      ) :: :ok
+```
+
+```text
+acesso: ato administrativo · ato=:chave_do_modelo_recusada motivo=:rejeitada tenant_id="…" actor_user_id="…"
+```
+
+- **Só o átomo do motivo.** A string que acompanha a recusa no retorno de `put/3` vem do provedor,
+  e a mensagem da OpenAI cita a chave mascarada por ela, numa forma que `HTTP.redigir/2` não
+  reconhece. A guarda não aceita string nem tupla. O retorno de `put/3` não muda: o flash continua
+  mostrando a frase a quem digitou.
+- **Guardas fechadas**: motivo na lista dos quatro, `tenant_id` e ator binários. Ator `nil` não
+  passa, porque a recusa só existe porque alguém submeteu uma chave.
+- **Erro de changeset não emite recusa**: o provedor aceitou, e a chave reprovou numa regra local
+  (tamanho). Não é a recusa que o R3 do C.1 descreve.
+- **O limite de tentativas por ator não está aqui.** A #1388 manda decidi-lo depois de medir o uso,
+  e a medição depende desta linha existir.
+
+Prova em `test/the_band/ai_test.exs`, "a recusa deixa rastro (#1388)" e as guardas. Defeitos
+injetados: tirar a chamada do evento; passar a tupla com a string e afrouxar a guarda.
 
 ## O que não muda
 
