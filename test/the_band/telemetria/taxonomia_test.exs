@@ -18,7 +18,8 @@ defmodule TheBand.Telemetria.TaxonomiaTest do
     "sessao_derrubada" => ~w(malformado inexistente resumo_errado encerrada vencida epoca_velha
                              organizacao_suspensa conta_desativada),
     "definir_a_senha" => ~w(confirmacao_diferente recusada_pela_regra fora_do_fluxo),
-    "trocar_a_senha" => ~w(senha_atual_nao_confere recusada_pela_regra)
+    "trocar_a_senha" => ~w(senha_atual_nao_confere recusada_pela_regra em_espera
+                           tentativas_esgotadas)
   }
 
   test "os seis passos da régua, e nenhum outro" do
@@ -192,6 +193,23 @@ defmodule TheBand.Telemetria.TaxonomiaGateTest do
     trocar.("atual-errada-e-longa", "novissima-comprida-1")
     trocar.(@senha, "curta")
     trocar.(@senha, "novissima-comprida-1")
+
+    # trocar_a_senha: tentativas_esgotadas e em_espera (#1409). Três erradas seguidas numa sessão
+    # esgotam as livres e a encerram; a seguinte, noutra sessão, cai na espera.
+    esg = conta(t)
+    sessao_esg = log_in(build_conn(), esg)
+
+    for _ <- 1..3,
+        do:
+          post(sessao_esg, ~p"/profile/password", %{
+            "current" => "errada-e-longa-1",
+            "password" => "novissima-comprida-1"
+          })
+
+    post(log_in(build_conn(), esg), ~p"/profile/password", %{
+      "current" => @senha,
+      "password" => "novissima-comprida-1"
+    })
 
     Spans.recebidos()
   end

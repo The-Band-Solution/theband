@@ -381,6 +381,54 @@ defmodule TheBand.Telemetria.ReguaTest do
     end
   end
 
+  # ---------------------------------------------- trocar_a_senha com a espera (issue #1409)
+
+  describe "trocar_a_senha — os motivos da espera (issue #1409, Q11)" do
+    defp trocar(conn, atual) do
+      post(conn, ~p"/profile/password", %{"current" => atual, "password" => "nova-SENTINELA-1409"})
+    end
+
+    test "a falha conferida que esgota as livres sai como tentativas_esgotadas, com a conta",
+         ctx do
+      user = conta_com_senha(ctx.tenant)
+      logado = log_in(build_conn(), user)
+
+      trocar(logado, @senha_errada)
+      trocar(logado, @senha_errada)
+      Spans.recebidos(0)
+      trocar(logado, @senha_errada)
+
+      spans = Spans.recebidos()
+      atributos = unico_passo(spans, :trocar_a_senha)
+      assert atributos["outcome"] == "falhou"
+      assert atributos["failure.reason"] == "tentativas_esgotadas"
+      assert atributos["user.ref"] == user.id
+
+      assert Spans.sentinelas_encontradas([spans, Spans.recursos()], [@senha, @senha_errada]) ==
+               []
+    end
+
+    test "a recusa em espera sai como em_espera, com a conta", ctx do
+      user = conta_com_senha(ctx.tenant)
+
+      for _ <- 1..3,
+          do:
+            Tenants.authenticate(user.email, @senha_errada, origem: TheBand.OrigemDeTeste.nova())
+
+      Spans.recebidos(0)
+      log_in(build_conn(), user) |> trocar(@senha)
+
+      spans = Spans.recebidos()
+      atributos = unico_passo(spans, :trocar_a_senha)
+      assert atributos["outcome"] == "falhou"
+      assert atributos["failure.reason"] == "em_espera"
+      assert atributos["user.ref"] == user.id
+
+      assert Spans.sentinelas_encontradas([spans, Spans.recursos()], [@senha, @senha_errada]) ==
+               []
+    end
+  end
+
   defp provocar(:malformado, cookie, _user, _ctx), do: %{cookie | "session_id" => "nao-e-uuid"}
 
   defp provocar(:inexistente, cookie, _user, _ctx),

@@ -50,7 +50,8 @@ derivation_rule:
       failure_reasons: [confirmacao_diferente, recusada_pela_regra, fora_do_fluxo]
     - id: trocar_a_senha
       outcomes: [concluiu, falhou]
-      failure_reasons: [senha_atual_nao_confere, recusada_pela_regra]
+      failure_reasons: [senha_atual_nao_confere, recusada_pela_regra,
+                        em_espera, tentativas_esgotadas]   # os dois últimos: issue #1409
 
   absent_on_purpose:          # o backlog listava; o código não pode produzir (spec, "O que já existe")
     - { id: entrar_pelo_github, why: "não há OAuth; spec 049 em Draft" }

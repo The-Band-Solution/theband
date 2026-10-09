@@ -113,6 +113,9 @@ derivation_rule:
       failure_reasons:
         - { id: senha_atual_nao_confere, origin: "045/US3 #3", action: "a pessoa" }
         - { id: recusada_pela_regra, origin: "045/US3 #2", action: "a pessoa" }
+        # Issue #1409: a troca passou a usar o contador e a espera da entrada (045 FR-016).
+        - { id: em_espera, origin: "045 FR-016; #1409 D1", action: "nenhuma, salvo pico: a senha não foi conferida" }
+        - { id: tentativas_esgotadas, origin: "#1409 D3", action: "investigar: sessão possivelmente alheia" }
 
   absent_on_purpose:
     - { id: entrar_pelo_github, why: "não há OAuth; spec 049 em Draft" }

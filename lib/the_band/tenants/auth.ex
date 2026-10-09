@@ -390,20 +390,105 @@ defmodule TheBand.Tenants.Auth do
   @doc """
   Troca de senha pela própria pessoa: exige a atual (FR-012) e gira o token —
   as outras sessões caem na próxima ação (FR-015).
+
+  A senha atual é conferida com **o mesmo contador e a mesma espera da entrada** (issue #1409,
+  D1): o segredo é um só, e dois contadores dariam o dobro de tentativas por ele. Os retornos
+  de recusa — contrato `specs/045-autenticacao-e-acesso/contracts/auth.md`:
+
+  - `{:error, :invalid_current}` — a atual foi conferida, errou, e ainda há tentativas livres;
+  - `{:error, :tentativas_esgotadas}` — a atual foi conferida **nesta** chamada, errou, e o
+    contador chegou às tentativas livres. É o sinal para quem chama encerrar a sessão corrente
+    (D3); vem no retorno, e não de releitura, para ser visível a teste (L69);
+  - `{:error, {:throttled, s}}` — dentro da janela de espera: a atual **não** foi conferida.
+    Os segundos são para teste e log; a tela não os mostra (D2).
   """
   @spec change_password(Tenant.t(), Ecto.UUID.t(), String.t(), String.t()) ::
-          {:ok, User.t()} | {:error, :invalid_current | :not_found | Ecto.Changeset.t()}
+          {:ok, User.t()}
+          | {:error,
+             :invalid_current
+             | :tentativas_esgotadas
+             | {:throttled, pos_integer()}
+             | :not_found
+             | Ecto.Changeset.t()}
   def change_password(%Tenant{id: tenant_id}, user_id, atual, nova) do
-    with %User{} = user <- do_tenant(tenant_id, user_id),
-         true <- user.password_hash != nil and Bcrypt.verify_pass(atual, user.password_hash) do
-      user
-      |> User.senha_changeset(%{password: nova}, source: "self", by: user.id)
-      |> Repo.update()
-      |> encerrando_as_sessoes()
-    else
-      nil -> {:error, :not_found}
-      false -> {:error, :invalid_current}
+    case do_tenant(tenant_id, user_id) do
+      nil ->
+        {:error, :not_found}
+
+      %User{id: id} ->
+        # A CONFERÊNCIA É SERIALIZADA POR CONTA, como na entrada (#1046; avaliação da #1409, P1).
+        # Janela, verificação e registro da falha com a linha em `FOR UPDATE`: dez trocas em
+        # paralelo leem o contador uma da outra, e só as livres chegam a testar a senha.
+        {:ok, conferencia} =
+          Repo.transaction(fn ->
+            id
+            |> conta_travada()
+            |> conferir_a_atual(atual)
+          end)
+
+        trocar_se_conferida(conferencia, nova)
     end
+  end
+
+  defp trocar_se_conferida({:ok, %User{} = user}, nova) do
+    user
+    |> User.senha_changeset(%{password: nova}, source: "self", by: user.id)
+    |> Repo.update()
+    |> encerrando_as_sessoes()
+  end
+
+  defp trocar_se_conferida(recusa, _nova), do: recusa
+
+  # A JANELA ANTES DO BCRYPT — avaliação da #1409, D1.2. Em espera, nem a senha certa é
+  # verificada, como na entrada; e `fora_da_janela/1` já paga o custo do hash e registra a
+  # espera, então a recusa em espera não responde mais rápido que a conferida (P2).
+  #
+  # Não reusa `verificar_credencial/2` inteira, de propósito (D1.4): organização suspensa e
+  # conta desativada já derrubam a sessão em `CurrentScope` antes de a requisição chegar aqui, e
+  # o ramo da conta sem senha de lá registra falha — aqui não há segredo a adivinhar (P10).
+  defp conferir_a_atual(%User{} = user, atual) do
+    with :ok <- fora_da_janela(user) do
+      cond do
+        is_nil(user.password_hash) ->
+          # Paga o hash e NÃO conta falha: sem senha gravada, não há o que adivinhar (P10).
+          custo_do_hash(:conta_sem_senha)
+          AccessEvents.troca_de_senha_recusada(user.id, user.tenant_id, :conta_sem_senha)
+          {:error, :invalid_current}
+
+        senha_confere?(atual, user.password_hash) ->
+          {:ok, zerar_na_conferencia(user)}
+
+        true ->
+          user |> registrar_falha() |> recusar_a_atual()
+      end
+    end
+  end
+
+  # O GATILHO DO ENCERRAMENTO É O CONTADOR DEPOIS DESTA FALHA — D3.2. Só chega aqui quem foi
+  # conferido nesta chamada; a recusa em espera saiu antes, pelo `with`, e não encerra nada: a
+  # espera pode ter sido posta por terceiro, pela entrada, sem sessão nenhuma (C5).
+  defp recusar_a_atual(%User{failed_attempts: n} = falhou) when n >= @tentativas_livres do
+    AccessEvents.troca_de_senha_recusada(falhou.id, falhou.tenant_id, :tentativas_esgotadas)
+    {:error, :tentativas_esgotadas}
+  end
+
+  defp recusar_a_atual(%User{} = falhou) do
+    AccessEvents.troca_de_senha_recusada(falhou.id, falhou.tenant_id, :senha_errada)
+    {:error, :invalid_current}
+  end
+
+  # O ZERO ACONTECE QUANDO A ATUAL CONFERE, mesmo que a nova seja recusada pela regra dos 12
+  # caracteres (avaliação da #1409, D1.3): a prova de conhecimento aconteceu, e não zerar
+  # deixaria o dono a uma digitação de ser deslogado por ter escolhido uma senha nova curta.
+  #
+  # E o rastro antes de apagar, como em `registrar_sucesso/1` (H4; P3): sem isto, a campanha que
+  # acerta na troca apagaria a própria evidência.
+  defp zerar_na_conferencia(%User{} = user) do
+    AccessEvents.senha_atual_conferida(user.id, user.tenant_id, user.failed_attempts)
+
+    user
+    |> Ecto.Changeset.change(failed_attempts: 0, last_failed_at: nil)
+    |> Repo.update!()
   end
 
   @doc """

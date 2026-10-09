@@ -92,7 +92,12 @@ config :logger, :default_formatter,
 # código de recuperação, e cada um abre a conta do operador. O filtro casa por **trecho** do nome
 # do campo: `"token"` cobre `setup_token` e `second_factor_token`, `"code"` cobre
 # `recovery_code` e `confirm_code`.
-config :phoenix, :filter_parameters, ["password", "token", "secret", "code", "totp"]
+#
+# `"current"` é a senha ATUAL do formulário de troca (`POST /profile/password`, campo
+# `current`) — issue #1409, achado pelo Q10: o nome não contém `password`, e a linha
+# `Parameters:` do Phoenix a imprimia em claro em `:debug`. Produção fixa `:info`, mas
+# configuração não é controle (A10).
+config :phoenix, :filter_parameters, ["password", "token", "secret", "code", "totp", "current"]
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason

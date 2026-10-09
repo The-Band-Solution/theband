@@ -130,7 +130,7 @@ msgstr ""
 
 #: lib/the_band_web/controllers/session_controller.ex:67
 #, elixir-autogen, elixir-format
-msgid "A senha atual não confere."
+msgid "We couldn't confirm your current password. Try again in a moment."
 msgstr ""
 
 #: lib/the_band_web/controllers/session_controller.ex:72
