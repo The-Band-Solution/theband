@@ -1,12 +1,12 @@
 -- Separação dos papéis quando o dono de hoje é o `postgres` (runbook §14.2, caso que o REASSIGN
 -- OWNED não cobre). Rodar como `postgres`, NA BASE DA APLICAÇÃO, numa transação: ou tudo, ou nada.
--- Troque <senha do dono> e <senha de quem serve> por `openssl rand -hex 32` (só hexadecimal).
+-- As senhas NÃO vão neste arquivo: os papéis nascem sem senha e, depois do COMMIT, você as define
+-- com `\password` no psql, que calcula o hash SCRAM no cliente. Assim a senha não passa pelo
+-- histórico, pela tela nem pelo log do Postgres (avaliação de segurança da opção B da #1131).
 BEGIN;
 
-CREATE ROLE the_band_owner LOGIN NOSUPERUSER NOCREATEROLE NOCREATEDB NOREPLICATION NOBYPASSRLS
-  PASSWORD '<senha do dono>';
-CREATE ROLE the_band_app   LOGIN NOSUPERUSER NOCREATEROLE NOCREATEDB NOREPLICATION NOBYPASSRLS
-  PASSWORD '<senha de quem serve>';
+CREATE ROLE the_band_owner LOGIN NOSUPERUSER NOCREATEROLE NOCREATEDB NOREPLICATION NOBYPASSRLS;
+CREATE ROLE the_band_app   LOGIN NOSUPERUSER NOCREATEROLE NOCREATEDB NOREPLICATION NOBYPASSRLS;
 
 DO $$
 DECLARE r record;
@@ -64,3 +64,8 @@ SELECT 'the_band_app é membro do dono', count(*) FROM pg_auth_members m
  WHERE m.roleid = 'the_band_owner'::regrole AND m.member = 'the_band_app'::regrole;
 
 COMMIT;
+
+-- Agora as duas senhas, uma de cada vez. O psql pede a senha duas vezes e não a mostra. Use as
+-- geradas com `openssl rand -hex 32` (só hexadecimal, para não quebrar a URL):
+--   \password the_band_owner
+--   \password the_band_app
