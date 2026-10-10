@@ -620,6 +620,31 @@ REASSIGN OWNED BY <o dono de hoje, de §14.1> TO the_band_owner;   -- só nesta 
 ALTER DATABASE <a base> OWNER TO the_band_owner;
 ```
 
+**Se o dono de hoje for o `postgres`** (o caso da produção: medido na subida da v0.12.0,
+`superusuario, dono_de_objeto`), o `REASSIGN OWNED BY postgres` acima **falha**:
+`cannot reassign ownership of objects owned by role postgres because they are required by the
+database system`. Use no lugar o roteiro
+[`scripts/separar-papeis-quando-o-dono-e-postgres.sql`](scripts/separar-papeis-quando-o-dono-e-postgres.sql):
+- ele cria os dois papéis e transfere, um por um, as tabelas, as sequências avulsas, as views, as
+  funções (inclusive as dos triggers somente-acréscimo) e os tipos do esquema `public`, menos o
+  que é de extensão;
+- depois passa o esquema e a base para `the_band_owner`;
+- tudo numa transação, com quatro conferências antes do `COMMIT`, que devem dar 0.
+
+Rode-o pelo `psql` como `postgres`, na base da aplicação, com as duas senhas no lugar de `<…>`.
+
+**Ensaio de 2026-10-09**, numa cópia do banco dev, na mesma situação (o `postgres` dono de 81
+tabelas e 43 funções):
+- o `REASSIGN OWNED` falhou como descrito;
+- o roteiro deu 0 nas quatro conferências;
+- com a credencial do dono, migrar e conceder funcionou, e desfazer e refazer uma migração também;
+- com a de quem serve, `conferir_papeis()` respondeu `papéis: separação em vigor`, a leitura de
+  `tenants` passou e `ALTER TABLE … DISABLE TRIGGER` foi recusado (`insufficient_privilege`).
+
+**Antes, em produção:** um snapshot da Contabo e um backup manual (§4), numa janela de pouco uso.
+Se algo der errado antes do `COMMIT`, a transação desfaz tudo. Depois do `COMMIT` e antes de
+trocar o painel, a aplicação continua servindo com o `postgres` do `DATABASE_URL` de hoje.
+
 **Nunca** `GRANT the_band_owner TO the_band_app`, nem a base com `OWNER the_band_app`. Qualquer um
 dos dois devolve a quem serve o poder de desligar as guardas, e a conferência diz
 `membro_do_dono` ou `dono_de_objeto`.
