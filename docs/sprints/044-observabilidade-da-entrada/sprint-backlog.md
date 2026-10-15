@@ -61,10 +61,10 @@ preenchido (é ausência, e não zero); `Priority` vai só até P2.
 
 | # | Tarefa | Atende | Issue | Estado |
 |---|---|---|---|---|
-| T021 | Definir e trocar a senha emitem o desfecho | US4 | [#1255](https://github.com/The-Band-Solution/theband/issues/1255) | a fazer |
-| T022 | O painel das três perguntas | US5 | [#1256](https://github.com/The-Band-Solution/theband/issues/1256) | a fazer |
-| T023 | O alerta de enumeração de contas | US5 | [#1257](https://github.com/The-Band-Solution/theband/issues/1257) | a fazer |
-| T030 | Medir o custo da telemetria na entrada | — | [#1264](https://github.com/The-Band-Solution/theband/issues/1264) | a fazer |
+| T021 | Definir e trocar a senha emitem o desfecho | US4 | [#1255](https://github.com/The-Band-Solution/theband/issues/1255) | feito |
+| T022 | O painel das três perguntas | US5 | [#1256](https://github.com/The-Band-Solution/theband/issues/1256) | feito |
+| T023 | O alerta de enumeração de contas | US5 | [#1257](https://github.com/The-Band-Solution/theband/issues/1257) | feito |
+| T030 | Medir o custo da telemetria na entrada | — | [#1264](https://github.com/The-Band-Solution/theband/issues/1264) | feito |
 | T031 | Rodar os gates e abrir o PR | — | [#1265](https://github.com/The-Band-Solution/theband/issues/1265) | a fazer |
 | T029 | Atualizar o runbook | — | [#1263](https://github.com/The-Band-Solution/theband/issues/1263) | bloqueado pela T026 (👤) |
 
