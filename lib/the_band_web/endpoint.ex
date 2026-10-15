@@ -21,6 +21,9 @@ defmodule TheBandWeb.Endpoint do
     websocket: [connect_info: [session: @session_options]],
     longpoll: [connect_info: [session: @session_options]]
 
+  # O HOST DA CONEXÃO NA LISTA, antes de tudo — EEF-CVE-2026-105660; ver o plug.
+  plug TheBandWeb.Plugs.HostAceito
+
   # Serve at "/" the static files from "priv/static" directory.
   #
   # When code reloading is disabled (e.g., in production),

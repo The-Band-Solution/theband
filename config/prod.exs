@@ -12,6 +12,10 @@ config :the_band, TheBandWeb.Endpoint, cache_static_manifest: "priv/static/cache
 # Note `:force_ssl` is required to be set at compile-time.
 config :the_band, TheBandWeb.Endpoint,
   force_ssl: [
+    # O host do redirecionamento é o configurado, e nunca o da conexão — EEF-CVE-2026-105660:
+    # sem `:host`, o Plug.SSL monta o `Location` com `conn.host`, que um pedido em forma
+    # absoluta deixa o cliente escolher. O `force_ssl` roda antes do plug `HostAceito`.
+    host: {TheBandWeb.Endpoint, :host, []},
     rewrite_on: [:x_forwarded_proto],
     exclude: [
       # paths: ["/health"],
