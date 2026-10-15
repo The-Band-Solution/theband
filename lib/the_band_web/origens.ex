@@ -47,6 +47,23 @@ defmodule TheBandWeb.Origens do
     |> Enum.uniq()
   end
 
+  @doc """
+  Os hosts aceitos no pedido HTTP — os mesmos de `aceitas/2`, sem esquema e sem porta.
+
+  É a lista do plug `TheBandWeb.Plugs.HostAceito`, que recusa o pedido cujo host da conexão
+  não está nela (EEF-CVE-2026-105660: um pedido HTTP/1 em forma absoluta deixa o cliente
+  escolher `conn.host` no Bandit). Da mesma fonte do `check_origin`, para as duas listas não
+  divergirem.
+  """
+  @spec hosts(String.t(), String.t() | nil) :: [String.t()]
+  def hosts(host_principal, declaracao_bruta) do
+    host_principal
+    |> aceitas(declaracao_bruta)
+    |> Enum.map(fn origem -> origem |> URI.parse() |> Map.fetch!(:host) end)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.uniq()
+  end
+
   defp declaradas(nil), do: []
 
   defp declaradas(bruta) when is_binary(bruta) do

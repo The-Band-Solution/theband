@@ -25,6 +25,10 @@ config :gettext, :default_locale, "en"
 
 config :the_band, TheBandWeb.Gettext, allowed_locales: ["en", "pt"]
 
+# Os hosts aceitos no pedido (`TheBandWeb.Plugs.HostAceito`). Em produção, o `config/runtime.exs`
+# os troca pelos do `PHX_HOST` e das origens extras.
+config :the_band, :hosts_aceitos, ["localhost", "127.0.0.1"]
+
 # Configure the endpoint
 config :the_band, TheBandWeb.Endpoint,
   url: [host: "localhost"],
