@@ -187,6 +187,7 @@ nav:
       - Deployment: deployment.md
       - Runbook de produção: producao/runbook.md
       - Recriar o banco com os papéis separados: producao/recriar-o-banco-com-papeis-separados.md
+      - O que fazer no servidor: producao/o-que-fazer-no-servidor.md
       - Fluxo de uma feature: processes/feature-workflow.md
 
   - Releases:
