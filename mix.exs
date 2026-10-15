@@ -71,7 +71,15 @@ defmodule TheBand.MixProject do
           # `test/the_band_web/bandit_sem_http2_test.exs`, que fala HTTP/2 com o servidor e exige
           # a recusa, com controle positivo. CAI se o HTTP/2 for religado ou se o `bandit` mudar
           # de versão: com o conserto, o `hex.audit` avisa que a entrada ficou obsoleta.
-          "EEF-CVE-2026-105659"
+          "EEF-CVE-2026-105659",
+          # RISCO RESIDUAL ACEITO — decisão da pessoa mantenedora em 2026-10-15 (§14.0):
+          # `bandit` 1.12.5, EEF-CVE-2026-105660 (MEDIUM), sem versão consertada: o pedido HTTP/1
+          # em forma absoluta deixa o cliente escolher `conn.host`. A plataforma não lê o host da
+          # conexão; o `force_ssl` redireciona para o host configurado (`config/prod.exs`), e o
+          # plug `TheBandWeb.Plugs.HostAceito` recusa host fora da lista. A guarda é
+          # `test/the_band_web/host_aceito_test.exs`. CAI se o plug sair do endpoint, se o
+          # `force_ssl` perder o `:host`, ou se o `bandit` mudar de versão.
+          "EEF-CVE-2026-105660"
         ]
       ]
       # A exceção de `CVE-2026-32686` viveu aqui de 2026-09-08 a 2026-09-20, e saiu **pelo
