@@ -21,6 +21,7 @@ defmodule TheBand.Telemetria.ReguaTest do
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Spans
   alias TheBand.Tenants
+  alias TheBand.Tenants.Auth
   alias TheBand.Tenants.Schemas.UserSession
 
   @senha "SENTINELA-SENHA-regua-7c1e"
@@ -426,6 +427,135 @@ defmodule TheBand.Telemetria.ReguaTest do
 
       assert Spans.sentinelas_encontradas([spans, Spans.recursos()], [@senha, @senha_errada]) ==
                []
+    end
+  end
+
+  # ------------------------------------- definir e trocar a senha (spec 074, T021, US4)
+  #
+  # As duas linhas de *A régua*: `definir_a_senha` (045 FR-013) e `trocar_a_senha` (045/US3 #2 e
+  # #3). O motivo vem do RAMO do controller, e nunca do changeset (S1): o changeset carrega a
+  # senha nova em `changes`. Os motivos da espera da #1409 estão no bloco acima.
+
+  @senha_nova "SENTINELA-NOVA-regua-5d3a1f9c"
+
+  defp definir(conn, senha, confirmacao) do
+    post(conn, ~p"/set-password", %{"password" => senha, "password_confirmation" => confirmacao})
+  end
+
+  defp com_temporaria(ctx) do
+    user = conta_com_senha(ctx.tenant)
+    {:ok, temporaria} = Auth.reset_password(ctx.tenant, user.id, ctx.admin.id)
+    {:ok, user} = Tenants.fetch_user(user.id)
+    {user, temporaria}
+  end
+
+  defp sem_sentinela!(spans, extras) do
+    assert Spans.sentinelas_encontradas(
+             [spans, Spans.recursos()],
+             [@senha, @senha_errada, @senha_nova | extras]
+           ) == [],
+           "uma senha saiu no traço"
+  end
+
+  describe "definir_a_senha (045 FR-013) — T021" do
+    test "definir a temporária conclui, com a organização e SEM a conta", ctx do
+      {user, temporaria} = com_temporaria(ctx)
+      Spans.recebidos(0)
+      log_in(build_conn(), user) |> definir(@senha_nova, @senha_nova)
+
+      spans = Spans.recebidos()
+      atributos = unico_passo(spans, :definir_a_senha)
+      assert atributos["outcome"] == "concluiu"
+      assert atributos["tenant.id"] == user.tenant_id
+      refute Map.has_key?(atributos, "user.ref")
+      refute Map.has_key?(atributos, "failure.reason")
+      sem_sentinela!(spans, [temporaria])
+    end
+
+    test "a confirmação diferente sai como confirmacao_diferente, com a conta", ctx do
+      {user, temporaria} = com_temporaria(ctx)
+      Spans.recebidos(0)
+      log_in(build_conn(), user) |> definir(@senha_nova, @senha_nova <> "-outra")
+
+      spans = Spans.recebidos()
+      atributos = unico_passo(spans, :definir_a_senha)
+      assert atributos["outcome"] == "falhou"
+      assert atributos["failure.reason"] == "confirmacao_diferente"
+      assert atributos["user.ref"] == user.id
+      sem_sentinela!(spans, [temporaria, @senha_nova <> "-outra"])
+    end
+
+    test "a senha curta sai como recusada_pela_regra, com a conta", ctx do
+      {user, temporaria} = com_temporaria(ctx)
+      Spans.recebidos(0)
+      log_in(build_conn(), user) |> definir("curta-SENT", "curta-SENT")
+
+      spans = Spans.recebidos()
+      atributos = unico_passo(spans, :definir_a_senha)
+      assert atributos["outcome"] == "falhou"
+      assert atributos["failure.reason"] == "recusada_pela_regra"
+      assert atributos["user.ref"] == user.id
+      sem_sentinela!(spans, [temporaria, "curta-SENT"])
+    end
+
+    test "a conta em regime normal na porta da temporária sai como fora_do_fluxo (H1)", ctx do
+      user = conta_com_senha(ctx.tenant)
+      Spans.recebidos(0)
+      log_in(build_conn(), user) |> definir(@senha_nova, @senha_nova)
+
+      spans = Spans.recebidos()
+      atributos = unico_passo(spans, :definir_a_senha)
+      assert atributos["outcome"] == "falhou"
+      assert atributos["failure.reason"] == "fora_do_fluxo"
+      assert atributos["user.ref"] == user.id
+      sem_sentinela!(spans, [])
+    end
+  end
+
+  describe "trocar_a_senha (045/US3 #2 e #3) — T021" do
+    test "a troca com a senha atual certa conclui, com a organização e SEM a conta", ctx do
+      user = conta_com_senha(ctx.tenant)
+      Spans.recebidos(0)
+
+      log_in(build_conn(), user)
+      |> post(~p"/profile/password", %{"current" => @senha, "password" => @senha_nova})
+
+      spans = Spans.recebidos()
+      atributos = unico_passo(spans, :trocar_a_senha)
+      assert atributos["outcome"] == "concluiu"
+      assert atributos["tenant.id"] == user.tenant_id
+      refute Map.has_key?(atributos, "user.ref")
+      sem_sentinela!(spans, [])
+    end
+
+    test "a senha atual errada sai como senha_atual_nao_confere, com a conta", ctx do
+      user = conta_com_senha(ctx.tenant)
+      Spans.recebidos(0)
+
+      log_in(build_conn(), user)
+      |> post(~p"/profile/password", %{"current" => @senha_errada, "password" => @senha_nova})
+
+      spans = Spans.recebidos()
+      atributos = unico_passo(spans, :trocar_a_senha)
+      assert atributos["outcome"] == "falhou"
+      assert atributos["failure.reason"] == "senha_atual_nao_confere"
+      assert atributos["user.ref"] == user.id
+      sem_sentinela!(spans, [])
+    end
+
+    test "a senha nova curta sai como recusada_pela_regra, com a conta", ctx do
+      user = conta_com_senha(ctx.tenant)
+      Spans.recebidos(0)
+
+      log_in(build_conn(), user)
+      |> post(~p"/profile/password", %{"current" => @senha, "password" => "curta-SENT"})
+
+      spans = Spans.recebidos()
+      atributos = unico_passo(spans, :trocar_a_senha)
+      assert atributos["outcome"] == "falhou"
+      assert atributos["failure.reason"] == "recusada_pela_regra"
+      assert atributos["user.ref"] == user.id
+      sem_sentinela!(spans, ["curta-SENT"])
     end
   end
 

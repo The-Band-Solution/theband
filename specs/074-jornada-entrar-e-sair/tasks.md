@@ -349,7 +349,20 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
 
 ## Fase 6: US4 — sei quando definir ou trocar a senha falhou (P2)
 
-- [ ] T021 [US4] Definir e trocar a senha emitem o desfecho
+- [x] T021 [US4] Definir e trocar a senha emitem o desfecho — *feita em 2026-10-15 (sprint 044)*:
+  os pontos de emissão já estavam no controller, desde o MVP (#1311); os motivos da espera vieram
+  com o #1426. Entraram os testes que a tarefa pede:
+  - `regua_test.exs` ganhou os sete casos (definir: concluiu, `confirmacao_diferente`,
+    `recusada_pela_regra`, `fora_do_fluxo`; trocar: concluiu, `senha_atual_nao_confere`,
+    `recusada_pela_regra`), com a conta só nas recusas e nenhuma senha no traço;
+  - `sentinelas_test.exs` ganhou o percurso pelas duas portas, com sentinela na senha atual
+    tentada, na nova, na temporária e na confirmação.
+
+  **Defeitos injetados**:
+  - o motivo derivado de `inspect(changeset.errors)`, no ramo da troca e no da definição: 31/32,
+    EXIT 2 em cada um;
+  - a senha nova no lugar de `tenant.id` **e** a camada do filtro que confere a forma desligada:
+    2/3, EXIT 2. Com o filtro inteiro, o mesmo vazamento é neutralizado (3/3), como na T018
   - **Pronta quando**: T011
   - **Descrição**: `set_password/2` e `update_password/2` emitem `definir_a_senha` e
     `trocar_a_senha` com `confirmacao_diferente`, `recusada_pela_regra`, `fora_do_fluxo` e

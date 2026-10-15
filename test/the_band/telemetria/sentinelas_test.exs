@@ -16,6 +16,7 @@ defmodule TheBand.Telemetria.SentinelasTest do
 
   alias TheBand.Spans
   alias TheBand.Tenants
+  alias TheBand.Tenants.Auth
 
   @senha "SENTINELA-SENHA-9b2e7f"
   @senha_tentada "SENTINELA-TENTADA-4c1d8a"
@@ -27,7 +28,7 @@ defmodule TheBand.Telemetria.SentinelasTest do
 
   setup do
     :ok = Spans.ligar()
-    {tenant, _admin} = tenant_with_admin()
+    {tenant, admin} = tenant_with_admin()
 
     {:ok, user} =
       Tenants.create_user(tenant, %{
@@ -37,7 +38,7 @@ defmodule TheBand.Telemetria.SentinelasTest do
 
     {:ok, user} = Tenants.set_password(tenant, user.id, @senha)
     Spans.recebidos(0)
-    %{user: user}
+    %{user: user, tenant: tenant, admin: admin}
   end
 
   # A jornada inteira, e devolve as sentinelas que ela fez circular — inclusive o segredo do
@@ -79,6 +80,48 @@ defmodule TheBand.Telemetria.SentinelasTest do
 
     spans = Spans.recebidos()
     :ok = Spans.assert_passos!(spans, @passos)
+
+    assert Spans.sentinelas_encontradas([spans, Spans.recursos()], sentinelas) == []
+  end
+
+  # As duas portas da senha — spec 074, T021: a troca pela própria pessoa e a definição da
+  # temporária. Sentinela na senha atual tentada, na nova, na temporária e na confirmação. O
+  # changeset carrega a senha nova em `changes`, e é por isso que o motivo vem do ramo (S1).
+  @nova "SENTINELA-NOVA-1f8b3c6d"
+  @nova_da_temporaria "SENTINELA-DEFINIDA-7e2a9b4c"
+  @confirmacao "SENTINELA-CONFIRMA-3d6c1e8f"
+
+  test "trocar e definir a senha chegam, e nenhuma senha em lugar nenhum do que saiu", ctx do
+    logado = log_in(build_conn(), ctx.user)
+    post(logado, ~p"/profile/password", %{"current" => @senha_tentada, "password" => @nova})
+    post(logado, ~p"/profile/password", %{"current" => @senha, "password" => @nova})
+
+    {:ok, temporaria} = Auth.reset_password(ctx.tenant, ctx.user.id, ctx.admin.id)
+    {:ok, com_temporaria} = Tenants.fetch_user(ctx.user.id)
+    na_temporaria = log_in(build_conn(), com_temporaria)
+
+    post(na_temporaria, ~p"/set-password", %{
+      "password" => @nova_da_temporaria,
+      "password_confirmation" => @confirmacao
+    })
+
+    post(na_temporaria, ~p"/set-password", %{
+      "password" => @nova_da_temporaria,
+      "password_confirmation" => @nova_da_temporaria
+    })
+
+    spans = Spans.recebidos()
+    :ok = Spans.assert_passos!(spans, [:trocar_a_senha, :definir_a_senha])
+
+    sentinelas = [
+      @senha,
+      @senha_tentada,
+      @nova,
+      temporaria,
+      @nova_da_temporaria,
+      @confirmacao,
+      ctx.user.email
+    ]
 
     assert Spans.sentinelas_encontradas([spans, Spans.recursos()], sentinelas) == []
   end
