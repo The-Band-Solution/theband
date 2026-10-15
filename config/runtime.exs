@@ -145,6 +145,10 @@ if config_env() == :prod do
   # `THE_BAND_ORIGENS_EXTRAS` responde "por onde as pessoas chegam". Enquanto
   # houve um endereço só, as duas perguntas tiveram a mesma resposta e ninguém
   # notou que eram diferentes — ver a P1 da 050 e a feature 054.
+  config :the_band,
+         :hosts_aceitos,
+         TheBandWeb.Origens.hosts(host, System.get_env("THE_BAND_ORIGENS_EXTRAS"))
+
   config :the_band, TheBandWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
     check_origin: TheBandWeb.Origens.aceitas(host, System.get_env("THE_BAND_ORIGENS_EXTRAS")),

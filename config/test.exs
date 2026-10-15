@@ -16,6 +16,9 @@ config :the_band, TheBand.Repo,
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2
 
+# `Plug.Test` monta o pedido com o host `www.example.com`.
+config :the_band, :hosts_aceitos, ["localhost", "127.0.0.1", "www.example.com"]
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :the_band, TheBandWeb.Endpoint,
