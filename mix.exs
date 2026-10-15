@@ -65,7 +65,7 @@ defmodule TheBand.MixProject do
           "EEF-CVE-2026-43969",
           "EEF-CVE-2026-95105",
           "EEF-CVE-2026-94206",
-          # PROPOSTA (2026-10-15), aguarda a decisão da pessoa mantenedora (§14.0):
+          # RISCO RESIDUAL ACEITO — decisão da pessoa mantenedora em 2026-10-15 (§14.0):
           # `bandit` 1.12.5, EEF-CVE-2026-105659 (HIGH), sem versão consertada. O defeito é do
           # HTTP/2, que está DESLIGADO no endpoint (`config/config.exs`). A guarda é
           # `test/the_band_web/bandit_sem_http2_test.exs`, que fala HTTP/2 com o servidor e exige
