@@ -1,0 +1,46 @@
+{
+  "receiver": "quem-opera",
+  "status": "firing",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "Enumeração de contas: tentativas de entrada sem conta, ou freadas pela origem, acima do limiar",
+        "jornada": "entrar_e_sair",
+        "ruleId": "01a1407b-35d7-788d-8cf1-d42b9c68ecb3",
+        "ruleSource": ":///alerts/edit?ruleId=01a1407b-35d7-788d-8cf1-d42b9c68ecb3",
+        "severity": "warning",
+        "threshold.name": "warning"
+      },
+      "annotations": {
+        "description": "Mais de 30 tentativas em um minuto com identificador_nao_resolveu OU limite_por_origem, na plataforma inteira. É o padrão de quem testa e-mails para descobrir quais têm conta (enumeração). O identificador que não resolve não entra em espera (045 FR-016). POR QUE OS DOIS MOTIVOS: com o limite por origem (077) ligado, depois de 10 falhas a origem é recusada ANTES de resolver o identificador, e a campanha passa a aparecer como limite_por_origem (medido em 2026-10-15: 200 tentativas, 10 como identificador_nao_resolveu e 190 como limite_por_origem). Contar só um motivo deixaria o alerta cego exatamente quando o freio está agindo. POR QUE 30: quem erra o próprio e-mail gera uma ou duas por minuto; 30 por minuto na plataforma inteira está muito acima do erro humano, e muito abaixo das 200 por minuto de uma campanha (o cenário da T023). Abra o painel 'Entrar e sair' e os traços com esses motivos. Este texto não leva nenhum atributo de traço, de propósito (FR-013; seguranca.md, S8).",
+        "related_traces": ":///traces-explorer?compositeQuery=%257B%2522queryType%2522%253A%2522builder%2522%252C%2522builder%2522%253A%257B%2522queryData%2522%253A%255B%257B%2522queryName%2522%253A%2522A%2522%252C%2522stepInterval%2522%253A60%252C%2522dataSource%2522%253A%2522traces%2522%252C%2522aggregateOperator%2522%253A%2522noop%2522%252C%2522aggregateAttribute%2522%253A%257B%2522key%2522%253A%2522%2522%252C%2522dataType%2522%253A%2522%2522%252C%2522type%2522%253A%2522%2522%252C%2522isColumn%2522%253Afalse%252C%2522isJSON%2522%253Afalse%257D%252C%2522expression%2522%253A%2522A%2522%252C%2522disabled%2522%253Afalse%252C%2522limit%2522%253A0%252C%2522offset%2522%253A0%252C%2522pageSize%2522%253A0%252C%2522ShiftBy%2522%253A0%252C%2522IsAnomaly%2522%253Afalse%252C%2522QueriesUsedInFormula%2522%253Anull%252C%2522filter%2522%253A%257B%2522expression%2522%253A%2522journey.name%253D%2527entrar_e_sair%2527%2BAND%2Bfailure.reason%2BIN%2B%2528%2527identificador_nao_resolveu%2527%252C%2B%2527limite_por_origem%2527%2529%2522%257D%257D%255D%252C%2522queryFormulas%2522%253A%255B%255D%257D%257D&timeRange=%7B%22start%22%3A1792083180000000000%2C%22end%22%3A1792083240000000000%2C%22pageSize%22%3A100%7D&startTime=1792083180000000000&endTime=1792083240000000000&options=%7B%22maxLines%22%3A0%2C%22format%22%3A%22%22%2C%22selectColumns%22%3Anull%7D",
+        "summary": "Muitas tentativas de entrada com identificador que não identifica conta, ou recusadas pelo limite por origem."
+      },
+      "startsAt": "2026-10-15T16:56:09.602134488Z",
+      "endsAt": "0001-01-01T00:00:00Z",
+      "generatorURL": ":///alerts/edit?ruleId=01a1407b-35d7-788d-8cf1-d42b9c68ecb3",
+      "fingerprint": "c721f7dd25a61b79"
+    }
+  ],
+  "groupLabels": {
+    "ruleId": "01a1407b-35d7-788d-8cf1-d42b9c68ecb3"
+  },
+  "commonLabels": {
+    "alertname": "Enumeração de contas: tentativas de entrada sem conta, ou freadas pela origem, acima do limiar",
+    "jornada": "entrar_e_sair",
+    "ruleId": "01a1407b-35d7-788d-8cf1-d42b9c68ecb3",
+    "ruleSource": ":///alerts/edit?ruleId=01a1407b-35d7-788d-8cf1-d42b9c68ecb3",
+    "severity": "warning",
+    "threshold.name": "warning"
+  },
+  "commonAnnotations": {
+    "description": "Mais de 30 tentativas em um minuto com identificador_nao_resolveu OU limite_por_origem, na plataforma inteira. É o padrão de quem testa e-mails para descobrir quais têm conta (enumeração). O identificador que não resolve não entra em espera (045 FR-016). POR QUE OS DOIS MOTIVOS: com o limite por origem (077) ligado, depois de 10 falhas a origem é recusada ANTES de resolver o identificador, e a campanha passa a aparecer como limite_por_origem (medido em 2026-10-15: 200 tentativas, 10 como identificador_nao_resolveu e 190 como limite_por_origem). Contar só um motivo deixaria o alerta cego exatamente quando o freio está agindo. POR QUE 30: quem erra o próprio e-mail gera uma ou duas por minuto; 30 por minuto na plataforma inteira está muito acima do erro humano, e muito abaixo das 200 por minuto de uma campanha (o cenário da T023). Abra o painel 'Entrar e sair' e os traços com esses motivos. Este texto não leva nenhum atributo de traço, de propósito (FR-013; seguranca.md, S8).",
+    "related_traces": ":///traces-explorer?compositeQuery=%257B%2522queryType%2522%253A%2522builder%2522%252C%2522builder%2522%253A%257B%2522queryData%2522%253A%255B%257B%2522queryName%2522%253A%2522A%2522%252C%2522stepInterval%2522%253A60%252C%2522dataSource%2522%253A%2522traces%2522%252C%2522aggregateOperator%2522%253A%2522noop%2522%252C%2522aggregateAttribute%2522%253A%257B%2522key%2522%253A%2522%2522%252C%2522dataType%2522%253A%2522%2522%252C%2522type%2522%253A%2522%2522%252C%2522isColumn%2522%253Afalse%252C%2522isJSON%2522%253Afalse%257D%252C%2522expression%2522%253A%2522A%2522%252C%2522disabled%2522%253Afalse%252C%2522limit%2522%253A0%252C%2522offset%2522%253A0%252C%2522pageSize%2522%253A0%252C%2522ShiftBy%2522%253A0%252C%2522IsAnomaly%2522%253Afalse%252C%2522QueriesUsedInFormula%2522%253Anull%252C%2522filter%2522%253A%257B%2522expression%2522%253A%2522journey.name%253D%2527entrar_e_sair%2527%2BAND%2Bfailure.reason%2BIN%2B%2528%2527identificador_nao_resolveu%2527%252C%2B%2527limite_por_origem%2527%2529%2522%257D%257D%255D%252C%2522queryFormulas%2522%253A%255B%255D%257D%257D&timeRange=%7B%22start%22%3A1792083180000000000%2C%22end%22%3A1792083240000000000%2C%22pageSize%22%3A100%7D&startTime=1792083180000000000&endTime=1792083240000000000&options=%7B%22maxLines%22%3A0%2C%22format%22%3A%22%22%2C%22selectColumns%22%3Anull%7D",
+    "summary": "Muitas tentativas de entrada com identificador que não identifica conta, ou recusadas pelo limite por origem."
+  },
+  "externalURL": "http://localhost:8080",
+  "version": "4",
+  "groupKey": "{__receiver__=\"quem-opera\"}:{ruleId=\"01a1407b-35d7-788d-8cf1-d42b9c68ecb3\"}",
+  "truncatedAlerts": 0
+}

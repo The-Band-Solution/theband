@@ -620,6 +620,28 @@ Esta ADR só é aceita com números medidos, e não com estimativa:
 Sem 1 e 2, a decisão de backend seria escolha no escuro. Sem 3, 4 e 5, as regras desta ADR
 são comentário.
 
+### Verificação 1, medida (spec 074, T030 — 2026-10-15)
+
+**200 entradas certas, sequenciais, com e sem a telemetria**, no mesmo cenário: servidor de
+desenvolvimento (`mix phx.server`, Apple M4, 10 núcleos), a mesma conta, um cookie e um token novos
+por entrada, `curl` medindo `time_total`. "Com" é `THE_BAND_OTLP_ENDPOINT` apontando para o coletor
+local do SigNoz (profile `telemetria`, recebendo e gravando); "sem" é a variável ausente, com o log
+`telemetria desligada`.
+
+| | mediana | p90 |
+|---|---|---|
+| com telemetria | **422,2 ms** | 425,9 ms |
+| sem telemetria | **425,3 ms** | 431,4 ms |
+
+**Diferença: −0,7%** na mediana, dentro do ruído e com o sinal ao contrário. É muito abaixo dos 5%
+que trariam a ADR de volta à mesa (alternativa "log estruturado"). O tempo é quase todo do hash da
+senha, que é igual nos dois casos. O span é síncrono só até a fila do processador em lote, e a
+exportação sai fora da requisição (R5 e T020).
+
+**O que a medida não cobre:** a entrada sob concorrência alta, e a máquina de produção. A T028
+(👤) mede a produção depois de o SigNoz subir lá. O comando está em
+`specs/074-jornada-entrar-e-sair/evidencia/t030-medir.sh`.
+
 ## Referências
 
 - [ÉPICO #802](https://github.com/The-Band-Solution/theband/issues/802) — a proposta e o

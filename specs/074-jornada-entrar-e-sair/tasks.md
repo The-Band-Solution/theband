@@ -375,7 +375,23 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
 
 ## Fase 7: US5 — quem opera encontra as respostas (P2)
 
-- [ ] T022 [US5] O painel das três perguntas
+- [x] T022 [US5] O painel das três perguntas — *feita em 2026-10-15 (sprint 044)*:
+  `deploy/signoz/paineis/entrar-e-sair.json`, importado no SigNoz local (v0.125.0), com tentativas
+  reais (curl e Playwright contra o servidor de desenvolvimento). Capturas em `evidencia/`:
+  - `t022-painel-local.png`: os números batem com o que foi produzido;
+  - `t022-painel-periodo-vazio.png`: todo quadro diz *No data*, nunca zero;
+  - `t022-painel-abandono.png`: 2 abandonos depois de 30 min, e a abertura que entrou fica fora.
+
+  **Achado (medido):** no SigNoz, agrupar por chave opcional **descarta** a linha que não a tem.
+  `tenant.id` sumia com a enumeração e com a saída de sessão inexistente; `failure.reason` sumia
+  com todo sucesso. Por isso o painel ficou com seis quadros: total por passo e desfecho, recusas
+  por motivo, por organização (com `tenant.id exists`), contas que precisam de alguém, saídas que
+  falharam e abandono (SQL, R6).
+
+  **Guarda:** `signoz_artefatos_test.exs`. Nenhum `user.ref` ou `journey.id` em `groupBy`, e
+  nenhuma chave opcional agrupada sem filtro. Os defeitos injetados reprovam.
+
+  **Limite:** o texto do período vazio é o *No data* do SigNoz, e não "nenhuma tentativa".
   - **Pronta quando**: T006, T012, T016
   - **Descrição**: `deploy/signoz/paineis/entrar-e-sair.json`: entradas por passo, desfecho e
     motivo, por organização; contas que precisam de alguém (sem senha, desativada, organização
@@ -389,7 +405,21 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
     `grep -n "user.ref\|journey.id" deploy/signoz/paineis/entrar-e-sair.json` só nos filtros de
     traço, nunca em `groupBy`
 
-- [ ] T023 [US5] O alerta de enumeração de contas
+- [x] T023 [US5] O alerta de enumeração de contas — *feita em 2026-10-15 (sprint 044)*:
+  `deploy/signoz/alertas/enumeracao.json` (regra v5, limiar de 30 por minuto, com a razão no
+  arquivo). As 200 tentativas com e-mails inexistentes **dispararam** o alerta (`firing`, recebido
+  num webhook local). O corpo, em `evidencia/t023-corpo-do-alerta.json`, não tem `user.ref`,
+  `journey.id`, e-mail nem identificador da campanha.
+
+  **Achado (medido):** com o limite por origem (077) ligado, 190 das 200 tentativas viraram
+  `limite_por_origem`. Um alerta só de `identificador_nao_resolveu` ficaria cego quando o freio
+  age, e por isso ele conta os dois motivos.
+
+  **Defeito injetado:** `{{user.ref}}` na mensagem reprova `signoz_artefatos_test.exs` (3/4,
+  EXIT 2).
+
+  **Limite:** o alerta conta traços, e não sobrevive ao descarte da fila (S12). A contagem antes do
+  descarte ficou na #1433.
   - **Pronta quando**: T022
   - **Descrição**: alerta sobre a **contagem** de `identificador_nao_resolveu` por janela, com o
     limiar declarado no arquivo e a razão escrita; corpo sem atributo de traço (S8, S12).
@@ -462,7 +492,10 @@ de verificação redireciona a saída para arquivo e lê o código de saída ant
   - **Teste**: revisão independente comparando o runbook com `config/runtime.exs` e
     `deploy/signoz/`
 
-- [ ] T030 Medir o custo da telemetria na entrada
+- [x] T030 Medir o custo da telemetria na entrada — *feita em 2026-10-15 (sprint 044)*: 200
+  entradas com e sem telemetria. A mediana foi 422,2 ms contra 425,3 ms, **−0,7%**, no ruído e
+  abaixo dos 5%. O registro está na ADR 0005, *Verificação 1, medida*, e o script em
+  `evidencia/t030-medir.sh`.
   - **Pronta quando**: T012
   - **Descrição**: Verificação 1 da ADR 0005: 200 entradas com e sem a telemetria ligada, mesmo
     cenário, mediana comparada. SC-006.

@@ -1,0 +1,754 @@
+{
+  "title": "Entrar e sair — as três perguntas (074)",
+  "description": "Spec 074, T022 (US5; FR-010, FR-013; SC-005). As três perguntas de quem opera, sem escrever consulta. Dimensões só de enumeração fechada (journey.step, outcome, failure.reason, tenant.id); user.ref e journey.id nunca entram em groupBy (S13).",
+  "tags": [
+    "the-band",
+    "074",
+    "entrar-e-sair"
+  ],
+  "version": "v4",
+  "layout": [
+    {
+      "i": "f04dd4cf-1671-44d9-8776-fd074c6fc98b",
+      "x": 0,
+      "y": 0,
+      "w": 6,
+      "h": 6,
+      "moved": false,
+      "static": false
+    },
+    {
+      "i": "809f5f96-7a0c-4b0d-b0eb-93b9e7e4b104",
+      "x": 6,
+      "y": 0,
+      "w": 6,
+      "h": 6,
+      "moved": false,
+      "static": false
+    },
+    {
+      "i": "5b2dfddf-5d7e-4f32-914d-fb7b3c5c85ab",
+      "x": 0,
+      "y": 6,
+      "w": 6,
+      "h": 6,
+      "moved": false,
+      "static": false
+    },
+    {
+      "i": "10655f98-b504-4ca8-8691-c17cc9c096db",
+      "x": 6,
+      "y": 6,
+      "w": 6,
+      "h": 6,
+      "moved": false,
+      "static": false
+    },
+    {
+      "i": "03014340-8abf-4ce4-90cb-68a6696d87de",
+      "x": 0,
+      "y": 12,
+      "w": 6,
+      "h": 6,
+      "moved": false,
+      "static": false
+    },
+    {
+      "i": "302d7dc9-2035-4874-9e59-596abc87289c",
+      "x": 6,
+      "y": 12,
+      "w": 6,
+      "h": 6,
+      "moved": false,
+      "static": false
+    }
+  ],
+  "widgets": [
+    {
+      "id": "f04dd4cf-1671-44d9-8776-fd074c6fc98b",
+      "title": "Tentativas por passo e desfecho",
+      "description": "Pergunta 1 (US5), o total: cada passo da jornada com quantas concluíram e quantas falharam. Inclui as tentativas sem organização (identificador que não resolveu, sessão que já não existia). AGRUPAR POR CHAVE OPCIONAL DESCARTA A LINHA QUE NÃO A TEM (medido em 2026-10-15): por isso cada quadro agrupa só por chaves presentes em todas as linhas que conta.",
+      "panelTypes": "table",
+      "isStacked": false,
+      "nullZeroValues": "zero",
+      "opacity": "1",
+      "timePreferance": "GLOBAL_TIME",
+      "yAxisUnit": "none",
+      "softMin": null,
+      "softMax": null,
+      "thresholds": [],
+      "fillSpans": false,
+      "selectedLogFields": [],
+      "selectedTracesFields": [],
+      "query": {
+        "queryType": "builder",
+        "id": "9e99f666-0d55-4488-b063-49d355509be6",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "traces",
+              "queryName": "A",
+              "aggregateOperator": "count",
+              "aggregateAttribute": {
+                "key": "",
+                "dataType": "",
+                "type": "",
+                "isColumn": false,
+                "isJSON": false,
+                "id": "------false"
+              },
+              "timeAggregation": "count",
+              "spaceAggregation": "sum",
+              "functions": [],
+              "filters": {
+                "op": "AND",
+                "items": [
+                  {
+                    "id": "795e298c",
+                    "key": {
+                      "key": "journey.name",
+                      "dataType": "string",
+                      "type": "tag",
+                      "isColumn": false,
+                      "isJSON": false,
+                      "id": "journey.name--string--tag--false"
+                    },
+                    "op": "=",
+                    "value": "entrar_e_sair"
+                  }
+                ]
+              },
+              "expression": "A",
+              "disabled": false,
+              "stepInterval": 60,
+              "having": [],
+              "limit": null,
+              "orderBy": [
+                {
+                  "columnName": "#SIGNOZ_VALUE",
+                  "order": "desc"
+                }
+              ],
+              "groupBy": [
+                {
+                  "key": "journey.step",
+                  "dataType": "string",
+                  "type": "tag",
+                  "isColumn": false,
+                  "isJSON": false,
+                  "id": "journey.step--string--tag--false"
+                },
+                {
+                  "key": "outcome",
+                  "dataType": "string",
+                  "type": "tag",
+                  "isColumn": false,
+                  "isJSON": false,
+                  "id": "outcome--string--tag--false"
+                }
+              ],
+              "legend": "",
+              "reduceTo": "sum"
+            }
+          ],
+          "queryFormulas": []
+        },
+        "promql": [
+          {
+            "name": "A",
+            "query": "",
+            "legend": "",
+            "disabled": false
+          }
+        ],
+        "clickhouse_sql": [
+          {
+            "name": "A",
+            "query": "",
+            "legend": "",
+            "disabled": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "809f5f96-7a0c-4b0d-b0eb-93b9e7e4b104",
+      "title": "Recusas por passo e motivo",
+      "description": "Pergunta 1 (US5), o porquê: só as que falharam, por motivo. É aqui que aparece identificador_nao_resolveu (a enumeração de contas), que não tem organização e sumiria de um quadro por organização. AGRUPAR POR CHAVE OPCIONAL DESCARTA A LINHA QUE NÃO A TEM (medido em 2026-10-15): por isso cada quadro agrupa só por chaves presentes em todas as linhas que conta.",
+      "panelTypes": "table",
+      "isStacked": false,
+      "nullZeroValues": "zero",
+      "opacity": "1",
+      "timePreferance": "GLOBAL_TIME",
+      "yAxisUnit": "none",
+      "softMin": null,
+      "softMax": null,
+      "thresholds": [],
+      "fillSpans": false,
+      "selectedLogFields": [],
+      "selectedTracesFields": [],
+      "query": {
+        "queryType": "builder",
+        "id": "edf70012-561a-4ba4-9690-d695ee50eb35",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "traces",
+              "queryName": "A",
+              "aggregateOperator": "count",
+              "aggregateAttribute": {
+                "key": "",
+                "dataType": "",
+                "type": "",
+                "isColumn": false,
+                "isJSON": false,
+                "id": "------false"
+              },
+              "timeAggregation": "count",
+              "spaceAggregation": "sum",
+              "functions": [],
+              "filters": {
+                "op": "AND",
+                "items": [
+                  {
+                    "id": "ab28c9d3",
+                    "key": {
+                      "key": "journey.name",
+                      "dataType": "string",
+                      "type": "tag",
+                      "isColumn": false,
+                      "isJSON": false,
+                      "id": "journey.name--string--tag--false"
+                    },
+                    "op": "=",
+                    "value": "entrar_e_sair"
+                  },
+                  {
+                    "id": "5591dea4",
+                    "key": {
+                      "key": "outcome",
+                      "dataType": "string",
+                      "type": "tag",
+                      "isColumn": false,
+                      "isJSON": false,
+                      "id": "outcome--string--tag--false"
+                    },
+                    "op": "=",
+                    "value": "falhou"
+                  },
+                  {
+                    "id": "26df82b6",
+                    "key": {
+                      "key": "failure.reason",
+                      "dataType": "string",
+                      "type": "tag",
+                      "isColumn": false,
+                      "isJSON": false,
+                      "id": "failure.reason--string--tag--false"
+                    },
+                    "op": "exists",
+                    "value": null
+                  }
+                ]
+              },
+              "expression": "A",
+              "disabled": false,
+              "stepInterval": 60,
+              "having": [],
+              "limit": null,
+              "orderBy": [
+                {
+                  "columnName": "#SIGNOZ_VALUE",
+                  "order": "desc"
+                }
+              ],
+              "groupBy": [
+                {
+                  "key": "journey.step",
+                  "dataType": "string",
+                  "type": "tag",
+                  "isColumn": false,
+                  "isJSON": false,
+                  "id": "journey.step--string--tag--false"
+                },
+                {
+                  "key": "failure.reason",
+                  "dataType": "string",
+                  "type": "tag",
+                  "isColumn": false,
+                  "isJSON": false,
+                  "id": "failure.reason--string--tag--false"
+                }
+              ],
+              "legend": "",
+              "reduceTo": "sum"
+            }
+          ],
+          "queryFormulas": []
+        },
+        "promql": [
+          {
+            "name": "A",
+            "query": "",
+            "legend": "",
+            "disabled": false
+          }
+        ],
+        "clickhouse_sql": [
+          {
+            "name": "A",
+            "query": "",
+            "legend": "",
+            "disabled": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "5b2dfddf-5d7e-4f32-914d-fb7b3c5c85ab",
+      "title": "Por organização",
+      "description": "Pergunta 1 (US5), por organização: só as tentativas em que uma organização foi identificada. As sem organização estão nos dois quadros de cima. user.ref e journey.id nunca são dimensão (S13). AGRUPAR POR CHAVE OPCIONAL DESCARTA A LINHA QUE NÃO A TEM (medido em 2026-10-15): por isso cada quadro agrupa só por chaves presentes em todas as linhas que conta.",
+      "panelTypes": "table",
+      "isStacked": false,
+      "nullZeroValues": "zero",
+      "opacity": "1",
+      "timePreferance": "GLOBAL_TIME",
+      "yAxisUnit": "none",
+      "softMin": null,
+      "softMax": null,
+      "thresholds": [],
+      "fillSpans": false,
+      "selectedLogFields": [],
+      "selectedTracesFields": [],
+      "query": {
+        "queryType": "builder",
+        "id": "9dc996e4-6f87-4114-9c47-bce2a92c8d39",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "traces",
+              "queryName": "A",
+              "aggregateOperator": "count",
+              "aggregateAttribute": {
+                "key": "",
+                "dataType": "",
+                "type": "",
+                "isColumn": false,
+                "isJSON": false,
+                "id": "------false"
+              },
+              "timeAggregation": "count",
+              "spaceAggregation": "sum",
+              "functions": [],
+              "filters": {
+                "op": "AND",
+                "items": [
+                  {
+                    "id": "e01b9f32",
+                    "key": {
+                      "key": "journey.name",
+                      "dataType": "string",
+                      "type": "tag",
+                      "isColumn": false,
+                      "isJSON": false,
+                      "id": "journey.name--string--tag--false"
+                    },
+                    "op": "=",
+                    "value": "entrar_e_sair"
+                  },
+                  {
+                    "id": "36241e8e",
+                    "key": {
+                      "key": "tenant.id",
+                      "dataType": "string",
+                      "type": "tag",
+                      "isColumn": false,
+                      "isJSON": false,
+                      "id": "tenant.id--string--tag--false"
+                    },
+                    "op": "exists",
+                    "value": null
+                  }
+                ]
+              },
+              "expression": "A",
+              "disabled": false,
+              "stepInterval": 60,
+              "having": [],
+              "limit": null,
+              "orderBy": [
+                {
+                  "columnName": "#SIGNOZ_VALUE",
+                  "order": "desc"
+                }
+              ],
+              "groupBy": [
+                {
+                  "key": "tenant.id",
+                  "dataType": "string",
+                  "type": "tag",
+                  "isColumn": false,
+                  "isJSON": false,
+                  "id": "tenant.id--string--tag--false"
+                },
+                {
+                  "key": "journey.step",
+                  "dataType": "string",
+                  "type": "tag",
+                  "isColumn": false,
+                  "isJSON": false,
+                  "id": "journey.step--string--tag--false"
+                },
+                {
+                  "key": "outcome",
+                  "dataType": "string",
+                  "type": "tag",
+                  "isColumn": false,
+                  "isJSON": false,
+                  "id": "outcome--string--tag--false"
+                }
+              ],
+              "legend": "",
+              "reduceTo": "sum"
+            }
+          ],
+          "queryFormulas": []
+        },
+        "promql": [
+          {
+            "name": "A",
+            "query": "",
+            "legend": "",
+            "disabled": false
+          }
+        ],
+        "clickhouse_sql": [
+          {
+            "name": "A",
+            "query": "",
+            "legend": "",
+            "disabled": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "10655f98-b504-4ca8-8691-c17cc9c096db",
+      "title": "Contas que precisam de alguém",
+      "description": "Pergunta 2 (US5): conta sem senha, conta desativada e organização suspensa. Pedem ação de outra pessoa, e sempre têm organização. Para saber QUAL conta, abra os traços com este filtro e leia user.ref no traço; ele nunca é dimensão do painel (S13).",
+      "panelTypes": "table",
+      "isStacked": false,
+      "nullZeroValues": "zero",
+      "opacity": "1",
+      "timePreferance": "GLOBAL_TIME",
+      "yAxisUnit": "none",
+      "softMin": null,
+      "softMax": null,
+      "thresholds": [],
+      "fillSpans": false,
+      "selectedLogFields": [],
+      "selectedTracesFields": [],
+      "query": {
+        "queryType": "builder",
+        "id": "9d6095bb-f14f-43ac-b59e-6cf95b929e96",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "traces",
+              "queryName": "A",
+              "aggregateOperator": "count",
+              "aggregateAttribute": {
+                "key": "",
+                "dataType": "",
+                "type": "",
+                "isColumn": false,
+                "isJSON": false,
+                "id": "------false"
+              },
+              "timeAggregation": "count",
+              "spaceAggregation": "sum",
+              "functions": [],
+              "filters": {
+                "op": "AND",
+                "items": [
+                  {
+                    "id": "55c7d613",
+                    "key": {
+                      "key": "journey.name",
+                      "dataType": "string",
+                      "type": "tag",
+                      "isColumn": false,
+                      "isJSON": false,
+                      "id": "journey.name--string--tag--false"
+                    },
+                    "op": "=",
+                    "value": "entrar_e_sair"
+                  },
+                  {
+                    "id": "1bc545b9",
+                    "key": {
+                      "key": "failure.reason",
+                      "dataType": "string",
+                      "type": "tag",
+                      "isColumn": false,
+                      "isJSON": false,
+                      "id": "failure.reason--string--tag--false"
+                    },
+                    "op": "in",
+                    "value": [
+                      "conta_sem_senha",
+                      "conta_desativada",
+                      "organizacao_suspensa"
+                    ]
+                  },
+                  {
+                    "id": "f7ce83fa",
+                    "key": {
+                      "key": "tenant.id",
+                      "dataType": "string",
+                      "type": "tag",
+                      "isColumn": false,
+                      "isJSON": false,
+                      "id": "tenant.id--string--tag--false"
+                    },
+                    "op": "exists",
+                    "value": null
+                  }
+                ]
+              },
+              "expression": "A",
+              "disabled": false,
+              "stepInterval": 60,
+              "having": [],
+              "limit": null,
+              "orderBy": [
+                {
+                  "columnName": "#SIGNOZ_VALUE",
+                  "order": "desc"
+                }
+              ],
+              "groupBy": [
+                {
+                  "key": "failure.reason",
+                  "dataType": "string",
+                  "type": "tag",
+                  "isColumn": false,
+                  "isJSON": false,
+                  "id": "failure.reason--string--tag--false"
+                },
+                {
+                  "key": "tenant.id",
+                  "dataType": "string",
+                  "type": "tag",
+                  "isColumn": false,
+                  "isJSON": false,
+                  "id": "tenant.id--string--tag--false"
+                }
+              ],
+              "legend": "",
+              "reduceTo": "sum"
+            }
+          ],
+          "queryFormulas": []
+        },
+        "promql": [
+          {
+            "name": "A",
+            "query": "",
+            "legend": "",
+            "disabled": false
+          }
+        ],
+        "clickhouse_sql": [
+          {
+            "name": "A",
+            "query": "",
+            "legend": "",
+            "disabled": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "03014340-8abf-4ce4-90cb-68a6696d87de",
+      "title": "Saídas que falharam",
+      "description": "Pergunta 3 (US5): sair que não encerrou o que devia, por motivo. Sem organização no agrupamento: a saída de uma sessão que já não existia não tem organização. AGRUPAR POR CHAVE OPCIONAL DESCARTA A LINHA QUE NÃO A TEM (medido em 2026-10-15): por isso cada quadro agrupa só por chaves presentes em todas as linhas que conta.",
+      "panelTypes": "table",
+      "isStacked": false,
+      "nullZeroValues": "zero",
+      "opacity": "1",
+      "timePreferance": "GLOBAL_TIME",
+      "yAxisUnit": "none",
+      "softMin": null,
+      "softMax": null,
+      "thresholds": [],
+      "fillSpans": false,
+      "selectedLogFields": [],
+      "selectedTracesFields": [],
+      "query": {
+        "queryType": "builder",
+        "id": "82d2377a-0e89-433d-a9d8-4fa6f8e80e92",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "traces",
+              "queryName": "A",
+              "aggregateOperator": "count",
+              "aggregateAttribute": {
+                "key": "",
+                "dataType": "",
+                "type": "",
+                "isColumn": false,
+                "isJSON": false,
+                "id": "------false"
+              },
+              "timeAggregation": "count",
+              "spaceAggregation": "sum",
+              "functions": [],
+              "filters": {
+                "op": "AND",
+                "items": [
+                  {
+                    "id": "f85ed26b",
+                    "key": {
+                      "key": "journey.name",
+                      "dataType": "string",
+                      "type": "tag",
+                      "isColumn": false,
+                      "isJSON": false,
+                      "id": "journey.name--string--tag--false"
+                    },
+                    "op": "=",
+                    "value": "entrar_e_sair"
+                  },
+                  {
+                    "id": "141ef225",
+                    "key": {
+                      "key": "journey.step",
+                      "dataType": "string",
+                      "type": "tag",
+                      "isColumn": false,
+                      "isJSON": false,
+                      "id": "journey.step--string--tag--false"
+                    },
+                    "op": "=",
+                    "value": "sair"
+                  },
+                  {
+                    "id": "b97cb1c9",
+                    "key": {
+                      "key": "outcome",
+                      "dataType": "string",
+                      "type": "tag",
+                      "isColumn": false,
+                      "isJSON": false,
+                      "id": "outcome--string--tag--false"
+                    },
+                    "op": "=",
+                    "value": "falhou"
+                  },
+                  {
+                    "id": "21037ec4",
+                    "key": {
+                      "key": "failure.reason",
+                      "dataType": "string",
+                      "type": "tag",
+                      "isColumn": false,
+                      "isJSON": false,
+                      "id": "failure.reason--string--tag--false"
+                    },
+                    "op": "exists",
+                    "value": null
+                  }
+                ]
+              },
+              "expression": "A",
+              "disabled": false,
+              "stepInterval": 60,
+              "having": [],
+              "limit": null,
+              "orderBy": [
+                {
+                  "columnName": "#SIGNOZ_VALUE",
+                  "order": "desc"
+                }
+              ],
+              "groupBy": [
+                {
+                  "key": "failure.reason",
+                  "dataType": "string",
+                  "type": "tag",
+                  "isColumn": false,
+                  "isJSON": false,
+                  "id": "failure.reason--string--tag--false"
+                }
+              ],
+              "legend": "",
+              "reduceTo": "sum"
+            }
+          ],
+          "queryFormulas": []
+        },
+        "promql": [
+          {
+            "name": "A",
+            "query": "",
+            "legend": "",
+            "disabled": false
+          }
+        ],
+        "clickhouse_sql": [
+          {
+            "name": "A",
+            "query": "",
+            "legend": "",
+            "disabled": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "302d7dc9-2035-4874-9e59-596abc87289c",
+      "title": "Aberturas da entrada sem tentativa em 30 minutos (abandonou)",
+      "description": "R6 da spec 074: o abandono é consulta, e não é emitido. Conta as aberturas da tela de entrada cujo journey.id não chegou a um entrar_com_senha em até 30 minutos depois da própria abertura. Só aberturas com mais de 30 minutos entram.",
+      "panelTypes": "table",
+      "isStacked": false,
+      "nullZeroValues": "zero",
+      "opacity": "1",
+      "timePreferance": "GLOBAL_TIME",
+      "yAxisUnit": "none",
+      "softMin": null,
+      "softMax": null,
+      "thresholds": [],
+      "fillSpans": false,
+      "selectedLogFields": [],
+      "selectedTracesFields": [],
+      "query": {
+        "queryType": "clickhouse_sql",
+        "id": "27f3d69a-8672-46d4-8f6f-4839e96951a2",
+        "builder": {
+          "queryData": [],
+          "queryFormulas": []
+        },
+        "promql": [
+          {
+            "name": "A",
+            "query": "",
+            "legend": "",
+            "disabled": false
+          }
+        ],
+        "clickhouse_sql": [
+          {
+            "name": "A",
+            "query": "-- R6 da spec 074: aberturas (abrir_a_entrada) cujo journey.id não aparece num entrar_com_senha\n-- em até 30 minutos DEPOIS DA PRÓPRIA abertura. Só conta aberturas com mais de 30 minutos.\n-- Sem nenhuma, a consulta não devolve linha (HAVING), e o quadro fica sem dado, e não com zero.\nSELECT 'abandonou' AS desfecho, count() AS aberturas\nFROM (\n  SELECT attributes_string['journey.id'] AS jid, min(timestamp) AS aberta\n  FROM signoz_traces.distributed_signoz_index_v3\n  WHERE attributes_string['journey.step'] = 'abrir_a_entrada'\n    AND timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}\n  GROUP BY jid\n) AS a\nLEFT JOIN (\n  SELECT attributes_string['journey.id'] AS jid, min(timestamp) AS tentou\n  FROM signoz_traces.distributed_signoz_index_v3\n  WHERE attributes_string['journey.step'] = 'entrar_com_senha'\n    AND timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}} + INTERVAL 30 MINUTE\n  GROUP BY jid\n) AS e ON a.jid = e.jid\nWHERE a.aberta < now() - INTERVAL 30 MINUTE\n  AND (e.tentou = toDateTime64(0, 9) OR e.tentou > a.aberta + INTERVAL 30 MINUTE OR e.tentou < a.aberta)\nHAVING aberturas > 0",
+            "legend": "",
+            "disabled": false
+          }
+        ]
+      }
+    }
+  ],
+  "variables": {},
+  "panelMap": {}
+}
