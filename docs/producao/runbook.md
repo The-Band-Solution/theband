@@ -576,6 +576,11 @@ definitiva: para devolver o papel, concede-se de novo (§13.2).
 
 ## §14 Os papéis do banco — spec 071 (#1131)
 
+> **Enquanto não houver uso em produção, o caminho mais simples é recriar a base**, já com os
+> papéis separados: [recriar-o-banco-com-papeis-separados.md](recriar-o-banco-com-papeis-separados.md)
+> (ensaiado em 2026-10-12). As seções abaixo transferem a posse de uma base existente, sem perder
+> dado.
+
 A aplicação **migra** com um papel dono do esquema e **serve** com outro, sem posse e só com
 leitura e escrita de linhas. Sem isso, quem executasse SQL pela aplicação conseguiria desligar as
 guardas que vivem no banco: os triggers somente-acréscimo, as `CHECK` e as FKs.
