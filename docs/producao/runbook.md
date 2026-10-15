@@ -631,7 +631,17 @@ database system`. Use no lugar o roteiro
 - depois passa o esquema e a base para `the_band_owner`;
 - tudo numa transação, com quatro conferências antes do `COMMIT`, que devem dar 0.
 
-Rode-o pelo `psql` como `postgres`, na base da aplicação, com as duas senhas no lugar de `<…>`.
+Rode-o pelo `psql` como `postgres`, na base da aplicação. Os papéis nascem **sem senha**. Depois
+do `COMMIT`, defina as duas senhas com `\password the_band_owner` e `\password the_band_app`: o
+psql pede cada uma duas vezes, não a mostra, e calcula o hash no cliente. Assim a senha não passa
+pelo histórico, pela tela nem pelo log do Postgres.
+
+Os privilégios de `the_band_app` **não** estão no roteiro: quem os concede é o deploy, com a
+credencial do dono vinda do arquivo (`TheBand.Release.migrate/0`, via `THE_BAND_URL_QUE_SERVE`).
+
+**Depois de a separação estar em vigor (§14.4), gire a senha do `postgres`** pelo serviço de banco
+do Dokploy, e confira que o backup agendado continua rodando. Ela esteve no `DATABASE_URL` desde o
+primeiro deploy, e a separação sozinha não a invalida (risco R1 da avaliação de segurança).
 
 **Ensaio de 2026-10-09**, numa cópia do banco dev, na mesma situação (o `postgres` dono de 81
 tabelas e 43 funções):
