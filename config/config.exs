@@ -25,10 +25,22 @@ config :gettext, :default_locale, "en"
 
 config :the_band, TheBandWeb.Gettext, allowed_locales: ["en", "pt"]
 
+# Os hosts aceitos no pedido (`TheBandWeb.Plugs.HostAceito`). Em produção, o `config/runtime.exs`
+# os troca pelos do `PHX_HOST` e das origens extras.
+config :the_band, :hosts_aceitos, ["localhost", "127.0.0.1"]
+
 # Configure the endpoint
 config :the_band, TheBandWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
+  # HTTP/2 DESLIGADO no Bandit — EEF-CVE-2026-105659 (HIGH, `bandit` 1.12.5, sem versão
+  # consertada em 2026-10-15): o prazo de envio bloqueado se reinicia a cada WINDOW_UPDATE, e um
+  # cliente lento prende processos de stream sem fim. A plataforma não precisa de HTTP/2 aqui:
+  # em produção o TLS e o HTTP/2 do navegador terminam no Traefik, que fala HTTP/1.1 com a
+  # aplicação. Desligado, o defeito não é alcançável nem por quem chega à porta 4000 por dentro
+  # da rede. A guarda é `test/the_band_web/bandit_sem_http2_test.exs`, que fala HTTP/2 com o
+  # servidor e exige a recusa. Volta a valer quando houver versão consertada E motivo para HTTP/2.
+  http: [http_2_options: [enabled: false]],
   render_errors: [
     formats: [html: TheBandWeb.ErrorHTML, json: TheBandWeb.ErrorJSON],
     # O layout RAIZ, e não `false` — issue #437. Sem ele a página de erro chega sem `<head>`,
