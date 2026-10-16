@@ -159,6 +159,23 @@ Não havendo campo, criar uma vez com `createProjectV2Field`, `dataType: ITERATI
 e `iterationConfiguration` contendo `duration` em dias e `startDay`. As iterations
 seguintes são acrescentadas na configuração do campo.
 
+**`updateProjectV2Field.iterationConfiguration` substitui o conjunto INTEIRO, inclusive as
+completas** (L11, reincidente em 002, 023 e 044). Não aceita `id` das existentes. Mandar só a
+nova apaga todas as outras, e os itens delas ficam sem Iteration, em silêncio. "Não há
+iteration ativa" **não** protege as completas: foi a premissa do 044, e custou 536 itens.
+
+Antes de acrescentar uma iteration, nesta ordem:
+
+1. **retrato**: listar todo item do projeto com o título da iteration dele (paginando), e
+   guardar em arquivo;
+2. **a lista completa**: ler `iterations` **e** `completedIterations` (título, `startDate`,
+   `duration`), e mandar **todas** mais a nova na mesma mutação;
+3. **conferir**: os ids mudam sempre. Reatribuir cada item pelo **título** do retrato, com
+   novas tentativas para as falhas de rede, e comparar o quadro com o retrato até dar idêntico.
+
+Se o retrato não puder ser tirado, **não** mexa na configuração. Use a iteration existente e
+registre a limitação no backlog.
+
 Se o projeto não usa Projects v2 com iteração, **registre isso como limitação no
 backlog** em vez de improvisar com label ou milestone. O produto trata a ausência
 como lacuna, e o processo deve fazer o mesmo.

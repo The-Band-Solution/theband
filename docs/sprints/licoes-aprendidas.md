@@ -51,7 +51,8 @@ Ausência de erro não é resultado. O gate precisa saber **reprovar**, e o cami
 | [L69](#l69--defeito-dentro-de-loggerinfo-é-invisível-a-teste-por-configuração) | Defeito dentro de `Logger.info` é invisível a teste, por configuração | técnica | 002 |
 | [L101](#l101--issue-fechada-na-integração-afirma-sobre-a-produção) | Issue fechada na integração afirma sobre a produção | processo | 029 |
 
-**17 abertas** · encerradas ou fundidas: L60
+| [L111](#l111--no-signoz-agrupar-por-chave-opcional-descarta-a-linha-que-não-a-tem) | No SigNoz, agrupar por chave opcional descarta a linha que não a tem | técnica | 044 |
+**18 abertas** · encerradas ou fundidas: L60
 
 ### O número que mente sobre o que mediu
 
@@ -72,7 +73,8 @@ Denominador móvel, medida em curso, total que esconde fenômeno. **Comparar sob
 | [L90](#l90--contar-só-o-vencedor-da-corrida-não-prova-o-perdedor) | Contar só o vencedor da corrida não prova o perdedor | técnica | 026 |
 
 | [L107](#l107--git-log---merges-conta-metade-dos-prs) | `git log --merges` conta metade dos PRs | técnica | 030 |
-**12 abertas**
+| [L112](#l112--um-freio-novo-muda-o-motivo-que-o-alerta-conta) | Um freio novo muda o motivo que o alerta conta | técnica | 044 |
+**13 abertas**
 
 ### Afirmar sem medir na origem
 
@@ -404,6 +406,16 @@ Melhor ainda: criar todas as iterations previstas de uma vez, no início, e não
 tocar mais na configuração enquanto houver sprint aberto.
 
 **Aplicada em**: Sprint 002 — ao mudar a cadência de 14 para 7 dias, em 2026-08-10.
+
+**Reincidência de 2026-10-14 (sprint 044) — a terceira, depois do 002 e do 023.** Não havia
+iteration ativa, e a premissa foi que, sem ativa, as **completas** seriam preservadas. Não foi
+medida, e era falsa: a mutação apagou as seis completas, e os 536 itens ficaram sem Iteration. O
+retrato tirado antes, que é o que esta lição manda, permitiu o reparo: as seis foram recriadas
+com os mesmos títulos e datas, os itens foram reatribuídos pelo título, e a conferência deu 536
+contra 536. Os **ids** antigos se perderam. A lição foi lida antes da mutação, e mesmo assim
+reincidiu. Por isso ela virou **procedimento na própria skill** (`sprint-backlog`, Passo 2):
+reenviar **todas** as iterations, ativas e completas, na mesma mutação, e conferir os ids
+depois (L98).
 
 ### O procedimento que funcionou, e a descoberta que ele revelou
 
@@ -4010,3 +4022,38 @@ mostrado o `nil`. É a L30 dentro da spec: afirmar sobre o dado sem olhar o dado
    sentido da palavra lá. "Label" neste repositório já significava uma coisa antes da 065;
 3. o `/speckit-clarify` passa a perguntar, para toda US com exemplo: *"este exemplo foi
    consultado no dado?"*.
+
+## L111 — No SigNoz, agrupar por chave opcional descarta a linha que não a tem
+
+**Tipo**: técnica · **Origem**: Sprint 044 · **Estado**: aberta
+
+**O que aconteceu.** O primeiro painel da 074 agrupava por `journey.step`, `outcome`,
+`failure.reason` e `tenant.id`. A tela mostrava números plausíveis. Mas as tentativas com
+identificador que não resolve (sem organização), a saída de sessão inexistente e **todo sucesso**
+(sem motivo) não apareciam: o SigNoz descarta, sem aviso, a linha que não tem uma das chaves do
+agrupamento. O quadro escondia justamente a enumeração de contas.
+
+**Por que aconteceu.** O agrupamento foi desenhado pela pergunta, e não pela forma do dado. Uma
+chave que existe só em parte das linhas não serve de dimensão sem filtro.
+
+**O que fazer diferente.** Conferir o quadro contra o que foi produzido, e não contra o que parece
+plausível: contar à mão as tentativas e comparar linha por linha. Agrupar por chave opcional só
+depois de filtrar por ela (`exists`). A guarda está em `signoz_artefatos_test.exs`, regra 3.
+
+## L112 — Um freio novo muda o motivo que o alerta conta
+
+**Tipo**: técnica · **Origem**: Sprint 044 · **Estado**: aberta
+
+**O que aconteceu.** O alerta de enumeração contava `identificador_nao_resolveu`. Na campanha de
+teste, com o limite por origem (077) ligado no ambiente de desenvolvimento, 190 das 200 tentativas
+foram recusadas **antes** de resolver o identificador, como `limite_por_origem`. O alerta não
+disparou. Quando a produção ligar o limite (#1407), ele ficaria cego exatamente quando o freio
+está agindo.
+
+**Por que aconteceu.** O alerta foi escrito para o mundo de antes do freio. Um mecanismo novo de
+recusa troca o motivo registrado, e nada avisa o que contava o motivo antigo.
+
+**O que fazer diferente.** Ao introduzir um freio, uma recusa ou um motivo novo, procurar quem
+conta os motivos antigos (painéis, alertas, medidas) e conferir com uma campanha real, com o freio
+**ligado**. Contar o ataque pelos dois motivos. A guarda está em `signoz_artefatos_test.exs`,
+regra 4.

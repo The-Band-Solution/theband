@@ -30,7 +30,7 @@ defmodule TheBandWeb.BanditSemHttp2Test do
     Application.fetch_env!(:the_band, TheBandWeb.Endpoint) |> Keyword.fetch!(:http)
   end
 
-  defp resposta_ao_preambulo(http_2_options) do
+  defp resposta_ao_preambulo(http_2_options, espera \\ 2_000) do
     {:ok, servidor} =
       Bandit.start_link(
         plug: Ok,
@@ -45,7 +45,7 @@ defmodule TheBandWeb.BanditSemHttp2Test do
     :ok = :gen_tcp.send(socket, @preambulo <> @settings_vazio)
 
     resposta =
-      case :gen_tcp.recv(socket, 0, 2_000) do
+      case :gen_tcp.recv(socket, 0, espera) do
         {:ok, bytes} -> bytes
         {:error, motivo} -> {:sem_resposta, motivo}
       end
@@ -70,6 +70,9 @@ defmodule TheBandWeb.BanditSemHttp2Test do
 
   test "o controle: com o HTTP/2 ligado, o mesmo preâmbulo recebe o SETTINGS do servidor" do
     # Sem este controle, um teste que nunca recebesse resposta passaria pelo motivo errado.
-    assert settings_do_servidor?(resposta_ao_preambulo(enabled: true))
+    # A espera é maior aqui porque este é o lado que precisa da resposta: sob a carga da suíte
+    # completa, 2 s não bastaram (#1436, 2026-10-15). Esperar mais não afrouxa nada, porque só
+    # o SETTINGS do servidor faz este teste passar.
+    assert settings_do_servidor?(resposta_ao_preambulo([enabled: true], 15_000))
   end
 end

@@ -1,0 +1,52 @@
+{
+  "alert": "Enumeração de contas: tentativas de entrada sem conta, ou freadas pela origem, acima do limiar",
+  "alertType": "TRACES_BASED_ALERT",
+  "ruleType": "threshold_rule",
+  "version": "v5",
+  "evalWindow": "1m0s",
+  "frequency": "1m0s",
+  "condition": {
+    "compositeQuery": {
+      "queryType": "builder",
+      "panelType": "graph",
+      "unit": "",
+      "queries": [
+        {
+          "type": "builder_query",
+          "spec": {
+            "name": "A",
+            "signal": "traces",
+            "stepInterval": 60,
+            "aggregations": [
+              {
+                "expression": "count()"
+              }
+            ],
+            "filter": {
+              "expression": "journey.name = 'entrar_e_sair' AND failure.reason IN ('identificador_nao_resolveu', 'limite_por_origem')"
+            },
+            "groupBy": [],
+            "disabled": false
+          }
+        }
+      ]
+    },
+    "op": "1",
+    "target": 30,
+    "matchType": "1",
+    "selectedQueryName": "A"
+  },
+  "labels": {
+    "severity": "warning",
+    "jornada": "entrar_e_sair"
+  },
+  "annotations": {
+    "summary": "Muitas tentativas de entrada com identificador que não identifica conta, ou recusadas pelo limite por origem.",
+    "description": "Mais de 30 tentativas em um minuto com identificador_nao_resolveu OU limite_por_origem, na plataforma inteira. É o padrão de quem testa e-mails para descobrir quais têm conta (enumeração). O identificador que não resolve não entra em espera (045 FR-016). POR QUE OS DOIS MOTIVOS: com o limite por origem (077) ligado, depois de 10 falhas a origem é recusada ANTES de resolver o identificador, e a campanha passa a aparecer como limite_por_origem (medido em 2026-10-15: 200 tentativas, 10 como identificador_nao_resolveu e 190 como limite_por_origem). Contar só um motivo deixaria o alerta cego exatamente quando o freio está agindo. POR QUE 30: quem erra o próprio e-mail gera uma ou duas por minuto; 30 por minuto na plataforma inteira está muito acima do erro humano, e muito abaixo das 200 por minuto de uma campanha (o cenário da T023). Abra o painel 'Entrar e sair' e os traços com esses motivos. Este texto não leva nenhum atributo de traço, de propósito (FR-013; seguranca.md, S8)."
+  },
+  "preferredChannels": [
+    "quem-opera"
+  ],
+  "disabled": false,
+  "source": "deploy/signoz/alertas/enumeracao.json"
+}
