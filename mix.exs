@@ -21,10 +21,11 @@ defmodule TheBand.MixProject do
       # RISCO RESIDUAL ACEITO, e não falso positivo — decisão da pessoa mantenedora em
       # 2026-09-24; medição em `specs/062-servidor-mcp/r3-cowlib-alcance.md`.
       #
-      # `ex_mcp 1.5.0` exige `plug_cowboy`, que traz `cowlib 2.20.0` com duas advisories
-      # SEM correção upstream (o mantenedor do Cowlib recusou: ninenines/cowlib #152, #166,
-      # #169). As duas são CODIFICADORES: `cow_http_struct_hd:escape_string/2` (43966) e o
-      # `Cookie:` de cliente em `cow_cookie:cookie/1` (43969).
+      # `ex_mcp` exige `plug_cowboy`, e desde a 1.7.3 também `cowlib ~> 2.20` direto. O `cowlib`
+      # 2.21.0 ainda tem o 43966 SEM correção upstream (o mantenedor do Cowlib recusou:
+      # ninenines/cowlib #152, #166, #169). É CODIFICADOR: `cow_http_struct_hd:escape_string/2`.
+      # O 43969 (`cow_cookie:cookie/1`) foi consertado no 2.21.0 e saiu da lista em 2026-10-27
+      # (issue #1439).
       #
       # Não alcançáveis aqui, medido com trace de chamadas e controle positivo: o endpoint é
       # servido pelo Bandit (`config/config.exs`, `adapter: Bandit.PhoenixAdapter`), o
@@ -40,7 +41,8 @@ defmodule TheBand.MixProject do
       #   2. algum listener Cowboy for iniciado: `Plug.Cowboy.http/https`,
       #      `ExMCP.Server.Transport.start_server/4`, ou `transport: :http` num handler da DSL;
       #   3. algum código deste repositório, ou dependência nova, chamar `:cow_*` ou usar `gun`;
-      #   4. a `ex_mcp` mudar de versão (fixada em `== 1.5.0`): a medição vale para ela.
+      #   4. a `ex_mcp` mudar de versão (fixada em `== 1.7.3`): a medição vale para ela. A da
+      #      1.5.0 foi refeita para a 1.7.3 em 2026-10-27 (`specs/062-servidor-mcp/r3-cowlib-alcance.md`).
       # E sai sozinha quando a `ex_mcp` tornar o Cowboy opcional (anunciado para a 2.0): o
       # `hex.audit` avisa que a entrada ficou obsoleta — foi assim que o H11 apareceu.
       #
@@ -62,26 +64,16 @@ defmodule TheBand.MixProject do
       hex: [
         ignore_advisories: [
           "EEF-CVE-2026-43966",
-          "EEF-CVE-2026-43969",
           "EEF-CVE-2026-95105",
-          "EEF-CVE-2026-94206",
-          # RISCO RESIDUAL ACEITO — decisão da pessoa mantenedora em 2026-10-15 (§14.0):
-          # `bandit` 1.12.5, EEF-CVE-2026-105659 (HIGH), sem versão consertada. O defeito é do
-          # HTTP/2, que está DESLIGADO no endpoint (`config/config.exs`). A guarda é
-          # `test/the_band_web/bandit_sem_http2_test.exs`, que fala HTTP/2 com o servidor e exige
-          # a recusa, com controle positivo. CAI se o HTTP/2 for religado ou se o `bandit` mudar
-          # de versão: com o conserto, o `hex.audit` avisa que a entrada ficou obsoleta.
-          "EEF-CVE-2026-105659",
-          # RISCO RESIDUAL ACEITO — decisão da pessoa mantenedora em 2026-10-15 (§14.0):
-          # `bandit` 1.12.5, EEF-CVE-2026-105660 (MEDIUM), sem versão consertada: o pedido HTTP/1
-          # em forma absoluta deixa o cliente escolher `conn.host`. A plataforma não lê o host da
-          # conexão; o `force_ssl` redireciona para o host configurado (`config/prod.exs`), e o
-          # plug `TheBandWeb.Plugs.HostAceito` recusa host fora da lista. A guarda é
-          # `test/the_band_web/host_aceito_test.exs`. CAI se o plug sair do endpoint, se o
-          # `force_ssl` perder o `:host`, ou se o `bandit` mudar de versão.
-          "EEF-CVE-2026-105660"
+          "EEF-CVE-2026-94206"
         ]
       ]
+      # As exceções do `bandit` 1.12.5 (EEF-CVE-2026-105659, HTTP/2; EEF-CVE-2026-105660, host da
+      # forma absoluta) viveram aqui de 2026-10-15 a 2026-10-27, e saíram com o `bandit` 1.14.0,
+      # que conserta as duas (issue #1439). O HTTP/2 desligado e o `HostAceito` FICAM, como
+      # endurecimento: as guardas continuam em `bandit_sem_http2_test.exs` e `host_aceito_test.exs`.
+      # A lista exata é guardada por `test/the_band/dependencias_consertadas_test.exs` (G9).
+      #
       # A exceção de `CVE-2026-32686` viveu aqui de 2026-09-08 a 2026-09-20, e saiu **pelo
       # sinal que ela mesma declarava**: `mix hex.audit` passou a dizer que a entrada não
       # casa com nenhum aviso das dependências travadas.
@@ -223,11 +215,13 @@ defmodule TheBand.MixProject do
       # com 586 downloads.
       #
       # **O que fica pior**: é biblioteca jovem e em movimento — 1.3.0 em 2026-09-05, 1.4.0 em
-      # 09-17, 1.5.0 em 09-21, uma versão a cada ~7 dias. Por isso **fixada em `== 1.5.0`**, e
+      # 09-17, 1.5.0 em 09-21, uma versão a cada ~7 dias. Por isso **fixada em versão exata**, e
       # não `~> 1.5`: com o til, uma 1.x nova entraria sem que a medição do `cowlib` fosse
       # refeita. **A mitigação é a camada fina**: as respostas vivem em `lib/the_band/mcp/`, que
       # não conhece a biblioteca, e trocá-la é trabalho de adaptador.
-      {:ex_mcp, "== 1.5.0"},
+      # 1.7.3 desde 2026-10-27 (issue #1439): a 1.5.0 foi RETIRADA (GHSA-22m7-hr37-pxg3), e a
+      # 1.6.x, a 1.7.0 e a 1.7.2 também. Medido com `mix hex.audit` sobre o lock resolvido.
+      {:ex_mcp, "== 1.7.3"},
       # A telemetria da jornada — spec 074, T004; ADR 0005 (E6) e seguranca.md (S9), aceitas em
       # 2026-10-03 (D5). Versão EXATA nas três diretas: o `TheBand.Telemetria.Exportador` lê o
       # registro `span` do SDK, e uma versão nova só entra com o teste das sentinelas refeito.

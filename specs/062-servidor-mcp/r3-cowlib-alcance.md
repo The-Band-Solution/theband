@@ -232,3 +232,53 @@ As condições 1 e 2 viram teste, senão a exceção sobrevive à mudança que a
   responde sobre `jose`, `mint_web_socket`, `ex_json_schema`, nem sobre o código de stdio/ACP
   (`System.cmd`/`Port.open`) que entra no release.
 - **`mix gates` não foi rodado**: nada mudou no repositório além deste arquivo.
+
+---
+
+## Refeita para a `ex_mcp` 1.7.3 · 2026-10-27, issue #1439
+
+A condição 4 da exceção mandava refazer esta medição quando a `ex_mcp` mudasse de versão. Mudou: a
+1.5.0 foi **retirada** (GHSA-22m7-hr37-pxg3), e a 1.6.x, a 1.7.0 e a 1.7.2 também. A versão nova é
+a 1.7.3, com `bandit` 1.14.0, `cowlib` 2.21.0, `cowboy` 2.20.0, `plug_cowboy` 2.9.0 e `ranch` 2.3.0
+— resolvidas pelo `mix.lock` do conserto, copiado para o rascunho, e conferidas no lock.
+
+**Por que importa refazer**: a 1.7.3 passou a exigir `cowlib ~> 2.20` **direto**, e não só pelo
+`plug_cowboy`. E o `cowlib` 2.21.0 consertou o 43969 (saiu da lista), mas continua com o 43966.
+
+### Estático
+
+| Pergunta | Comando | Resultado |
+|---|---|---|
+| a `ex_mcp` chama `:cow_*`? | `grep -rn ":cow_" ex_mcp/lib` | **saída 1**, nenhum |
+| onde a `ex_mcp` toca Cowboy/ranch? | `grep -rnE "Plug\.Cowboy\|:ranch\|:cowboy" ex_mcp/lib` | `http_plug.ex:30` (exemplo no `@moduledoc`) e `server/transport.ex:129,184,204,315` — os mesmos pontos da 1.5.0, o transporte standalone que não iniciamos |
+| quem chama o codificador do 43966? | `grep -rnE "cow_http_struct_hd:(item\|list\|dictionary\|escape_string)"` em `cowlib`, `cowboy`, `plug_cowboy`, `ex_mcp`, `bandit` | **novo no 2.21.0**: quatro funções de `cow_http_hd` — `variant_key/1`, `variants/1`, `wt_available_protocols/1`, `wt_protocol/1` |
+| e quem chama essas quatro? | `grep -rnE "cow_http_hd:<função>\("` nas mesmas cinco | **zero** chamadores em cada uma |
+
+### Dinâmico, com controle positivo
+
+O mesmo desenho da medição de 2026-09-24, refeito em `scratchpad/r3probe-173` (fora do
+repositório): trace de chamada em **todos os 77 módulos** de `cowlib`, `cowboy`, `ranch`,
+`plug_cowboy` e `cowboy_telemetry`; um `Plug.Router` com `forward "/mcp", to: ExMCP.HttpPlug`
+(`protocol_mode: :modern_only`, como `TheBandWeb.MCP.Porta`) e um `ExMCP.Server.Handler` com uma
+ferramenta; Bandit em `:48123` e, como controle, o **mesmo** router sob `Plug.Cowboy.http/3` em
+`:48124`. Carga na revisão 2026-07-28, com os cabeçalhos que `protocolo_test.exs` documenta:
+`tools/list`, `tools/call`, `server/discover`, `notifications/cancelled`, versão de protocolo
+antiga, JSON malformado, `GET` e `DELETE`, com `Cookie` e `mcp-session-id`.
+
+`mix run --no-start -e 'R3.Run.main()'` → **código de saída 0** (sai 0 só se o `ranch` não tiver
+listener, o Bandit tiver zero chamadas, o controle tiver mais que zero, e o plug tiver executado):
+
+| | Respostas | Chamadas a cowlib/cowboy/ranch/plug_cowboy |
+|---|---|---|
+| `:ranch.info()` depois de `ensure_all_started(:ex_mcp)` | — | `%{}`, nenhum listener |
+| **Bandit** | 200, 200, 200, 404, 400, 400, 405, 405 — `tools/list` e `tools/call` com corpo real | **0 funções** |
+| **Cowboy (controle)** | as mesmas | **54 funções**, em `cow_http`, `cow_http1`, `cow_http_hd`, `cow_http_te`, `cowboy_*`, `ranch_*`, `Plug.Cowboy.*` |
+
+Nem o controle tocou `cow_http_struct_hd` ou `cow_cookie`.
+
+**Conclusão**: as quatro condições da exceção do 43966 continuam valendo com a 1.7.3. O teste 4 de
+`test/the_band/cowlib_inalcancavel_test.exs` passa a exigir `1.7.3`, **depois** desta medição.
+
+**O que não verifiquei, além do que a seção anterior já lista**: o The Band real sob trace (de novo
+foi um rascunho); `mix deps.audit` no rascunho; e a carga sem a sessão negociada pelo cliente real
+de produção.

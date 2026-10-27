@@ -1,12 +1,13 @@
 defmodule TheBand.CowlibInalcancavelTest do
   @moduledoc """
-  A GUARDA da exceção registrada em `mix.exs` para `EEF-CVE-2026-43966` e
-  `EEF-CVE-2026-43969`, as duas do `cowlib` 2.20.0 — feature 062, T001, R3.
+  A GUARDA da exceção registrada em `mix.exs` para `EEF-CVE-2026-43966`, do
+  `cowlib` — a 43969 foi consertada no 2.21.0 e saiu em 2026-10-27 — feature 062, T001, R3.
 
-  A medição de 2026-09-24 (`specs/062-servidor-mcp/r3-cowlib-alcance.md`) concluiu que as duas
+  A medição de 2026-09-24 (`specs/062-servidor-mcp/r3-cowlib-alcance.md`) concluiu que as
   advisories atingem **codificadores** que nada nesta aplicação chama. O endpoint é servido pelo
   Bandit, e o `ExMCP.HttpPlug` roda sob ele sem tocar em função nenhuma de
-  cowlib/cowboy/ranch. O trace fez zero chamadas, e o controle, sob Cowboy, fez 85.
+  cowlib/cowboy/ranch. O trace fez zero chamadas, e o controle, sob Cowboy, fez 85 (54 na
+  medição refeita para a 1.7.3).
 
   **Uma exceção na auditoria sem guarda é uma data esperando ser esquecida** — é o
   `decimal_limitado_test.exs` de novo. Estes testes não testam código nosso: testam as
@@ -16,7 +17,8 @@ defmodule TheBand.CowlibInalcancavelTest do
      silêncio**, porque o `plug_cowboy` agora está instalado;
   2. nenhum listener Cowboy está de pé;
   3. nenhum código de `lib/` ou `config/` inicia Cowboy, fala `:cow_*` ou usa `gun`;
-  4. a `ex_mcp` é a 1.5.0 medida, fixada.
+  4. a `ex_mcp` é a 1.7.3 medida, fixada. A 1.5.0 foi medida em 2026-09-24; a 1.7.3, em
+     2026-10-27 (issue #1439), na seção final da R3.
 
   ## Por que a varredura lê a AST, e não o texto
 
@@ -33,7 +35,7 @@ defmodule TheBand.CowlibInalcancavelTest do
 
     Sem `adapter: Bandit.PhoenixAdapter` em `config/config.exs`, o Phoenix usa o
     `Cowboy2Adapter` por padrão, e o `plug_cowboy` agora existe: a borda passaria a ser o
-    Cowboy, com o `cowlib` das duas advisories. A exceção em `mix.exs` CAI com isto (condição
+    Cowboy, com o `cowlib` da advisory. A exceção em `mix.exs` CAI com isto (condição
     1), e sai no mesmo PR.
     """
   end
@@ -74,8 +76,8 @@ defmodule TheBand.CowlibInalcancavelTest do
     """
   end
 
-  test "4. a ex_mcp é a 1.5.0 medida, e está fixada" do
-    assert to_string(Application.spec(:ex_mcp, :vsn)) == "1.5.0"
+  test "4. a ex_mcp é a 1.7.3 medida, e está fixada" do
+    assert to_string(Application.spec(:ex_mcp, :vsn)) == "1.7.3"
 
     requisito =
       Enum.find_value(Mix.Project.config()[:deps], fn
@@ -84,10 +86,10 @@ defmodule TheBand.CowlibInalcancavelTest do
         _ -> nil
       end)
 
-    assert requisito == "== 1.5.0", """
-    A `ex_mcp` está declarada como #{inspect(requisito)}, e não `== 1.5.0`.
+    assert requisito == "== 1.7.3", """
+    A `ex_mcp` está declarada como #{inspect(requisito)}, e não `== 1.7.3`.
 
-    Com `~> 1.5`, uma 1.x nova entraria sem que a medição do `cowlib` fosse refeita. A
+    Com `~> 1.7`, uma 1.x nova entraria sem que a medição do `cowlib` fosse refeita. A
     exceção vale para a versão medida (condição 4).
     """
   end
