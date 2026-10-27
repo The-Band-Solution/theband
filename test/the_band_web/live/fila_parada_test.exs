@@ -16,7 +16,12 @@ defmodule TheBandWeb.FilaParadaTest do
   # reconferência consulta justamente `oban_jobs`. Conta só as consultas de `Saude.leitura/2`
   # (o `max(completed_at)` e o `min(scheduled_at)`). Registrado em
   # `test/contador_de_consultas_unico_test.exs`, na lista de capturas.
-  defp conferencias_em(fun) do
+  #
+  # Cada conferência vira uma MENSAGEM, com o instante em que aconteceu (#1436). O teste espera a
+  # mensagem, e não uma janela de tempo: sob a carga da suíte completa, 130 ms podiam passar sem
+  # conferência nenhuma. `Saude.leitura/2` faz o `max(completed_at)` exatamente uma vez por
+  # chamada, então uma mensagem é uma conferência.
+  defp observar_conferencias do
     ref = make_ref()
     pai = self()
 
@@ -24,22 +29,23 @@ defmodule TheBandWeb.FilaParadaTest do
       {__MODULE__, ref},
       [:the_band, :repo, :query],
       fn _e, _m, %{query: q}, _c ->
-        if q =~ "oban_jobs" and (q =~ "max(" or q =~ "min("), do: send(pai, {ref, :conferencia})
+        if q =~ "oban_jobs" and q =~ "max(",
+          do: send(pai, {ref, :conferencia, System.monotonic_time(:millisecond)})
       end,
       nil
     )
 
-    fun.()
-    :telemetry.detach({__MODULE__, ref})
-    drenar(ref, 0)
+    on_exit(fn -> :telemetry.detach({__MODULE__, ref}) end)
+    ref
   end
 
-  defp drenar(ref, n) do
-    receive do
-      {^ref, :conferencia} -> drenar(ref, n + 1)
-    after
-      0 -> n
-    end
+  # O prazo é teto contra travar, não a medida: a conferência chega em ~40 ms quando tudo anda.
+  defp proxima_conferencia(ref) do
+    assert_receive {^ref, :conferencia, em},
+                   5_000,
+                   "nenhuma conferência observada: o teste não mediu nada"
+
+    em
   end
 
   setup %{conn: conn} do
@@ -131,8 +137,11 @@ defmodule TheBandWeb.FilaParadaTest do
       {:ok, live, html} = live(conn, ~p"/syncs")
       assert html =~ "The job queue has not moved"
 
+      ref = observar_conferencias()
       completado_ha(0)
-      Process.sleep(120)
+      # A segunda, porque a primeira pode ter consultado antes do INSERT acima.
+      proxima_conferencia(ref)
+      proxima_conferencia(ref)
       refute render(live) =~ "The job queue has not moved"
       assert render(live) =~ "Job queue moving"
     end
@@ -143,18 +152,23 @@ defmodule TheBandWeb.FilaParadaTest do
       completado_ha(1)
       {:ok, live, _html} = live(conn, ~p"/syncs")
 
-      # Vinte eventos que fazem a tela recarregar. Se cada um armasse um timer, a janela abaixo
-      # veria dezenas de conferências, e não duas ou três.
+      # Vinte eventos que fazem a tela recarregar. Se cada um armasse um timer, as conferências
+      # seguintes chegariam amontoadas, várias no mesmo milissegundo.
+      ref = observar_conferencias()
       for _ <- 1..20, do: send(live.pid, {:sync_finished, Ecto.UUID.generate()})
       _ = render(live)
 
-      n = conferencias_em(fn -> Process.sleep(130) end)
+      # Com UM timer, rearmado só no `handle_info`, duas conferências seguidas distam ao menos os
+      # 40 ms do timer. A carga só alonga esse intervalo, nunca o encurta, e por isso a medida não
+      # depende do relógio da máquina. A folga de 10 ms cobre a consulta, que vem depois do rearme.
+      instantes = for _ <- 1..4, do: proxima_conferencia(ref)
 
-      # Com UM timer de 40 ms, 130 ms dão três conferências, cada uma com até duas consultas.
-      assert n > 0, "nenhuma conferência observada: o teste não mediu nada"
+      intervalos =
+        instantes |> Enum.chunk_every(2, 1, :discard) |> Enum.map(fn [a, b] -> b - a end)
 
-      assert n <= 8,
-             "#{n} consultas da conferência em 130 ms: o timer está sendo rearmado fora do handle_info"
+      assert Enum.all?(intervalos, &(&1 >= 30)),
+             "conferências a #{inspect(intervalos)} ms uma da outra, com o timer em 40 ms: " <>
+               "o timer está sendo rearmado fora do handle_info"
     end
   end
 end
