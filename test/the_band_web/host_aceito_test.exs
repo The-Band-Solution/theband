@@ -2,7 +2,8 @@ defmodule TheBandWeb.HostAceitoTest do
   @moduledoc """
   O host da conexão fica na lista aceita — EEF-CVE-2026-105660 (MEDIUM, `bandit` 1.12.5): um
   pedido HTTP/1 em forma absoluta (`GET http://outro/x HTTP/1.1`) deixa o cliente escolher
-  `conn.host`. É a guarda da exceção desta advisory na auditoria (`mix.exs`).
+  `conn.host`. Foi a guarda da exceção desta advisory na auditoria até 2026-10-27, quando o
+  `bandit` 1.14.0 a consertou (issue #1439); fica como guarda da defesa em profundidade.
 
   Três camadas, cada uma vista reprovando com o defeito injetado:
 

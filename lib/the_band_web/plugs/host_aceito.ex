@@ -1,7 +1,9 @@
 defmodule TheBandWeb.Plugs.HostAceito do
   @moduledoc """
-  Recusa o pedido cujo host da conexão não está na lista aceita — EEF-CVE-2026-105660 (MEDIUM,
-  `bandit` 1.12.5, sem versão consertada em 2026-10-15).
+  Recusa o pedido cujo host da conexão não está na lista aceita. Nasceu pelo EEF-CVE-2026-105660
+  (MEDIUM, `bandit` 1.12.5). O `bandit` 1.13.0 passou a validar a gramática da autoridade, mas o
+  cliente continua escolhendo o host, e por isso este plug fica como defesa em profundidade
+  (issue #1439).
 
   Um pedido HTTP/1 em forma absoluta (`GET http://outro/x HTTP/1.1`) deixa o cliente escolher
   `conn.host` e `conn.port`. O código da plataforma não lê o host da conexão (os links saem do

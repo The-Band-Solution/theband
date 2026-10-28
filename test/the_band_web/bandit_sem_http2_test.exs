@@ -1,8 +1,9 @@
 defmodule TheBandWeb.BanditSemHttp2Test do
   @moduledoc """
-  O servidor da aplicação não fala HTTP/2 — EEF-CVE-2026-105659 (HIGH, `bandit` 1.12.5, sem versão
-  consertada em 2026-10-15). O defeito está no HTTP/2 do Bandit: o prazo de envio bloqueado se
-  reinicia a cada WINDOW_UPDATE, e um cliente lento prende processos de stream sem fim.
+  O servidor da aplicação não fala HTTP/2. Nasceu pelo EEF-CVE-2026-105659 (HIGH, `bandit`
+  1.12.5): o prazo de envio bloqueado se reiniciava a cada WINDOW_UPDATE. O 1.13.0 consertou, mas
+  em 2026-10-27 vieram mais seis avisos HIGH só de HTTP/2 (issue #1439), e o HTTP/2 desligado
+  passou a ser endurecimento: a próxima falha dele não nos alcança.
 
   A mitigação é `http_2_options: [enabled: false]`, no endpoint (`config/config.exs`). Este teste
   não confere a linha da configuração, e sim **o comportamento**: sobe um Bandit com as opções de
@@ -10,8 +11,8 @@ defmodule TheBandWeb.BanditSemHttp2Test do
   `PRI * HTTP/2.0` seguido de um quadro SETTINGS vazio). Com HTTP/2 ligado, o servidor responde
   com o próprio SETTINGS. Desligado, ele não responde como HTTP/2.
 
-  É a guarda da exceção desta advisory na auditoria de dependências (`mix.exs`): se o HTTP/2
-  voltar a ser ligado, a premissa da exceção cai, e este teste reprova.
+  Desde 2026-10-27 não guarda exceção nenhuma na auditoria: guarda a decisão de não falar HTTP/2.
+  Se ele voltar a ser ligado sem decisão da pessoa mantenedora, este teste reprova.
   """
   use ExUnit.Case, async: true
 

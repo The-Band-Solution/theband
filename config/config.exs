@@ -33,13 +33,13 @@ config :the_band, :hosts_aceitos, ["localhost", "127.0.0.1"]
 config :the_band, TheBandWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
-  # HTTP/2 DESLIGADO no Bandit — EEF-CVE-2026-105659 (HIGH, `bandit` 1.12.5, sem versão
-  # consertada em 2026-10-15): o prazo de envio bloqueado se reinicia a cada WINDOW_UPDATE, e um
-  # cliente lento prende processos de stream sem fim. A plataforma não precisa de HTTP/2 aqui:
-  # em produção o TLS e o HTTP/2 do navegador terminam no Traefik, que fala HTTP/1.1 com a
-  # aplicação. Desligado, o defeito não é alcançável nem por quem chega à porta 4000 por dentro
-  # da rede. A guarda é `test/the_band_web/bandit_sem_http2_test.exs`, que fala HTTP/2 com o
-  # servidor e exige a recusa. Volta a valer quando houver versão consertada E motivo para HTTP/2.
+  # HTTP/2 DESLIGADO no Bandit — ENDURECIMENTO, e não mais exceção. Nasceu em 2026-10-15 pelo
+  # EEF-CVE-2026-105659 (HIGH, `bandit` 1.12.5), consertado no 1.13.0; em 2026-10-27 vieram mais
+  # seis avisos HIGH só de HTTP/2 (issue #1439): 7 dos 13 avisos do Bandit em 12 dias. A plataforma
+  # não precisa de HTTP/2 aqui: em produção o TLS e o HTTP/2 do navegador terminam no Traefik, que
+  # fala HTTP/1.1 com a aplicação. Desligado, a próxima falha do HTTP/2 do Bandit não é alcançável
+  # nem por quem chega à porta 4000 por dentro da rede. A guarda é
+  # `test/the_band_web/bandit_sem_http2_test.exs`. Religar é decisão da pessoa mantenedora.
   http: [http_2_options: [enabled: false]],
   render_errors: [
     formats: [html: TheBandWeb.ErrorHTML, json: TheBandWeb.ErrorJSON],
